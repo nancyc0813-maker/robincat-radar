@@ -312,6 +312,14 @@ let _saveAt = 0, _saveDirty = false, _saveT = null;
 
 const save = () => { _saveDirty = true; if (_saveT) return; const wait = Math.max(0, 3000 - (Date.now() - _saveAt)); _saveT = setTimeout(() => { _saveT = null; if (_saveDirty) saveNow(); }, wait); };
 process.on('exit', () => { if (_saveDirty) saveNow(); });
+function hidAllChk(boot) { /*V101-4：钱包全部删除（隐藏）＝没有钱包 → 这些钱包的持仓不会再自动止盈止损、也不会再提醒；提醒一次（TG＋雷达通知条，只提醒，不改任何设定）。开机＋删除／新增钱包当下检查 */ try {
+  const hf = join(DIR, 'data', 'hid_all.json'); const all = !WALLETS.length && wHidden.size > 0; const pos = all ? (S.dyn || []).filter((x) => x && !x.closed && (!x.only || wHidden.has(String(x.only).toLowerCase()))) : [];
+  if (pos.length) { const sig = [...wHidden].sort().join(','); const syms = [...new Set(pos.map((x) => String(x.sym || '').slice(0, 20)))].slice(0, 10); /* 技术用：通知里最多列几个代号（只是显示） */ let o = null; try { o = JSON.parse(readFileSync(hf, 'utf8')); } catch {}
+    if (!o || o.sig !== sig || o.n !== pos.length) { try { mkdirSync(join(DIR, 'data'), { recursive: true }); writeFileSync(hf, JSON.stringify({ at: o && o.sig === sig ? o.at : Date.now(), sig, n: pos.length, syms })); } catch {} }
+    if (S.hidAllSig !== sig) { S.hidAllSig = sig; save(); setTimeout(() => { tg(`⚠️ 你把雷达的钱包全部删除了：雷达现在等于没有钱包。\n这些钱包的持仓不会再自动卖（${pos.length} 个：${syms.join('、')}），也不会再止盈止损、提醒；币还在你的钱包里。\n要恢复：到雷达「设定 → 钱包」把钱包加回来；或自己到钱包里卖`).catch(() => {}); }, boot ? HID_TG_WAIT : 0); } }
+  else { try { if (existsSync(hf)) unlinkSync(hf); } catch {} if (S.hidAllSig) { delete S.hidAllSig; save(); } } } catch {} }
+const HID_TG_WAIT = 20e3; /*V101-4 技术用：开机后等 TG 连线好再发这则提醒（不是交易数字）*/
+hidAllChk(1);
 try { dynOwn(); } catch (e) { log('dynOwn ' + e.message); } /*RISK-FIX2-3 开机补一次*/ // 先写暂存档再换名，当机也不会把状态档写坏
 
 // ---------- 持仓 ----------
@@ -374,6 +382,10 @@ const fmtUnits = (v, d) => { v = BigInt(v); if (v < 0n) v = 0n; const D = 10n **
 const SELL_SEQ = new WeakMap(); /*RISK-FIX2-1：每个币的记录每完成一笔卖出 +1（持仓检查读余额前记下，成本更新前比对：变了＝这一轮读到的余额可能是卖出前的）*/
 const RACE_SKIP_MAX = 12; /*RISK-FIX2-1 技术常数（不是交易数字）：同一币连续几轮略过「成本更新」后强制更新一次并记日志；持仓检查一轮至少 5 秒，12 轮≈1 分钟以上，比一般卖单（等 15 秒＋收据）久 */
 const ptxSeq = (a) => { const q = globalThis.PLUG_TX?.seqBy; return q ? (q.get(String(a).toLowerCase()) || 0) + (q.get('*') || 0) : 0; }; /*RISK-FIX2-1：外挂交易序号（只算这个币＋不知道是哪个币的合约互动）*/
+const PQ_READ = new WeakMap(), PQ_N = new WeakMap(), PQ_W = new WeakMap(); /*V101-5：每个币的记录「读余额前」的外挂交易序号、连续略过几次卖出 */
+function plugRaceSell(t, st) { /*V101-5：外挂正在／刚交易这个币（余额已变、外挂帐本还没更新）→ 雷达照余额算的数量可能会卖到外挂的币（或少卖）→ 这次先不卖；连续 RACE_SKIP_MAX 次后照卖（记日志），免得外挂一直交易时雷达永远卖不了 */
+  const P = globalThis.PLUG_TX; if (!P || !PQ_READ.has(st)) return ''; const k = String(t.addr).toLowerCase(); const r = ptxSeq(k) !== PQ_READ.get(st) ? '外挂刚交易这个币' : P.busy.has('*') || P.busy.has(k) ? '外挂正在交易这个币' : '';
+  if (!r) { PQ_N.delete(st); return ''; } const n = (PQ_N.get(st) || 0) + 1; if (n > RACE_SKIP_MAX) { PQ_N.delete(st); log(`${t.sym} 连续 ${n - 1} 次因为${r}没卖，这次照卖（外挂帐本可能还没更新）`); return ''; } PQ_N.set(st, n); return r; }
 function costRace(W, t, st, sq0, pq0) { /*RISK-FIX2-1：这一轮要不要略过「成本更新」（回传原因；空字串＝照常更新）——卖单进行中、读余额后有卖单完成、外挂正在／刚交易这个币（雷达扣外挂部位有时间差）。只略过成本，卖出判断照跑 */
   if (SELLING.has(W.name + '|' + t.addr)) return '卖单进行中'; if ((SELL_SEQ.get(st) || 0) !== sq0) return '读余额后有卖单成交';
   const P = globalThis.PLUG_TX; if (!P) return ''; const k = String(t.addr).toLowerCase(); if (ptxSeq(k) !== pq0) return '外挂刚交易'; return P.busy.has('*') || P.busy.has(k) ? '外挂交易进行中' : ''; }
@@ -386,6 +398,7 @@ async function sell(t, st, amt, why, W = WALLETS[0]) {
 }
 async function sellInner(t, st, amt, why, W) { const cB0 = st.cB; /*RISK-FIX2-1 卖单开始时持仓检查最后看到的余额*/
   if (CONFL && !/指示/.test(why)) { if (st.conflLog !== CONFL) { st.conflLog = CONFL; log(`[${W.name}] ${t.sym} 想自动卖（${why}），但另一个雷达正在用同一个钱包（${CONFL}）→ 这次先不卖，避免两边重复卖；关掉其中一个就会恢复`); } return false; } 
+  { const pr = plugRaceSell(t, st); if (pr) { globalThis.LAST_SELL_ERR = `⏳ ${pr}（外挂帐本还没更新，现在算的数量可能会卖到外挂的币），这次先不卖，等一下再试`; if (PQ_N.get(st) === 1 || PQ_W.get(st) !== why) { PQ_W.set(st, why); log(`[${W.name}] ${t.sym} ${pr}，这次先不卖（${why}）`); } return false; } } /*V101-5（同一个原因只记第一次）*/
   { const live = (S.dyn || []).find((x) => x.addr === t.addr && x.only === W.addr && !x.closed); if (live?.hold && !/指示/.test(why)) { log(`${t.sym} 设定为等使用者通知，不自动卖（${why}）`); return false; } } /* 以最新设定为准，避免背景用旧清单卖掉（币安无忧 19:56） */
   const dec = await tokDec(t.addr); if (dec == null) { log(`[${W.name}] ${t.sym} 读不到小数位数，这次不卖`); return false; } /* 外挂自己的部位已经在 holdW 先从余额扣掉（再算百分比） */ const qty = fmtUnits(BigInt(amt), dec); // 依代币小数位数算数量（精确，不经过浮点）
   if (!(Number(qty) > 0)) return false;
@@ -455,7 +468,7 @@ async function holdW(W, head, onlyFast) { // 所有钱包同时跑（速战：�
       if (Number.isFinite(bp) && bp > 0) { t0.cost = +((t0.cost > 0 ? t0.cost : 0) + (t0.paidBnb > 0 ? t0.paidBnb * bp : 0) + (t0.paidU > 0 ? t0.paidU : 0)).toFixed(2); delete t0.costUnk; delete t0.paidBnb; delete t0.paidU; t.cost = (t0.only || t0.both || W.addr === ME) ? t0.cost : 0; delete st.costUnkWarn; save(); await tg(`✅ [${W.name}] ${t.sym} 读到 BNB 价格了，成本补记为 ${t0.cost}U，开始照付费币规则卖`).catch(() => {}); }
       else { if (!st.costUnkWarn) { st.costUnkWarn = 1; log(`[${W.name}] ${t.sym} 成本未知（读不到 BNB 价格），先不自动卖`); } continue; } }
     const noPx = async () => { if (!(t.cost > 0) || t.hold || st.done || st.stage >= 9) return; st.noPxAt = st.noPxAt || Date.now(); if (!st.noPxWarn && nrOn('notify.noPx') && Date.now() - st.noPxAt >= (nrNum('notify.noPxMin') ?? 0) * 60e3) { /* 照你的开关 */ st.noPxWarn = 1; await tg(`⚠️ [${W.name}] ${t.sym} 读不到价格／余额（节点或行情来源断线）。\n这段时间雷达没办法帮你止盈止损，读到之后会自动恢复并通知你。很担心的话可以先自己卖。\n${t.addr}`).catch(() => {}); } }; /* 读不到数据就是没在保护你的钱 → 要讲 */
-    const sq0 = SELL_SEQ.get(st) || 0, pq0 = ptxSeq(t.addr); /*RISK-FIX2-1 读余额前记下*/
+    const sq0 = SELL_SEQ.get(st) || 0, pq0 = ptxSeq(t.addr); PQ_READ.set(st, pq0); /*RISK-FIX2-1 读余额前记下；V101-5 卖出前比对*/
     const balR = await call(t.addr, '0x70a08231' + wa(W.addr)); if (balR == null || balR === '0x' || String(balR).length < 66) { await noPx(); continue; } /* 回 '0x'／太短＝读不到，不当成 0 */ const balAll = big(balR); let bal = balAll; { const ph = globalThis.PLUG_HELD?.(t.addr, W.addr) || 0; /*PLUG-FIX*/ if (ph > 0) { const dq = await tokDec(t.addr); if (dq == null) continue; const [pi, pf = ''] = String(ph.toFixed(Math.min(dq, 18))).split('.'); const sub = BigInt(pi) * 10n ** BigInt(dq) + (pf ? BigInt(pf.padEnd(dq, '0').slice(0, dq) || '0') : 0n); bal = balAll > sub ? balAll - sub : 0n; } } /* 先扣掉外挂自己的部位，再算要卖几 %（雷达不会卖到外挂的币） */
     if (st.sellPend) { const sp = st.sellPend; const pm = nrNum('sell.pendMin'); /* 卖出结果不明 → 等余额 */
       if (sp.bal0 != null && balAll < BigInt(sp.bal0)) { delete st.sellPend; st.pendSold = { why: sp.why }; /*RISK-FIX2-1：下面持仓检查照余额扣成本时，补记这笔卖出*/ log(`[${W.name}] ${t.sym} 之前逾时的卖单：余额变少了，算卖掉（${sp.why}）`); await tg(`✅ [${W.name}] ${t.sym} 之前结果不明的卖单已经成交（余额变少了）：${sp.why}`).catch(() => {}); }
@@ -1535,8 +1548,9 @@ const GUARD_KEY = (k) => /^plug\..+\.on$/.test(k) || /^phone\./.test(k) || k ===
 const guardOn = (v) => !(v == null || v === '' || v === false || Number(v) === 0);
 const guardMsg = (kind, k, v) => Buffer.from('rcr-guard-v1\n' + kind + '\n' + k + '\n' + JSON.stringify(v));
 let GUARD = { mt: -1, g: null, why: '' }; const GUARD_BAD = { set: [], ok: [] }; let GUARD_SEEN = '';
-const GUARD_HIST0 = (() => { try { const x = (o) => !!o && typeof o === 'object' && Object.keys(o).length > 0; return Number(S.lastBlock) > 0 || x(S.tokens) || x(S.seenMints) || x(S.trades) || x(S.paid) || x(S.devs); } catch { return false; } })(); /* 引擎启动时 watch_state 就已经有历史 */
-function guardHist() { if (GUARD_HIST0) return true; try { if (JSON.parse(readFileSync(join(DIR, 'data', 'radar_settings.json'), 'utf8')).setupDone) return true; } catch {} for (const f of ['gate_log.jsonl', 'gate_log.prev.jsonl']) { try { statSync(join(DIR, 'data', f)); return true; } catch {} } return false; } /* 用过的雷达（设定完成／持仓／判断日志）却没记住金钥＝金钥记录被删，不是第一次安装 */
+const GUARD_USED = () => { try { const x = (o) => !!o && typeof o === 'object' && Object.keys(o).length > 0; return (Array.isArray(S.trades) && S.trades.length > 0) || (Array.isArray(S.dyn) && S.dyn.length > 0) || Object.values(S.paid || {}).some((P) => Object.values((P && P.done) || {}).some((v) => v && v !== 'free-notify')) || Number(S.estopAt) > 0 || !!S.guardPubBy || Number(S.guardPubAt) > 0 || (x(S.tokens) && Object.values(S.tokens).some((t) => t && (Number(t.sold) > 0 || t.posAt != null))); } catch { return true; } }; /* GUARD-FIRST：只有「真的用过」才算历史（成交／持仓／真的铸造过／按过全停／以前记过金钥）；纯扫链（lastBlock、seenMints、paid 只有通知、devs）不算 —— 以前引擎只要在雷达第一次写 guard.json 前重启过一次，全新安装也会跳「金钥换了」视窗 */
+const GUARD_HIST0 = GUARD_USED(); /* 引擎启动时 watch_state 就已经有真的使用历史 */
+function guardHist() { if (GUARD_HIST0 || GUARD_USED()) return true; try { if (JSON.parse(readFileSync(join(DIR, 'data', 'radar_settings.json'), 'utf8')).setupDone) return true; } catch {} for (const f of ['gate_log.jsonl', 'gate_log.prev.jsonl', 'guard_confirm.json']) { try { statSync(join(DIR, 'data', f)); return true; } catch {} } try { if (Object.keys(JSON.parse(readFileSync(join(DIR, 'data', 'plugins_ok.json'), 'utf8')) || {}).length) return true; } catch {} return false; } /* GUARD-FIRST：允许过外挂／电脑确认过金钥也算用过 */ /* 用过的雷达（设定完成／持仓／判断日志）却没记住金钥＝金钥记录被删，不是第一次安装 */
 function guardPcOk(pub) { try { const c = JSON.parse(readFileSync(join(DIR, 'data', 'guard_confirm.json'), 'utf8')); const from = String(S.guardPub || ''); if (!c || c.pub !== pub || String(c.from || '') !== from) return false;
     if (!cryptoVerify(null, guardMsg('confirm', from, pub + '\n' + String(c.at || '')), createPublicKey({ key: Buffer.from(pub, 'base64'), format: 'der', type: 'spki' }), Buffer.from(String(c.sig || ''), 'base64'))) return false;
     S.guardPub = pub; S.guardPubBy = 'pc'; S.guardPubAt = Date.now(); save(); const note = '新金钥已由电脑确认，如果不是你本人请回「全停」';
@@ -1815,11 +1829,11 @@ async function radarOrders() {
     if (o.type === 'rescan') { let n = 0; for (const [c2, P] of Object.entries(S.paid || {})) if (trackOk(P)) { P.sweepAt = 0; P.progAt = 0; n++; } log(`雷达按了刷新：${n} 个铸造项目马上重查进度`); continue; } 
     if (o.type === 'tpsl') { const T = 'tpsl' in o ? tpslNorm(o.tpsl) : undefined; let n = 0; if (Number(o.chain) === 4663) { if (RH?.setTpsl) n = RH.setTpsl(c, T, o.autoSell); } else for (const t of (S.dyn || []).filter((x) => x.addr === c && !x.closed && (!o.w || x.only === String(o.w).toLowerCase()))) { if (T !== undefined) { if (T) t.tpsl = T; else delete t.tpsl; } if (o.autoSell === false) t.autoSell = false; else if (o.autoSell === true) delete t.autoSell; n++; } save(); log(`雷达改止盈止损 ${o.name || c}：${T ? tpslTxt(T) : T === null ? '不设' : '不变'}${o.autoSell === false ? '（自动卖关）' : o.autoSell === true ? '（自动卖开）' : ''}，${n} 笔`); continue; } /* 持仓每一笔可以改止盈止损、关掉自动卖 */
     if (o.type === 'buy') { const r = await tgBuy(c, Number(o.usd) || 0 , { pay: o.pay, w: o.w, bnb: o.bnb, name: o.name, ...('tpsl' in o ? { tpsl: o.tpsl } : {}) }).catch((e) => '⚠️ 下单出错：' + e.message); log(`雷达手动买 ${o.name || c}：${r}`); await tgSay(`🖥 雷达手动买 ${o.name || c}\n${r}`).catch(() => {}); }
-    else if (o.type === 'sell') { let any = false, gone = 0; for (const t of (S.dyn || []).filter((x) => x.addr === c && !x.closed && (!o.w || x.only === String(o.w).toLowerCase()))) { const W = t.only ? WALLETS.find((w) => w.addr === t.only) : WALLETS[0]; if (!W) { await tgSay(`🖥 ${t.sym}：买它的钱包已经从雷达删除，雷达没办法帮它卖，请到那个钱包自己卖`).catch(() => {}); continue; } const rawB = await call(c, '0x70a08231' + wa(W.addr)).catch(() => null); if (!rawB || rawB === '0x') { await tgSay(`🖥 ${t.sym}：读不到 [${W.name}] 的余额（节点没回应），等一下再按一次卖`).catch(() => {}); any = true; continue; } const bal = big(rawB); if (bal <= 0n) { t.closed = Date.now(); t.closedBy = 'empty'; gone++; await tgSay(`🖥 ${t.sym}：[${W.name}] 里已经没有这个币了（之前就卖光了），已从持仓拿掉`).catch(() => {}); continue; } any = true; const balN = await plugNet(W, c, bal); if (balN == null) { await tgSay(`🖥 ${t.sym}：读不到小数位数，没办法扣掉外挂的部位，这次没卖`).catch(() => {}); continue; } const amt = (balN * BigInt(Math.round(Number(o.pct) * 100))) / 10000n; /* 百分比 → 万分比（单位换算）；H7-H6 先扣外挂部位 */ const k = stKey(W, t); S.tokens = S.tokens || {}; if (!S.tokens[k]) S.tokens[k] = { hist: [], peak: 0, peakAt: 0, sold: 0 }; /* 用这个钱包这个币自己的记录 */ if (SELLING.has(W.name + '|' + t.addr)) { await tgSay(`🖥 ${t.sym}：[${W.name}] 上一笔卖单还在送（等成交），这张先不卖，等一下再按一次`).catch(() => {}); continue; } globalThis.LAST_SELL_ERR = ''; const ok = CURVES[c] ? await curveSell(c, W, amt).catch((e) => (log('曲线卖出错 ' + e.message), false)) : await sell(t, S.tokens?.[k] || {}, amt, '指示：雷达手动卖', W).catch((e) => (log('雷达卖出错 ' + e.message), false)); if (ok === true && Number(o.pct) >= 100) { t.closed = Date.now(); t.closedBy = 'sold'; } /* 全卖成功就马上从持仓拿掉，不用等定时清理 */ let dead = false; if (!ok && /liquidity/i.test(globalThis.LAST_SELL_ERR || '')) { t.closed = Date.now(); t.closedBy = 'noliq'; dead = true; } /* 卖不掉的死币也从列表拿掉 */ log(`雷达手动卖 ${t.sym} ${Number(o.pct)}%：${ok === 'pend' ? '结果不明（逾时）' : ok ? '成功' : '没卖成'}`); await tgSay(`🖥 雷达手动卖 ${t.sym} ${Number(o.pct)}%（[${W.name}]）：${ok === 'pend' ? '⚠️ 卖出结果不明（送出逾时，可能已成交），先不重复卖，等读到余额变化再决定' : ok ? '✅ 已送出' : '❌ 没卖成：' + sellWhy(globalThis.LAST_SELL_ERR) + (dead ? '。已从持仓列表拿掉（币还在你钱包里）' : '')}`).catch(() => {}); } if (!any) { save(); await tgSay(`🖥 雷达：${o.name || c} 钱包里已经没有了（之前就卖光了），已从持仓面板移除`).catch(() => {}); } }
+    else if (o.type === 'sell') { let any = false, gone = 0; for (const t of (S.dyn || []).filter((x) => x.addr === c && !x.closed && (!o.w || x.only === String(o.w).toLowerCase()))) { const W = t.only ? WALLETS.find((w) => w.addr === t.only) : WALLETS[0]; if (!W) { await tgSay(`🖥 ${t.sym}：买它的钱包已经从雷达删除，雷达没办法帮它卖，请到那个钱包自己卖`).catch(() => {}); continue; } const pqM = ptxSeq(c); /*V101-5 读余额前记下*/ const rawB = await call(c, '0x70a08231' + wa(W.addr)).catch(() => null); if (!rawB || rawB === '0x') { await tgSay(`🖥 ${t.sym}：读不到 [${W.name}] 的余额（节点没回应），等一下再按一次卖`).catch(() => {}); any = true; continue; } const bal = big(rawB); if (bal <= 0n) { t.closed = Date.now(); t.closedBy = 'empty'; gone++; await tgSay(`🖥 ${t.sym}：[${W.name}] 里已经没有这个币了（之前就卖光了），已从持仓拿掉`).catch(() => {}); continue; } any = true; const balN = await plugNet(W, c, bal); if (balN == null) { await tgSay(`🖥 ${t.sym}：读不到小数位数，没办法扣掉外挂的部位，这次没卖`).catch(() => {}); continue; } const amt = (balN * BigInt(Math.round(Number(o.pct) * 100))) / 10000n; /* 百分比 → 万分比（单位换算）；H7-H6 先扣外挂部位 */ const k = stKey(W, t); S.tokens = S.tokens || {}; if (!S.tokens[k]) S.tokens[k] = { hist: [], peak: 0, peakAt: 0, sold: 0 }; /* 用这个钱包这个币自己的记录 */ PQ_READ.set(S.tokens[k], pqM); /*V101-5*/ if (SELLING.has(W.name + '|' + t.addr)) { await tgSay(`🖥 ${t.sym}：[${W.name}] 上一笔卖单还在送（等成交），这张先不卖，等一下再按一次`).catch(() => {}); continue; } globalThis.LAST_SELL_ERR = ''; const ok = CURVES[c] ? await curveSell(c, W, amt).catch((e) => (log('曲线卖出错 ' + e.message), false)) : await sell(t, S.tokens?.[k] || {}, amt, '指示：雷达手动卖', W).catch((e) => (log('雷达卖出错 ' + e.message), false)); if (ok === true && Number(o.pct) >= 100) { t.closed = Date.now(); t.closedBy = 'sold'; } /* 全卖成功就马上从持仓拿掉，不用等定时清理 */ let dead = false; if (!ok && /liquidity/i.test(globalThis.LAST_SELL_ERR || '')) { t.closed = Date.now(); t.closedBy = 'noliq'; dead = true; } /* 卖不掉的死币也从列表拿掉 */ log(`雷达手动卖 ${t.sym} ${Number(o.pct)}%：${ok === 'pend' ? '结果不明（逾时）' : ok ? '成功' : '没卖成'}`); await tgSay(`🖥 雷达手动卖 ${t.sym} ${Number(o.pct)}%（[${W.name}]）：${ok === 'pend' ? '⚠️ 卖出结果不明（送出逾时，可能已成交），先不重复卖，等读到余额变化再决定' : ok ? '✅ 已送出' : '❌ 没卖成：' + sellWhy(globalThis.LAST_SELL_ERR) + (dead ? '。已从持仓列表拿掉（币还在你钱包里）' : '')}`).catch(() => {}); } if (!any) { save(); await tgSay(`🖥 雷达：${o.name || c} 钱包里已经没有了（之前就卖光了），已从持仓面板移除`).catch(() => {}); } }
   }
 }
 /* 「没卖成，看 log」看不懂 → 直接说原因 */
-function sellWhy(m) { m = String(m || ''); if (/insufficient liquidity|liquidity/i.test(m)) return '池子里几乎没钱了，没人接得住，卖不出去。这种币基本归零，放着不管就好（不会再扣你钱）'; if (/honeypot|transfer|TRANSFER_FROM_FAILED/i.test(m)) return '这个币不让卖（可能是貔貅或被限制转帐）'; if (/gas|insufficient funds|balance/i.test(m)) return '钱包里付手续费的币不够（BNB Chain 用 BNB、Robinhood 用 ETH），先转一点进来'; if (/slippage|price impact/i.test(m)) return '价格跳太大（滑点），等一下再试或少卖一点'; return m ? '交易所回：' + m.slice(0, 120) : '没有拿到原因，等一下再试一次'; }
+function sellWhy(m) { m = String(m || ''); if (/^⏳ /.test(m)) return m.slice(2); /*V101-5 雷达自己先不卖的原因，原样显示*/ if (/insufficient liquidity|liquidity/i.test(m)) return '池子里几乎没钱了，没人接得住，卖不出去。这种币基本归零，放着不管就好（不会再扣你钱）'; if (/honeypot|transfer|TRANSFER_FROM_FAILED/i.test(m)) return '这个币不让卖（可能是貔貅或被限制转帐）'; if (/gas|insufficient funds|balance/i.test(m)) return '钱包里付手续费的币不够（BNB Chain 用 BNB、Robinhood 用 ETH），先转一点进来'; if (/slippage|price impact/i.test(m)) return '价格跳太大（滑点），等一下再试或少卖一点'; return m ? '交易所回：' + m.slice(0, 120) : '没有拿到原因，等一下再试一次'; }
 globalThis.sellWhy = sellWhy;
 
 
@@ -1885,7 +1899,9 @@ const RID_KIND = new Map(); /* 预演单号 → 这笔是哪一种（送出时�
 let GATE_DAY = '';
 function gateLog(rec) { try { const f = join(DIR, 'data', 'gate_log.jsonl'); const d = new Date().toDateString(); if (GATE_DAY !== d) { try { if (statSync(f).mtime.toDateString() !== d) renameSync(f, join(DIR, 'data', 'gate_log.prev.jsonl')); } catch {} GATE_DAY = d; } appendFileSync(f, JSON.stringify({ at: Date.now(), ...rec }) + '\n'); } catch {} } /* 只留今天＋前一份 */
 function gateFrom(target) { const g = GATE_CTX.getStore(); if (g?.src) return g.src; const st = ACK.getStore(); if (st) return st.src === 'phone' ? 'phone' : 'radar'; if (target && FORCE.has(target)) return 'force'; return 'auto'; }
-function gateSignOk(a) { const m = String(bawArg(a, '--message') || '').replace(/\\+"/g, '"').replace(/\s+/g, ''); return /"primarytype":"bind"/.test(m) && /"name":"robincatradar"/.test(m) && !/verifyingcontract|permit|spender|allowance|order/.test(m); } /* bawArg 已经转小写 */
+function gateSignOk(a) { const m0 = String(bawArg(a, '--message') || '').replace(/\\+"/g, '"').replace(/\s+/g, ''); const me = (m0.match(/"params":\["(0x[0-9a-f]{40})"/) || [])[1] || '-';
+  const m = m0.replace(/\{"name":"verifyingcontract","type":"address"\}/g, '').replace(/"verifyingcontract":"(0x[0-9a-f]{40})"/g, (x, v) => (v === me || /^0x0{40}$/.test(v) ? '' : x)); /* BIND-FIX：verifyingContract 只准是自己钱包或零地址（Bind 的写法之一），其他地址照挡 */
+  return /"primarytype":"bind"/.test(m) && /"name":"robincatradar"/.test(m) && !/verifyingcontract|permit|spender|allowance|order/.test(m); } /* bawArg 已经转小写 */
 async function gateIsEoa(a, to) { const cid = bawArg(a, '--binanceChainId'); const code = cid === '56' ? await rpc('eth_getCode', [to, 'latest']) : cid === '4663' && RH?.rpc ? await RH.rpc('eth_getCode', [to, 'latest']) : null; if (typeof code !== 'string') throw new Error('读不到对方地址是不是合约'); return code === '0x' || code === ''; }
 async function gateKind(a) {
   const c = String(a[0]) + ' ' + String(a[1]);
@@ -1944,7 +1960,7 @@ try { for (const W of WALLETS) W.off = !!(S.wOff || {})[W.addr]; } catch {} /* �
 function walApply(type, a, cfg) { const rm = type === 'removeWallet';
   if (rm) { wHidden.add(a); const i = WALLETS.findIndex((w) => w.addr === a); if (i >= 0) WALLETS.splice(i, 1); }
   else { wHidden.delete(a); if (!WALLETS.some((w) => w.addr === a)) { const wc = (Array.isArray(CONFIG.wallets) ? CONFIG.wallets : []).find((x) => String(x?.address || '').toLowerCase() === a); const e = (cfg.add || []).find((x) => String(x.address || '').toLowerCase() === a); if (wc) WALLETS.push(walFromCfg(wc)); else if (e && /^0x[0-9a-fA-F]{40}$/.test(String(e.address || ''))) WALLETS.push(walFromAdd(e)); } }
-  ME = WALLETS[0]?.addr || ''; try { dynOwn(); } catch {} /*RISK-FIX2-3：开机时没有钱包、之后才加的也补上*/
+  ME = WALLETS[0]?.addr || ''; try { dynOwn(); } catch {} try { hidAllChk(0); } catch {} /*V101-4*/ /*RISK-FIX2-3：开机时没有钱包、之后才加的也补上*/
   try { const f = join(DIR, 'data', 'radar_wallets.json'); let j = {}; try { j = JSON.parse(readFileSync(f, 'utf8')) || {}; } catch {} const old = new Map((Array.isArray(j.list) ? j.list : []).map((x) => [String(x?.addr || '').toLowerCase(), x])); writeFileSync(f, JSON.stringify({ at: Date.now(), list: WALLETS.map((W) => old.get(W.addr) || { name: W.name, addr: W.addr, status: 'UNCONNECTED' }) })); } catch {}
   setTimeout(() => { radarWalletPoll(); }, 0);
   const W = WALLETS.find((w) => w.addr === a); return rm ? `✅ 已删除钱包 ${a.slice(0, 8)}…（立即生效：雷达不再用它买卖）` : W ? `✅ 已新增钱包 ${W.name}（立即生效）：请在雷达「设定 → 钱包」按它旁边的「连接（扫码）」` : `❌ 新增钱包失败：${a.slice(0, 8)}…`; }
@@ -2563,7 +2579,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.0.0', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.0.1', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;
@@ -2628,10 +2644,10 @@ async function cmdSell(q, pc) { if (pc === true) pc = 50; else if (!(pc > 0)) pc
   const head = parseInt(await rpc('eth_blockNumber', []), 16);
   const jobs = WALLETS.map(async (W) => {
     const t0 = findTok(q, W); if (!t0) return `[${W.name}] 找不到 ${q}`; if (t0.amb) return `[${W.name}] 有好几个叫 ${q} 的币，请用合约地址卖：\n${t0.amb.join('\n')}`;
-    const bR = await call(t0.addr, '0x70a08231' + wa(W.addr)); if (bR == null || bR === '0x') return `[${W.name}] 读不到 ${t0.sym} 的余额，等一下再试`; const bal0 = big(bR); if (bal0 === 0n) return `[${W.name}] 没有 ${t0.sym}`;
+    const pqM = ptxSeq(t0.addr); /*V101-5 读余额前记下*/ const bR = await call(t0.addr, '0x70a08231' + wa(W.addr)); if (bR == null || bR === '0x') return `[${W.name}] 读不到 ${t0.sym} 的余额，等一下再试`; const bal0 = big(bR); if (bal0 === 0n) return `[${W.name}] 没有 ${t0.sym}`;
     const bal = await plugNet(W, t0.addr, bal0); if (bal == null) return `[${W.name}] 读不到小数位数，没卖`; if (bal === 0n) return `[${W.name}] ${t0.sym} 都是外挂的部位，雷达不卖`; 
     const key = stKey(W, t0);
-    const st = (S.tokens[key] = S.tokens[key] || { hist: [], peak: 0, peakAt: 0, sold: 0 });
+    const st = (S.tokens[key] = S.tokens[key] || { hist: [], peak: 0, peakAt: 0, sold: 0 }); PQ_READ.set(st, pqM); /*V101-5*/
     if (SELLING.has(W.name + '|' + t0.addr)) return `⏳ [${W.name}] ${t0.sym} 上一笔卖单还在送（等成交），这张先不卖，等一下再下`; /* 同一个币同时只卖一次 */
     const ok = await sell(t0, st, half ? (bal * BigInt(Math.round(pc * 100))) / 10000n : bal, half ? `你在 TG 指示卖 ${pc}%` : '你在 TG 指示全部卖出', W);
     if (ok === true && !half) { st.stage = 9; st.done = true; }
@@ -2821,26 +2837,35 @@ main();
 /* 不送交易、不花 gas、不动钱。
    签好的结果存 data/bind.json，雷达画面再把它交给官方 TG 机器人登记；机器人会核对签名，别人冒用你的钱包地址也签不出来。 */
 let BIND = null; try { BIND = await import('./bind.mjs'); } catch (e) { log('邀请绑定模组载入失败 ' + e.message); }
+const BIND_UNSUP = /953004|don'?t support signing|not support/i; /* BIND-FIX：币安说「不支援这种讯息」 */
+const BIND_DEV = /35180\d|developer ?mode|dev ?mode/i; /* BIND-FIX：开发者模式没开／过期 */
+const BIND_BACKOFF = [60e3, 600e3, 3600e3, 86400e3]; /* 技术用：绑定签名失败后多久自动再试（1 分钟、10 分钟、1 小时，之后一天一次），不会每分钟一直送预览、一直跳币安通知 */
+const BIND_FMT = 'b2'; /* 技术用：签名写法版本，雷达更新后重新算失败次数 */
 async function bindSign(kind, code) { const W = WALLETS[0]; if (!W || !BIND) throw new Error('还没有钱包');
-  const msg = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_signTypedData_v4', params: [W.addr, JSON.stringify(BIND.bindTyped(kind, code, W.addr))] });
-  let p = await W.baw(['sign-message', 'preview', '--binanceChainId', '56', '--message', W.baw.sh ? JSON.stringify(msg) : msg, '--signType', 'EIP712'], 60000);
-  if (!p.j?.data?.requestId) p = await W.baw(['sign-message', 'preview', '--binanceChainId', '56', '--message', W.baw.sh ? msg : JSON.stringify(msg), '--signType', 'EIP712'], 60000);
-  const rid = p.j?.data?.requestId; if (!p.j?.success || !rid) throw new Error('签名预览失败 ' + String(p.j?.error?.message || p.t || '').slice(0, 100));
-  let pm = {}; try { pm = JSON.parse(p.j.data.parsedMessage?.message || '{}'); } catch {}
+  /* BIND-FIX 11/5：照币安说明书送 {method, params}；依序试 BIND.BIND_VC 的写法，只有币安回「不支援这种讯息」(953004) 才换下一种，其他错误（开发者模式没开、登入过期…）立刻停，不连发。
+     拿掉旧的「换一种引号再送一次」：那次送的是被包成字串的 JSON，币安一定拒绝，还会盖掉第一次真正的错误 */
+  let p = null, vf = '';
+  for (const vc of BIND.BIND_VC || ['']) { vf = vc;
+    const msg = JSON.stringify({ method: 'eth_signTypedData_v4', params: [W.addr, JSON.stringify(BIND.bindTyped(kind, code, W.addr, vc))] });
+    p = await W.baw(['sign-message', 'preview', '--binanceChainId', '56', '--message', W.baw.sh ? JSON.stringify(msg) : msg, '--signType', 'EIP712'], 60000);
+    if ((p.j?.success && p.j?.data?.requestId) || !BIND_UNSUP.test(String(p.j?.error?.message || p.j?.error?.code || p.t || ''))) break; }
+  const rid = p.j?.data?.requestId; if (!p.j?.success || !rid) { const em = String(p.j?.error?.message || p.t || ''); throw new Error('签名预览失败 ' + em.slice(0, 100) + (BIND_DEV.test(em) ? '（要先在币安 App 的 Agentic 钱包设定打开「开发者模式」）' : '')); }
+  let pm = {}; try { pm = JSON.parse(p.j.data.parsedMessage?.message || '{}'); } catch {} if (pm && pm.message && typeof pm.message === 'object') pm = pm.message; /* parsedMessage 可能是整份 typed data */
   if (pm.code !== code || String(pm.wallet || '').toLowerCase() !== W.addr || pm.kind !== kind) throw new Error('要签的内容跟预期不一样，已取消');
   const x = await W.baw(['sign-message', 'execute', '--requestId', rid], 60000); let d = x.j?.data;
   for (let i = 0; i < 5 && d && !d.signature && d.orderId; i++) { await sleep(3000); d = (await W.baw(['sign-message', 'result', '--order-id', d.orderId], 60000)).j?.data || d; }
   if (!d?.signature) throw new Error('签名失败 ' + String(x.j?.error?.message || x.t || '').slice(0, 100));
   const sig = String(d.signature).replace(/^0x/, '').slice(0, 128), v = parseInt(d.signatureRecovery || '0', 16) % 27;
   if (!BIND.verifyBind(kind, code, W.addr, sig, v)) throw new Error('签名核对不过');
-  return { kind, code, wallet: W.addr, sig, v, at: Date.now() }; }
+  return { kind, code, wallet: W.addr, sig, v, vf: vf ? (vf === 'self' ? 's' : 'z') : '', at: Date.now() }; } /* BIND-FIX：vf＝用哪种写法签的（只是纪录，送机器人的内容不变） */
 setInterval(async () => { if (globalThis._bindBusy || !WALLETS[0] || !BIND) return; const S = radarSet(); let B = {}; try { B = JSON.parse(readFileSync(BINDF, 'utf8')); } catch {}
   const W = WALLETS[0], want = [];
   const rc = String(S['ref.code'] || '').toLowerCase(); if (BIND.CODE_RE.test(rc) && !(B.join?.code === rc && WALLETS.some((x) => x.addr === B.join?.wallet))) want.push(['join', rc]); /*RISK-FIX 4：签过的钱包还在就不重签 */
   const mc = String(S['ref.mine'] || '').toLowerCase(); if (BIND.CODE_RE.test(mc) && !(B.code?.code === mc && WALLETS.some((x) => x.addr === B.code?.wallet))) want.push(['code', mc]); /*RISK-FIX 4*/
-  if (!want.length || (B.errAt && Date.now() - B.errAt < 60e3 && B.errKey === JSON.stringify(want))) return;
-  globalThis._bindBusy = 1; try { for (const [k, c] of want) { B[k] = await bindSign(k, c); log(`[邀请] 主钱包已签好${k === 'join' ? '邀请码 ' : '专属邀请码申请 '}${c}（只是签名，没有送交易）`); } B.err = ''; B.errAt = 0; }
-  catch (e) { B.err = String(e.message || e).slice(0, 150); B.errAt = Date.now(); B.errKey = JSON.stringify(want); log('[邀请] ' + B.err); }
+  const wk = JSON.stringify([BIND_FMT, W.addr, want]), en = B.errKey === wk ? Number(B.errN) || 0 : 0; /* BIND-FIX：同一组（版本、钱包、码）失败几次 */
+  if (!want.length || (en > 0 && Date.now() - B.errAt < BIND_BACKOFF[Math.min(en, BIND_BACKOFF.length) - 1])) return;
+  globalThis._bindBusy = 1; try { for (const [k, c] of want) { B[k] = await bindSign(k, c); log(`[邀请] 主钱包已签好${k === 'join' ? '邀请码 ' : '专属邀请码申请 '}${c}（只是签名，没有送交易）`); } B.err = ''; B.errAt = 0; B.errN = 0; B.errKey = ''; }
+  catch (e) { const n = en + 1, wait = BIND_BACKOFF[Math.min(n, BIND_BACKOFF.length) - 1]; B.err = String(e.message || e).slice(0, 150) + `（${wait >= 3600e3 ? Math.round(wait / 3600e3) + ' 小时' : Math.round(wait / 60e3) + ' 分钟'}后自动再试）`; B.errAt = Date.now(); B.errKey = wk; B.errN = n; log('[邀请] ' + B.err); }
   finally { try { writeFileSync(BINDF, JSON.stringify(B)); } catch {} globalThis._bindBusy = 0; } }, 15000);
 
 /* 拿掉「USDT 自动换回 BNB」——一键买可以直接选用 BNB 或 U 付，不替用户互换（浪费时间和手续费） */

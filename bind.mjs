@@ -23,12 +23,20 @@ const kh = (s) => keccakHex(Buffer.from(s, 'utf8').toString('hex'));
 const pad = (h) => h.padStart(64, '0');
 const T_DOM = kh('EIP712Domain(string name,string version,uint256 chainId)');
 const T_BIND = kh('Bind(string kind,string code,address wallet)');
+/* BIND-FIX 11/5：币安钱包 sign-message 拒签没有 verifyingContract 的 domain 时（Error 953004）改用有 verifyingContract 的写法。
+   签的内容（kind／code／wallet）一样，只差 domain；核对端三种都认，旧签名照样过。'self'＝签名的钱包自己，ZERO＝零地址（都不是合约，签了不能拿去别处用） */
+const T_DOM_VC = kh('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)');
+const ZERO_ADDR = '0x0000000000000000000000000000000000000000';
+export const BIND_VC = ['', 'self', ZERO_ADDR]; /* 雷达照这个顺序试；'' ＝ v1.0.0 原本的写法 */
+const vcOf = (vc, wallet) => (vc === 'self' ? String(wallet).toLowerCase() : String(vc || '').toLowerCase());
 export const CODE_RE = /^[a-z0-9]{3,10}$/; /* H2：跟雷达画面 refOk／main.cjs CODE_OK 同一套字元（只能小写英文＋数字） */
-export function bindTyped(kind, code, wallet) {
-  return { types: { EIP712Domain: [{ name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' }], Bind: [{ name: 'kind', type: 'string' }, { name: 'code', type: 'string' }, { name: 'wallet', type: 'address' }] }, primaryType: 'Bind', domain: { name: 'RobinCat Radar', version: '1', chainId: 56 }, message: { kind, code, wallet: wallet.toLowerCase() } };
+export function bindTyped(kind, code, wallet, vc = '') { /* BIND-FIX：vc 不给＝旧版 */ const v = vcOf(vc, wallet);
+  const ED = [{ name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' }]; if (v) ED.push({ name: 'verifyingContract', type: 'address' });
+  const domain = { name: 'RobinCat Radar', version: '1', chainId: 56 }; if (v) domain.verifyingContract = v;
+  return { types: { EIP712Domain: ED, Bind: [{ name: 'kind', type: 'string' }, { name: 'code', type: 'string' }, { name: 'wallet', type: 'address' }] }, primaryType: 'Bind', domain, message: { kind, code, wallet: wallet.toLowerCase() } };
 }
-export function bindDigest(kind, code, wallet) {
-  const dom = keccakHex(T_DOM + kh('RobinCat Radar') + kh('1') + pad((56).toString(16)));
+export function bindDigest(kind, code, wallet, vc = '') { const v = vcOf(vc, wallet); /* BIND-FIX */
+  const dom = v ? keccakHex(T_DOM_VC + kh('RobinCat Radar') + kh('1') + pad((56).toString(16)) + pad(v.replace(/^0x/, ''))) : keccakHex(T_DOM + kh('RobinCat Radar') + kh('1') + pad((56).toString(16)));
   const st = keccakHex(T_BIND + kh(kind) + kh(code) + pad(wallet.toLowerCase().replace(/^0x/, '')));
   return keccakHex('1901' + dom + st);
 }
@@ -53,6 +61,7 @@ export function recoverAddr(digestHex, sigHex, recId) {
   const Q = jaff(jadd(jmul(md(s * ri, N), [x, y]), jmul(md(-e * ri, N), [Gx, Gy]))); if (!Q) return '';
   return '0x' + keccakHex(pad(Q[0].toString(16)) + pad(Q[1].toString(16))).slice(24);
 }
-export function verifyBind(kind, code, wallet, sigHex, recId) {
-  try { const d = bindDigest(kind, code, wallet); const s = String(sigHex).replace(/^0x/, ''); for (const v of recId != null && recId !== '' ? [Number(recId) % 27, 1 - Number(recId) % 27] : [0, 1]) { if (recoverAddr(d, s.slice(0, 128), v) === wallet.toLowerCase()) return true; } } catch {} return false;
+export function verifyBindVc(kind, code, wallet, sigHex, recId) { /* BIND-FIX：三种 domain 写法都认；回传对上的写法（对不上＝null） */
+  for (const vc of BIND_VC) { try { const d = bindDigest(kind, code, wallet, vc); const s = String(sigHex).replace(/^0x/, ''); for (const v of recId != null && recId !== '' ? [Number(recId) % 27, 1 - Number(recId) % 27] : [0, 1]) { if (recoverAddr(d, s.slice(0, 128), v) === wallet.toLowerCase()) return vc; } } catch {} } return null;
 }
+export function verifyBind(kind, code, wallet, sigHex, recId) { return verifyBindVc(kind, code, wallet, sigHex, recId) !== null; }

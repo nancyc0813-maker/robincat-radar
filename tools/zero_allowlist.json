@@ -14490,6 +14490,55 @@
     "30 秒"
    ],
    "reason": "UXP2-WAL0: hint in the gate wallet card that the engine restart takes about 30 s before the wallet list appears. Display wait hint only."
+  },
+  {
+   "rule": "TIMEWIN|CMP|MINMAX|OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "BIND_BACKOFF = \\[60e3, 600e3, 3600e3, 86400e3\\]",
+   "values": [
+    "60e3",
+    "600e3",
+    "3600e3",
+    "86400e3"
+   ],
+   "reason": "BIND-FIX：邀请绑定签名失败后多久自动再试（1 分钟→10 分钟→1 小时→一天一次）。技术用的退避，防止一直送预览、一直跳币安通知；不是买卖规则"
+  },
+  {
+   "rule": "TIMEWIN|CMP",
+   "file": "watch\\.mjs$",
+   "match": "wait >= 3600e3 \\? Math\\.round\\(wait / 3600e3\\)|Math\\.round\\(wait / 60e3\\)",
+   "values": [
+    "3600e3",
+    "60e3"
+   ],
+   "reason": "BIND-FIX：把退避时间换成「几小时／几分钟」显示给玩家看；纯显示"
+  },
+  {
+   "rule": "FALLBACK0|CMP",
+   "file": "watch\\.mjs$",
+   "match": "Number\\(B\\.errN\\) \\|\\| 0",
+   "values": [
+    "0"
+   ],
+   "reason": "BIND-FIX：绑定签名失败次数，没记录＝还没失败过（0 次）；只决定退避多久，不是买卖判断"
+  },
+  {
+   "rule": "SLICE",
+   "file": "watch\\.mjs$",
+   "match": "'签名预览失败 ' \\+ em\\.slice\\(0, 100\\)",
+   "values": [
+    "100"
+   ],
+   "reason": "BIND-FIX：错误讯息截断长度（显示用），跟原本 .slice(0, 100) 一样"
+  },
+  {
+   "rule": "SLICE",
+   "file": "bind\\.mjs$",
+   "match": "recoverAddr\\(d, s\\.slice\\(0, 128\\), v\\) === wallet\\.toLowerCase\\(\\)\\) return vc",
+   "values": [
+    "128"
+   ],
+   "reason": "BIND-FIX：签名 r||s＝64 bytes＝128 个十六进位字；纯密码学"
   }
  ]
 }

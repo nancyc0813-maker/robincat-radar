@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('radar', {
   nx: (a, o) => call('nx', S(a, 40), O(o)), /* radar/next.cjs 的功能 */
   ghm: (a, o) => call('ghm', S(a, 40), O(o)), /* GHM-1104 GitHub 观察（只读） */
   invReload: () => call('invReload'),
+  guardAsk: () => call('guardAsk'), /* WAL-GATE：再跳一次守护金钥确认视窗 */
   invCheck: (c) => call('invCheck', S(c, 80)),
   hotBoard: (n) => call('hotBoard', S(n, 20)),
   smartAuto: () => call('smartAuto'),

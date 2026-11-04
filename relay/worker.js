@@ -20,8 +20,9 @@ const unhex = (h) => Uint8Array.from(h.match(/../g) || [], (x) => parseInt(x, 16
 const kh = (s) => keccak_256(enc.encode(s));
 const cat = (...a) => { const o = new Uint8Array(a.reduce((n, x) => n + x.length, 0)); let i = 0; for (const x of a) { o.set(x, i); i += x.length; } return o; };
 const pad32 = (h) => unhex(h.padStart(64, '0'));
-function bindDigest(kind, code, wallet) {
-  const dom = keccak_256(cat(kh('EIP712Domain(string name,string version,uint256 chainId)'), kh('RobinCat Radar'), kh('1'), pad32((56).toString(16))));
+const BIND_ZERO = '0x0000000000000000000000000000000000000000'; /* BIND-FIX 11/5：绑定签名 domain 三种写法（没有／自己钱包／零地址 verifyingContract），跟 bind.mjs BIND_VC 一样 */
+function bindDigest(kind, code, wallet, vc = '') {
+  const dom = vc ? keccak_256(cat(kh('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'), kh('RobinCat Radar'), kh('1'), pad32((56).toString(16)), pad32(vc.slice(2)))) : keccak_256(cat(kh('EIP712Domain(string name,string version,uint256 chainId)'), kh('RobinCat Radar'), kh('1'), pad32((56).toString(16))));
   const st = keccak_256(cat(kh('Bind(string kind,string code,address wallet)'), kh(kind), kh(code), pad32(wallet.slice(2))));
   return keccak_256(cat(unhex('1901'), dom, st));
 }
@@ -51,7 +52,7 @@ async function checkBind(env, o) { /* o＝{ w, k, c, s, v }（POST /session 的�
   const w = String(o?.w || '').toLowerCase(), k = o?.k, c = String(o?.c || '').toLowerCase(), s = String(o?.s || '').toLowerCase(), v = Number(o?.v);
   if (!/^0x[0-9a-f]{40}$/.test(w) || !['join', 'code'].includes(k) || !/^[a-z0-9]{3,10}$/.test(c) || !/^[0-9a-f]{128}$/.test(s)) return '这台雷达还没完成邀请码绑定（要先在雷达输入邀请码、用钱包签名绑定）';
   if (!(await inList(env, w))) return INV.rw ? '这个钱包的邀请码绑定还没生效（刚绑定的话等几分钟）' : '暂时读不到邀请名单，等一下再试';
-  let ok = false; try { const d = bindDigest(k, c, w); for (const r of (v === 0 || v === 1) ? [v, 1 - v] : [0, 1]) if (recover(d, s, r) === w) { ok = true; break; } } catch {}
+  let ok = false; for (const vc of ['', w, BIND_ZERO]) { try { const d = bindDigest(k, c, w, vc); for (const r of (v === 0 || v === 1) ? [v, 1 - v] : [0, 1]) if (recover(d, s, r) === w) { ok = true; break; } } catch {} if (ok) break; } /* BIND-FIX */
   return ok ? '' : '邀请绑定的签名核对不过';
 }
 async function inList(env, w) { const rw = await members(env); if (!rw) return false; const h = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode('rcrelay1:' + w))).slice(0, 12)); return rw.has(h); }
@@ -352,6 +353,7 @@ export class Room extends DurableObject {
       while (mine.length >= (ph ? AVEWS_USER_PH_CONN : AVEWS_USER_PC_CONN)) { const w = mine.shift(); try { w.close(4000, 'replaced'); } catch {} this.hubDrop(w); }
       this.sys(ws, { auth: 'ok', max: AVEWS_USER_SUBS, up: this.hubUpNow() }); return; }
     if (!A.ok) { try { ws.close(4003, 'denied'); } catch {} this.hubDrop(ws); return; }
+    if (!A.ann) { this.sys(ws, { need: 'auth' }); return; } /*V101-3：升级时验过、还没送 auth（ann 0）→ 只收 auth；不然不送 auth 直接订阅会绕过每用户连线上限 */
     if (Array.isArray(o.set)) this.hubSet(ws, A, o.set); }
   async pcAuth(ws, msg) { /* OPS-RT15：电脑端第一则讯息＝{"auth": 通行证}。S5：房间绑定电脑身分——第一次通过的钱包（或作者通行证）锁住这个房间；别的钱包进不来、踢不掉原本的电脑。原身分 PC_LOCK_MS 没出现才可以换 */
     const A = (() => { try { return ws.deserializeAttachment() || {}; } catch { return {}; } })(); let t = ''; try { t = String(JSON.parse(msg)?.auth || ''); } catch {}

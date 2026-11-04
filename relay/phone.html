@@ -943,6 +943,7 @@ $('#se').addEventListener('click', async (e) => { const b = e.target.closest('[d
   else if (a === 'up' || a === 'dn' || a === 'ordok') { if (seRO()) return; const it = seIt(b.dataset.k); if (!it) return; const ids = it.order || []; const cur = String(seVal(it.k) || '').split(',').filter((x) => ids.includes(x)); const L = [...cur, ...ids.filter((x) => !cur.includes(x))];
     if (a !== 'ordok') { const i = L.indexOf(b.dataset.id), j = a === 'up' ? i - 1 : i + 1; if (i < 0 || j < 0 || j >= L.length) return; [L[i], L[j]] = [L[j], L[i]]; } seSet(it.k, L.join(',')); seRender(); } });
 document.addEventListener('click', (e) => { if (e.target.closest('[data-se="open"]') && !e.target.closest('#se')) seOpen(); });
+document.addEventListener('click', (e) => { if (!e.target.closest('[data-pawre]')) return; pawRe(); try { paintTape(); } catch {} pawSync(); toast('重新连线即时推送…'); }); /*V101-1*/
 setInterval(() => { if (!SE.on) return; if (PC_ON && !SE.d && !SE.busy && !SE.err) seLoad(); if (seSig() !== SE.sig && !$('#se').contains(document.activeElement)) seRender(); }, 2000);
 
 /* ── 代币详情：整页（她 11/3：照 fomo，K 线在上、下面固定一颗大大的绿色「买入」） ── */
@@ -1070,12 +1071,14 @@ window.addEventListener('resize', () => { if (DT) drawK(); if (TAB === 'board' |
 /* AVE-WSS（11/4）：手机也直接吃 AVE 即时推送（连同一个转接站的 /avews；通行证跟电脑要，AVE 金钥只在转接站）。
    只在代币详情开着时订阅：价格 p、成交 x、K 线 k（池子＋周期）；关掉详情就退订。推送断了 → 照旧问电脑（livePx／tape，每秒／每 15 秒），K 线下面标示资料来源。 */
 const PAW = { ws: null, st: 'off', auth: 0, sig: '', acc: new Set(), want: [], px: new Map(), kb: new Map(), kv: new Map(), tx: new Map(), deny: 0, retry: 0, busy: 0, renew: 0, idleAt: 0 };
-const PAW_RETRY = [1e3, 3e3, 10e3, 30e3] /* 技术用：断线重连等待 */, PAW_IDLE = 30e3 /* 技术用：详情关掉多久后关连线 */, PAW_DENY = 5 * 60e3 /* 技术用：拿不到通行证／被拒后多久再试 */, PAW_TX_KEEP = 60 /* 技术用：每个币留几笔推送成交 */, PAW_KV_KEEP = 64 /* 技术用：每个 K 线订阅记几根小周期的量 */;
+const PAW_RETRY = [1e3, 3e3, 10e3, 30e3] /* 技术用：断线重连等待 */, PAW_IDLE = 30e3 /* 技术用：详情关掉多久后关连线 */, PAW_DENY = 5 * 60e3 /* 技术用：拿不到通行证／被拒后多久再试 */, PAW_FAIL_MAX = 3 /*V101-2 技术用：还没验过就被关几次算被拒 */, PAW_TX_KEEP = 60 /* 技术用：每个币留几笔推送成交 */, PAW_KV_KEEP = 64 /* 技术用：每个 K 线订阅记几根小周期的量 */;
 const PAW_IV = { '1m': '1', '5m': '5', '15m': '15', '1h': '60', '3h': '60', '6h': '240', '12h': '240', '1d': '1440', '3d': '1440', '1w': '1440', '1M': '1440' }; /* 跟电脑同一张对照（AVE 没有的周期用能整除的小周期合并进同一根） */
 const pawCh = (n) => (n === 'rh' ? 'robinhood' : 'bsc'); const pawId = (n, a) => String(a || '').toLowerCase().replace(/_[a-z0-9]+$/, '') + '-' + pawCh(n);
 function pawKeys(D) { if (!D || !D.d || D.d.err) return []; const L = ['p|' + pawId(D.net, D.c), 'x|' + pawId(D.net, D.c)]; const pl = D.d.pool || ''; if (/^0x[0-9a-f]{40}/i.test(pl) && PAW_IV[D.tf]) L.unshift('k|' + pawId(D.net, pl) + '|' + PAW_IV[D.tf]); return L.filter((k) => /\|0x[0-9a-f]{40}-(bsc|robinhood)(\||$)/.test(k)); }
 const pawLive = (D) => PAW.st === 'on' && pawKeys(D).some((k) => PAW.acc.has(k));
+function pawRe() { PAW.why = ''; PAW.whyOff = 0; PAW.deny = 0; PAW.retry = 0; PAW.fail = 0; } /*V101-1：手动重连*/
 function pawSync() { const D = DT && $('#dt').classList.contains('on') ? DT : null; const L = pawKeys(D); PAW.want = L;
+  if (PAW.why === 'replaced') { if (!D) PAW.whyOff = 1; else if (PAW.whyOff) pawRe(); } /*V101-1：被别的装置接走 → 关掉详情再打开＝手动重连 */
   if (!L.length) { if (PAW.ws && !PAW.idleAt) PAW.idleAt = Date.now(); if (PAW.ws && Date.now() - PAW.idleAt > PAW_IDLE) { try { PAW.ws.close(1000, 'idle'); } catch {} } } else PAW.idleAt = 0;
   if (L.length && !PAW.ws) { pawConn(); return; } if (!PAW.ws || !PAW.auth || PAW.ws.readyState !== 1) return;
   if (PAW.renew && Date.now() > PAW.renew && !PAW.busy) { PAW.busy = 1; req('avews', {}, 8000).then((s) => { if (s && s.t && PAW.ws) { PAW.renew = +s.renew || 0; PAW.ws.send(JSON.stringify({ auth: s.t })); } }).catch(() => {}).finally(() => { PAW.busy = 0; }); }
@@ -1086,10 +1089,13 @@ async function pawConn() { if (PAW.ws || PAW.busy || Date.now() < PAW.deny || !P
   PAW.ws = ws; PAW.auth = 0; PAW.sig = ''; PAW.renew = +s.renew || 0;
   ws.onopen = () => { try { ws.send(JSON.stringify({ auth: s.t })); } catch {} };
   ws.onmessage = (e) => { if (PAW.ws !== ws) return; let m; try { m = JSON.parse(e.data); } catch { return; } pawRx(m); };
-  ws.onclose = () => { if (PAW.ws !== ws) return; PAW.ws = null; PAW.auth = 0; PAW.acc.clear(); PAW.sig = ''; PAW.st = Date.now() < PAW.deny ? 'off' : 'conn'; if (PAW.want.length) { const ms = PAW_RETRY[Math.min(PAW.retry, PAW_RETRY.length - 1)]; PAW.retry++; setTimeout(pawConn, ms); } else PAW.st = 'off'; };
+  ws.onclose = (ev) => { if (PAW.ws !== ws) return; const was = PAW.auth; PAW.ws = null; PAW.auth = 0;
+    if (ev && ev.code === 4000) { PAW.acc.clear(); PAW.sig = ''; PAW.why = 'replaced'; PAW.whyOff = 0; PAW.fail = 0; PAW.deny = Infinity; PAW.st = 'off'; toast('这个帐号在另一台装置打开了即时推送，这支手机先改用一般读取（成交区可以按「在这支手机重新连线」）'); try { paintTape(); } catch {} return; } /*V101-1：不自动重连（不然互踢）*/
+    if (!was) { PAW.fail = (PAW.fail || 0) + 1; if (PAW.fail >= PAW_FAIL_MAX) { PAW.acc.clear(); PAW.sig = ''; PAW.fail = 0; PAW.why = 'refused'; PAW.deny = Date.now() + PAW_DENY; PAW.st = 'off'; return; } } /*V101-2：还没验过就被关（升级被拒）→ 累计，满了改一般读取、过一阵子再试 */
+    PAW.acc.clear(); PAW.sig = ''; PAW.st = Date.now() < PAW.deny ? 'off' : 'conn'; if (PAW.want.length) { const ms = PAW_RETRY[Math.min(PAW.retry, PAW_RETRY.length - 1)]; PAW.retry++; setTimeout(pawConn, ms); } else PAW.st = 'off'; };
 }
 function pawRx(m) { const now = Date.now();
-  if (m.sys) { const S = m.sys; if (S.auth === 'ok') { PAW.auth = 1; PAW.retry = 0; PAW.sig = ''; } if (S.deny) { PAW.deny = now + PAW_DENY; try { PAW.ws.close(1000, 'deny'); } catch {} } if (S.resub) PAW.sig = '';
+  if (m.sys) { const S = m.sys; if (S.auth === 'ok') { PAW.auth = 1; PAW.retry = 0; PAW.fail = 0; PAW.why = ''; PAW.sig = ''; } if (S.deny) { PAW.deny = now + PAW_DENY; try { PAW.ws.close(1000, 'deny'); } catch {} } if (S.resub) PAW.sig = '';
     if (S.set != null) { const bad = new Set([...(S.cut || []), ...(S.full || []), ...(S.bad || [])].map((a) => a.join('|'))); PAW.acc = new Set(PAW.sig.split(',').filter((k) => k && !bad.has(k))); }
     if (S.bad) for (const a of S.bad) PAW.acc.delete(a.join('|')); if (S.up != null && PAW.auth) PAW.st = S.up ? 'on' : 'down'; pawSync(); return; }
   if (m.t === 'p' && m.p) { PAW.px.set(m.id, { ...m.p, at: now }); const D = DT; if (D && D.d && m.id === pawId(D.net, D.c) && m.p.u > 0) { D.d.price = m.p.u; if (m.p.c24 != null) { D.d.chg = { ...(D.d.chg || {}), h24: m.p.c24 }; const el = $('#dt .pxrow .chg'); if (el && typeof arrow === 'function') { const i = el.querySelector('i'); el.innerHTML = arrow(m.p.c24) + (i ? i.outerHTML : ''); } const t4 = [...document.querySelectorAll('#dt .chg4 > div')].find((x) => /^24H/.test(x.textContent || '')); const tb = t4 && t4.querySelector('b'); if (tb && typeof pct === 'function') { tb.className = m.p.c24 >= 0 ? 'up' : 'dn'; tb.innerHTML = pct(m.p.c24); } } } return; }
@@ -1101,7 +1107,7 @@ function pawLp(D) { if (!pawLive(D)) return null; const ks = pawKeys(D); const k
   if (o) return { src: 'wss', ...o }; const cs = D.cs; return cs.length && cs[cs.length - 1][4] > 0 ? { src: 'wss', usd: cs[cs.length - 1][4], idle: 1 } : null; }
 function pawBar(D, aw) { const cs = D.cs, last = cs[cs.length - 1], b = aw.bar; if (!last || !b || !(b.t > 0)) return; const bt = startT(b.t * 1000, D.tf); if (bt !== tms(last[0])) return;
   if (b.h > last[2]) last[2] = b.h; if (b.l > 0 && b.l < last[3]) last[3] = b.l; const M = PAW.kv.get(aw.kk); if (M) { let s = 0; for (const [t, v] of M) if (startT(t * 1000, D.tf) === bt) s += v; if (s > 0 && !(s <= last[5])) last[5] = s; } }
-function pawSrc() { const D = DT; if (!D || !D.d) return ''; return pawLive(D) ? ' · AVE 即时推送' : D.d.src === 'ave' ? ' · AVE（定时读取）' : ' · 一般读取（DexScreener）'; }
+function pawSrc() { const D = DT; if (!D || !D.d) return ''; if (!pawLive(D) && PAW.why === 'replaced') return ' · 一般读取（即时推送已在另一台装置打开）'; if (!pawLive(D) && PAW.why === 'refused' && Date.now() < PAW.deny) return ' · 一般读取（即时推送连不上，稍后自动再试）'; /*V101-1/2*/ return pawLive(D) ? ' · AVE 即时推送' : D.d.src === 'ave' ? ' · AVE（定时读取）' : ' · 一般读取（DexScreener）'; }
 setInterval(() => { try { pawSync(); } catch {} }, 2000);
 function pawTape(D) { const R0 = D.tape?.rows || []; const A = PAW.acc.has('x|' + pawId(D.net, D.c)) && PAW.st === 'on' ? PAW.tx.get(pawId(D.net, D.c)) : null; if (!A || !A.length) return R0;
   const W = A.map((x) => ({ t: x.tm > 0 ? x.tm * 1000 : x.at, b: x.b, usd: x.usd, w: x.w, tg: [] })); const mt = Math.min(...W.map((x) => x.t)); return W.concat(R0.filter((x) => x.t > 0 && x.t < mt)); } /* 推送的成交在前；问电脑拿到的只留比推送更早的 */
@@ -1136,6 +1142,9 @@ function liveTick(v, src) {
 }
 async function loadTape() { if (!DT) return; const c = DT.c; let r; try { r = await req('tape', { net: DT.net, c, pool: DT.d?.pool || '' }, 30000); } catch (e) { r = { err: e.message, rows: DT.tape?.rows || [] }; } if (!DT || DT.c !== c) return; DT.tape = r; paintTape(); clearTimeout(loadTape._t); loadTape._t = setTimeout(() => { if (DT && DT.c === c && !document.hidden) loadTape(); }, 15000); }
 function tapeHTML() {
+  const pre = PAW.why === 'replaced' ? '<div class="note">这个帐号在另一台装置打开了即时推送，这支手机先改用一般读取 <button type="button" data-pawre="1" style="margin-left:6px">在这支手机重新连线</button></div>' : ''; /*V101-1*/ if (pre && DT?.tape) return pre + tapeHTML0();
+  return tapeHTML0(); }
+function tapeHTML0() {
   if (!DT?.tape) return skRows(4).replace(/class="tr sk"/g, 'class="tr sk" style="padding:10px 2px;min-height:44px"').replace(/<span class="lg skb"><\/span>/g, ''); const R = pawTape(DT);
   if (!R.length) return `<div class="note">${esc(DT.tape.err ? pdE(DT.tape.err) : '最近没有成交')}</div>`;
   const tg = { smart: '🧠', dev: '👤', whale: '🐋' };
