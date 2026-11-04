@@ -1,0 +1,17 @@
+{
+  "wallets": [
+    {
+      "name": "mywallet.ai",
+      "address": "0xYourAgentWallet"
+    }
+  ],
+  "telegram": {
+    "botToken": "",
+    "chatId": "",
+    "groupChatId": ""
+  },
+  "timeZone": "Asia/Taipei",
+  "tokens": [],
+  "watchVault": "",
+  "rpcs": []
+}

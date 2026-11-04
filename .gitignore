@@ -1,0 +1,13 @@
+config.json
+data/
+baw2/
+baw2pkg/
+node_modules/
+WATCH_STOP
+
+radar/node_modules/
+.sign/
+_to_delete/
+
+上传用_3.1.0/
+relay/dist/

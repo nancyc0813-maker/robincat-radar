@@ -1,0 +1,6 @@
+{
+  "name": "robincat-baw2",
+  "private": true,
+  "description": "罗宾猫雷达：第二个以后钱包用的独立 baw（版本锁死在 package-lock.json；安装用 npm ci --prefix baw2pkg）",
+  "dependencies": { "@binance/agentic-wallet": "1.12.0" }
+}

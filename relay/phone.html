@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0b0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="罗宾猫雷达">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<title>罗宾猫雷达</title>
+<style>
+:root{--bg:#0a0b0d;--card:#111317;--card2:#171a1f;--line:#20242b;--ink:#e9ebef;--mute:#838b98;--green:#2ebd85;--red:#f6465d;--gold:#f0b90b;--orange:#ff9f43;--blue:#4ea3ff;--sb:env(safe-area-inset-bottom);--st:env(safe-area-inset-top)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+.num,.big,.px,.tr .rt{font-variant-numeric:tabular-nums}
+.up{color:var(--green)}.dn{color:var(--red)}.mu{color:var(--mute)}
+/* 顶栏 */
+header.top{position:sticky;top:0;z-index:6;background:rgba(10,11,13,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:calc(var(--st) + 10px) 18px 10px;display:flex;align-items:center;gap:10px}
+.brand{flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+.brand b{font-weight:800;font-size:17px;white-space:nowrap;display:block;letter-spacing:.2px}
+.brand .cat{width:32px;height:32px;border-radius:10px;flex:none;object-fit:cover;background:#16191e;box-shadow:0 0 0 1px rgba(240,185,11,.25)}
+.pc{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--mute);flex:none}
+.dot.on{background:var(--green);box-shadow:0 0 0 3px rgba(46,189,133,.2)}
+.stopB{background:rgba(246,70,93,.12);color:#ff8f9e;border:1px solid rgba(246,70,93,.35);border-radius:999px;padding:7px 13px;font-weight:700;font-size:13px;white-space:nowrap}
+.stopB.on{background:var(--red);color:#fff;border-color:var(--red)}
+main{padding:0 0 calc(var(--sb) + 104px)}
+.warnbar{margin:4px 16px 8px;background:rgba(246,70,93,.12);color:#ffb3bd;border:1px solid rgba(246,70,93,.3);border-radius:14px;padding:10px 13px;font-size:13px;display:none}
+/* 首页大卡：猫＋总值＋盈亏曲线 */
+.hero{margin:6px 14px 4px;border-radius:24px;padding:16px 16px 12px;background:radial-gradient(120% 90% at 100% 0%,rgba(240,185,11,.16),rgba(240,185,11,0) 55%),linear-gradient(160deg,#17191e,#101215 70%);border:1px solid #262a31;box-shadow:0 12px 34px rgba(0,0,0,.35);position:relative;overflow:hidden}
+.hero .hh{display:flex;align-items:center;gap:9px;font-size:13px;color:#b9c0cb;font-weight:600}
+.hero .hh img,.hero .hh .catf{width:26px;height:26px;border-radius:8px;flex:none}
+.hero .hh span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero .hh em{font-style:normal;font-size:11.5px;color:var(--gold);background:rgba(240,185,11,.12);padding:2px 8px;border-radius:999px}
+.big{font-size:36px;font-weight:800;letter-spacing:-.5px;line-height:1.15;margin-top:8px}
+.big span{color:#5d6470}
+.pl{font-size:14.5px;font-weight:600;margin-top:2px}.pl i{font-style:normal;color:var(--mute);font-weight:500;margin-left:4px}
+.rseg{display:flex;gap:4px;margin:12px 0 4px;background:rgba(0,0,0,.25);padding:3px;border-radius:12px}
+.rseg button{flex:1;padding:6px 0;border-radius:9px;font-size:12.5px;font-weight:700;color:var(--mute)}
+.rseg button.on{background:#2a2e36;color:var(--ink)}
+canvas.pnl{width:100%;height:100px;display:block;touch-action:pan-y;margin-top:6px}
+.pnlv{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mute);min-height:18px;margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pnlv b{font-weight:700}
+.sech{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;padding:18px 18px 10px}
+.sech small{font-size:12.5px;color:var(--mute);font-weight:500}
+.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 7px;border-radius:999px;background:var(--card2);border:1px solid #2a2f37;color:#b9c0cb;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.cnt.y{background:rgba(240,185,11,.14);border-color:rgba(240,185,11,.25);color:var(--gold)}
+.cards{display:flex;gap:10px;overflow-x:auto;padding:0 18px 4px;scrollbar-width:none;scroll-snap-type:x mandatory}.cards::-webkit-scrollbar{display:none}
+.hc{flex:none;width:160px;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;scroll-snap-align:start;text-align:left;transition:transform .12s}
+.hc .a{display:flex;align-items:center;gap:8px;padding:11px 12px;font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden}
+.hc .a span{overflow:hidden;text-overflow:ellipsis}
+.hc .b{background:var(--card2);padding:11px 12px;font-weight:700;font-size:17px;white-space:nowrap}
+.hc .b small{display:block;font-size:12px;font-weight:500;color:var(--mute)}
+/* 焦点：涨最多／共振／聪明钱 */
+.mvs{display:flex;gap:8px;overflow-x:auto;padding:2px 18px 4px;scrollbar-width:none}.mvs::-webkit-scrollbar{display:none}
+.mv{flex:none;display:flex;align-items:center;gap:7px;padding:6px 11px 6px 6px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:13px;font-weight:700;white-space:nowrap;transition:transform .12s}
+.mv i{font-style:normal;font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px}
+.mv i.k1{background:rgba(46,189,133,.14);color:#6fe0b0}.mv i.k2{background:rgba(240,185,11,.15);color:var(--gold)}.mv i.k3{background:rgba(78,163,255,.15);color:#8cc4ff}
+.mv .v{font-weight:600;font-size:12.5px}
+/* 分页、筛选 */
+.ntabs{display:flex;border-bottom:1px solid var(--line);margin-top:14px;position:sticky;top:calc(var(--st) + 58px);z-index:4;background:var(--bg)}
+.ntabs button{flex:1;padding:12px 0 11px;font-size:16px;font-weight:700;color:var(--mute);position:relative}
+.ntabs button.on{color:var(--ink)}
+.ntabs button.on::after{content:"";position:absolute;left:22%;right:22%;bottom:-1px;height:3px;border-radius:3px;background:var(--gold)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 18px 6px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;padding:7px 13px;border-radius:12px;border:1px solid var(--line);color:var(--mute);font-size:14px;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:transform .12s}
+.chips button.on{background:var(--card2);color:var(--ink);border-color:#3a3420;box-shadow:inset 0 0 0 1px rgba(240,185,11,.2)}
+.chips button small{color:var(--mute);font-weight:600;font-size:12px;background:rgba(255,255,255,.05);padding:0 6px;border-radius:999px}
+.chips button.on small{color:var(--gold);background:rgba(240,185,11,.12)}
+/* 代币行 */
+.tr{display:flex;align-items:center;gap:11px;padding:10px 18px;min-height:70px;width:100%;text-align:left;transition:background-color .12s}
+.tr:active,.tr.pr{background:var(--card)}
+.lg{flex:none;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;overflow:hidden;border:1px solid rgba(255,255,255,.06);position:relative}
+.lg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.lg.s{width:26px;height:26px;font-size:12px}
+.lg.m{width:42px;height:42px;font-size:17px}
+.lg.xs{width:22px;height:22px;font-size:10.5px}
+.tr .nm{flex:1;min-width:0}
+.tr .t{display:flex;align-items:center;gap:5px;min-width:0;white-space:nowrap;overflow:hidden}
+.tr .t b{font-size:16.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+.tr .nm small{display:block;color:var(--mute);font-size:13px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tr .nm small.l2{margin-top:1px;font-size:12.5px} /* UIFIX6 第 2 行 */
+.tr .rt{text-align:right;flex:none;max-width:42%}
+.tr .rt b{display:block;font-size:16px;font-weight:700;white-space:nowrap}
+.tr .rt small{display:block;font-size:13px;font-weight:600;margin-top:3px;white-space:nowrap}
+.sp{flex:none;width:52px;height:24px;display:block}
+.pp{display:inline-block;min-width:62px;text-align:center;padding:2px 7px;border-radius:7px;font-size:12.5px;font-weight:700}
+.pp.up{background:rgba(46,189,133,.14)}.pp.dn{background:rgba(246,70,93,.14)}.pp.mu{background:rgba(255,255,255,.05)}
+.tag{flex:none;display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--card2);color:var(--mute);line-height:16px}
+.tag.y{background:rgba(240,185,11,.14);color:var(--gold)}.tag.r{background:rgba(246,70,93,.14);color:#ff8f9e}.tag.g{background:rgba(46,189,133,.14);color:#6fe0b0}.tag.o{background:rgba(255,159,67,.15);color:#ffb877}.tag.b{background:rgba(78,163,255,.15);color:#8cc4ff}
+.tag.pg{position:relative;overflow:hidden;background:rgba(240,185,11,.08)}
+.tag.pg i{position:absolute;left:0;top:0;bottom:0;background:rgba(240,185,11,.22)}
+.tag.pg span{position:relative}
+.empty{color:var(--mute);text-align:center;padding:44px 10px;font-size:14px}
+.ptitle{font-size:28px;font-weight:800;padding:8px 18px 2px;display:flex;align-items:center;gap:10px}
+.psub{font-size:13px;color:var(--mute);padding:0 18px 6px}
+.hr{border-bottom:1px solid var(--line)}.hr:last-child{border-bottom:0}
+.sells{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 18px 14px 75px}
+.sells button{padding:8px 0;border-radius:11px;background:rgba(246,70,93,.12);color:#ff8f9e;font-weight:700;font-size:13.5px;transition:transform .12s}
+/* 骨架（读取中） */
+.skb{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,#15181d 0%,#1d2128 40%,#15181d 80%);background-size:300% 100%;animation:sk 1.3s linear infinite}
+.lg.skb{height:46px;border:0}
+.sk .nm .skb+.skb{margin-top:8px}.sk .rt .skb{margin-left:auto}.sk .rt .skb+.skb{margin-top:8px}
+@keyframes sk{0%{background-position:100% 0}100%{background-position:-50% 0}}
+/* 卡片 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 16px;margin:0 16px 12px}
+.card h4{margin:0 0 8px;font-size:16px}
+.note{font-size:13px;color:var(--mute);margin:8px 0;line-height:1.65}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:13px 14px;border-radius:14px;font-weight:700;background:var(--card2);font-size:15px;transition:transform .12s,filter .12s}
+.btn.y{background:var(--gold);color:#16130a}.btn.r{background:rgba(246,70,93,.14);color:#ff8f9e}.btn.rr{background:var(--red);color:#fff}.btn.g{background:var(--green);color:#03150d}
+.btn:disabled{opacity:.45}
+.btn:active,.mv:active,.hc:active,.chips button:active,.sells button:active,.dbar button:active,.sg:active,.seg button:active{transform:scale(.97);filter:brightness(1.12)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;color:var(--mute)}
+.qrow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #1b1e24;font-size:14px}.qrow:first-of-type{border-top:0}
+.qrow b{font-variant-numeric:tabular-nums}
+/* 信号 */
+.sg{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px;margin:0 14px 10px;width:calc(100% - 28px);transition:transform .12s}
+.sg.hot{border-color:rgba(240,185,11,.35);background:linear-gradient(160deg,rgba(240,185,11,.07),var(--card) 55%)}
+.sg .h{display:flex;align-items:center;gap:10px}
+.sg .h .nm{flex:1;min-width:0}
+.sg .h .nm b{font-size:16.5px;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.sg .h .nm small{display:block;color:var(--mute);font-size:12.5px}
+.sg .h .r{text-align:right;font-weight:700;white-space:nowrap}.sg .h .r small{display:block;color:var(--mute);font-size:12px;font-weight:500}
+.rb{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#f0b90b,#ff9f43);color:#1a1205}
+.srcs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.srcs span{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:#1b1f25;color:#b9c0cb;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xb{margin-top:11px}
+.xb .l{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-bottom:5px;font-variant-numeric:tabular-nums}
+.xb .l b{color:var(--ink)}
+.xb .tk{position:relative;height:8px;border-radius:5px;background:#1b1f25;overflow:hidden}
+.xb .tk i{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
+.xb .tk em{position:absolute;top:-1px;bottom:-1px;width:3px;border-radius:2px;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+/* 底部浮动导航 */
+nav.tab{position:fixed;left:14px;right:14px;bottom:calc(var(--sb) + 10px);z-index:8;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:6px;background:rgba(23,26,31,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid #2a2f37;border-radius:30px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+nav.tab button{height:54px;border-radius:24px;color:var(--mute);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11.5px;font-weight:600;position:relative}
+nav.tab svg{width:23px;height:23px}
+nav.tab button.on{background:#262a32;color:var(--ink)}
+nav.tab button.on svg{color:var(--gold)}
+nav.tab button sup{position:absolute;top:6px;left:calc(50% + 8px);min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--gold);color:#16130a;font-size:10px;font-weight:800;line-height:16px;text-align:center}
+/* 底部弹出 */
+.sheet{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);display:none;align-items:flex-end}
+.sheet.on{display:flex}
+.sheet>div{width:100%;max-height:88vh;overflow:auto;background:#121418;border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:10px 18px calc(var(--sb) + 18px)}
+.sheet>div::before{content:"";display:block;width:38px;height:5px;border-radius:3px;background:#30353e;margin:0 auto 12px}
+.sheet h3{margin:0 0 4px;font-size:19px;display:flex;align-items:center;gap:8px}
+.qgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 8px}
+.qgrid .btn{padding:16px 4px;font-size:16px;flex-direction:column}
+.qgrid .btn small{font-size:11.5px;font-weight:600;opacity:.75}
+.qempty{grid-column:1/-1;text-align:center;padding:18px 10px;border-radius:14px;border:1px dashed #3a3f48;color:#c9ced6;font-weight:700;font-size:15px}
+.qempty small{display:block;color:var(--mute);font-weight:500;font-size:12.5px;margin-top:4px}
+/* U／BNB 切换 */
+.seg{display:flex;gap:4px;background:#0c0d10;border:1px solid #23272e;padding:3px;border-radius:12px}
+.seg button{flex:1;padding:8px 0;border-radius:9px;font-size:14px;font-weight:800;color:var(--mute);white-space:nowrap}
+.seg button.on{background:var(--gold);color:#16130a}
+.seg button small{font-weight:600;font-size:11px;opacity:.8;margin-left:3px}
+.uq{display:flex;align-items:center;gap:10px;margin:10px 16px 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px 10px 8px 12px;font-size:12.5px;color:var(--mute)}
+.uq:empty{display:none}
+.uq .seg{flex:none;width:136px}
+.uq span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uq span b{color:var(--ink)}
+.toast{position:fixed;left:50%;bottom:calc(var(--sb) + 100px);transform:translateX(-50%);background:#262a32;color:var(--ink);padding:11px 16px;border-radius:14px;font-size:14px;z-index:40;max-width:88vw;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.pair{max-width:420px;margin:0 auto;text-align:center;padding:calc(var(--st) + 12vh) 22px 0}
+.pair h1{font-size:24px;margin:18px 0 8px}
+.pair p{color:var(--mute);line-height:1.75}
+/* 代币详情 */
+.dt{position:fixed;inset:0;z-index:15;background:var(--bg);overflow-y:auto;overflow-x:hidden;display:none;-webkit-overflow-scrolling:touch}
+.dt.on{display:block}
+.dth{position:sticky;top:0;z-index:3;background:rgba(10,11,13,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:calc(var(--st) + 8px) 14px 10px 6px;display:flex;align-items:center;gap:10px}
+.dth .bk{width:36px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--mute)}
+.dth .nm{flex:1;min-width:0}
+.dth .nm b{font-size:19px;font-weight:800;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.dth .nm small{display:block;color:var(--mute);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#b9c0cb}
+.ib:active{background:var(--card2)}
+.ib svg{width:22px;height:22px}
+.pxrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:6px 18px 0;min-height:76px}
+.px{font-size:34px;font-weight:800;letter-spacing:-.4px;line-height:1.15;white-space:nowrap}
+.chg{font-size:15px;font-weight:600;margin-top:2px;white-space:nowrap}.chg i{font-style:normal;color:var(--mute);font-weight:500;margin-left:3px}
+.mcR{text-align:right;padding-top:6px}.mcR b{display:block;font-size:20px;font-weight:700;white-space:nowrap}.mcR small{color:var(--mute);font-size:13px}
+canvas.kc{width:100%;height:300px;display:block;touch-action:pan-y;margin-top:8px}
+.tfs{display:flex;gap:4px;overflow-x:auto;padding:8px 14px 0;scrollbar-width:none}.tfs::-webkit-scrollbar{display:none}
+.tfs button{flex:none;min-width:46px;padding:7px 10px;border-radius:10px;font-size:14px;font-weight:700;color:var(--mute)}
+.tfs button.on{background:var(--card2);color:var(--ink);box-shadow:inset 0 0 0 1px #2c313a}
+.kn{font-size:12px;color:var(--mute);padding:4px 18px 0;height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chg4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 16px 0}
+.chg4 div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:7px 4px;text-align:center;font-size:11.5px;color:var(--mute)}
+.chg4 b{display:block;font-size:14px;font-variant-numeric:tabular-nums}
+.myh{margin:12px 16px 0;background:linear-gradient(160deg,rgba(46,189,133,.06),var(--card) 60%);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.myh .l{flex:1;min-width:0;font-size:12.5px;color:var(--mute)}.myh .l b{display:block;color:var(--ink);font-size:18px}
+.myh .r{text-align:right;font-weight:700;font-size:16px}.myh .r small{display:block;font-size:12px;color:var(--mute);font-weight:500}
+.dtabs{display:flex;border-bottom:1px solid var(--line);margin:16px 16px 0}
+.dtabs button{flex:1;padding:11px 0;font-size:16px;font-weight:700;color:var(--mute);position:relative}
+.dtabs button.on{color:var(--ink)}
+.dtabs button.on::after{content:"";position:absolute;left:12%;right:12%;bottom:-1px;height:3px;border-radius:3px;background:var(--gold)}
+.dpane{padding:8px 16px 0;min-height:220px}
+.tp{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:9px 2px;border-bottom:1px solid #16191e;font-variant-numeric:tabular-nums}
+.tp .w{flex:none;min-width:96px;text-align:right;color:var(--mute);font-size:12px;white-space:nowrap}
+.sumb{border-radius:14px;padding:11px 13px;margin:8px 0;font-weight:700;font-size:14px}
+.sumb.r{background:rgba(246,70,93,.12);color:#ffb3bd}.sumb.y{background:rgba(240,185,11,.12);color:#ffd666}.sumb.g{background:rgba(46,189,133,.12);color:#7fe3b8}
+.kv4{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.kv4 div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 11px;font-size:12px;color:var(--mute)}
+.kv4 b{display:block;color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.desc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px;font-size:13.5px;line-height:1.7;margin:8px 0}
+.desc b{font-size:15px}
+.dbar{position:fixed;left:0;right:0;bottom:0;z-index:16;display:none;gap:10px;padding:10px 16px calc(var(--sb) + 12px);background:linear-gradient(to top,var(--bg) 70%,rgba(10,11,13,0))}
+.dt.on~.dbar{display:flex}
+.dbar .buy{flex:1;height:56px;border-radius:16px;background:var(--green);color:#03150d;font-size:18px;font-weight:800;box-shadow:0 8px 24px rgba(46,189,133,.25)}
+.dbar .buy.off{background:#1d2a24;color:#6d8a7c;font-size:15px;box-shadow:none}
+.dbar .sell{flex:0 0 30%;height:56px;border-radius:16px;background:#2a1519;color:#ff8f9e;font-size:17px;font-weight:800;border:1px solid rgba(246,70,93,.3)}
+.dbar .zap{flex:none;width:64px;height:56px;border-radius:16px;background:var(--card2);border:1px solid #2c313a;color:var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;line-height:1.1;white-space:nowrap}
+.dbar .zap svg{width:22px;height:22px}
+.dbar .zap.off{color:#555b66}
+/* ── 11/3 密度版（她：太大像老花眼）→ 照 fomo／GMGN／AVE 手机版：13px 内文、列表一行 ~54px、按钮 34–38px ── */
+html,body{font-size:13px}
+header.top{padding:calc(var(--st) + 6px) 12px 6px;gap:8px;height:calc(var(--st) + 46px)}
+.brand{gap:8px}.brand b{font-size:14.5px}.brand .cat,.brand .catf{width:26px;height:26px;border-radius:8px}
+.pc{font-size:11px;gap:5px}.dot{width:6px;height:6px}
+.stopB{padding:5px 10px;font-size:12px}
+main{padding:0 0 calc(var(--sb) + 76px)}
+.warnbar{margin:2px 10px 6px;padding:7px 10px;font-size:12px;border-radius:10px}
+.hero{margin:4px 10px 6px;padding:8px 11px 4px;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+.hero .hh{gap:6px;font-size:11.5px}
+.hero .hh img,.hero .hh .catf{width:18px;height:18px;border-radius:5px}
+.hero .hh em{font-size:11px;padding:0;background:none}
+.hero .hh .rseg{margin:0;flex:none;padding:2px;border-radius:8px}
+.rseg button{padding:3px 7px;font-size:11px;border-radius:6px;white-space:nowrap;flex:none}
+.hero .hh span{flex:1;min-width:0}
+.hv{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:4px}
+.big{font-size:27px;margin:0;letter-spacing:-.3px}
+.pl{font-size:12.5px;margin:0}.pl i{font-size:11px}
+canvas.pnl{height:56px;margin-top:2px}
+.pnlv{font-size:11px;min-height:15px;margin-top:0}
+.sech{font-size:14px;padding:10px 12px 6px;gap:6px}.sech small{font-size:11px}
+.cnt{min-width:18px;height:17px;font-size:11px;padding:0 5px}
+.ptitle{font-size:20px;padding:6px 12px 0;gap:8px}.psub{font-size:11.5px;padding:0 12px 4px}
+.mvs{gap:6px;padding:2px 10px 4px;align-items:center}
+.sl{flex:none;font-size:11px;color:var(--mute);padding:0 2px 0 4px;white-space:nowrap}.sl b{color:var(--ink)}
+.hc{width:auto;display:flex;align-items:center;gap:5px;padding:4px 9px 4px 4px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;scroll-snap-align:none}
+.hc .n{max-width:84px;overflow:hidden;text-overflow:ellipsis}.hc span:last-child{font-weight:600;font-size:11.5px}
+.mv{gap:5px;padding:4px 9px 4px 4px;font-size:12px}.mv i{font-size:10px;padding:0 5px}.mv .v{font-size:11.5px}
+.lg.xs{width:20px;height:20px;font-size:10px}
+.bhd{position:sticky;top:calc(var(--st) + 46px);z-index:4;background:var(--bg);border-bottom:1px solid var(--line)}
+.bh1{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:2px 10px 0 4px}.bh1 .nseg{order:-1;margin-left:auto}.bh1 .ctabs{flex:1 1 100%}.ctabs button{flex:1 1 0!important;min-width:0;padding:8px 2px 7px!important;font-size:13px!important}/* FIX-PH-HOT：栏位一排四个都看得到（新创建｜即将发射｜🔥 热门内盘｜已发射），跟电脑一样 */
+.ctabs{flex:1;min-width:0;display:flex;overflow-x:auto;scrollbar-width:none}.ctabs::-webkit-scrollbar{display:none}
+.ctabs button{flex:none;padding:8px 8px 7px;font-size:13.5px;font-weight:700;color:var(--mute);position:relative;white-space:nowrap}
+.ctabs button small{font-size:10.5px;font-weight:600;margin-left:3px;color:var(--mute)}
+.ctabs button.on{color:var(--ink)}#bCol button{flex:none!important;min-width:auto!important}/*BOARD-V3：栏位多了 ⭐ 自选，横滑、不挤在一起*/.ctabs button.on::after{content:"";position:absolute;left:8px;right:8px;bottom:0;height:2px;border-radius:2px;background:var(--gold)}
+.nseg{flex:none;display:flex;background:var(--card2);border:1px solid #262a31;border-radius:8px;padding:2px}
+.nseg button{padding:3px 8px;font-size:11.5px;font-weight:800;color:var(--mute);border-radius:6px}.nseg button.on{background:#2e333c;color:var(--gold)}
+.chips{gap:6px;padding:6px 10px}
+.chips button{padding:4px 10px;border-radius:8px;font-size:12px;gap:4px}
+.chips button small{font-size:10.5px;padding:0 4px}
+.chips.sm{padding:5px 10px 6px}.chips.sm button{padding:3px 9px;font-size:11.5px;border-radius:7px}
+.chips.sm button.on{background:rgba(240,185,11,.12);color:var(--gold);border-color:rgba(240,185,11,.3);box-shadow:none}
+.tr{gap:8px;padding:5px 10px 5px 12px;min-height:52px}
+.lg{width:32px;height:32px;font-size:13px}.lg.s{width:20px;height:20px;font-size:10px}.lg.m{width:32px;height:32px;font-size:13px}
+.lg.skb{height:32px}
+.tr .t{gap:4px}.tr .t b{font-size:14px}
+.tr .nm small{font-size:11.5px;margin-top:1px}
+.tr .rt{max-width:38%}.tr .rt b{font-size:13.5px}.tr .rt small{font-size:11.5px;margin-top:2px}
+.sp{width:42px;height:18px}
+.pp{min-width:52px;padding:1px 5px;font-size:11.5px;border-radius:5px}
+.tag{font-size:10px;padding:0 4px;line-height:15px;border-radius:4px;gap:2px}
+.rz{flex:none;width:36px;height:36px;margin-left:2px;border-radius:10px;background:rgba(240,185,11,.1);border:1px solid rgba(240,185,11,.28);color:var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;font-weight:800;transition:transform .12s}
+.rz svg{width:13px;height:13px}.rz small{font-size:9.5px;margin-top:2px;max-width:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rz:active{transform:scale(.94);background:rgba(240,185,11,.22)}
+.skb{height:10px}.sk .nm .skb+.skb{margin-top:6px}.sk .rt .skb+.skb{margin-top:6px}
+.empty{padding:28px 10px;font-size:12.5px}
+.sells{gap:6px;padding:0 10px 8px 52px}.sells button{padding:5px 0;border-radius:8px;font-size:12px}
+.card{border-radius:14px;padding:11px 12px;margin:0 10px 8px}.card h4{font-size:14px;margin:0 0 4px}
+.note{font-size:12px;margin:6px 0;line-height:1.55}
+.btn{padding:9px 12px;border-radius:10px;font-size:13.5px;min-height:36px}
+.qrow{padding:6px 0;font-size:12.5px}
+.sg{border-radius:14px;padding:9px 11px;margin:0 10px 7px;width:calc(100% - 20px)}
+.sg .h{gap:8px}.sg .h .nm b{font-size:14px;gap:5px}.sg .h .nm small{font-size:11px}
+.sg .h .r{font-size:13.5px}.sg .h .r small{font-size:10.5px}
+.rb{font-size:10.5px;padding:1px 6px}
+.srcs{gap:4px;margin:6px 0 0}.srcs span{font-size:10.5px;padding:1px 7px}
+.xb{margin-top:7px}.xb .l{font-size:11px;margin-bottom:4px}.xb .tk{height:6px}
+nav.tab{left:10px;right:10px;bottom:calc(var(--sb) + 6px);padding:4px;border-radius:22px;gap:2px}
+nav.tab button{height:46px;border-radius:18px;font-size:10.5px;gap:1px}
+nav.tab svg{width:20px;height:20px}
+nav.tab button sup{top:3px;min-width:14px;height:14px;line-height:14px;font-size:9px}
+.sheet>div{border-radius:18px 18px 0 0;padding:8px 14px calc(var(--sb) + 12px)}
+.sheet>div::before{margin:0 auto 8px;width:34px;height:4px}
+.sheet h3{font-size:16px;gap:6px}
+.qgrid{gap:8px;margin:10px 0 6px}.qgrid .btn{padding:8px 4px;font-size:14px;min-height:44px}.qgrid .btn small{font-size:10.5px}
+.qempty{padding:12px 8px;font-size:13.5px;border-radius:10px}.qempty small{font-size:11.5px}
+.seg{padding:2px;border-radius:9px}.seg button{padding:5px 0;font-size:12.5px;border-radius:7px}
+.uq{margin:8px 10px 0;padding:5px 6px 5px 10px;font-size:11.5px;border-radius:10px;gap:8px}.uq .seg{width:116px}
+.toast{bottom:calc(var(--sb) + 72px);padding:8px 12px;font-size:12.5px;border-radius:10px}
+.pair h1{font-size:20px}
+.dth{padding:calc(var(--st) + 4px) 8px 6px 2px;gap:6px}
+.dth .bk{width:30px;height:36px}.dth .bk svg{width:22px;height:22px}
+.dth .nm b{font-size:15.5px;gap:5px}.dth .nm small{font-size:11.5px}
+.ib{width:34px;height:34px}.ib svg{width:19px;height:19px}
+.pxrow{padding:2px 12px 0;min-height:52px}
+.px{font-size:26px;letter-spacing:-.3px}
+.chg{font-size:12.5px;margin-top:0}
+.mcR{padding-top:3px}.mcR b{font-size:15px}.mcR small{font-size:11px}
+canvas.kc{height:240px;margin-top:4px}
+.tfs{gap:2px;padding:4px 8px 0}.tfs button{min-width:36px;padding:4px 7px;font-size:12px;border-radius:7px}
+.kn{font-size:11px;padding:2px 12px 0;height:18px}
+.chg4{gap:6px;margin:6px 10px 0}.chg4 div{border-radius:9px;padding:4px 2px;font-size:10.5px}.chg4 b{font-size:12.5px}
+.myh{margin:8px 10px 0;border-radius:12px;padding:8px 10px;gap:8px}.myh .l{font-size:11px}.myh .l b{font-size:14.5px}.myh .r{font-size:13.5px}.myh .r small{font-size:10.5px}
+.dtabs{margin:10px 10px 0}.dtabs button{padding:8px 0;font-size:13.5px}
+.dpane{padding:6px 10px 0;min-height:180px}
+.tp{font-size:12px;padding:6px 2px;gap:6px}.tp .w{min-width:84px;font-size:11px}
+.sumb{border-radius:10px;padding:8px 10px;margin:6px 0;font-size:12.5px}
+.kv4{gap:6px;margin:6px 0}.kv4 div{border-radius:9px;padding:6px 9px;font-size:11px}.kv4 b{font-size:13px}
+.desc{border-radius:10px;padding:9px 10px;font-size:12.5px;line-height:1.6;margin:6px 0}.desc b{font-size:13.5px}
+.mono{font-size:11px}
+.dbar{gap:8px;padding:6px 10px calc(var(--sb) + 8px)}
+.dbar .buy{height:44px;border-radius:12px;font-size:15.5px}.dbar .buy.off{font-size:13px}
+.dbar .sell{height:44px;border-radius:12px;font-size:14.5px;flex-basis:26%}
+.dbar .zap{width:56px;height:44px;border-radius:12px;font-size:10px}.dbar .zap svg{width:17px;height:17px}
+.hrow{display:block}.hrow>img,.hrow>.catf,.hxe{display:none}
+.hxb{flex:none;width:26px;height:24px;margin-left:2px;color:var(--mute);font-size:12px;border-radius:6px}
+.hero.cmp{padding:6px 10px 6px 8px;cursor:pointer}
+.hero.cmp .hh,.hero.cmp .pnlv{display:none}
+.hero.cmp .hrow{display:flex;align-items:center;gap:8px}
+.hero.cmp .hrow>img,.hero.cmp .hrow>.catf{display:block;width:26px;height:26px;border-radius:7px;flex:none}
+.hero.cmp #hTop{flex:1;min-width:0}.hero.cmp .hv{margin:0;gap:6px;flex-wrap:nowrap;white-space:nowrap}
+.hero.cmp .big{font-size:21px}.hero.cmp .pl{font-size:12px}.hero.cmp .pl i{display:none}
+.hero.cmp canvas.pnl{flex:none;width:88px;height:32px;margin:0;pointer-events:none}
+.hero.cmp .hxe{display:block;font-style:normal;color:var(--mute);font-size:12px;flex:none}
+.chips button.pf small{font-size:10px;margin-left:2px}.csep{flex:none;width:1px;height:16px;background:var(--line);margin:0 2px;align-self:center}
+.nseg .stb{color:var(--mute);font-size:11px;padding:3px 6px}.nseg .stb small{font-size:10px;margin-left:1px}.nseg .stb.on{background:#2e333c;color:var(--gold)}
+/* 只有第一次进来时，大卡淡入一次 */
+.intro .hero{animation:rise .42s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+.perBar{display:inline-flex;gap:4px;align-items:center}.pperB{min-height:44px;min-width:44px;padding:0 10px;border-radius:10px;font-size:13px;color:var(--mute,#8a93a5);border:1px solid var(--line,#2a2f3a);background:transparent}.pperB.on{color:#f0b90b;border-color:#f0b90b;font-weight:700}.perL{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.perL button{min-height:48px;font-size:16px;border-radius:12px}.perL button.on{color:#f0b90b;border-color:#f0b90b;font-weight:700}.c1p em{font-size:15px;font-weight:700}.c3 i.sel{color:#f0b90b}.psel{background:var(--card2,#1a1d24);color:inherit;border:1px solid var(--line,#2a2f3a);border-radius:8px;padding:4px 6px;font-size:12px;max-width:120px}.pst{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--mute,#8a93a5);white-space:nowrap}.pst input{width:40px;background:transparent;color:inherit;border:1px solid var(--line,#2a2f3a);border-radius:6px;padding:2px 4px;font-size:12px}.tr.dim{opacity:.55}.zr{color:var(--mute,#8a93a5)}.c3{display:flex;justify-content:flex-end;gap:1px;align-items:baseline;white-space:nowrap;font-size:10px;max-width:44vw;overflow:hidden}.c3 em{font-style:normal}.c3 i{font-style:normal;font-size:8.5px;color:var(--mute,#8a93a5);margin-left:3px}
+/* PSE-1103 自订策略（手机改设定）：紧凑排版 */
+.se{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;overflow-x:hidden;display:none;-webkit-overflow-scrolling:touch}
+.se.on{display:block}
+.se .seRl{margin-left:auto;font-size:12.5px;color:var(--blue);padding:8px 6px;min-height:40px;white-space:nowrap}
+.seRO{margin:6px 10px;padding:9px 11px;border-radius:10px;background:rgba(240,185,11,.1);border:1px solid rgba(240,185,11,.35);color:#f5cf5a;font-size:12.5px;line-height:1.5}
+.seTip{margin:2px 12px 6px;font-size:11.5px;color:#c9a227}
+.seGL{margin:0 8px}
+.seGr{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 8px;border-bottom:1px solid #1b1e24;min-height:48px}
+.seGr span{flex:1;font-size:14px;font-weight:600}.seGr small{color:var(--mute);font-size:11.5px;white-space:nowrap}.seGr i{color:var(--mute);font-style:normal;font-size:18px}
+.gold{color:var(--gold)}
+.seL{margin:0 6px}
+.seR{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 6px;border-bottom:1px solid #1b1e24}
+.seR.ind{padding-left:18px}
+.seR.dis .seT,.seR.dis .seC{opacity:.45}
+.seR.ch{background:rgba(240,185,11,.06)}
+.seT{flex:1;min-width:0}
+.seT b{font-size:13.5px;font-weight:600}
+.seT em{font-style:normal;font-size:10.5px;color:#16130a;background:var(--gold);border-radius:5px;padding:0 4px;margin-left:6px;vertical-align:1px}
+.seT small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mute);font-size:11px;line-height:1.4;margin-top:2px}
+.seT .rg,.seT .cap,.seT .fl,.seT .nd,.seT .bad{display:block;font-size:11px;margin-top:2px}
+.seT .rg{color:#9cc9ff}.seT .cap{color:#f5cf5a}.seT .fl{color:#ff9f43}.seT .nd{color:var(--mute)}
+.seT .bad{display:none;color:var(--red)}
+.seR.bad .seT .bad{display:block}.seR.bad input{border-color:var(--red)!important}
+.seC input[type=text]{width:92px;background:#0c0d10;border:1px solid #2a2f37;border-radius:9px;color:var(--ink);padding:7px 8px;font-size:16px;text-align:right;min-height:40px}
+.seC input.seTx{width:140px;text-align:left}
+.seC input::placeholder{color:#5b626e}
+.seC select{background:#0c0d10;border:1px solid #2a2f37;border-radius:9px;color:var(--ink);padding:7px 6px;font-size:16px;max-width:150px;min-height:40px}
+.seNum{display:flex;align-items:center;gap:4px}.seNum small{color:var(--mute);font-size:11px;max-width:52px;line-height:1.2}
+.seSw{position:relative;display:inline-block;width:48px;height:30px;flex:none}.seSw input{position:absolute;opacity:0;inset:0;margin:0;z-index:1;cursor:pointer;width:100%;height:100%}.seSw i{position:absolute;inset:0;border-radius:15px;background:#2a2f37;transition:.15s}.seSw i::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.15s}.seSw input:checked+i{background:var(--green)}.seSw input:checked+i::after{transform:translateX(18px)}.seSw input:disabled+i{opacity:.5}
+.seO{width:100%;display:flex;flex-direction:column;gap:4px}
+.seOr{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:9px;padding:2px 8px;font-size:13px}.seOr span{flex:1}.seOr button{min-width:40px;min-height:40px;color:var(--blue)}.seOr button:disabled{color:#3a3f47}
+.seBar{position:fixed;left:0;right:0;bottom:0;z-index:21;display:flex;align-items:center;gap:8px;padding:10px 12px calc(var(--sb) + 10px);background:rgba(17,19,23,.97);border-top:1px solid var(--line)}
+.seBar span{flex:1;font-size:13px}.seBar .btn{min-width:84px;flex-direction:row}.seBar .btn:disabled{opacity:.4}
+.seDL{margin-top:6px}
+.seD{padding:7px 0;border-bottom:1px solid #1b1e24;font-size:13.5px;line-height:1.5}
+.seD s{color:var(--mute);text-decoration:none}
+.seD.fl{color:#ff8f9e}
+.seW{margin-top:10px;padding:8px 10px;border-radius:10px;background:rgba(240,185,11,.08);color:#f5cf5a;font-size:12.5px;line-height:1.55}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.seRg{flex-wrap:nowrap;gap:5px;font-size:12.5px;color:var(--mute)}.seC .seRg input[type=text]{width:74px}
+.seC.w{width:100%;display:flex;justify-content:flex-end}
+/* UI2-1104 H7：手指点的按钮至少 44px 高 */
+.rseg button,.nseg button,.tfs button,#sF button,.sells button,.stopB{min-height:44px}
+/* UIP-1104 polish */
+.c3{font-size:11px;gap:2px}.c3 i{font-size:10px}
+.tfs button{min-height:40px}
+button[data-a="col"],button[data-a="dtab"]{min-height:44px}
+button[data-a="tf"],button[data-a="net"],button[data-a="strip"],button[data-a="stop"],button[data-a="unit"],.ib{position:relative}
+button[data-a="tf"]::before,button[data-a="net"]::before,button[data-a="strip"]::before,button[data-a="stop"]::before,button[data-a="unit"]::before,.ib::before{content:"";position:absolute;left:0;right:0;top:50%;height:44px;min-height:100%;transform:translateY(-50%)}
+.tr b,.tr .c1p,.c3{font-variant-numeric:tabular-nums}
+#bSort{flex-wrap:wrap;overflow-x:visible;row-gap:6px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="dt" id="dt"></div>
+<div class="se" id="se"></div>
+<div class="dbar" id="dbar"></div>
+<div class="sheet" id="sh"><div id="shb"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+'use strict';
+/* ── 加密：金钥只在 QR 码（网址 # 后面，不会送到伺服器）和这台手机上 ── */
+const b64u = (b) => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const ub64u = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), (c) => c.charCodeAt(0));
+let KEY = null, ROOM = '', WS = null, PC_ON = false, ST = null, BOARD = {}, TAB = 'board', NET = 'bsc', COL = 0, seq = 0, retry = 0;
+const PEND = new Map(), SEEN = new Map();
+/* RT-11：① 方向放进 AES-GCM 的 AAD（'rc2:p2c:'+房间＝手机→电脑、'rc2:c2p:'+房间＝电脑→手机），转接站把手机的消息弹回手机也解不开
+   ② 连转接站要带 ts＋h＝HMAC(GATE, 'rcph1:'+房间+':'+ts)；GATE＝HMAC(配对金钥, 'rcph-gate-v1:'+房间)（电脑连线时用 g= 交给转接站），只知道房间号连不上
+   ③ 每支手机有自己的编号 PID（localStorage）和递增序号 q（localStorage，只增不减），电脑记每个 PID 最后的 q，旧的一律不收（电脑重开也有效，要电脑端存起来）
+   ④ 电脑来的消息看过的 n 存 sessionStorage（重新整理页面也挡得住重放） */
+let GATEK = null, PID = '';
+const AAD_OUT = () => new TextEncoder().encode('rc2:p2c:' + ROOM), AAD_IN = () => new TextEncoder().encode('rc2:c2p:' + ROOM);
+async function setup(raw) {
+  KEY = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('rcr1:' + b64u(raw)));
+  ROOM = b64u(h).slice(0, 32);
+  const mk = await crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const gate = await crypto.subtle.sign('HMAC', mk, new TextEncoder().encode('rcph-gate-v1:' + ROOM));
+  GATEK = await crypto.subtle.importKey('raw', gate, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  try { PID = localStorage.getItem('rcPid') || ''; } catch {} if (!/^[A-Za-z0-9_-]{22}$/.test(PID)) { PID = b64u(crypto.getRandomValues(new Uint8Array(16))); try { localStorage.setItem('rcPid', PID); } catch {} }
+}
+function nextQ() { let q = 0; try { q = Math.floor(+localStorage.getItem('rcQ') || 0); } catch {} q = Math.max(q + 1, Date.now()); try { localStorage.setItem('rcQ', String(q)); } catch {} return q; } /* 用「上次＋1」和现在时间取大的：清掉 localStorage 也不会回到旧号码 */
+async function gateQs() { const ts = Date.now(); const h = await crypto.subtle.sign('HMAC', GATEK, new TextEncoder().encode('rcph1:' + ROOM + ':' + ts)); return '&ts=' + ts + '&h=' + b64u(h); }
+async function enc(o) { const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: AAD_OUT() }, KEY, new TextEncoder().encode(JSON.stringify(o))); return JSON.stringify({ e: b64u(iv) + '.' + b64u(ct) }); }
+async function dec(s) { const [a, b] = String(s).split('.'); const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ub64u(a), additionalData: AAD_IN() }, KEY, ub64u(b)); return JSON.parse(new TextDecoder().decode(pt)); }
+const SEEN_K = 'rcSeen';
+function seenLoad() { try { const a = JSON.parse(sessionStorage.getItem(SEEN_K) || '[]'); if (Array.isArray(a)) for (const [k, t] of a) SEEN.set(k, t); } catch {} }
+function fresh(o) { const now = Date.now(); if (!fresh._l) { fresh._l = 1; seenLoad(); } for (const [k, t] of SEEN) if (now - t > 600e3) SEEN.delete(k); if (!o || typeof o.t !== 'number' || Math.abs(now - o.t) > 300e3 || typeof o.n !== 'string' || SEEN.has(o.n)) return false; SEEN.set(o.n, now); try { sessionStorage.setItem(SEEN_K, JSON.stringify([...SEEN])); } catch {} return true; }
+
+/* ── 连线 ── */
+let CONNING = 0, DENY = '', RX = 0; /* PERF2-1104 RX＝最后收到东西的时间（心跳用） */
+async function connect() {
+  if (WS && WS.readyState <= 1 || CONNING || !GATEK) return; CONNING = 1; let qs = ''; try { qs = await gateQs(); } catch {} finally { CONNING = 0; } if (WS && WS.readyState <= 1) return;
+  const ws = WS = new WebSocket(`${location.protocol === "http:" ? "ws" : "wss"}://${location.host}/ws/${ROOM}?r=ph${qs}`);
+  ws.onopen = () => { retry = 0; RX = Date.now(); render(); };
+  ws.onmessage = async (ev) => {
+    RX = Date.now(); let m; try { m = JSON.parse(ev.data); } catch { return; }
+    if (m.sys) { if (m.sys.deny) { DENY = String(m.sys.deny); toast(DENY); } if ('pc' in m.sys) { DENY = ''; const was = PC_ON; PC_ON = !!m.sys.pc; if (PC_ON && !was) refresh(); render(); } return; }
+    if (!m.e) return; let o; try { o = await dec(m.e); } catch { return; } // 不是用我们的金钥加密的 → 丢掉
+    if (o.f !== 'pc' || !fresh(o)) return;
+    if (o.ty === 'res' && PEND.has(o.id)) { const p = PEND.get(o.id); PEND.delete(o.id); clearTimeout(p.to); o.err ? p.no(new Error(o.err)) : p.ok(o.d); }
+    if (o.ty === 'push' && o.m === 'state') { ST = o.d; render(); }
+  };
+  ws.onclose = (ev) => { if (WS !== ws) return; /* PERF2-1104 旧连线关掉时不动新连线 */ PC_ON = false; failPend('跟电脑的连线断了，正在重连…'); render(); if ((ev.code === 4001 || ev.code === 4003) && !DENY) toast(ev.code === 4001 ? '这个配对的手机已经满了，这台先不接' : '转接站没让这台手机连上（请回电脑重新扫 QR 码）'); const n = retry++; setTimeout(connect, n ? Math.min(PH_RETRY_MAX, PH_RETRY_MS * 2 ** (n - 1)) : 0); /* PERF2-1104 第一次马上重连，之后 1s/2s/4s… */ };
+}
+/* PERF2-1104 断线时还在等的请求马上回错（之前要等到 25 秒逾时才知道） */
+function failPend(why) { for (const [id, p] of PEND) { PEND.delete(id); clearTimeout(p.to); try { p.no(new Error(why)); } catch {} } }
+/* PERF2-1104 心跳：每 PH_PING_MS 送 ping；超过 PH_DEAD_MS 没收到任何东西（含 pong）就当连线半死（手机睡醒、换网路常见），直接换一条新连线 */
+const PH_PING_MS = 15000, PH_DEAD_MS = 35000, PH_RETRY_MS = 1000, PH_RETRY_MAX = 15000; /* 技术用 */
+setInterval(() => { const w = WS; if (!w || w.readyState !== 1) return; if (RX && Date.now() - RX > PH_DEAD_MS) { WS = null; PC_ON = false; retry = 0; failPend('跟电脑的连线没反应，正在重连…'); render(); try { w.close(); } catch {} connect(); return; } w.send('ping'); }, PH_PING_MS);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { connect(); refresh(); } });
+async function req(m, a = {}, ms = 25000) {
+  if (!WS || WS.readyState !== 1) throw new Error('还没连上转接站');
+  if (!PC_ON) throw new Error('电脑雷达没在线（电脑要开着、雷达要在跑）');
+  const id = ++seq + '.' + Date.now();
+  const p = new Promise((ok, no) => PEND.set(id, { ok, no, to: setTimeout(() => { PEND.delete(id); no(new Error('电脑没有回应，等一下再试')); }, ms) }));
+  WS.send(await enc({ f: 'ph', ty: 'req', id, m, a, t: Date.now(), n: crypto.randomUUID(), pid: PID, q: nextQ() }));
+  return p;
+}
+
+/* ── 小工具 ── */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const usd = (v) => v == null || !isFinite(v) ? '-' : Math.abs(v) >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : Math.abs(v) >= 1e3 ? (v / 1e3).toFixed(1) + 'K' : Math.abs(v) >= 1 ? (+v).toFixed(2) : (+v).toFixed(4);
+const money = (v) => v == null || !isFinite(v) ? '-' : (v < 0 ? '-$' : '$') + usd(Math.abs(v));
+const smoney = (v) => v == null || !isFinite(v) ? '-' : (v >= 0 ? '+$' : '-$') + usd(Math.abs(v));
+const NOW_TXT = '电脑还没连钱包：手机现在不能买。请回电脑雷达连接钱包。', NOW_BUY = '电脑还没连钱包，这笔没送出。请先回电脑雷达连接钱包再买'; /* UIFIX6 */
+const pdE = (m) => { m = String(m || ''); return /[\u4e00-\u9fff]/.test(m) && !/[A-Za-z]{3,}/.test(m) ? m : '暂时读不到，稍后再试'; }; /* UIFIX6：详情不显示原始错误字串（mock／rpc timeout 等） */
+const ago = (m) => m == null ? '' : m < 60 ? m + ' 分钟' : m < 1440 ? Math.round(m / 60) + ' 小时' : Math.round(m / 1440) + ' 天';
+const pct = (v) => v == null || !isFinite(v) ? '-' : (v >= 0 ? '+' : '') + (+v).toFixed(Math.abs(v) >= 100 ? 0 : 1) + '%';
+const arrow = (v) => v == null || !isFinite(v) ? '<span class="mu">-</span>' : `<span class="${v >= 0 ? 'up' : 'dn'}">${v >= 0 ? '▲' : '▼'} ${Math.abs(v).toFixed(Math.abs(v) >= 100 ? 0 : 2)}%</span>`;
+const pill = (v) => v == null || !isFinite(v) ? '<span class="pp mu">-</span>' : `<span class="pp ${v >= 0 ? 'up' : 'dn'}">${pct(v)}</span>`;
+const SUB = '₀₁₂₃₄₅₆₇₈₉';
+/* 价格：很多个 0 时用 fomo 那种下标写法 $0.0₅3576 */
+function pxf(v, cur = '$') {
+  if (v == null || !isFinite(v)) return '-'; v = +v; if (v < 0) return '-' + pxf(-v, cur);
+  if (v === 0) return cur + '0';
+  if (v >= 1000) return cur + v.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  if (v >= 1) return cur + v.toFixed(4);
+  if (v >= 0.001) return cur + String(+v.toPrecision(4));
+  const [m, e] = v.toExponential(3).split('e'); const z = -(+e) - 1; const dg = m.replace('.', '').replace(/0+$/, '') || '0';
+  return cur + '0.0' + String(z).split('').map((d) => SUB[+d]).join('') + dg;
+}
+const fmtP = (v) => pxf(v, '');
+function hue(s) { let h = 0; for (const ch of String(s || '')) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; }
+const lsGet = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+
+/* ── 币的真图示：手机的安全设定只准 data: 图，所以请电脑代抓、缩成 48×48 小图再传来；记在这支手机（最多 300 个） ── */
+const LOGO = new Map(Object.entries(lsGet('rcLogo', {}) || {}).filter(([u, v]) => /^https:\/\//.test(u) && /^data:image\/(webp|png|jpeg);base64,/.test(v)));
+const CADDR = new Map(Object.entries(lsGet('rcLogoC', {}) || {}).filter(([c, u]) => /^0x[0-9a-f]{40}$/.test(c) && /^https:\/\//.test(u)));
+const LFAIL = new Set(), LQ = new Set(), LTRY = new Set();
+function noteImg(c, u) { c = String(c || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(c) || !/^https:\/\//.test(u || '') || u.length > 400) return; if (CADDR.get(c) === u) return; CADDR.delete(c); CADDR.set(c, u); if (CADDR.size > 400) CADDR.delete(CADDR.keys().next().value); saveLogos._c = 1; }
+function saveLogos() {
+  clearTimeout(saveLogos._t); saveLogos._t = setTimeout(() => {
+    while (LOGO.size > 300) LOGO.delete(LOGO.keys().next().value);
+    if (!lsSet('rcLogo', Object.fromEntries(LOGO))) { const k = [...LOGO.keys()]; for (const x of k.slice(0, Math.ceil(k.length / 2))) LOGO.delete(x); lsSet('rcLogo', Object.fromEntries(LOGO)); }
+    if (saveLogos._c) { saveLogos._c = 0; lsSet('rcLogoC', Object.fromEntries(CADDR)); }
+  }, 800);
+}
+function logo(sym, c, img, cls = '') {
+  if (img && /^data:image\//.test(img)) return `<span class="lg ${cls}"><img src="${esc(img)}" alt=""></span>`;
+  const u = /^https:\/\//.test(img || '') ? img : CADDR.get(String(c || '').toLowerCase()) || '';
+  const ch = [...String(sym || '?').replace(/^\$/, '')][0] || '?';
+  const d = u && LOGO.get(u);
+  return `<span class="lg ${cls}"${u && !d ? ` data-u="${esc(u)}"` : ''} style="background:hsl(${hue(c || sym)} 42% 30%)">${esc(ch.toUpperCase())}${d ? `<img src="${esc(d)}" alt="">` : ''}</span>`;
+}
+/* 只请画面上看得到的（卷到才要），一次最多 30 个 */
+const LIO = 'IntersectionObserver' in window ? new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { LIO.unobserve(e.target); const u = e.target.dataset.u; if (u && !LOGO.has(u) && !LFAIL.has(u) && !LTRY.has(u)) LQ.add(u); } if (LQ.size) flushLogos(); }, { rootMargin: '120px' }) : null;
+function hydrate(root) {
+  (root || document).querySelectorAll('.lg[data-u]').forEach((el) => {
+    const u = el.dataset.u; const d = LOGO.get(u);
+    if (d) { if (!el.querySelector('img')) el.insertAdjacentHTML('beforeend', `<img src="${esc(d)}" alt="">`); el.removeAttribute('data-u'); }
+    else if (!LFAIL.has(u) && !LTRY.has(u) && !el._obs) { el._obs = 1; if (LIO) LIO.observe(el); else LQ.add(u); }
+  });
+  if (!LIO && LQ.size) flushLogos();
+}
+function flushLogos() {
+  clearTimeout(flushLogos._t); flushLogos._t = setTimeout(async () => {
+    if (flushLogos.busy || !LQ.size || !PC_ON) return; const L = [...LQ].slice(0, 30); L.forEach((u) => { LQ.delete(u); LTRY.add(u); }); flushLogos.busy = 1;
+    let r = null; try { r = await req('img', { urls: L }, 30000); } catch {}
+    flushLogos.busy = 0;
+    if (!r) { L.forEach((u) => LTRY.delete(u)); return; } /* 电脑没回（离线）→ 之后再试，先用首字圆 */
+    let got = 0; for (const u of L) { const d = r[u]; LTRY.delete(u); if (typeof d === 'string' && /^data:image\/(webp|png|jpeg);base64,/.test(d) && d.length < 12000) { LOGO.set(u, d); got++; } else LFAIL.add(u); }
+    if (got) { saveLogos(); hydrate(document); }
+    if (LQ.size) flushLogos();
+  }, 180);
+}
+/* 迷你走势（电脑有本地成交资料才会给） */
+function spark(sp) {
+  if (!Array.isArray(sp) || sp.length < 3) return ''; const v = sp.map(Number).filter((x) => x > 0 && isFinite(x)); if (v.length < 3) return '';
+  const W = 52, H = 24, lo = Math.min(...v), hi = Math.max(...v), rg = hi - lo || hi * 0.02 || 1; const up = v[v.length - 1] >= v[0]; const col = up ? '#2ebd85' : '#f6465d';
+  const pts = v.map((x, i) => `${(i / (v.length - 1) * (W - 2) + 1).toFixed(1)},${(H - 2 - (x - lo) / rg * (H - 5)).toFixed(1)}`);
+  return `<svg class="sp" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polygon points="1,${H} ${pts.join(' ')} ${W - 1},${H}" fill="${col}" opacity=".13"/><polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+const skRow = () => '<div class="tr sk" aria-hidden="true"><span class="lg skb"></span><div class="nm"><i class="skb" style="width:42%"></i><i class="skb" style="width:66%"></i></div><div class="rt"><i class="skb" style="width:68px"></i><i class="skb" style="width:48px"></i></div></div>';
+const skRows = (n) => Array.from({ length: n }, skRow).join('');
+function toast(t, ms = 2600) { const el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast._t); toast._t = setTimeout(() => (el.style.display = 'none'), ms); }
+function openSheet(html) { $('#shb').innerHTML = html; $('#sh').classList.add('on'); hydrate($('#shb')); }
+function closeSheet() { $('#sh').classList.remove('on'); }
+$('#sh').addEventListener('click', (e) => { if (e.target.id === 'sh') closeSheet(); });
+function confirmBox(title, body, okTxt, cls = 'y') {
+  return new Promise((res) => { openSheet(`<h3>${esc(title)}</h3><p class="note" style="font-size:14.5px;color:var(--ink);white-space:pre-line">${esc(body)}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px"><button class="btn" id="cNo">取消</button><button class="btn ${cls}" id="cOk">${esc(okTxt)}</button></div>`); $('#cNo').onclick = () => { closeSheet(); res(false); }; $('#cOk').onclick = () => { closeSheet(); res(true); }; });
+}
+function infoBox(title, body) { return new Promise((res) => { openSheet(`<h3>${esc(title)}</h3><p class="note" style="font-size:14.5px;color:var(--ink);white-space:pre-line">${esc(body)}</p><div style="display:grid;grid-template-columns:1fr;margin-top:16px"><button class="btn y" id="cOk">知道了</button></div>`); $('#cOk').onclick = () => { closeSheet(); res(true); }; }); }
+/* ZR-UI-1103（主人原则）：电脑那边的引擎说这张单「需要确认」→ 手机跳框写清楚后果，按「我知道风险，仍然执行」才送；取消就不送 */
+const ACKSEEN = new Set(); let ACKBUSY = 0; const ackAge = (x) => { const m = Math.floor((Date.now() - (+x.oat || 0)) / 60e3); return +x.oat > 0 ? `\n🕒 这张单是 ${m < 1 ? '刚刚' : m < 60 ? m + ' 分钟前' : Math.floor(m / 60) + ' 小时前'}下的${m >= 10 ? '（价格可能已经变了）' : ''}` : ''; }; /* UI2-1104 H3-S3：显示单子下了多久 */
+/* UI-1104 D3：AVE 状态（文字由电脑算好放在 ST.aveSt：「AVE 资料：N 分钟前更新」／「⚠️ AVE 暂停：…」） */ function aveStFill() { const t = String(ST?.aveSt || ''); document.querySelectorAll('.aveSt').forEach((e) => { if (e.textContent !== t) e.textContent = t; e.style.display = t ? '' : 'none'; e.style.color = /⚠️/.test(t) ? '#f0b90b' : ''; }); } setInterval(aveStFill, 3000);
+const ACK_POLL_MS = 2000, ACK_POLL_N = 30; /* 技术用：下单后每 2 秒看一次要不要确认，最多 30 次（60 秒） */ let ackPollT = null; function ackPoll() { if (ackPollT) clearInterval(ackPollT); let n = 0; ackPollT = setInterval(async () => { n++; try { ST = await req('state'); askAcks(); } catch {} if (n >= ACK_POLL_N || (ST && Array.isArray(ST.ack) && ST.ack.some((x) => x && ACKSEEN.has(x.id)))) { clearInterval(ackPollT); ackPollT = null; } }, ACK_POLL_MS); } /* ZR-INT-UI */
+/* PHONE-2：电脑引擎对手机单的回复（含拒绝，例如超过手机每日额度、手机不能确认授权）由电脑放在 ST.res＝[{ id, what, t, at, ok }]。
+   成功／失败只看电脑给的 ok（true／false），不靠文字猜；没有 ok＝标示「结果不明」并照原文显示。只显示这次打开手机页之后的回复 */
+const RESSEEN = new Set(); const RES_T0 = Date.now();
+async function showRes() { const L = (ST && Array.isArray(ST.res)) ? ST.res.filter((x) => x && x.id && !RESSEEN.has(x.id)) : []; for (const x of L) { RESSEEN.add(x.id); if (!(+x.at >= RES_T0)) continue; const t = String(x.t || ''); const w = x.what ? x.what + '：' : '';
+  if (x.ok === true) toast('✅ ' + w + (t || '已执行'));
+  else if (x.ok === false) { if (!ACKBUSY) { ACKBUSY = 1; try { await infoBox('⛔ 电脑引擎没执行这张单', `${x.what || ''}\n${t || '（电脑没写原因，看 TG／电脑日志）'}`); } finally { ACKBUSY = 0; } } else toast('⛔ ' + w + t); }
+  else toast('❔ 结果不明：' + w + (t || '看 TG／电脑日志')); } }
+async function askAcks() { showRes().catch(() => {}); try { mineAlertToast(); } catch {} if (ACKBUSY) return; const L = (ST && Array.isArray(ST.ack)) ? ST.ack.filter((x) => x && x.id && !ACKSEEN.has(x.id)) : []; if (!L.length) return; ACKBUSY = 1; try { for (const x of L) { ACKSEEN.add(x.id); let ok; if (x.appr) { /* PHONE-2：授权类的单手机绝不确认（不送 ackAppr），只说明＋取消这张，请在电脑上做 */ await infoBox('⚠️⚠️ 这张单会「授权」你的代币，请在电脑上做', `${x.what || ''}${ackAge(x)}\n⚠️ ${x.why || ''}\n⚠️ 授权后对方可以随时转走你这个代币，可能是盗币，所以手机不能确认授权。\n这张单手机先取消、没送出；真的要做，请在电脑雷达上重新下单并确认。`); try { const r = await req('ack', { id: x.id, ok: 0, src: 'phone' }); toast(r?.msg || '已取消，没送出'); } catch (e) { toast('❌ ' + e.message); } continue; } else ok = await confirmBox('⚠️ 这张单要你确认', `${x.what || ''}${ackAge(x)}\n⚠️ ${x.why || ''}\n雷达还没送出。按「我知道风险，仍然执行」才会照送。`, '我知道风险，仍然执行', 'rr'); /* ZR-INT-UI */ try { const r = await req('ack', { id: x.id, ok: ok ? 1 : 0, src: 'phone' }); toast(r?.msg || (ok ? '已送出' : '已取消')); } catch (e) { toast('❌ ' + e.message); } } } finally { ACKBUSY = 0; } }
+/* 只在内容真的变了才换掉 → 不会闪、不会跳、卷动位置留着 */
+function setHTML(el, html) { if (typeof el === 'string') el = $(el); if (el && el._h !== html) { el.innerHTML = html; el._h = html; hydrate(el); } }
+const NET_N = (n) => n === 'rh' ? 'Robinhood' : 'BNB Chain';
+const CAT = '/icon-192.png';
+const IC = {
+  board: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16M12 7v13M18 3v14"/><rect x="4" y="8" width="4" height="7" rx="1" fill="currentColor"/><rect x="10" y="11" width="4" height="5" rx="1"/><rect x="16" y="6" width="4" height="7" rx="1" fill="currentColor"/></svg>',
+  sig: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l6 4V6L7 10H4z"/><path d="M17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11"/></svg>',
+  hold: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2"/><path d="M6 6l9-3 2 3"/></svg>',
+  me: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',
+  set: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>',
+  back: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
+  zap: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2L4 14h7l-1.5 8L20 10h-7l.5-8z"/></svg>',
+  radar: '<svg class="catf" width="30" height="30" viewBox="0 0 192 192"><rect width="192" height="192" rx="44" fill="#16191e"/><circle cx="96" cy="96" r="62" fill="none" stroke="#2ebd85" stroke-width="9" opacity=".5"/><circle cx="96" cy="96" r="36" fill="none" stroke="#2ebd85" stroke-width="9"/><path d="M96 96 L146 56" stroke="#2ebd85" stroke-width="12" stroke-linecap="round"/><circle cx="96" cy="96" r="12" fill="#f0b90b"/></svg>',
+};
+/* 猫图示（转接站自己的 /icon-192.png）；载不到就换回雷达图 */
+const catImg = (cls) => `<img class="${cls}" src="${CAT}" alt="" data-cat="1">`;
+document.addEventListener('error', (e) => { const t = e.target; if (t && t.tagName === 'IMG' && t.dataset.cat) { t.outerHTML = IC.radar.replace('class="catf"', `class="catf ${esc(t.className)}"`); } }, true);
+
+/* ── 快速买：两组金额（BNB／U；Robinhood 是 ETH／USDG），金额只能在电脑设，手机只选这次用哪一组 ── */
+const UNITS = (net) => net === 'rh' ? ['ETH', 'USDG'] : ['BNB', 'U'];
+const ULBL = (u) => u === 'U' ? 'U' : u;
+const UNIT = lsGet('rcUnit', {}) || {};
+function qbInfo(net) {
+  const Q = ST?.qb?.[net]; if (!Q) return null; const UOK = UNITS(net);
+  const S = Q.sets && typeof Q.sets === 'object' && UOK.some((x) => Array.isArray(Q.sets[x])) ? Q.sets : null;
+  if (!S) return null; /* 没有金额组＝没设，什么都不买 */
+  const get = (u) => (Array.isArray(S[u]) ? S[u] : []).map(Number); const has = (u) => get(u).some((v) => v > 0);
+  let u = UNIT[net]; if (!UOK.includes(u)) u = has(Q.u) ? Q.u : UOK.find(has) || (UOK.includes(Q.u) ? Q.u : UOK[0]);
+  return { units: UOK, get, u };
+}
+const anyAmt = (I) => !!I && I.units.some((u) => I.get(u).some((v) => v > 0));
+const segHTML = (net, I) => `<div class="seg" role="tablist">${I.units.map((u) => `<button data-a="unit" data-u="${esc(u)}" class="${u === I.u ? 'on' : ''}">${esc(ULBL(u))}${u === 'U' ? '<small>USDT</small>' : ''}</button>`).join('')}</div>`;
+function setUnit(u) { if (!DT) return; const I = qbInfo(DT.net); if (!I || !I.units.includes(u)) return; UNIT[DT.net] = u; lsSet('rcUnit', UNIT); paintBar(); if ($('#sh').classList.contains('on') && $('#shb [data-buysheet]')) buySheet(); }
+
+/* ── 画面骨架（只建一次，之后都是原地更新） ── */
+let FIRST = true;
+function render() {
+  const app = $('#app');
+  if (!KEY) { if (app.dataset.v !== 'pair') { app.dataset.v = 'pair'; app.innerHTML = `<div class="pair"><svg width="96" height="96" viewBox="0 0 192 192"><rect width="192" height="192" rx="44" fill="#16191e"/><circle cx="96" cy="96" r="62" fill="none" stroke="#2ebd85" stroke-width="7" opacity=".55"/><circle cx="96" cy="96" r="36" fill="none" stroke="#2ebd85" stroke-width="7"/><path d="M96 96 L146 56" stroke="#2ebd85" stroke-width="10" stroke-linecap="round"/><circle cx="96" cy="96" r="11" fill="#f0b90b"/></svg><h1>连结你的罗宾猫雷达</h1><p>在电脑雷达点「⚙️ 设定 → 📱 连结手机」，<br>用这支手机的相机扫画面上的 QR 码。</p><p style="font-size:13px">钱包和私钥一直留在你的电脑里。<br>手机和电脑之间的消息全程加密，转接站看不到内容。</p></div>`; } return; }
+  if (app.dataset.v !== 'main') {
+    app.dataset.v = 'main';
+    app.innerHTML = `<header class="top"><div class="brand">${catImg('cat')}<div style="min-width:0"><b>罗宾猫雷达</b><span class="pc" id="stTxt"></span></div></div><div id="topR"></div></header><div class="warnbar" id="wb"></div><div id="bnr"></div><main id="pg"></main>
+    <nav class="tab" id="nav">${[['board', '看盘'], ['hold', '持仓'], ['set', '自订策略'], ['sig', '信号'], ['me', '更多']].map(([k, n]) => `<button data-a="tab" data-t="${k}">${IC[k]}${n}<sup id="nb_${k}" hidden></sup></button>`).join('')}</nav>`;
+    if (FIRST) { FIRST = false; document.body.classList.add('intro'); setTimeout(() => document.body.classList.remove('intro'), 700); }
+  }
+  document.querySelectorAll('[data-avew]').forEach((e) => { e.style.display = ST?.ref?.ave ? (e.style.padding.startsWith('0') ? 'flex' : '') : 'none'; }); /* ZR-FIX7：AVE 连结来自电脑（repo.cjs REF_AVE_URL），没有就不显示 */
+  const stop = !!ST?.estop;
+  setHTML('#stTxt', PC_ON && ST?.eng ? '<i class="dot" style="background:#f6465d"></i><span style="color:#ff8f9e">⚠️ 引擎停了</span>' : PC_ON && ST?.boot ? '<i class="dot" style="background:#f0b90b"></i><span style="color:#f0b90b">⏳ 引擎启动中…</span>' /* UIFIX7 */ : `<i class="dot ${PC_ON ? 'on' : ''}"></i>${esc(PC_ON ? (ST?.run || '电脑在线') : (WS?.readyState === 1 ? '电脑离线' : '连线中…'))}`); /* UIFIX5：引擎停了就写引擎停了，不写运行中 */
+  setHTML('#topR', `<button class="stopB ${stop ? 'on' : ''}" data-a="stop">${stop ? '🛑 已全停' : '🛑 紧急全停'}</button>`);
+  const wb = $('#wb'); const off = (ST?.wallets || []).filter((w) => w.off).map((w) => w.name); let wt = '';
+  if (!PC_ON) wt = '电脑雷达没在线：电脑要开着、雷达要在跑。连上后会自动更新。';
+  else if (ST?.eng) wt = '电脑雷达的引擎停了：现在不会看盘、不会自动买卖。请到电脑雷达按右上角「⚠️ 引擎停了 · 重启」。'; /* UIFIX5 */
+  else if (ST?.boot) wt = '电脑雷达的引擎正在启动（通常 1–2 分钟内好），好了会自动更新；这段时间还不能买卖。'; /* UIFIX7 */
+  else if (stop) wt = '紧急全停中：买入全部停止；自动卖出正常执行；可以手动卖出。要重新打开，请回电脑雷达重新设定。';
+  else if (off.length) wt = '钱包已断开：' + off.join('、') + '（这个钱包不能买卖，回电脑重新连接）';
+  else if (ST?.noW) wt = NOW_TXT; /* UIFIX6：电脑没连钱包 */
+  if (wb.textContent !== wt) wb.textContent = wt; wb.style.display = wt ? 'block' : 'none';
+  { /* UIFIX4：这台电脑还有另一个雷达在用同一个钱包（电脑传来）→ 红条；✕ 收起后只显示「⏸ 已停买」；冲突解除自动消失 */ const cf = PC_ON && ST?.cf ? ST.cf : null; let e = $('#cfP'); if (!e && cf) { e = document.createElement('div'); e.id = 'cfP'; e.className = 'warnbar'; e.style.position = 'relative'; e.style.paddingRight = '34px'; wb.after(e); }
+    if (e) { if (!cf) { e.style.display = 'none'; window.__cfh = ''; } else { const dir = String(cf.dir || '?'); const hid = window.__cfh === dir; const h = hid ? '<span data-a="cfshow" style="cursor:pointer">⏸ 已停买（另一个雷达在用同一钱包）</span>' : `⚠️ 这台电脑还有另一个罗宾猫雷达在用同一个钱包（${esc(dir)}）。为了不重复下单，这个已经停买。请把旧的那个停用：关掉它，并取消开机自动启动；确认旧的里面没有持仓了，再删除整个资料夹。（步骤在电脑雷达按「怎么停用旧版？」）<a data-a="cfx" style="position:absolute;right:10px;top:8px;cursor:pointer;font-size:16px" aria-label="收起">✕</a>`; if (e._h !== h) { e.innerHTML = h; e._h = h; } e.style.display = 'block'; } } }
+  { /* INTEG2：没绑钱包时第一屏显示币安 AI 钱包邀请（只在这里、只在开头） */ const bn = $('#bnr'); if (bn) { let sk = ''; try { sk = localStorage.getItem('gbnSkip') || ''; } catch {} const show = PC_ON && ST && ST.noW && !sk && ST.ref?.bnCode && ST.ref?.bnUrl ? '1' : '0'; /* ZR-FIX8：邀请码／连结只来自电脑（repo.cjs），没有就不显示 */ if (bn.dataset.s !== show) { bn.dataset.s = show; const code = esc(ST?.ref?.bnCode || ''); bn.innerHTML = show === '1' ? `<div class="card"><h4>先准备币安 AI 钱包</h4><p class="note">还没有币安 AI 钱包？用这个连结申请，开通时在币安填邀请码 <b>${code}</b><br>打开币安钱包 → 建立 AI 钱包 → 填邀请码 → 回电脑雷达绑定</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn" data-a="bnref">去申请 ↗</button><button class="btn g" data-a="bncopy">复制邀请码</button><button class="btn g" data-a="bnskip">我已经有钱包了，下一步</button></div></div>` : ''; } } }
+  document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.t === TAB));
+  const nr = (SIG?.feed || []).filter((x) => x.reso).length; const sb = $('#nb_sig'); if (sb) { const t = nr ? String(Math.min(nr, 99)) : ''; if (sb.textContent !== t) sb.textContent = t; sb.hidden = !nr; }
+  const pg = $('#pg');
+  if (pg.dataset.t !== TAB) { pg.dataset.t = TAB; pg.innerHTML = TAB === 'board' ? frameBoard() : TAB === 'sig' ? frameSig() : TAB === 'hold' ? frameHold() : '<div id="meB"></div>'; pg._h = null; }
+  if (TAB === 'board') fillBoard(); else if (TAB === 'sig') fillSig(); else if (TAB === 'hold') fillHold(); else setHTML('#meB', TAB === 'set' ? pgSet() : pgMore());
+  if (TAB === 'board' || TAB === 'hold') { fillHero(); drawPnl(); }
+  try { aveStFill(); } catch {}
+  if (DT) paintBar();
+}
+/* 持仓总值、浮动盈亏（还没开池的不算进盈亏） */
+function totals() {
+  const H = ST?.hold || []; let v = 0, pv = 0, pc = 0, u = 0, pr = 0, nr = 0;
+  for (const h of H) if (h.val != null && isFinite(h.val)) { pr++; v += +h.val; u += +h.val - (+h.cost || 0); if (+h.cost > 0) { pv += +h.val; pc += +h.cost; } } else if (!h.np) nr++; /* UIFIX5：nr＝读不到（不是还没开池） */
+  return { n: H.length, v, u, pr, nr, pl: pc ? pv - pc : null, plp: pc ? (pv - pc) / pc * 100 : null };
+}
+const RANGES = [['24h', '24小时'], ['7d', '7天'], ['30d', '30天'], ['all', '全部']];
+let PNLR = lsGet('rcPnlR', '24h'); if (!RANGES.some((r) => r[0] === PNLR)) PNLR = '24h';
+const PNL = {}; let PNLX = null;
+/* 她 11/3：首页要一眼看到 ≥8 个币 → 资产卡预设缩成一行（总值＋盈亏＋小曲线），点一下展开完整曲线 */
+let HEROX = lsGet('rcHeroX') === '1';
+const heroFrame = (label, cmpOk) => { const c = cmpOk && !HEROX; return `<div class="hero${c ? ' cmp' : ''}"${c ? ' data-a="hx"' : ''} data-cmp="${cmpOk ? 1 : 0}"><div class="hh">${catImg('')}<span>${esc(label)} · <em id="hNet"></em></span><div class="rseg" id="hR">${RANGES.map(([k, n]) => `<button data-a="pr" data-r="${k}">${n}</button>`).join('')}</div>${cmpOk ? '<button class="hxb" data-a="hx" aria-label="收起">▴</button>' : ''}</div><div class="hrow">${catImg('')}<div id="hTop"></div>
+  <canvas class="pnl" id="pnlc"></canvas>${cmpOk ? '<i class="hxe">▾</i>' : ''}</div><div class="pnlv" id="pnlv"></div></div>`; };
+function fillHero() {
+  const T = totals(); const s = ST && !(T.n && !T.pr) ? (Math.round(T.v * 100) / 100).toFixed(2) : null; /* UIFIX5：全部读不到＝$—，不写 $0.00 */ const [i, f] = s ? s.split('.') : ['—', ''];
+  setHTML('#hTop', `<div class="hv"><div class="big">${s ? '$' + (+i).toLocaleString('en-US') + `<span>.${f}</span>` : '<span>$—</span>'}</div><div class="pl ${T.pl == null ? 'mu' : T.pl >= 0 ? 'up' : 'dn'}">${T.pl == null ? (T.n ? (T.nr ? '读不到现值，稍后再试' : '还没开池，没有盈亏') : '目前没有持仓') : T.nr ? `${T.pl >= 0 ? '+' : '-'}$${usd(Math.abs(T.pl))} (${pct(T.plp)}) · ${T.nr} 个读不到` : `${T.pl >= 0 ? '+' : '-'}$${usd(Math.abs(T.pl))} (${pct(T.plp)})`}<i>浮动</i></div></div>`);
+  setHTML('#hNet', PC_ON ? `${T.n} 个持仓` : '离线');
+  document.querySelectorAll('#hR button').forEach((b) => b.classList.toggle('on', b.dataset.r === PNLR));
+}
+/* 盈亏曲线：每个时间点的「浮动盈亏（现值−成本）＋ 已实现盈亏累计」，最后接上现在 */
+function pnlSeries() {
+  const c = PNL[PNLR]; const d = c?.d; if (!d) return null;
+  const P = (d.pts || []).filter((p) => Array.isArray(p) && p.length >= 3 && isFinite(p[1]) && isFinite(p[2])).map((p) => [+p[0], +p[1] - +p[2]]).sort((a, b) => a[0] - b[0]);
+  const R = (d.real || []).filter((p) => Array.isArray(p) && isFinite(p[1])).map((p) => [+p[0], +p[1]]).sort((a, b) => a[0] - b[0]);
+  const T = [...new Set([...P.map((p) => p[0]), ...R.map((p) => p[0])])].sort((a, b) => a - b);
+  let i = 0, j = 0, u = 0, r = 0; const out = [];
+  for (const t of T) { while (i < P.length && P[i][0] <= t) u = P[i++][1]; while (j < R.length && R[j][0] <= t) r = R[j++][1]; out.push([t, u + r]); }
+  if (ST && out.length) { const now = Date.now(); if (now > out[out.length - 1][0]) out.push([now, totals().u + (+d.realNow || r)]); }
+  return out;
+}
+function drawPnl() {
+  const cv = $('#pnlc'), lab = $('#pnlv'); if (!cv) return; const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const c = PNL[PNLR]; const S = pnlSeries(); const msg = (t) => { g.fillStyle = '#6b7380'; g.font = '12.5px -apple-system,sans-serif'; g.textAlign = 'center'; /*PH3-PNL*/if (g.measureText(t).width > W - 8) { const s1 = String(t).split(/[，,（(]/)[0]; t = g.measureText(s1).width > W - 8 ? '还没有记录' : s1; } g.fillText(t, W / 2, H / 2 + 4); };
+  const setLab = (h) => { if (lab && lab._h !== h) { lab.innerHTML = h; lab._h = h; } };
+  if (!c) { g.fillStyle = 'rgba(255,255,255,.04)'; g.beginPath(); (g.roundRect ? g.roundRect(0, 8, W, H - 16, 10) : g.rect(0, 8, W, H - 16)); g.fill(); setLab(''); if (!PC_ON) msg('电脑离线'); return; }
+  if (c.err && !c.d) { msg(c.err.slice(0, 40)); setLab(''); return; }
+  if (!S || S.length < 2) { msg(W < 240 ? '曲线记录中…' : '曲线从现在开始记录，每 5 分钟一个点'); setLab(`<span>${RANGES.find((r) => r[0] === PNLR)[1]}</span><span>已实现 <b>${smoney(+c.d?.realNow || 0)}</b></span>`); return; }
+  const t0 = S[0][0], t1 = S[S.length - 1][0] || t0 + 1; let lo = Infinity, hi = -Infinity; for (const p of S) { lo = Math.min(lo, p[1]); hi = Math.max(hi, p[1]); }
+  const pad = (hi - lo) * 0.12 || Math.max(1, Math.abs(hi) * 0.1); lo -= pad; hi += pad;
+  const x = (t) => 2 + (t - t0) / ((t1 - t0) || 1) * (W - 4), y = (v) => 6 + (H - 14) * (1 - (v - lo) / (hi - lo));
+  const first = S[0][1], last = S[S.length - 1][1], up = last >= first, col = up ? '#2ebd85' : '#f6465d';
+  if (lo < 0 && hi > 0) { g.strokeStyle = 'rgba(255,255,255,.12)'; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(0, y(0)); g.lineTo(W, y(0)); g.stroke(); g.setLineDash([]); }
+  const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, up ? 'rgba(46,189,133,.32)' : 'rgba(246,70,93,.30)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.beginPath(); S.forEach((p, k) => (k ? g.lineTo(x(p[0]), y(p[1])) : g.moveTo(x(p[0]), y(p[1])))); g.lineTo(x(t1), H); g.lineTo(x(t0), H); g.closePath(); g.fillStyle = gr; g.fill();
+  g.beginPath(); S.forEach((p, k) => (k ? g.lineTo(x(p[0]), y(p[1])) : g.moveTo(x(p[0]), y(p[1])))); g.strokeStyle = col; g.lineWidth = 2; g.lineJoin = 'round'; g.stroke();
+  const hp = PNLX != null ? S[Math.max(0, Math.min(S.length - 1, PNLX))] : null; const pt = hp || S[S.length - 1];
+  if (hp) { g.strokeStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.moveTo(x(pt[0]), 0); g.lineTo(x(pt[0]), H); g.stroke(); }
+  g.fillStyle = col; g.beginPath(); g.arc(x(pt[0]), y(pt[1]), 3.6, 0, 7); g.fill(); g.strokeStyle = '#0c0d10'; g.lineWidth = 1.5; g.stroke();
+  const tl = (t) => { const d = new Date(t); return PNLR === '24h' ? String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : (d.getMonth() + 1) + '/' + d.getDate() + (PNLR === '7d' ? ' ' + String(d.getHours()).padStart(2, '0') + '点' : ''); };
+  const ch = last - first;
+  setLab(hp ? `<span>${tl(pt[0])}</span><span>累计盈亏 <b class="${pt[1] >= 0 ? 'up' : 'dn'}">${smoney(pt[1])}</b></span>` : `<span>${RANGES.find((r) => r[0] === PNLR)[1]}盈亏 <b class="${ch >= 0 ? 'up' : 'dn'}">${smoney(ch)}</b></span><span>已实现 <b>${smoney(+c.d?.realNow || 0)}</b></span>`);
+  cv._S = S; cv._x = x;
+}
+function pnlTouch(e) { const cv = e.currentTarget; const S = cv._S; if (!S || S.length < 2) return; const r = cv.getBoundingClientRect(); const px = (e.touches ? e.touches[0].clientX : e.clientX) - r.left; let b = 0, bd = Infinity; S.forEach((p, k) => { const d = Math.abs(cv._x(p[0]) - px); if (d < bd) { bd = d; b = k; } }); if (PNLX !== b) { PNLX = b; drawPnl(); } }
+function pnlEnd() { if (PNLX != null) { PNLX = null; drawPnl(); } }
+document.addEventListener('pointerdown', (e) => { if (e.target.id === 'pnlc') pnlTouch(e); });
+document.addEventListener('pointermove', (e) => { if (e.target.id === 'pnlc' && (e.buttons || e.pointerType !== 'mouse')) pnlTouch(e); });
+document.addEventListener('pointerup', pnlEnd); document.addEventListener('pointercancel', pnlEnd);
+async function loadPnl(force) {
+  if (!PC_ON) return; const r = PNLR; const c = PNL[r]; if (!force && c && Date.now() - c.at < 60e3) return; if (loadPnl.busy === r) return; loadPnl.busy = r;
+  try { const d = await req('pnl', { range: r }, 30000); PNL[r] = { at: Date.now(), d }; } catch (e) { PNL[r] = { at: Date.now() - 40e3, d: c?.d || null, err: e.message }; }
+  if (loadPnl.busy === r) loadPnl.busy = null; if (PNLR === r && (TAB === 'board' || TAB === 'hold')) drawPnl();
+}
+
+/* ── 看盘（首页） ── */
+const openAttr = (c, s, n) => `data-a="open" data-c="${esc(c)}" data-s="${esc(s)}" data-net="${n === 'rh' ? 'rh' : 'bsc'}"`;
+const frameBoard = () => heroFrame('我的资产', 1) + '<div id="uf4AveP" style="display:none;align-items:center;gap:8px;padding:0 4px 6px"><button class="btn g s" data-a="ave" style="font-weight:700">AVE ↗</button><small class="mu" style="font-size:11px">感谢 AVE 赞助</small></div><div id="bStrip"></div><div class="chips sm" id="bCat" style="padding:0 4px 6px"></div><div class="bhd"><div class="bh1"><div class="ctabs" id="bCol"></div><div class="nseg" id="bNet"></div></div><div class="chips sm" id="bSort"></div></div><div class="aveSt note" style="display:none;padding:0 4px 6px;font-size:12px"></div><div id="bList"></div>';
+/* NX-1103：每一栏自己的排序；时间段只在排序里选 */
+/* PER-1103（Nancy）：列表上方 [1分][5分][15分][更多 ▾]。每次打开都是：每一列显示 1分／5分／15分 涨跌，热门／涨幅照你点的固定按钮（预设 5分）排；
+   「更多」（底部选单：30分 1小时 4小时 24小时 7天）＝暂时只看那个时间段（一列一个大数字，排序也照它；按钮显示「4小时 ▾」）；点固定按钮就回来。不记住（重开回到 1/5/15） */
+const PERS = [['m1', '1分', '1m'], ['m5', '5分', '5m'], ['m15', '15分', '15m'], ['m30', '30分', '30m'], ['h1', '1小时', '1h'], ['h4', '4小时', '4h'], ['h24', '24小时', '24h'], ['d7', '7天', '7d']];
+const PFIX = ['m1', 'm5', 'm15'];
+let PBASE = 'm5', PMORE = ''; /* 不存：每次打开都回到预设 */
+const PPER = () => PMORE || PBASE;
+const chgOf = (x, k) => x.cp?.[k] ?? null; /* 没有 cp 的周期显示「—」 */
+const actOf = (x, k) => (x.ap && x.ap[k]) || x[{ m5: 'a5', h1: 'a1', h24: 'a24' }[k]] || null;
+const perZh = (k) => (PERS.find((p) => p[0] === k) || [0, k])[1];
+function perSheet() { openSheet(`<h3>更多时间段</h3><p class="note">暂时只看这个时间段的涨跌，「热门」「涨幅」也照它排。点上面的 1分／5分／15分 就回来。「—」＝读不到</p><div class="perL">${PERS.filter((p) => !PFIX.includes(p[0])).map((p) => `<button data-a="pperset" data-k="${p[0]}" class="${PMORE === p[0] ? 'on' : ''}">${p[1]}${PMORE === p[0] ? ' ✓' : ''}</button>`).join('')}</div><button class="btn" data-a="close" style="width:100%;margin-top:10px">取消</button>`); } /* UI2-1104 H6 */
+const perBar = () => `<span class="perBar">${PFIX.map((k) => `<button data-a="pfix" data-k="${k}" class="pperB${!PMORE && PBASE === k ? ' on' : ''}" aria-label="涨跌 ${perZh(k)}">${perZh(k)}</button>`).join('')}<button data-a="pper" class="pperB${PMORE ? ' on' : ''}" aria-label="更多时间段">${PMORE ? perZh(PMORE) : '更多'} ▾</button></span>`;
+const SORTS = [['hot', '热门'], ['chg', '涨幅'], ['prog', '进度'], ['new', '最新'], ['mc', '市值'], ['vol24', '成交量·24小时', 'a24'], ['sm', '🧠 聪明钱'], ['heat', '🔥 热度']];
+const SDEF = { fresh: 'new', soon: 'prog', hot: 'hot', hotdex: 'hot', done_new: 'new', done_hot: 'hot' }; /* BOARD-V2：🔥 热门外盘预设照热门排 */
+let PSORT = (() => { const v = lsGet('rcSort2', {}); return v && typeof v === 'object' ? v : {}; })(); let DSUB = lsGet('rcDoneSub') === 'hot' ? 'hot' : 'new'; /* BOARD-V3：拿掉「隐藏超过几小时没成交」 */
+const colKey = (c) => (c?.k === 'done' ? 'done_' + DSUB : c?.k || String(c?.t || ''));
+const curSort = (c) => { const v = PSORT[colKey(c)]; return (v && SORTS.some((o) => o[0] === v) ? v : '') || SDEF[colKey(c)] || 'new'; };
+const winOf = (k) => (k === 'vol24' ? 'h24' : PPER());
+const winLbl = (w) => (PERS.find((p) => p[0] === w) || [0, 0, w])[2];
+function hotScore(a, w) { const M = ['t', 'u', 'v', 'sm']; const sc = new Array(a.length).fill(0); let n = 0; for (const m of M) { const vals = a.map((x) => (m === 'sm' ? +x.sm || 0 : +actOf(x, w)?.[m] || 0)); if (!vals.some((v) => v > 0)) continue; n++; const ord = vals.map((v, i) => [v, i]).filter((p) => p[0] > 0).sort((p, q) => p[0] - q[0]); ord.forEach((p, r) => { sc[p[1]] += ord.length > 1 ? (r + 1) / ord.length : 1; }); } return sc.map((v) => (n ? v / n : 0)); }
+let STRIP = lsGet('rcStrip') === '1'; /* 持仓／焦点横条预设收起，省一排给币列表（点 ⭐ 展开） */
+const PLATN = { four: 'Four', 'four.meme': 'Four', flap: 'Flap', 'flap.sh': 'Flap', genius: 'Genius', pons: 'Pons', long: 'Long', bankr: 'Bankr', clanker: 'Clanker', zora: 'Zora' };
+const PLAT = { bsc: lsGet('rcPlat_bsc') || 'all', rh: lsGet('rcPlat_rh') || 'all' };
+const platKey = (x) => { const p = String(x.plat || '').toLowerCase(); if (!p || p === 'dex' || p === 'new' || p === 'pancake' || p === 'uniswap') return 'new'; if (p === 'other' || p === 'otherpad') return 'otherpad'; if (p.startsWith('p_')) return String(x.pn || p.slice(2)).toLowerCase(); return (PLATN[p] || p).toLowerCase(); }; /* NX-1103 */
+function platChips(cols) { const cnt = {}; for (const c of cols) for (const x of c.items || []) { const k = platKey(x); cnt[k] = (cnt[k] || 0) + 1; } const named = Object.keys(cnt).filter((k) => k !== 'new' && k !== 'otherpad').sort((a, b) => cnt[b] - cnt[a]); const top = named.slice(0, 4), rest = named.slice(4);
+  const L = [['all', '全部']].concat(top.map((k) => [k, PLATN[k] || k.charAt(0).toUpperCase() + k.slice(1), cnt[k]])); if (rest.length || cnt.otherpad) L.push(['olp', '其他发射台', rest.reduce((t, k) => t + cnt[k], 0) + (cnt.otherpad || 0)]); if (cnt.new) L.push(['new', '其他新池', cnt.new]);
+  if (!L.some((p) => p[0] === PLAT[NET])) PLAT[NET] = 'all'; return { L, top: new Set(top), any: named.length > 0 }; }
+function platOk(x, P) { const f = PLAT[NET]; if (f === 'all') return true; const k = platKey(x); if (f === 'new') return k === 'new'; if (f === 'olp') return k !== 'new' && !P.top.has(k); return k === f; }
+function sortItems(L, c) { const S = curSort(c); const a = L.slice(); const n = (v) => v == null || !isFinite(v) ? -Infinity : +v; const done = c?.k === 'done';
+  if (S.startsWith('hot')) { const sc = hotScore(a, winOf(S)); return a.map((x, i) => [x, sc[i]]).sort((p, q) => q[1] - p[1] || (q[0].la || 0) - (p[0].la || 0)).map((p) => p[0]); }
+  const K = { chg: (x) => n(chgOf(x, PPER())), prog: (x) => n(x.prog), mc: (x) => n(x.mc), vol24: (x) => +x.a24?.v || 0, sm: (x) => x.sm || 0, heat: (x) => n(x.heat), new: (x) => (done && x.ga ? x.ga : -(x.age ?? 1e9) * 60e3 + Date.now()) }[S] || ((x) => -(x.age ?? 1e9));
+  return a.sort((x, y) => K(y) - K(x)); }
+function staleOk() { return true; } /* BOARD-V3：不再照多久没成交藏币 */
+const agoMs = (ms) => { const m = Math.max(0, Math.round((Date.now() - ms) / 60e3)); return m < 60 ? m + ' 分钟前' : m < 2880 ? Math.round(m / 60) + ' 小时前' : Math.round(m / 1440) + ' 天前'; };
+/* BOARD-V3（老板 11/4）：内盘三栏（新创建、即将发射、热门内盘）电脑只送最近几个（BOARD_SHOW），不用往下载入；
+   外盘两栏（热门外盘、已发射）往下滑到底就自动跟电脑要更多（电脑不够就向链上往回读一页），一直可以往前；读不到显示「这一页读不到，按这里重试」。不显示数量数字。BLIM＝这支手机每栏要几个（不记住） */
+const BLIM = { bsc: {}, rh: {} }; let PWL = 0; /* PWL：看盘在「⭐ 自选」分页 */
+const PH_MORE = 40; /* 技术用：往下滑一次多要几个 */
+function moreBtn(c) { if (!c) return ''; if (c.perr) return `<button class="btn" data-a="bmore" data-k="${esc(c.k || '')}" style="width:100%;margin:10px 0">这一页读不到，按这里重试</button>`; if (!c.more) return ''; return `<div class="mu" data-bmore="${esc(c.k || '')}" style="text-align:center;padding:14px 0;font-size:12px">往下滑载入更早的…</div>`; }
+let BMB = 0; function bmoreCheck() { if (BMB || typeof TAB === 'undefined' || TAB !== 'board' || PWL) return; const el = document.querySelector('[data-bmore]'); if (!el || !el.offsetParent) return; const r = el.getBoundingClientRect(); if (r.top > innerHeight + PH_MORE * 10) return; const B = BOARD[NET]; const c = (B?.cols || []).find((x) => (x.k || '') === el.dataset.bmore); if (!c) return; BMB = 1; el.textContent = '正在往回载入更早的…'; BLIM[NET][c.k || ''] = (c.items || []).length + PH_MORE; Promise.resolve(loadBoard()).finally(() => { BMB = 0; setTimeout(bmoreCheck, 300); }); }
+document.addEventListener('scroll', () => bmoreCheck(), true); setInterval(bmoreCheck, 1500);
+function wlRows(net, z) { const W = (window.PXP?.W?.() || []).filter((x) => (x.net === 'rh' ? 'rh' : 'bsc') === net); if (!W.length) return '<div class="empty">还没有自选。打开币的详情，按「☆ 加自选」</div>'; const B = BOARD[net]; const M = new Map(); for (const c of B?.cols || []) for (const x of c.items || []) M.set(String(x.c).toLowerCase(), x);
+  return W.map((w) => rowTok(M.get(w.c) || { c: w.c, sym: w.sym || w.c, tu: 1, price: null, mc: null }, net, z)).join(''); }
+function fillBoard() {
+  if (typeof PCAT !== 'undefined') { try { catPaint(); } catch {} if (PCAT === 'ai') { try { const e = $('#uf4AveP'); if (e) e.style.display = ST?.ref?.ave ? 'flex' : 'none'; } catch {} return fillMint(); } } /* AI-BOARD5 */
+  { const e = $('#uf4AveP'); if (e) { const d = ST?.ref?.ave ? 'flex' : 'none'; if (e.style.display !== d) e.style.display = d; } } /* UIFIX4：AVE 赞助（连结来自电脑 ST.ref.ave，没有就不显示） */
+  const B = BOARD[NET]; const cols = B?.cols || []; if (COL >= cols.length) COL = 0;
+  const H = ST?.hold || [];
+  /* 一排横滑：我的持仓 ＋ 焦点（🚀 1 小时涨最多／🔥 共振／🧠 聪明钱）；FOCUS_N＝版面上每类放几张（完整清单在看盘页） */ const FOCUS_N = 3;
+  const all = []; const seen = new Set(); for (const c of cols) for (const x of c.items || []) if (!seen.has(x.c)) { seen.add(x.c); all.push(x); }
+  const top = all.filter((x) => x.h1 != null && x.h1 > 0).sort((a, b) => b.h1 - a.h1).slice(0, FOCUS_N); /* 不偷偷排除貔貅／刷量，卡片上有标签 */
+  const R = (SIG?.feed || []).filter((x) => x.reso).slice(0, FOCUS_N + 1);
+  const SM = all.filter((x) => x.sm > 0).sort((a, b) => b.sm - a.sm).slice(0, FOCUS_N);
+  const hc = H.map((h) => { const x = h.cost > 0 && h.val != null ? (h.val - h.cost) / h.cost * 100 : null; return `<button class="hc" ${openAttr(h.c, h.sym, h.ch)}>${logo(h.sym, h.c, h.img, 'xs')}<span class="n">${esc(h.sym || '?')}${h.sp ? ' ⏳' : ''}</span><span class="${x == null ? 'mu' : x >= 0 ? 'up' : 'dn'}">${h.val == null ? '未开池' : money(h.val) + (x == null ? '' : ' ' + pct(x))}</span></button>`; });
+  const mv = top.map((x) => `<button class="mv" ${openAttr(x.c, x.sym, NET)}>${logo(x.sym, x.c, x.img, 'xs')}<i class="k1">🚀</i>${esc(x.sym)}<span class="v up">${pct(x.h1)}</span></button>`)
+    .concat(R.map((x) => `<button class="mv" ${openAttr(x.c, x.sym, x.ch)}>${logo(x.sym, x.c, x.img, 'xs')}<i class="k2">🔥共振</i>${esc(x.sym)}<span class="v mu">${(x.srcs || []).length}源</span></button>`))
+    .concat(SM.map((x) => `<button class="mv" ${openAttr(x.c, x.sym, NET)}>${logo(x.sym, x.c, x.img, 'xs')}<i class="k3">🧠${x.sm}</i>${esc(x.sym)}</button>`));
+  hc.length = 0; /* UIFIX4：持仓小卡跟「持仓」分页、「已持有」重复，拿掉；焦点照留 */ const sn = hc.length + mv.length; setHTML('#bStrip', STRIP && sn ? `<div class="mvs">${hc.length ? `<span class="sl">持仓 <b>${H.length}</b></span>${hc.join('')}` : ''}${mv.length ? `<span class="sl">焦点 <b>${mv.length}</b></span>${mv.join('')}` : ''}</div>` : '');
+  setHTML('#bCol', cols.map((c, i) => `<button data-a="col" data-i="${i}" class="${i === COL && !PWL ? 'on' : ''}">${esc(c.k === 'hot' ? '🔥 热门内盘' : String(c.t).replace(/^\S+\s/, ''))}</button>`).join('') + (cols.length ? `<button data-a="wlcol" class="${PWL ? 'on' : ''}">⭐ 自选</button>` : '') || '<span class="mu" style="font-size:12px;padding:0 4px">看盘</span>');
+  setHTML('#bNet', `${sn ? `<button data-a="strip" class="stb${STRIP ? ' on' : ''}" aria-label="焦点">⭐ 焦点<small>${sn}</small></button>` : ''}<button data-a="net" data-n="bsc" class="${NET === 'bsc' ? 'on' : ''}">BSC</button><button data-a="net" data-n="rh" class="${NET === 'rh' ? 'on' : ''}">RH</button>`);
+  const P = platChips(cols);
+  setHTML('#bSort', (P.any ? P.L.map(([k, n, c]) => `<button data-a="plat" data-k="${k}" class="pf${PLAT[NET] === k ? ' on' : ''}">${esc(n)}</button>`).join('') + '<i class="csep"></i>' : '') + (cols[COL]?.k === 'done' ? ['new', 'hot'].map((k) => `<button data-a="dsub" data-k="${k}" class="${DSUB === k ? 'on' : ''}">${k === 'new' ? '新外盘' : '热门外盘'}</button>`).join('') + '<i class="csep"></i>' : '') + perBar() + `<select class="psel" data-a="psort" aria-label="这一栏怎么排">${SORTS.map(([k, n]) => `<option value="${k}" ${curSort(cols[COL]) === k ? 'selected' : ''}>${n}</option>`).join('')}</select>`);
+  const z = rowZap(NET);
+  setHTML('#bList', !B ? (PC_ON ? skRows(9) : '<div class="empty">电脑雷达没在线</div>') : B.err && !cols.length ? `<div class="empty">暂时读不到（${esc(B.err)}）<br><button class="btn g s" data-a="bretry" style="margin-top:8px">重试</button></div>` : (PWL ? wlRows(NET, z) : sortItems((cols[COL]?.items || []).filter((x) => platOk(x, P)), cols[COL]).map((x) => rowTok(x, NET, z, winOf(curSort(cols[COL])))).join('') + moreBtn(cols[COL])) || `<div class="empty">${B.err ? `暂时读不到（${esc(B.err)}）<br><button class="btn g s" data-a="bretry" style="margin-top:8px">重试</button>` : PLAT[NET] !== 'all' ? '这个平台现在没有币' : '这一栏现在没有币'}</div>` + moreBtn(cols[COL]));
+}
+/* 每一行的 ⚡：用这条链现在选的那一组的第一个金额（点了还是会先确认） */
+function rowZap(net) { if (!ST || ST.estop || ST.mOff) return null; const I = qbInfo(net); if (!I) return null; const v = I.get(I.u); const k = v.findIndex((x) => +x > 0); return k < 0 ? null : { k, v: v[k], u: I.u }; }
+function rowTok(x, net, z, w = PPER()) { const aw = actOf(x, w); const zero = !x.tu && aw && !(aw.t > 0); const pc = (v) => v == null || !isFinite(v) ? '<em class="mu">—</em>' : `<em class="${v >= 0 ? 'up' : 'dn'}">${v >= 0 ? '+' : ''}${Math.abs(v) >= 10 ? Math.round(v) : (+v).toFixed(1)}%</em>`; const c3 = `${PMORE ? `<span class="c3 c1p"><i>${winLbl(PMORE)}</i>${pc(chgOf(x, PMORE))}</span>` : `<span class="c3">${PFIX.map((k) => `<i${k === PBASE ? ' class="sel"' : ''}>${winLbl(k)}</i>${pc(chgOf(x, k))}`).join('')}</span>`}`; const la = x.la > 0 ? `最后成交 ${agoMs(x.la)}` : ''; const act = x.tu || zero || !aw ? '' : `${la ? ' · ' : ''}${winLbl(w)} ${aw.t} 笔 ${aw.u} 人`; /* UIFIX6：第 2 行＝最后成交（放最前面，手机窄也看得到）＋笔数；没成交的说明移到第 1 行 */
+  const tags = `${x.prog != null ? `<span class="tag pg"><i style="width:${Math.max(0, Math.min(100, x.prog))}%"></i><span>${Math.round(x.prog)}%</span></span>` : ''}${(ST?.hold || []).some((h) => String(h.c || '').toLowerCase() === String(x.c || '').toLowerCase()) ? '<span class="tag g">已持有</span>' : ''}${x.nw ? '<span class="tag b">新</span>' : ''}${x.heat != null ? `<span class="tag ${x.hh ? 'o' : ''}">🔥${Math.round(x.heat)}</span>` : ''}${x.sm ? `<span class="tag g">🧠${x.sm}</span>` : ''}${x.hp ? '<span class="tag r">貔貅</span>' : ''}${x.wash ? '<span class="tag r">刷量</span>' : ''}`;
+  const hasP = x.price != null && isFinite(x.price) && x.price > 0;
+  return `<div class="tr${zero ? ' dim' : ''}" role="button" tabindex="0" ${openAttr(x.c, x.sym, net)}>${logo(x.sym, x.c, x.img)}<div class="nm"><div class="t"><b>${esc(x.sym || '?')}</b>${tags}</div><small>${zero ? `<span class="zr">这段时间（${winLbl(w)}）没成交</span>` : hasP ? 'MC ' + money(x.mc) : `买${x.b || 0}/卖${x.s || 0}`}${x.age != null ? ' · ' + ago(x.age) : ''}${!zero && (x.b || x.s) ? (hasP ? ` · <span class="up">${x.b || 0}</span>/<span class="dn">${x.s || 0}</span>` : '') : ''}</small>${la || act ? `<small class="l2">${la}${act}</small>` : ''}</div>${spark(x.sp)}<div class="rt"><b>${hasP ? pxf(x.price) : money(x.mc)}</b><small>${c3}</small></div>${z && !x.hp ? `<button class="rz" data-a="rzap" data-c="${esc(x.c)}" data-s="${esc(x.sym)}" data-net="${net}" data-k="${z.k}" aria-label="一键买 ${esc(z.v)} ${esc(z.u)}">${IC.zap}<small>${esc(z.v)}</small></button>` : ''}</div>`;
+}
+/* PERF-1103 手机看盘：上次的清单记在这支手机，打开就先显示（连上电脑后马上换成最新）；只是市场清单，没有金钥／钱包资料 */
+const PB_TTL = 30 * 60e3; /* 技术用：清单快取最多 30 分钟 */
+function pbSave(n, d) { try { if (!d || d.err || !Array.isArray(d.cols)) return; const now = Date.now(); if (now - (pbSave['t' + n] || 0) < 15e3 /* 技术用：最多 15 秒写一次 */) return; pbSave['t' + n] = now; localStorage.setItem('rcBoardC_' + n, JSON.stringify({ at: now, d: { ...d, cols: d.cols.map((c) => ({ ...c, items: (c.items || []).slice(0, 60) })) } })); } catch {} }
+function pbLoad() { for (const n of ['bsc', 'rh']) { try { const s = JSON.parse(localStorage.getItem('rcBoardC_' + n) || 'null'); if (s && s.d && Array.isArray(s.d.cols) && Date.now() - s.at < PB_TTL && !BOARD[n]) BOARD[n] = { ...s.d, cached: 1 }; } catch {} } }
+async function loadBoard() { if (!PC_ON) return; const n = NET; try { const d = await req('board', { net: n, lim: { ...(BLIM[n] || {}) } }); for (const c of d?.cols || []) for (const x of c.items || []) if (x.img) noteImg(x.c, x.img); saveLogos(); BOARD[n] = d; pbSave(n, d); } catch (e) { if (!BOARD[n] || BOARD[n].err) BOARD[n] = { err: e.message }; } if (TAB === 'board') render(); }
+
+/* ── 信号页 ── */
+let SIG = null, SIG_T = 0, SIGF = 'all';
+async function loadSig() { if (!PC_ON) return; SIG_T = Date.now(); try { SIG = await req('sig', {}, 40000); for (const x of SIG?.feed || []) if (x.img) noteImg(x.c, x.img); saveLogos(); } catch (e) { if (!SIG?.feed?.length) SIG = { err: e.message, feed: [] }; } if (TAB === 'sig' || TAB === 'board') render(); }
+const frameSig = () => '<div id="sHead"></div><div class="chips" id="sF"></div><div id="sList"></div>';
+function fillSig() {
+  const F = SIG?.feed || []; const nR = F.filter((x) => x.reso).length;
+  setHTML('#sHead', `<div class="ptitle">信号 ${SIG ? `<span class="cnt">${F.length}</span>` : ''}</div><div class="psub">TG 群、𝕏、聪明钱的喊单；同一个币多个来源喊会标 🔥共振</div>`);
+  const fs = [['all', '全部', F.length], ['reso', '🔥 共振', nR], ['bsc', 'BNB', F.filter((x) => x.ch !== 'rh').length], ['rh', 'Robinhood', F.filter((x) => x.ch === 'rh').length]];
+  setHTML('#sF', fs.map(([k, n, c]) => `<button data-a="sf" data-k="${k}" class="${SIGF === k ? 'on' : ''}">${n}<small>${c}</small></button>`).join(''));
+  const L = F.filter((x) => SIGF === 'all' || (SIGF === 'reso' ? x.reso : SIGF === 'rh' ? x.ch === 'rh' : x.ch !== 'rh'));
+  setHTML('#sList', !SIG ? skRows(5) : SIG.err && !F.length ? `<div class="empty">${esc(SIG.err)}</div>` : L.length ? L.map(sigCard).join('') : '<div class="empty">这里最近没有信号</div>');
+}
+function sigCard(x) {
+  const m = x.mc0 > 0 && x.max > 0 ? x.max / x.mc0 : 0, n = x.mc0 > 0 && x.mc > 0 ? x.mc / x.mc0 : 0;
+  const sc = (v) => v <= 0 ? 0 : Math.max(2, Math.min(100, Math.log(Math.max(1, v)) / Math.log(10) * 100)); /* 1 倍＝0、10 倍＝满 */
+  const bc = m > 1 ? 'linear-gradient(90deg,#2ebd85,#6fe0b0)' : m === 1 ? 'linear-gradient(90deg,#b88a08,#f0b90b)' : '#f6465d';
+  const t = (Date.now() - x.last) < 60e3 ? '刚刚' : ago(Math.round((Date.now() - x.last) / 60e3)) + '前';
+  return `<button class="sg ${x.reso ? 'hot' : ''}" ${openAttr(x.c, x.sym, x.ch)}><div class="h">${logo(x.sym, x.c, x.img, 'm')}<div class="nm"><b>${esc(x.sym)}${x.reso ? `<span class="rb">🔥 共振 ×${x.n || (x.srcs || []).length}</span>` : ''}<span class="tag">${x.ch === 'rh' ? 'RH' : 'BNB'}</span></b><small>${t} · ${(x.srcs || []).length} 个来源</small></div><div class="r">${x.mc ? money(x.mc) : '-'}<small>现在市值</small></div></div>
+    ${(x.srcs || []).length ? `<div class="srcs">${x.srcs.map((s) => `<span>${esc(s)}</span>`).join('')}</div>` : ''}
+    ${m ? `<div class="xb"><div class="l"><span>喊单后最高 <b class="${m >= 1 ? 'up' : 'dn'}">${m.toFixed(m >= 10 ? 0 : 1)} 倍</b></span><span>喊单时 ${money(x.mc0)}${n ? ` · 现在 ${n.toFixed(n >= 10 ? 0 : 1)} 倍` : ''}</span></div><div class="tk"><i style="width:${sc(m)}%;background:${bc}"></i>${n ? `<em style="left:calc(${sc(n)}% - 2px)"></em>` : ''}</div></div>` : ''}</button>`;
+}
+/* ── 持仓页 ── */
+const frameHold = () => heroFrame('持仓 · 盈亏曲线') + '<div id="hList"></div>';
+function fillHold() {
+  const H = ST?.hold || [];
+  setHTML('#hList', `<div class="sech">持仓 <span class="cnt">${H.length}</span>${H.some((h) => h.auto) ? `<small>${H.filter((h) => h.auto).length} 个有自动卖</small>` : ''}</div>` + (!ST && PC_ON ? skRows(3) : H.length ? H.map((h, i) => { const x = h.cost > 0 && h.val != null ? (h.val - h.cost) / h.cost * 100 : null; return `<div class="hr"><button class="tr" ${openAttr(h.c, h.sym, h.ch)}>${logo(h.sym, h.c, h.img)}<div class="nm"><div class="t"><b>${esc(h.sym || '?')}</b><span class="tag">${h.ch === 'rh' ? 'Robinhood' : 'BNB'}</span>${h.auto ? '<span class="tag g">自动卖</span>' : ''}${h.sp ? '<span class="tag" style="color:#f0b90b" title="卖单送出后结果不明，等余额变化中；可以手动卖">⏳ 卖出结果不明</span>' : ''}</div><small>${/*PH3-SP*/h.sp ? '<span style="color:#f0b90b">等余额变化中（可手动卖）</span>' + (h.cost || h.x || (h.ws || []).length ? ' · ' : '') : ''}${h.cost ? '成本 ' + money(h.cost) : ''}${h.x ? ' · ' + h.x.toFixed(2) + ' 倍' : ''}${(h.ws || []).length ? ' · ' + esc(h.ws.join('、')) : ''}</small></div><div class="rt"><b>${h.val == null ? (h.np ? '<span class="mu" style="font-size:14px">还没开池</span>' : '<span style="font-size:14px;color:#f0b90b">读不到</span>') : money(h.val)}</b><small>${x == null ? '' : pill(x)}</small></div></button><div class="sells"><button data-a="hsell" data-i="${i}" data-p="25">卖 25%</button><button data-a="hsell" data-i="${i}" data-p="50">卖 50%</button><button data-a="hsell" data-i="${i}" data-p="100">全卖</button></div></div>`; }).join('') : `<div class="empty">${PC_ON ? '目前没有持仓' : '电脑雷达没在线'}</div>`) + mineHold());
+}
+/* PHONE-4：挖矿部位（手机只能看）。电脑把引擎的 data/mine_pos.json 原样放在 ST.mine＝{ at, items:[{ id, src, name, url, chain, token, status, costUsd, qty(字串), priceUsd, valueUsd, liqUsd, wallets:[…], why }] }；
+   ST.mine 是 null／不是这个格式＝「读不到」，个别栏位读不到也写「读不到」，不猜 */
+const usdOr = (v) => v != null && v !== '' && isFinite(+v) ? money(+v) : '读不到';
+function mineHold() { if (!ST) return ''; const M = ST.mine; const L = M && Array.isArray(M.items) ? M.items.filter(Boolean) : null;
+  const head = `<div class="sech">⛏ 挖矿部位${L ? ` <span class="cnt">${L.length}</span>` : ''}${L && +M.at > 0 ? `<small>${esc(agoMs(+M.at))}更新</small>` : ''}</div>`;
+  if (!L) return head + '<div class="empty">读不到</div>';
+  if (!L.length) return head + '<div class="empty">目前没有挖矿部位</div>';
+  return head + L.map((m) => { const ws = Array.isArray(m.wallets) ? m.wallets.map((w) => String(w && typeof w === 'object' ? (w.name || w.addr || '') : w)).filter(Boolean) : []; const ok = typeof m.url === 'string' && /^https:\/\//.test(m.url);
+    return `<div class="hr"><div class="tr"><div class="nm"><div class="t"><b>${esc(m.name || '读不到名称')}</b>${m.chain ? `<span class="tag">${esc(/*PH3-MH*/m.chain === 'rh' ? 'Robinhood' : m.chain === 'bsc' ? 'BNB Chain' : String(m.chain))}</span>` : ''}${m.status ? `<span class="tag"${m.status === 'live' ? ' style="color:#2ebd85"' : ''}>${esc({ live: '进行中', soon: '还没开始', ended: '已结束' }[m.status] || String(m.status))}</span>` : ''}</div><small style="white-space:normal">数量 ${m.qty != null && m.qty !== '' ? esc(String(m.qty)) : '读不到'}${m.token ? ' <span title="' + esc(String(m.token)) + '">' + esc(/^0x[0-9a-fA-F]{40}$/.test(String(m.token)) ? String(m.token).slice(0, 6) + '…' + String(m.token).slice(-4) : String(m.token)) + '</span>' : ''} · 成本 ${usdOr(m.costUsd)} · 单价 ${usdOr(m.priceUsd)} · 池子 ${usdOr(m.liqUsd)}${ws.length ? ' · ' + esc(ws.join('、')) : ''}${m.why ? '<br>' + esc(String(m.why)) : ''}</small></div><div class="rt"><b>${usdOr(m.valueUsd)}</b>${ok ? `<small><a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">打开 ↗</a></small>` : ''}</div></div></div>`; }).join(''); }
+/* PHONE-4：挖矿提醒＝引擎的 data/mine_alerts.json（[{ at, id, name, liqUsd, text }]），电脑放在 ST.mineAlerts。设定页有卡片；这次打开之后的新提醒也跳提示 */
+const MASEEN = new Set(); const MA_T0 = Date.now();
+function mineAlertCard() { const L = Array.isArray(ST?.mineAlerts) ? ST.mineAlerts.filter(Boolean) : null; if (!L || !L.length) return ''; return `<div class="card"><h4>⛏ 挖矿提醒</h4><p class="note">只提醒，不会帮你做任何动作。</p>${L.map((x) => `<div class="qrow"><span>${esc(x.at ? agoMs(+x.at) : '')} ${esc(x.name || '')}</span><b>${esc(String(x.text || ''))}${x.liqUsd != null ? ' · 池子 ' + usdOr(x.liqUsd) : ''}</b></div>`).join('')}</div>`; }
+function mineAlertToast() { for (const x of (Array.isArray(ST?.mineAlerts) ? ST.mineAlerts : [])) { if (!x) continue; const k = String(x.id ?? '') + ':' + String(x.at ?? ''); if (MASEEN.has(k)) continue; MASEEN.add(k); if (+x.at >= MA_T0) toast('⛏ ' + (x.name ? x.name + '：' : '') + String(x.text || '')); } }
+function sentCard() { /* SEN-1103：🛡 安全哨兵（手机只能看；要取消授权请到电脑雷达） */ const L = ST?.sent || []; if (!L.length) return ''; return `<div class="card"><h4>🛡 安全哨兵</h4><p class="note">只提醒，不会帮你做任何动作。要取消授权请到电脑雷达「⚙️ 设定 → 🛡 安全哨兵」。这里显示最新的几则，全部 ${esc(String(ST?.sentN || L.length))} 则在电脑上看。</p>${L.map((x) => `<div class="qrow"><span>${esc(new Date(x.at).toLocaleString('zh-CN', { hour12: false }))}</span><b style="${x.rd ? '' : 'color:#ff6161'}">${esc(x.t)}</b>${x.u ? ` <a href="${esc(x.u)}" target="_blank" rel="noopener">看 ↗</a>` : ''}</div>`).join('')}</div>`; }
+function mpkCard() { /* MPK-1103：认不出打法／用你选的打法的项目（手机只能看，要选打法请到电脑雷达） */ const L = ST?.mpk || []; if (!L.length) return ''; return `<div class="card"><h4>✋ 铸造方式</h4><p class="note">这些项目雷达认不出怎么铸造，或正在用你选的方式。手机只能看，要选铸造方式请到电脑雷达点那个项目。</p>${L.map((x) => `<div class="qrow"><span>${esc(x.n || x.c.slice(0, 8))}</span><b>${x.pick ? '✋ 用你选的方式' : '⚠️ 认不出铸造方式（到电脑选）'}</b></div>`).join('')}</div>`; }
+/* NAV9：电脑一级导航改成老板指定的顺序（旧的「更多」「安全」一级拿掉，安全哨兵、连结手机在「⚙️ 设定」底下），这页指路文字已同步 */
+/* UXP1：手机「🎯 自订策略」独立一格（跟电脑同名），「更多」不再重复这两张卡 */
+function uxMeCards() { const d = document.createElement('div'); d.innerHTML = pgMe(); return [...d.children]; }
+const uxIsSet = (c) => /自订策略|快速买卖设定/.test(c.querySelector?.('h4')?.textContent || '');
+function pgSet() { return `<div class="ptitle">🎯 自订策略</div><div class="psub">跟电脑「🎯 自订策略」同一套；快速买卖金额只能在电脑改</div><div style="height:8px"></div>` + uxMeCards().filter((c) => c.classList.contains('card') && uxIsSet(c)).map((c) => c.outerHTML).join(''); }
+function pgMore() { return uxMeCards().filter((c) => !(c.classList.contains('card') && uxIsSet(c))).map((c) => c.outerHTML).join(''); }
+function pgMe() {
+  const qrows = (net) => { const I = qbInfo(net); if (!I) return '<div class="qrow"><span>没设</span></div>'; const us = UNITS(net); return (us.length ? us : ['']).map((u) => { const v = I.get(u).filter((x) => x > 0); return `<div class="qrow"><span>${NET_N(net)} · ${esc(u === 'U' ? 'U（USDT）' : u || '-')}</span><b>${v.length ? esc(v.join(' / ')) : '<span class="mu">电脑还没设</span>'}</b></div>`; }).join(''); };
+  return `<div class="ptitle">更多</div><div class="psub">紧急全停、安全哨兵、设定（电脑上在「⚙️ 设定」里）</div><div style="height:8px"></div>
+  <div class="card"><h4>🎯 自订策略</h4><p class="note">在手机上看、改电脑雷达的「自订策略」。存之前会列出「从 … → …」让你确认，电脑用跟设定页同一套规则检查。钱包、邀请码、TG、手机连结只能在电脑改。</p><button class="btn y" data-se="open" style="width:100%">打开自订策略</button></div>
+  <div class="card"><h4>⚡ 快速买卖设定（只能在电脑改）</h4><p class="note">照电脑雷达的「⚡ 快速买卖设定」，手机不能改——就算手机掉了，别人也没办法用它买超过你设的金额。买的时候可以选这次用哪一组。</p>${qrows('bsc')}${qrows('rh')}</div>
+  ${sentCard()}
+  ${mineAlertCard()}
+  ${mpkCard()}<div class="card"><h4>✨ 叫 AI 加功能</h4><p class="note">想要新的面板、提醒或筛选？在电脑雷达「✨ AI 加功能」写下需求、复制给你的 AI，再把 AI 回的那段贴回来安装。为了安全，手机不能装外挂。</p></div><!--UXP2-AICARD-->
+  <div class="card"><h4>📲 加到主画面</h4><p class="note">iPhone：Safari 下方「分享」→「加入主画面」。<br>Android：Chrome 右上角「⋮」→「加到主画面」。<br>加好之后从主画面的罗宾猫图标打开就好。</p></div>
+  <div class="card"><h4>📱 这支手机</h4><p class="note">电脑雷达 ${esc(ST?.ver ? 'v' + ST.ver : '')} · ${PC_ON ? '在线' : '离线'}<br>手机遗失：回电脑雷达按「解除旧手机」，这支手机就再也连不上。</p><button class="btn r" data-a="unpair" style="width:100%">这支手机取消配对</button></div>`;
+}
+
+/* ── PSE-1103 🎯 自订策略：手机可以看、也可以改（经由加密转接送到电脑；电脑用跟设定页同一套检查，通过才写进同一份设定档）──
+   程式里没有任何买卖数字：栏位空的就是空的，灰色字只是提示。钱包、邀请码、TG、手机连结／转接站的设定，手机看不到也改不了。 */
+const SE = { on: false, d: null, at: 0, g: '', draft: {}, fok: new Set(), err: '', busy: 0, sig: '' };
+const SE_STALE = 5 * 60e3; /* 运作常数：设定资料超过 5 分钟没更新就先重新载入，免得盖掉电脑上刚改的 */
+const seIt = (k) => (SE.d?.items || []).find((x) => x.k === k);
+const seVal = (k) => (k in SE.draft ? SE.draft[k] : SE.d?.vals?.[k]);
+function seOnV(it, v) { if (v == null || v === '') return !!it?.floor; return v === true || +v === 1; }
+const seOn = (k) => seOnV(seIt(k), seVal(k));
+const seNum = (k) => { const v = seVal(k); if (v == null || v === '') return null; const x = +v; return Number.isFinite(x) ? x : null; };
+/* SWFIX-C2：「介于 ___ 到 ___」(.hi/.lo) 是同一个条件的另一边，只算一个（跟引擎 nrPairK 一样） */
+const sePairK = (it) => it && (it.op === '>=' ? it.k + '.hi' : it.op === '<=' ? it.k + '.lo' : null);
+const seIsKid = (it) => { const m = /^(.*)\.(hi|lo)$/.exec(it?.k || ''); if (!m) return false; const b = seIt(m[1]); return !!b && b.cond === it.cond && sePairK(b) === it.k; };
+const seCondOn = (it) => { if (seIsKid(it)) return false; if (it.op === 'yes') return seOn(it.k); if (it.need && !seOn(it.need)) return false; const pk = sePairK(it); return seNum(it.k) != null || !!(pk && seIt(pk) && seNum(pk) != null); };
+const seNumOk = (s) => s == null || String(s).trim() === '' || /^\s*[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?\s*$/i.test(String(s));
+function seRO() {
+  if (!SE.d) return SE.err || (PC_ON ? '正在读取电脑的设定…' : '电脑雷达没在线（电脑要开着、雷达要在跑）');
+  if (!PC_ON) return '电脑雷达没在线：现在只能看（显示的是上次读到的设定），连上后按「重新载入」';
+  if (SE.err) return SE.err + '（显示的是上次读到的设定，现在只能看）';
+  if (!SE.d.rw) return SE.d.why || '手机现在只能看设定';
+  if (Date.now() - SE.at > SE_STALE) return '设定资料超过 5 分钟没更新，为了不盖掉电脑上的修改，请先按「重新载入」';
+  return '';
+}
+const seSig = () => [PC_ON ? 1 : 0, seRO(), SE.busy].join('|');
+async function seLoad() {
+  if (SE.busy) return; SE.busy = 1; seRender();
+  try { const d = await req('pset', {}, 30000); if (!d || !Array.isArray(d.items)) throw new Error('电脑雷达没回设定，等一下再试'); SE.d = d; SE.at = Date.now(); SE.err = ''; for (const k of Object.keys(SE.draft)) if (!seIt(k)) delete SE.draft[k]; }
+  catch (e) { SE.err = String(e?.message || e || '读取失败'); }
+  SE.busy = 0; seRender();
+}
+function seOpen() { SE.on = true; SE.g = ''; $('#se').classList.add('on'); seRender(); seLoad(); }
+async function seClose() { const n = Object.keys(SE.draft).length; if (n && !(await confirmBox('还没保存', `你改的 ${n} 项还没保存，离开就会放弃。`, '放弃修改', 'r'))) return; SE.draft = {}; SE.fok.clear(); SE.on = false; $('#se').classList.remove('on'); }
+function seRange(it) { if (it.type === 'bool' || it.type === 'text' || it.type === 'order' || Array.isArray(it.opts) || it.dynN || it.min == null || it.max == null) return ''; return `<span class="rg">介于 ${esc(it.min)} 到 ${esc(it.max)}${it.unit ? ' ' + esc(it.unit) : ''}</span>`; }
+function seCap(it) { const c = it?.cap; if (c == null) return ''; const v = typeof c === 'object' ? +(c.max ?? c.v) : +c; if (!Number.isFinite(v)) return ''; const why = typeof c === 'object' ? c.zh || '' : ''; return `<span class="cap">ℹ️ 工具最多只能看到 ${esc(v)}${it.unit ? ' ' + esc(it.unit) : ''}，超过的部分会当成读不到（照你这条的「读不到时」选择）${why ? '（' + esc(why) + '）' : ''}</span>`; }
+function seOrd(it, ro) {
+  const ids = it.order || []; const nm = (id) => (it.onm || [])[ids.indexOf(id)] || id; const cur = String(seVal(it.k) || '').split(',').filter((x) => ids.includes(x)); const list = [...cur, ...ids.filter((x) => !cur.includes(x))];
+  return `<div class="seO">${list.map((id, i) => `<div class="seOr"><b class="mu">${i + 1}</b><span>${esc(nm(id))}</span><button data-se="up" data-k="${esc(it.k)}" data-id="${esc(id)}" ${ro || !i ? 'disabled' : ''} aria-label="往上">↑</button><button data-se="dn" data-k="${esc(it.k)}" data-id="${esc(id)}" ${ro || i === list.length - 1 ? 'disabled' : ''} aria-label="往下">↓</button></div>`).join('')}<small class="mu">${cur.length ? '已排：先触发的先卖；同时触发照这个顺序' : '还没排卖出顺序：同时触发时会执行最保守的那个（卖最多的）（开了两个以上卖出规则就要排）'}</small>${!cur.length && !ro ? `<button class="btn" data-se="ordok" data-k="${esc(it.k)}">就用这个顺序</button>` : ''}</div>`;
+}
+function seRow(it, ro) {
+  if (it.when && Object.entries(it.when).some(([k, w]) => +seVal(k) !== +w)) return '';
+  if (it.rgOf && seIt(it.rgOf)?.rg) return ''; /* 成对的另一半画在同一行 */
+  const lk = !!it.lock; /* SWFIX-M5 白名单以外：只能看 */ const needOff = !!(it.need && !seOn(it.need) && it.type !== 'bool'); const dis = ro || needOff || lk; const D = dis ? 'disabled' : ''; const v = seVal(it.k); const K = esc(it.k);
+  const ph = esc(it.phzh || '自己填'); let ctl = '';
+  if (it.type === 'bool') ctl = `<label class="seSw"><input type="checkbox" data-sek="${K}" ${seOn(it.k) ? 'checked' : ''} ${ro || lk ? 'disabled' : ''}><i></i></label>`;
+  else if (it.type === 'order') ctl = '';
+  else if (it.dynN) { const n = (SE.d.items || []).filter((c) => c.cond === it.dynN && seCondOn(c)).length; const has = v != null && v !== ''; ctl = `<select data-sek="${K}" ${D}><option value="">请选择</option>${Array.from({ length: n }, (_, i) => `<option value="${i + 1}" ${has && +v === i + 1 ? 'selected' : ''}>${i + 1}</option>`).join('')}${has && !(Number.isInteger(+v) && +v >= 1 && +v <= n) ? `<option value="${esc(v)}" selected>${esc(v)}（要重新选）</option>` : ''}</select>`; }
+  else if (Array.isArray(it.opts)) ctl = `<select data-sek="${K}" ${D}><option value="">请选择</option>${it.opts.map((o) => `<option value="${esc(o.v)}" ${v != null && v !== '' && +o.v === +v ? 'selected' : ''}>${esc(o.zh)}</option>`).join('')}</select>`;
+  else if (it.type === 'text') ctl = `<input type="text" class="seTx" data-sek="${K}" value="${esc(v ?? '')}" placeholder="${ph}" ${D}>`;
+  else if (it.rg) { const ni = (x) => `<input type="text" inputmode="decimal" autocomplete="off" data-sek="${esc(x.k)}" value="${esc(seVal(x.k) ?? '')}" placeholder="${esc(x.phzh || '自己填')}" ${D}>`; const lo = seIt(it.rg.lo) || it, hi = seIt(it.rg.hi) || it; ctl = `<span class="seNum seRg">介于 ${ni(lo)} 到 ${ni(hi)}${it.unit ? `<small>${esc(it.unit)}</small>` : ''}</span>`; }
+  else ctl = `<span class="seNum"><input type="text" inputmode="decimal" autocomplete="off" data-sek="${K}" value="${esc(v ?? '')}" placeholder="${ph}" ${D}>${it.unit ? `<small>${esc(it.unit)}</small>` : ''}</span>`;
+  const tip = [lk ? '<span class="nd">🔒 只能在电脑改</span>' : '', it.floor ? '<span class="fl">🔒 底线：不参加组合，开着的一定要过</span>' : '', needOff ? `<span class="nd">要先打开「${esc(seIt(it.need)?.zh || it.need)}」</span>` : '', it.cond && it.op !== 'yes' && !seIt(it.k + '.miss') ? '<span class="rg">读不到这个资料时：不买</span>' : ''].join('');
+  const ks = it.rg ? [it.rg.lo, it.rg.hi] : [it.k]; const bad = !['bool', 'text', 'order'].includes(it.type) && !Array.isArray(it.opts) && !it.dynN && ks.some((k) => !seNumOk(seVal(k))); const chg = ks.some((k) => k in SE.draft);
+  const pr = it.rg ? seIt(it.rg.lo === it.k ? it.rg.hi : it.rg.lo) : null; const dz = pr && pr.dzh && pr.dzh !== it.dzh ? (it.dzh ? it.dzh + ' · ' : '') + pr.dzh : it.dzh || ''; const title = it.rg ? it.rg.name || it.zh : it.zh;
+  return `<div class="seR${chg ? ' ch' : ''}${dis ? ' dis' : ''}${it.need && it.type !== 'bool' ? ' ind' : ''}${bad ? ' bad' : ''}" data-row="${K}"><div class="seT"><b>${esc(title)}</b>${chg ? '<em>已改</em>' : ''}<small>${esc(dz)}${it.rg ? ' · 两个都可以只填一个（只限一边）' : ''}</small>${seRange(it)}${seCap(it.cap != null ? it : pr)}${tip}<span class="bad">要填数字</span></div>${ctl ? `<div class="seC${it.rg ? ' w' : ''}">${ctl}</div>` : ''}${it.type === 'order' ? seOrd(it, ro) : ''}</div>`;
+}
+function seBarHTML(ro) { const n = Object.keys(SE.draft).length; return n ? `<div class="seBar"><span>已改 <b>${n}</b> 项</span><button class="btn" data-se="drop">放弃</button><button class="btn y" data-se="save" ${ro ? 'disabled' : ''}>保存</button></div>` : ''; }
+function seRender() {
+  const el = $('#se'); if (!el || !SE.on) return; const ro = seRO(); const G = SE.d?.groups || []; const g = G.find((x) => x.id === SE.g);
+  const head = `<div class="dth"><button class="bk" data-se="${g ? 'back' : 'close'}" aria-label="返回">${IC.back}</button><div class="nm"><b>${esc(g ? g.zh : '🎯 自订策略')}</b><small>${g ? '改完按下面「保存」，存之前会让你再确认一次' : '跟电脑雷达同一份设定，改了电脑马上更新'}</small></div><button class="seRl" data-se="reload">${SE.busy ? '读取中…' : '重新载入'}</button></div>`;
+  const ban = ro ? `<div class="seRO" id="seRO">🔒 ${esc(ro)}</div>` : '<div class="seTip">✍️ 填你自己的数字，不要照抄别人的。灰色字只是提示，栏位是空的。<br>📱 手机只能改：策略条件数字（介于 ___ 到 ___、各条件门槛、条件怎么组合）、止盈止损、卖出规则（分批卖等）、通知。<br>🔒 自动买开关、金额、安全防护、外挂、手机设定只能在电脑改。</div>';
+  let body;
+  if (!SE.d) body = `<div class="empty">${esc(SE.busy ? '正在读取电脑的设定…' : (SE.err || '还没读到设定'))}</div>`;
+  else if (!g) body = `<div class="seGL">${G.map((x) => { const its = SE.d.items.filter((i) => i.g === x.id); const c = its.filter((i) => i.k in SE.draft).length; return `<button class="seGr" data-se="g" data-g="${esc(x.id)}"><span>${esc(x.zh)}</span><small>${its.length} 项${c ? ` · <b class="gold">已改 ${c}</b>` : ''}</small><i>›</i></button>`; }).join('')}<p class="note" style="padding:0 6px">钱包、邀请码、TG 机器人、手机连结的设定只能在电脑改。</p></div>`;
+  else body = `<div class="seL">${SE.d.items.filter((i) => i.g === g.id).map((it) => seRow(it, ro)).join('')}</div>`;
+  const y = el.scrollTop; const bh = seBarHTML(ro); el.innerHTML = head + ban + body + '<div style="height:96px"></div><div id="seBarW">' + bh + '</div>'; $('#seBarW')._h = bh; el.scrollTop = y; SE.sig = seSig();
+}
+function seSet(k, raw) { const o = SE.d?.vals?.[k]; const it = seIt(k); if (!it) return;
+  if (it.type === 'bool') { const on = raw === true || +raw === 1; if (seOnV(it, o) === on) delete SE.draft[k]; else SE.draft[k] = on ? 1 : 0; return; }
+  const s = raw == null ? '' : String(raw); if (String(o ?? '') === s) delete SE.draft[k]; else SE.draft[k] = s === '' ? null : s; }
+function seSoft(k) { const inp = [...$('#se').querySelectorAll('[data-sek]')].find((x) => x.dataset.sek === k); const row = inp ? inp.closest('[data-row]') : [...$('#se').querySelectorAll('[data-row]')].find((r) => r.dataset.row === k);
+  if (row) { const ks = [...row.querySelectorAll('[data-sek]')].map((x) => x.dataset.sek); const its = ks.map(seIt).filter(Boolean); row.classList.toggle('ch', ks.some((x) => x in SE.draft)); row.classList.toggle('bad', its.some((i) => !['bool', 'text', 'order'].includes(i.type) && !Array.isArray(i.opts) && !i.dynN && !seNumOk(seVal(i.k)))); const em = row.querySelector('.seT em'); if (ks.some((x) => x in SE.draft) && !em) row.querySelector('.seT b')?.insertAdjacentHTML('afterend', '<em>已改</em>'); else if (!ks.some((x) => x in SE.draft) && em) em.remove(); }
+  const w = $('#seBarW'); const h = seBarHTML(seRO()); if (w && w._h !== h) { w.innerHTML = h; w._h = h; } }
+/* 只换设定列表（下面的「保存」列不动，按钮才不会在按下去的瞬间被换掉） */
+function seRows(k) { const L = $('#se .seL'); const g = (SE.d?.groups || []).find((x) => x.id === SE.g); if (!L || !g) return seRender(); const ro = seRO(); const it0 = seIt(k);
+  const dep = SE.d.items.filter((x) => x.g === g.id && (x.need === k || (x.when && k in x.when) || (it0?.cond && x.dynN === it0.cond)));
+  if (dep.some((x) => x.when)) { setTimeout(() => { const L2 = $('#se .seL'); if (!L2 || SE.g !== g.id) return; const ae = document.activeElement; const ak = ae && L2.contains(ae) && ae.dataset ? ae.dataset.sek : null; let ss = null; try { ss = ak ? [ae.selectionStart, ae.selectionEnd] : null; } catch {} L2.innerHTML = SE.d.items.filter((i) => i.g === g.id).map((it) => seRow(it, seRO())).join(''); /* 有列要出现／消失：整个列表重画 */ if (ak) { const n = [...L2.querySelectorAll('[data-sek]')].find((e) => e.dataset.sek === ak); if (n && !n.disabled) { n.focus(); try { if (ss && ss[0] != null) n.setSelectionRange(ss[0], ss[1]); } catch {} } } seSoft(k); }, 0); return; } /* V3：改完一格再点下一格时，change 在焦点移过去之前触发 → 等焦点落定再重画，并把焦点还给你刚点的格子（以前下一格会被换掉、打的字不见） */
+  else for (const x0 of dep) { const x = x0.rgOf && seIt(x0.rgOf)?.rg ? seIt(x0.rgOf) : x0; const r = [...L.querySelectorAll('[data-row]')].find((e) => e.dataset.row === x.k); if (r && !r.contains(document.activeElement)) r.outerHTML = seRow(x, ro); } /* 只换受影响的那几列，你正要点的格子不会被换掉 */
+  seSoft(k); }
+function floorBox(it) { return new Promise((res) => { openSheet(`<h3>⚠️ 要关掉底线「${esc(String(it.zh).replace(/^🔒\s*底线\s*·\s*/, ''))}」吗？</h3><p class="note" style="color:#ffb4b4;font-size:14px">${esc(it.rzh || '')}</p><div class="g2"><button class="btn" id="fNo">不关闭</button><button class="btn r" id="fOk">确认关闭</button></div>`); $('#fNo').onclick = () => { closeSheet(); res(false); }; $('#fOk').onclick = () => { closeSheet(); res(true); }; }); }
+async function seToggle(it, want) {
+  if (!want && it.floor && seOn(it.k)) { if (!(await floorBox(it))) { toast('没有关，底线还开着'); return; } SE.fok.add(it.k); }
+  if (want) SE.fok.delete(it.k);
+  seSet(it.k, want ? 1 : 0);
+  if (want && Array.isArray(it.excl)) for (const k2 of it.excl) { const it2 = seIt(k2); if (it2 && seOn(k2)) { seSet(k2, 0); toast(it.xzh || `已自动关掉「${it2.zh}」（两个不能同时开）`, 3500); } }
+  seRender();
+}
+function seErr(m) { openSheet(`<h3>❌ 没有保存</h3><p class="note" style="color:#ff8f9e;font-size:14px;white-space:pre-line">${esc(m)}</p><button class="btn" id="eOk" style="width:100%;margin-top:12px">知道了</button>`); $('#eOk').onclick = closeSheet; }
+function diffBox(r) { return new Promise((res) => { const L = r.diff || [];
+  openSheet(`<h3 data-diff="1">确认修改（${L.length} 项）</h3><div class="seDL">${L.map((d) => `<div class="seD${d.floor ? ' fl' : ''}">${d.floor ? '🔓 ' : ''}<b>${esc(d.name)}</b> 从 <s>${esc(d.from)}</s> → <b>${esc(d.to)}</b>${d.auto ? ' <small class="mu">（自动，两个不能同时开）</small>' : ''}</div>`).join('')}</div>${(r.notes || []).map((x) => `<p class="note">ℹ️ ${esc(x)}</p>`).join('')}${(r.warn || []).length ? `<div class="seW"><b>⚠️ 提醒（可以照样保存）</b>${r.warn.map((x) => `<div>• ${esc(x)}</div>`).join('')}</div>` : ''}<div class="g2"><button class="btn" id="dNo">取消</button><button class="btn y" id="dOk">确认保存</button></div>`);
+  $('#dNo').onclick = () => { closeSheet(); res(false); }; $('#dOk').onclick = () => { closeSheet(); res(true); }; }); }
+async function seSave() {
+  const ro = seRO(); if (ro) return toast(ro, 3500); if (SE.saving) return; SE.saving = 1;
+  try {
+    const ch = { ...SE.draft }; const base = {}; for (const k of Object.keys(ch)) base[k] = SE.d.vals[k] ?? null;
+    let r; try { r = await req('psetSave', { ch, base, floorOk: [...SE.fok], dry: 1 }, 30000); } catch (e) { return seErr(e.message); }
+    if (!r?.diff?.length) { SE.draft = {}; seRender(); return toast(r?.msg || '没有改到任何东西'); }
+    for (const k of r.floors || []) { const it = seIt(k); if (!it || !(await floorBox(it))) return toast('没有保存：底线还开着'); SE.fok.add(k); }
+    if (!(await diffBox(r))) return toast('没有保存');
+    let s; try { s = await req('psetSave', { ch, base, floorOk: [...SE.fok], dry: 0 }, 30000); } catch (e) { return seErr(e.message); }
+    SE.draft = {}; SE.fok.clear(); toast(s?.msg || '已保存，电脑雷达已更新', 3000); await seLoad();
+    if (s?.undo && (await confirmBox('✅ 已保存', (s.diff || []).map((d) => `${d.name}：${d.from} → ${d.to}`).join('\n') + '\n\n改错了？按「撤销这次修改」马上改回去（电脑会发 TG 通知）', '撤销这次修改', 'r'))) { try { const u = await req('psetUndo', { id: s.undo }, 30000); toast(u?.msg || '已撤销', 3000); } catch (e) { toast('❌ ' + e.message, 4000); } await seLoad(); } /* UI2-1104 H3-S1 */
+  } finally { SE.saving = 0; }
+}
+$('#se').addEventListener('input', (e) => { const t = e.target; const k = t?.dataset?.sek; if (!k || t.type === 'checkbox' || t.tagName === 'SELECT') return; seSet(k, t.value); seSoft(k); });
+$('#se').addEventListener('change', (e) => { const t = e.target; const k = t?.dataset?.sek; if (!k) return; const it = seIt(k); if (!it) return;
+  if (t.type === 'checkbox') { const want = t.checked; t.checked = !want; seToggle(it, want); return; }
+  seSet(k, t.value); if (t.tagName === 'SELECT' || it.cond || (SE.d?.items || []).some((x) => x.need === k || (x.when && k in x.when))) seRows(k); else seSoft(k); });
+$('#se').addEventListener('click', async (e) => { const b = e.target.closest('[data-se]'); if (!b) return; const a = b.dataset.se;
+  if (a === 'close') seClose(); else if (a === 'back') { SE.g = ''; seRender(); $('#se').scrollTop = 0; } else if (a === 'g') { SE.g = b.dataset.g; seRender(); $('#se').scrollTop = 0; }
+  else if (a === 'reload') seLoad(); else if (a === 'save') seSave();
+  else if (a === 'drop') { const n = Object.keys(SE.draft).length; if (n && (await confirmBox('放弃修改？', `你改的 ${n} 项会还原成电脑上的设定。`, '放弃修改', 'r'))) { SE.draft = {}; SE.fok.clear(); seRender(); } }
+  else if (a === 'up' || a === 'dn' || a === 'ordok') { if (seRO()) return; const it = seIt(b.dataset.k); if (!it) return; const ids = it.order || []; const cur = String(seVal(it.k) || '').split(',').filter((x) => ids.includes(x)); const L = [...cur, ...ids.filter((x) => !cur.includes(x))];
+    if (a !== 'ordok') { const i = L.indexOf(b.dataset.id), j = a === 'up' ? i - 1 : i + 1; if (i < 0 || j < 0 || j >= L.length) return; [L[i], L[j]] = [L[j], L[i]]; } seSet(it.k, L.join(',')); seRender(); } });
+document.addEventListener('click', (e) => { if (e.target.closest('[data-se="open"]') && !e.target.closest('#se')) seOpen(); });
+setInterval(() => { if (!SE.on) return; if (PC_ON && !SE.d && !SE.busy && !SE.err) seLoad(); if (seSig() !== SE.sig && !$('#se').contains(document.activeElement)) seRender(); }, 2000);
+
+/* ── 代币详情：整页（她 11/3：照 fomo，K 线在上、下面固定一颗大大的绿色「买入」） ── */
+let DT = null;
+const TFS = [['1m', '1分'], ['5m', '5分'], ['15m', '15分'], ['1h', '1小时'], ['3h', '3小时'], ['6h', '6小时'], ['12h', '12小时'], ['1d', '1天'], ['3d', '3天'], ['1w', '1周'], ['1M', '1月']]; /* UI2-1104 H8：跟电脑一样的写法 */
+const TFMS = { '1m': 60e3, '5m': 300e3, '15m': 900e3, '1h': 3600e3, '3h': 3 * 3600e3, '6h': 6 * 3600e3, '12h': 12 * 3600e3, '1d': 86400e3, '3d': 3 * 86400e3, '1w': 7 * 86400e3 };
+const tms = (t) => t > 1e12 ? t : t * 1000;
+/* KQ-1104：跟电脑同一套格子（周线＝周一 00:00 UTC、月线＝日历月） */
+function startT(t, tf) { if (tf === '1M') { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); } const p = TFMS[tf] || 300e3; if (tf === '1w') { const off = 345600e3; return Math.floor((t - off) / p) * p + off; } return Math.floor(t / p) * p; }
+function nextT(t, tf) { if (tf === '1M') { const d = new Date(startT(t, tf)); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1); } return startT(t, tf) + (TFMS[tf] || 300e3); }
+function closeTok() { $('#dt').classList.remove('on'); $('#dt').innerHTML = ''; $('#dbar').innerHTML = ''; $('#dbar')._h = null; clearTimeout(loadTape._t); DT = null; try { history.replaceState(null, '', location.pathname + location.hash); } catch {} }
+window.addEventListener('popstate', () => { if ($('#sh').classList.contains('on')) closeSheet(); if (DT) closeTok(); });
+/* PERF-1103 点开代币：先用看盘那一列已有的价格／市值画出来；同一个币 30 秒内再点直接用刚查到的；有池子地址就同时查 K 线 */
+const PDC = new Map(), PD_TTL = 30e3; /* 技术用：详情快取 30 秒 */
+function pdPre(D) { try { const lc = String(D.c).toLowerCase(); let x = null; for (const col of BOARD[D.net]?.cols || []) { x = (col.items || []).find((y) => String(y.c).toLowerCase() === lc); if (x) break; } if (!x) return; D.pre = { sym: x.sym, img: x.img, price: x.price, mc: x.mc }; if (/^0x[0-9a-fA-F]{40}$/.test(x.pool || '')) { D.pool = x.pool; setTimeout(() => { if (DT === D && !D.d && !D.cs.length) { D.kEarly = String(x.pool).toLowerCase(); loadK('5m'); } }, 0); } } catch {} }
+async function openTok(c, sym, net) {
+  net = net === 'rh' ? 'rh' : net === 'bsc' ? 'bsc' : NET; DT = { c, sym, net, tf: '5m', cs: [], d: null, tab: 'tape', lvErr: 0 }; pdPre(DT);
+  try { history.pushState({ dt: 1 }, '', location.pathname + location.hash); } catch {}
+  const el = $('#dt'); el.classList.add('on'); el.scrollTop = 0; paintTok();
+  let d; const pm = PDC.get(net + c); if (pm && Date.now() - pm.at < PD_TTL) d = pm.d; else { try { d = await req('detail', { net, c }, 40000); if (d && !d.err) { PDC.set(net + c, { at: Date.now(), d }); if (PDC.size > 40) PDC.delete(PDC.keys().next().value); } } catch (e) { d = { err: e.message }; } }
+  if (!DT || DT.c !== c) return; DT.d = d; DT.cs = (d.candles && d.candles.length) ? d.candles : DT.cs; if (d.img) { noteImg(c, d.img); saveLogos(); } paintTok();
+  if (d.pool && !DT.cs.length && DT.kEarly !== String(d.pool).toLowerCase()) loadK('5m');
+  loadTape();
+  if (d && d.riskPending) pdMore(DT, c);
+}
+/* PERF-1103 详情第二段（风险／持有人）：马上问一次（新版电脑会等到风险查完才回）；还没好就每 2.5 秒再问（电脑那边是快取，不会多打 AVE），最多 8 次 */
+const PD_MORE_MS = 2500, PD_MORE_N = 8; /* 技术用 */
+function pdMore(D, c, n = 0) { clearTimeout(pdMore._t); pdMore._t = setTimeout(async () => { if (DT !== D || !D.d || !D.d.riskPending) return; let d2 = null; try { d2 = await req('detail', { net: D.net, c, more: 1 /* 电脑等风险查完才回；逾时用 req 的预设 */ }); } catch {} if (DT !== D) return; if (d2 && !d2.err) { const cs = D.cs; D.d = d2; D.cs = cs.length ? cs : (d2.candles || []); PDC.set(D.net + c, { at: Date.now(), d: d2 }); paintPane(); } if ((!d2 || d2.riskPending) && n < PD_MORE_N) pdMore(D, c, n + 1); }, n ? PD_MORE_MS : 0); }
+function paintTok() {
+  const { c, net } = DT; const d = DT.d || DT.pre || {}; const L = !DT.d; const LP = L && !(DT.pre && DT.pre.price > 0); const sym = d.sym || DT.sym || '?';
+  const ch = d.chg || {}; const ch24 = ch.h24 ?? ch.h6 ?? ch.h1; const chL = ch.h24 != null ? '24h' : ch.h6 != null ? '6h' : '1h';
+  const H = d.held; const hx = H && H.cost > 0 && H.val != null ? (H.val - H.cost) / H.cost * 100 : null;
+  $('#dt').innerHTML = `<div class="dth"><button class="bk" data-a="back" aria-label="返回">${IC.back}</button>${logo(sym, c, d.img, 'm')}<div class="nm"><b>${esc(sym)}<span class="tag">${net === 'rh' ? 'RH' : 'BNB'}</span></b><small>${esc(d.name || (c.slice(0, 6) + '…' + c.slice(-4)))}</small></div><button class="ib" data-a="copy" aria-label="复制合约">${IC.copy}</button><button class="ib" data-a="share" aria-label="分享">${IC.share}</button></div>
+  <div class="pxrow"><div style="min-width:0"><div class="px" id="dPx">${LP ? '<i class="skb" style="width:170px;height:34px;border-radius:10px"></i>' : pxf(d.price)}</div><div class="chg">${L ? '<i class="skb" style="width:90px;margin-top:8px"></i>' : arrow(ch24) + `<i>${chL}</i>`}</div></div><div class="mcR"><b>${LP ? '<i class="skb" style="width:80px;height:20px;margin-left:auto"></i>' : money(d.mc)}</b><small>市值</small></div></div>
+  <canvas class="kc" id="kc"></canvas>
+  <div class="tfs" id="tfs">${TFS.map(([k, n]) => `<button data-a="tf" data-tf="${k}" class="${k === DT.tf ? 'on' : ''}">${n}</button>`).join('')}</div>
+  <div class="kn" id="kn"></div>
+  <div data-avew style="padding:4px 18px 0${ST?.ref?.ave ? '' : ';display:none'}"><button class="btn g" data-a="ave" style="width:100%">在 AVE 看盘／交易 ↗</button></div> <!-- ZR-INT-AVE --><div class="aveSt note" style="display:none;padding:2px 18px 0;font-size:12px"></div>
+  ${d.err && !d.price ? `<p class="note" style="padding:0 18px">${esc(pdE(d.err))}</p>` : ''}
+  <div class="chg4">${[['5M', ch.m5], ['1H', ch.h1], [ch.h4 != null ? '4H' : '6H', ch.h4 ?? ch.h6], ['24H', ch.h24]].map(([k, v]) => `<div>${k}<b class="${v == null ? '' : v >= 0 ? 'up' : 'dn'}">${L ? '…' : pct(v)}</b></div>`).join('')}</div>
+  <div class="uq" id="uq"></div>
+  ${H ? `<div class="myh">${logo(sym, c, d.img, 's')}<div class="l">我的持仓<b>${H.val == null ? (H.np ? '还没开池' : '读不到') : '约 ' + money(H.val)}</b></div><div class="r ${hx == null ? '' : hx >= 0 ? 'up' : 'dn'}">${hx == null ? '-' : pct(hx)}<small>${H.cost ? '成本 ' + money(H.cost) : ''}${H.cost && H.val != null ? ' · ' + (H.x != null && isFinite(H.x) ? +H.x : H.val / H.cost).toFixed(2) + ' 倍' : ''}${'' /*AMT-B 倍数用桌面的 现价÷平均买入价*/}${H.auto ? ' · 有自动卖' : ''}</small></div></div>` : ''}
+  <div class="dtabs">${[['tape', '成交'], ['risk', '风险'], ['about', '关于']].map(([k, n]) => `<button data-a="dtab" data-k="${k}" class="${DT.tab === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+  <div class="dpane" id="dpane"></div>
+  <p class="note" style="padding:6px 12px calc(var(--sb) + 70px);margin:0">资料：AVE＋电脑雷达自己读链。只是整理，不构成投资建议。</p>`;
+  hydrate($('#dt')); paintPane(); $('#dbar')._h = null; paintBar(); drawK();
+}
+function paintPane() {
+  const el = $('#dpane'); if (!el || !DT) return; const d = DT.d || {};
+  if (!DT.d) return setHTML(el, '<div class="note">电脑在帮你查 AVE 资料…</div>' + skRows(4).replace(/class="tr sk"/g, 'class="tr sk" style="padding:10px 2px"'));
+  if (DT.tab === 'tape') return setHTML(el, '<div id="tape">' + tapeHTML() + '</div>');
+  if (DT.tab === 'risk') {
+    const sm = d.sum; const cells = (sm?.cells || []).map((x) => `<div>${esc(x.k)}<b class="${esc(x.c)}">${esc(x.v)}</b></div>`).join('');
+    return setHTML(el, `${(d.risk || []).length ? `<div class="sumb r">⚠️ ${d.risk.map(esc).join('、')}</div>` : d.riskPending ? '<div class="sumb y">⏳ 风险检查中…（貔貅、税、合约功能）还没查完，不代表安全</div>' : '<div class="sumb g">🟢 没发现貔貅、高税或危险合约功能</div>'}
+      ${sm ? `<div class="sumb ${esc(sm.lv)}">${sm.lv === 'r' ? '🔴' : sm.lv === 'y' ? '🟡' : '🟢'} ${esc(sm.t)}</div><div class="kv4">${cells}</div>` : '<p class="note">没有深度检查资料</p>'}`);
+  }
+  const age = d.created ? ago(Math.round((Date.now() - d.created) / 60e3)) : '';
+  setHTML(el, `${d.head || d.desc ? `<div class="desc">📖 <b>${esc(d.head || '项目介绍')}</b>${d.plat ? ` <span class="tag">${esc(d.plat)}</span>` : ''}${d.desc ? `<div class="mu" style="font-size:12px;margin-top:8px">社区在讨论什么（AVE AI 整理）</div><div style="margin-top:4px">${esc(d.desc)}</div>` : ''}</div>` : ''}
+    <div class="kv4"><div>市值<b>${money(d.mc)}</b></div><div>FDV<b>${money(d.fdv)}</b></div><div>池子<b>${money(d.liq)}</b></div><div>24 小时成交<b>${money(d.vol)}</b></div>
+    <div>持有人<b>${d.holders != null ? (+d.holders).toLocaleString('en-US') : '-'}</b></div><div>前 10 大持有<b class="${d.t10r ? 'dn' : ''}">${d.top10 != null ? d.top10 + '%' : '-'}</b></div>
+    ${d.sm && d.sm.n ? `<div>🧠 聪明钱买进<b class="up">${d.sm.n} 个钱包</b></div>` : ''}${age ? `<div>创建<b>${age}前</b></div>` : ''}
+    ${d.b1 != null || d.s1 != null ? `<div>1 小时 买／卖<b><span class="up">${money(d.b1)}</span> / <span class="dn">${money(d.s1)}</span></b></div>` : ''}${d.b24 != null || d.s24 != null ? `<div>24 小时 买／卖<b><span class="up">${money(d.b24)}</span> / <span class="dn">${money(d.s24)}</span></b></div>` : ''}</div>
+    <div class="desc"><div class="mu" style="font-size:12px">合约（${NET_N(DT.net)}）</div><div class="mono">${esc(DT.c)}</div>${d.pool ? `<div class="mu" style="font-size:12px;margin-top:6px">池子${d.dex ? ' · ' + esc(d.dex) : ''}</div><div class="mono">${esc(d.pool)}</div>` : ''}</div>`);
+}
+/* 底部固定：卖出（有持仓才有）＋ 大大的绿色买入 ＋ ⚡（这次选的那一组的第一个金额，还是会先确认） */
+function buyBlock() {
+  if (!DT) return '没打开';
+  if (ST?.estop) return '紧急全停中：买入全部停止，可以手动卖出';
+  if (ST?.eng) return '电脑雷达的引擎停了，不能买（请到电脑按「⚠️ 引擎停了 · 重启」）'; /* UIFIX5 */
+  if (ST?.boot) return '电脑雷达的引擎还在启动，稍等一下再买'; /* UIFIX7 */
+  if (ST?.mOff) return '「手动买卖」没打开，不能买';
+  if (ST?.noW) return NOW_BUY; /* UIFIX6 */
+  if (!anyAmt(qbInfo(DT.net))) return '先在电脑的「⚡ 快速买卖设定」设好金额';
+  return '';
+}
+const noAmt = (u) => `电脑还没设 ${ULBL(u) || ''} 金额`;
+function paintBar() {
+  if (!DT) return; const why = buyBlock(); const I = qbInfo(DT.net); const u = I?.u || ''; const vs = I ? I.get(u) : []; const k0 = why ? -1 : vs.findIndex((v) => +v > 0);
+  setHTML('#dbar', `${DT.d?.held ? '<button class="sell" data-a="sellsheet">卖出</button>' : ''}<button class="buy ${why ? 'off' : ''}" data-a="buysheet">${why && ST?.estop ? '已紧急全停' : '买入'}</button><button class="zap ${why || k0 < 0 ? 'off' : ''}" data-a="zap" aria-label="一键买">${IC.zap}${k0 >= 0 ? esc(vs[k0]) + ' ' + esc(ULBL(u)) : why ? '' : '未设'}</button>`);
+  setHTML('#uq', !why && I ? `<span>⚡ 这次用 <b>${esc(ULBL(u))}</b> 买：${vs.some((v) => v > 0) ? `<b>${esc(vs.filter((v) => v > 0).join(' / '))}</b>` : '<b class="dn">电脑还没设</b>'}</span>${segHTML(DT.net, I)}` : '');
+}
+function buySheet() {
+  const why = buyBlock(); if (why) return toast(why, 3500);
+  const { c, net } = DT; const sym = DT.d?.sym || DT.sym || ''; const I = qbInfo(net); const u = I.u; const vs = I.get(u); const nW = ST?.qbW?.[net] || 1;
+  openSheet(`<h3 data-buysheet="1">${logo(sym, c, DT.d?.img, 's')}买入 ${esc(sym || c.slice(0, 8))}</h3><p class="note" style="margin:2px 0">${NET_N(net)} · 金额照电脑「⚡ 快速买卖设定」${nW > 1 ? ` · ${nW} 个钱包各买一次` : ''}</p>
+  <div style="margin-top:12px">${segHTML(net, I)}</div>
+  <div class="qgrid">${vs.some((v) => v > 0) ? vs.map((v, k) => +v > 0 ? `<button class="btn y" data-a="qb" data-k="${k}">⚡ ${esc(v)}<small>${esc(u === 'U' ? 'U（USDT）' : u)}</small></button>` : '').join('') : `<div class="qempty">${noAmt(u)}<small>请在电脑的「⚡ 快速买卖设定」填你自己的金额（手机不能改）</small></div>`}</div>
+  <p class="note">点金额后还会再确认一次。雷达会先做安全检查，有风险会先提示你，你确认才买。</p><button class="btn" data-a="close" style="width:100%">取消</button>`);
+}
+function sellSheet() {
+  const H = DT?.d?.held; if (!H) return; const sym = DT.d?.sym || DT.sym || '';
+  openSheet(`<h3>${logo(sym, DT.c, DT.d?.img, 's')}卖出 ${esc(sym)}</h3><p class="note" style="margin:2px 0">持有 ${H.val == null ? (H.np ? '（还没开池）' : '（现值读不到）') : '约 ' + money(H.val)}${H.cost ? ' · 成本 ' + money(H.cost) : ''}${H.auto ? ' · 有自动卖' : ''}</p>
+  <div class="qgrid"><button class="btn r" data-a="sp" data-p="25">25%</button><button class="btn r" data-a="sp" data-p="50">50%</button><button class="btn rr" data-a="sp" data-p="100">全卖</button></div>
+  <p class="note">所有钱包一起卖，点了还会再确认一次。</p><button class="btn" data-a="close" style="width:100%">取消</button>`);
+}
+async function loadK(tf) {
+  if (!DT) return; DT.tf = tf; DT.lvRef = null; DT.kLoading = (DT.kLoading || 0) + 1; DT.kErr = ''; /* KQ-1104：读新周期时先不跳即时价 */ document.querySelectorAll('#tfs [data-tf]').forEach((b) => b.classList.toggle('on', b.dataset.tf === tf));
+  const kn = $('#kn'); if (kn) kn.textContent = '读取中…';
+  const c = DT.c, D0 = DT; let cs = [], ke = ''; try { cs = await req('candles', { net: DT.net, pool: DT.d?.pool || DT.pool || '', tf }, 30000); } catch (e) { ke = e.message; if (kn) kn.textContent = pdE(e.message); } finally { D0.kLoading = Math.max(0, (D0.kLoading || 1) - 1); }
+  if (!DT || DT.c !== c || DT.tf !== tf) return; DT.cs = cs || []; DT.kErr = ke; DT.lvRef = null; drawK();
+}
+function drawK() {
+  const cv = $('#kc'), kn = $('#kn'); if (!cv || !DT) return; const cs = DT.cs || [];
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  g.fillStyle = 'rgba(255,255,255,.055)'; for (let yy = 10; yy < H - 18; yy += 18) for (let xx = 9; xx < W; xx += 18) g.fillRect(xx, yy, 1.2, 1.2);
+  if (!cs.length) { g.fillStyle = '#838b98'; g.font = '13px sans-serif'; g.textAlign = 'center'; g.fillText(!DT.d ? '读取中…' : /报价币/.test(DT.kErr || '') ? DT.kErr : DT.d.hasTr === false ? '⚠️ 还没有成交：这个币还没有人买卖，所以没有 K 线' : 'K 线暂时读不到（资料源忙），换个周期或稍后再看', W / 2, H / 2); /* KQ-1104：跟电脑同样的说明 */ if (kn) kn.textContent = ''; return; }
+  const R = 64; const n = Math.min(cs.length, Math.max(30, Math.floor((W - R) / 7))); const K = cs.slice(-n); const vh = 40, top = 14, ph = H - vh - top - 26;
+  let hi = -Infinity, lo = Infinity, vm = 0; for (const k of K) { hi = Math.max(hi, k[2]); lo = Math.min(lo, k[3]); vm = Math.max(vm, k[5] || 0); } /* QAPH-1103 */ { const r0 = hi - lo || hi * 0.02 || 1; hi += r0 * 0.08; lo = Math.max(0, lo - r0 * 0.08); } const rg = hi - lo || hi * 0.02 || 1;
+  const y = (v) => top + ph * (1 - (v - lo) / rg); const bw = (W - R - 6) / Math.max(K.length, 30), ox = (W - R - 6) - K.length * bw;
+  g.font = '10.5px -apple-system,sans-serif'; g.textAlign = 'right'; g.fillStyle = '#5d6470';
+  for (let i = 0; i <= 3; i++) { const v = lo + rg * i / 3; g.fillText(fmtP(v), W - 4, y(v) + 3); }
+  K.forEach((k, i) => { const up = k[4] >= k[1]; const col = k[6] === 1 ? '#5d6470' : up ? '#2ebd85' : '#f6465d'; /* PHONE-5：电脑补的平盘（第 7 栏 gap＝1）画灰色 */ const x = 4 + ox + i * bw + bw / 2; g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y(k[2])); g.lineTo(x, y(k[3])); g.stroke(); const yo = y(Math.max(k[1], k[4])), yc = y(Math.min(k[1], k[4])); const w = Math.max(2, bw * 0.66); g.fillRect(x - w / 2, yo, w, Math.max(1.2, yc - yo)); if (vm) { g.globalAlpha = 0.35; const v2 = (k[5] || 0) / vm * vh; g.fillRect(x - w / 2, H - 22 - v2, w, v2); g.globalAlpha = 1; } });
+  const lk = K[K.length - 1], last = lk[4], lu = last >= lk[1]; const ly = Math.min(Math.max(y(last), 9), top + ph);
+  g.strokeStyle = lu ? 'rgba(46,189,133,.7)' : 'rgba(246,70,93,.7)'; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(0, ly); g.lineTo(W - R, ly); g.stroke(); g.setLineDash([]);
+  const lt = fmtP(last); g.font = '600 11px -apple-system,sans-serif'; const tw = Math.min(R - 2, g.measureText(lt).width + 12);
+  g.fillStyle = lu ? '#2ebd85' : '#f6465d'; g.beginPath(); (g.roundRect ? g.roundRect(W - tw - 1, ly - 9, tw, 18, 6) : g.rect(W - tw - 1, ly - 9, tw, 18)); g.fill(); g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(lt, W - tw / 2 - 1, ly + 4);
+  const tl = (t) => { const dd = new Date(tms(t)); return (dd.getMonth() + 1) + '/' + dd.getDate() + ' ' + String(dd.getHours()).padStart(2, '0') + ':' + String(dd.getMinutes()).padStart(2, '0'); };
+  g.font = '10.5px -apple-system,sans-serif'; g.fillStyle = '#5d6470'; g.textAlign = 'left'; if (ox < W - R - 150) g.fillText(tl(K[0][0]), 4 + ox, H - 6); g.textAlign = 'right'; g.fillText(tl(lk[0]), W - R - 2, H - 6);
+  if (kn) kn.textContent = (TFS.find((x) => x[0] === DT.tf) || ['', ''])[1] + ' K 线 · 最高 ' + fmtP(hi) + ' · 最低 ' + fmtP(lo) + (DT.lvOk ? ' · 每秒更新' : '') + pawSrc(); /* AVE-WSS：标示资料来源 */
+}
+document.addEventListener('change', (e) => { const t = e.target; if (t?.dataset?.a === 'psort') { const B = BOARD[NET]; const c = B?.cols?.[COL]; PSORT[colKey(c)] = t.value; lsSet('rcSort2', PSORT); render(); } }); /* NX-1103 */
+window.addEventListener('resize', () => { if (DT) drawK(); if (TAB === 'board' || TAB === 'hold') drawPnl(); });
+/* AVE-WSS（11/4）：手机也直接吃 AVE 即时推送（连同一个转接站的 /avews；通行证跟电脑要，AVE 金钥只在转接站）。
+   只在代币详情开着时订阅：价格 p、成交 x、K 线 k（池子＋周期）；关掉详情就退订。推送断了 → 照旧问电脑（livePx／tape，每秒／每 15 秒），K 线下面标示资料来源。 */
+const PAW = { ws: null, st: 'off', auth: 0, sig: '', acc: new Set(), want: [], px: new Map(), kb: new Map(), kv: new Map(), tx: new Map(), deny: 0, retry: 0, busy: 0, renew: 0, idleAt: 0 };
+const PAW_RETRY = [1e3, 3e3, 10e3, 30e3] /* 技术用：断线重连等待 */, PAW_IDLE = 30e3 /* 技术用：详情关掉多久后关连线 */, PAW_DENY = 5 * 60e3 /* 技术用：拿不到通行证／被拒后多久再试 */, PAW_TX_KEEP = 60 /* 技术用：每个币留几笔推送成交 */, PAW_KV_KEEP = 64 /* 技术用：每个 K 线订阅记几根小周期的量 */;
+const PAW_IV = { '1m': '1', '5m': '5', '15m': '15', '1h': '60', '3h': '60', '6h': '240', '12h': '240', '1d': '1440', '3d': '1440', '1w': '1440', '1M': '1440' }; /* 跟电脑同一张对照（AVE 没有的周期用能整除的小周期合并进同一根） */
+const pawCh = (n) => (n === 'rh' ? 'robinhood' : 'bsc'); const pawId = (n, a) => String(a || '').toLowerCase().replace(/_[a-z0-9]+$/, '') + '-' + pawCh(n);
+function pawKeys(D) { if (!D || !D.d || D.d.err) return []; const L = ['p|' + pawId(D.net, D.c), 'x|' + pawId(D.net, D.c)]; const pl = D.d.pool || ''; if (/^0x[0-9a-f]{40}/i.test(pl) && PAW_IV[D.tf]) L.unshift('k|' + pawId(D.net, pl) + '|' + PAW_IV[D.tf]); return L.filter((k) => /\|0x[0-9a-f]{40}-(bsc|robinhood)(\||$)/.test(k)); }
+const pawLive = (D) => PAW.st === 'on' && pawKeys(D).some((k) => PAW.acc.has(k));
+function pawSync() { const D = DT && $('#dt').classList.contains('on') ? DT : null; const L = pawKeys(D); PAW.want = L;
+  if (!L.length) { if (PAW.ws && !PAW.idleAt) PAW.idleAt = Date.now(); if (PAW.ws && Date.now() - PAW.idleAt > PAW_IDLE) { try { PAW.ws.close(1000, 'idle'); } catch {} } } else PAW.idleAt = 0;
+  if (L.length && !PAW.ws) { pawConn(); return; } if (!PAW.ws || !PAW.auth || PAW.ws.readyState !== 1) return;
+  if (PAW.renew && Date.now() > PAW.renew && !PAW.busy) { PAW.busy = 1; req('avews', {}, 8000).then((s) => { if (s && s.t && PAW.ws) { PAW.renew = +s.renew || 0; PAW.ws.send(JSON.stringify({ auth: s.t })); } }).catch(() => {}).finally(() => { PAW.busy = 0; }); }
+  const sig = L.join(','); if (sig === PAW.sig) return; PAW.sig = sig; try { PAW.ws.send(JSON.stringify({ set: L.map((k) => k.split('|')) })); } catch {} }
+async function pawConn() { if (PAW.ws || PAW.busy || Date.now() < PAW.deny || !PC_ON) return; PAW.busy = 1; PAW.st = 'conn'; let s = null; try { s = await req('avews', {}, 8000); } catch {} PAW.busy = 0;
+  if (!s || !s.t) { PAW.st = 'off'; PAW.deny = Date.now() + (s && s.err === 'net' ? PAW_RETRY[1] : PAW_DENY); return; }
+  let ws; try { ws = new WebSocket(`${location.protocol === 'http:' ? 'ws' : 'wss'}://${location.host}/avews`, ['rcave1', s.t]); /*RISK-FIX 8：通行证放在子协定，转接站升级前先验*/ } catch { PAW.st = 'off'; PAW.deny = Date.now() + PAW_RETRY[1]; return; }
+  PAW.ws = ws; PAW.auth = 0; PAW.sig = ''; PAW.renew = +s.renew || 0;
+  ws.onopen = () => { try { ws.send(JSON.stringify({ auth: s.t })); } catch {} };
+  ws.onmessage = (e) => { if (PAW.ws !== ws) return; let m; try { m = JSON.parse(e.data); } catch { return; } pawRx(m); };
+  ws.onclose = () => { if (PAW.ws !== ws) return; PAW.ws = null; PAW.auth = 0; PAW.acc.clear(); PAW.sig = ''; PAW.st = Date.now() < PAW.deny ? 'off' : 'conn'; if (PAW.want.length) { const ms = PAW_RETRY[Math.min(PAW.retry, PAW_RETRY.length - 1)]; PAW.retry++; setTimeout(pawConn, ms); } else PAW.st = 'off'; };
+}
+function pawRx(m) { const now = Date.now();
+  if (m.sys) { const S = m.sys; if (S.auth === 'ok') { PAW.auth = 1; PAW.retry = 0; PAW.sig = ''; } if (S.deny) { PAW.deny = now + PAW_DENY; try { PAW.ws.close(1000, 'deny'); } catch {} } if (S.resub) PAW.sig = '';
+    if (S.set != null) { const bad = new Set([...(S.cut || []), ...(S.full || []), ...(S.bad || [])].map((a) => a.join('|'))); PAW.acc = new Set(PAW.sig.split(',').filter((k) => k && !bad.has(k))); }
+    if (S.bad) for (const a of S.bad) PAW.acc.delete(a.join('|')); if (S.up != null && PAW.auth) PAW.st = S.up ? 'on' : 'down'; pawSync(); return; }
+  if (m.t === 'p' && m.p) { PAW.px.set(m.id, { ...m.p, at: now }); const D = DT; if (D && D.d && m.id === pawId(D.net, D.c) && m.p.u > 0) { D.d.price = m.p.u; if (m.p.c24 != null) { D.d.chg = { ...(D.d.chg || {}), h24: m.p.c24 }; const el = $('#dt .pxrow .chg'); if (el && typeof arrow === 'function') { const i = el.querySelector('i'); el.innerHTML = arrow(m.p.c24) + (i ? i.outerHTML : ''); } const t4 = [...document.querySelectorAll('#dt .chg4 > div')].find((x) => /^24H/.test(x.textContent || '')); const tb = t4 && t4.querySelector('b'); if (tb && typeof pct === 'function') { tb.className = m.p.c24 >= 0 ? 'up' : 'dn'; tb.innerHTML = pct(m.p.c24); } } } return; }
+  if (m.t === 'k' && m.k) { const kk = 'k|' + m.id + '|' + m.iv; PAW.kb.set(kk, { ...m.k, at: now }); let M = PAW.kv.get(kk); if (!M) PAW.kv.set(kk, (M = new Map())); if (m.k.t > 0 && m.k.v != null) { M.set(m.k.t, +m.k.v || 0); if (M.size > PAW_KV_KEEP) M.delete(M.keys().next().value); } return; }
+  if (m.t === 'x' && m.x) { let A = PAW.tx.get(m.id); if (!A) PAW.tx.set(m.id, (A = [])); if (!m.x.h || !A.some((y) => y.h === m.x.h && y.b === m.x.b)) { A.unshift({ ...m.x, at: now }); if (A.length > PAW_TX_KEEP) A.length = PAW_TX_KEEP; } if (PAW.tx.size > 40) PAW.tx.delete(PAW.tx.keys().next().value); const D = DT; if (D && m.id === pawId(D.net, D.c)) paintTape(); } }
+/* 每秒跳的时候问这里：有推送的价就用推送的（美金价），有订阅但还没推送就用最后一根收盘价（照样满一个周期才长新的一根） */
+function pawLp(D) { if (!pawLive(D)) return null; const ks = pawKeys(D); const kk = ks.find((k) => k.startsWith('k|')); const b = kk && PAW.acc.has(kk) ? PAW.kb.get(kk) : null; const p = PAW.acc.has('p|' + pawId(D.net, D.c)) ? PAW.px.get(pawId(D.net, D.c)) : null;
+  let o = null; if (b && b.c > 0) o = { usd: b.c, at: b.at, bar: b, kk }; if (p && p.u > 0 && (!o || p.at > o.at)) o = { usd: p.u, at: p.at, bar: o ? o.bar : null, kk };
+  if (o) return { src: 'wss', ...o }; const cs = D.cs; return cs.length && cs[cs.length - 1][4] > 0 ? { src: 'wss', usd: cs[cs.length - 1][4], idle: 1 } : null; }
+function pawBar(D, aw) { const cs = D.cs, last = cs[cs.length - 1], b = aw.bar; if (!last || !b || !(b.t > 0)) return; const bt = startT(b.t * 1000, D.tf); if (bt !== tms(last[0])) return;
+  if (b.h > last[2]) last[2] = b.h; if (b.l > 0 && b.l < last[3]) last[3] = b.l; const M = PAW.kv.get(aw.kk); if (M) { let s = 0; for (const [t, v] of M) if (startT(t * 1000, D.tf) === bt) s += v; if (s > 0 && !(s <= last[5])) last[5] = s; } }
+function pawSrc() { const D = DT; if (!D || !D.d) return ''; return pawLive(D) ? ' · AVE 即时推送' : D.d.src === 'ave' ? ' · AVE（定时读取）' : ' · 一般读取（DexScreener）'; }
+setInterval(() => { try { pawSync(); } catch {} }, 2000);
+function pawTape(D) { const R0 = D.tape?.rows || []; const A = PAW.acc.has('x|' + pawId(D.net, D.c)) && PAW.st === 'on' ? PAW.tx.get(pawId(D.net, D.c)) : null; if (!A || !A.length) return R0;
+  const W = A.map((x) => ({ t: x.tm > 0 ? x.tm * 1000 : x.at, b: x.b, usd: x.usd, w: x.w, tg: [] })); const mt = Math.min(...W.map((x) => x.t)); return W.concat(R0.filter((x) => x.t > 0 && x.t < mt)); } /* 推送的成交在前；问电脑拿到的只留比推送更早的 */
+/* 每秒即时价：同一根 K 线期间最后一根上下动，时间到了才长出新的一根（只在详情页开着、画面在前台时问电脑） */
+setInterval(async () => {
+  const D = DT; const pl = pawLive(D); if (!D || !D.d || (D.noLive && !pl) || D.liveBusy || document.hidden || (!PC_ON && !pl) || !$('#dt').classList.contains('on')) return; /* AVE-WSS：有推送时不用问电脑 */
+  D.liveBusy = true; let r = null;
+  const aw = pawLp(D); if (aw) r = aw; else try { r = await req('livePx', { net: D.net, c: D.c, pool: D.d.pool || '' }, 4000); D.lvErr = 0; } catch { if (++D.lvErr >= 5) D.noLive = true; }
+  D.liveBusy = false; if (DT !== D || !r) return;
+  if (D.kLoading) return; /* KQ-1104：新周期还在读，不把即时价接到旧资料上 */
+  const usd = +r.usd > 0 ? +r.usd : 0; const v = usd || (r.src === 'pool' ? +r.nat : NaN); if (!(v > 0) || !isFinite(v)) return;
+  const sk = usd ? 'usd' : r.src; if (D.lvSrc !== sk) { D.lvSrc = sk; D.lvRef = null; D.pxRef = null; }
+  liveTick(v, sk); if (aw && aw.bar && DT === D) { pawBar(D, aw); drawK(); }
+}, 1000);
+function liveTick(v, src) {
+  const D = DT; if (!D) return; const cs = D.cs; D.lvOk = true;
+  if (src === 'usd') { D.pxRef = 1; D.lvRef = 1; } /* KQ-1104：电脑给美金价 → 直接用（跟电脑一样） */
+  if (D.pxRef == null) D.pxRef = D.d?.price > 0 ? D.d.price / v : null;
+  if (cs.length && D.lvRef == null) D.lvRef = cs[cs.length - 1][4] / v; /* 没有美金价才用最近这次读到的 K 线做比例（每次重读 K 线都重算） */
+  const p = cs.length ? v * D.lvRef : D.pxRef != null ? v * D.pxRef : null;
+  if (p > 0 && isFinite(p)) {
+    const now = Date.now();
+    if (!cs.length) { cs.push([startT(now, D.tf), p, p, p, p, 0]); }
+    else {
+      const last = cs[cs.length - 1]; const sec = last[0] < 1e12; const lt = tms(last[0]); const ne = nextT(lt, D.tf);
+      if (now < ne) { last[4] = p; if (p > last[2]) last[2] = p; if (p < last[3]) last[3] = p; }
+      else { let st = ne; while (nextT(st, D.tf) <= now) st = nextT(st, D.tf); const o = last[4]; cs.push([sec ? Math.round(st / 1000) : st, o, Math.max(o, p), Math.min(o, p), p, 0]); if (cs.length > 300) cs.splice(0, cs.length - 300); }
+    }
+    drawK();
+  }
+  if (D.pxRef != null) { const el = $('#dPx'); const t = pxf(v * D.pxRef); if (el && el.textContent !== t) el.textContent = t; }
+}
+async function loadTape() { if (!DT) return; const c = DT.c; let r; try { r = await req('tape', { net: DT.net, c, pool: DT.d?.pool || '' }, 30000); } catch (e) { r = { err: e.message, rows: DT.tape?.rows || [] }; } if (!DT || DT.c !== c) return; DT.tape = r; paintTape(); clearTimeout(loadTape._t); loadTape._t = setTimeout(() => { if (DT && DT.c === c && !document.hidden) loadTape(); }, 15000); }
+function tapeHTML() {
+  if (!DT?.tape) return skRows(4).replace(/class="tr sk"/g, 'class="tr sk" style="padding:10px 2px;min-height:44px"').replace(/<span class="lg skb"><\/span>/g, ''); const R = pawTape(DT);
+  if (!R.length) return `<div class="note">${esc(DT.tape.err ? pdE(DT.tape.err) : '最近没有成交')}</div>`;
+  const tg = { smart: '🧠', dev: '👤', whale: '🐋' };
+  return (pawLive(DT) && PAW.tx.get(pawId(DT.net, DT.c))?.length ? '<div class="note">AVE 即时推送</div>' : '') + R.slice(0, 25).map((x) => `<div class="tp"><span class="mu" style="width:62px">${(Date.now() - x.t) < 60e3 ? '刚刚' : ago(Math.round((Date.now() - x.t) / 60e3))}</span><b class="${x.b ? 'up' : 'dn'}" style="width:28px">${x.b ? '买' : '卖'}</b><span style="flex:1;text-align:right;font-weight:600">${money(x.usd)}</span><span class="w">${(x.tg || []).map((t) => tg[t] || '').join('')} ${x.w ? esc(x.w.slice(0, 6) + '…' + x.w.slice(-4)) : ''}</span></div>`).join('');
+}
+function paintTape() { if (DT?.tab === 'tape') setHTML('#tape', tapeHTML()); }
+async function doSell(c, sym, p, net) {
+  if (!(await confirmBox('确定要卖？', `${sym}\n卖 ${p >= 100 ? '全部' : p + '%'}（所有钱包一起卖）`, '确定卖', 'rr'))) return;
+  try { const r = await req('sell', { c, pct: p, ch: net, name: sym, src: 'phone' }); toast(r?.msg || '已送出卖单，结果看 TG'); ackPoll(); } catch (e) { toast('❌ ' + e.message, 4000); }
+}
+async function doBuy(c, sym, k, net) { if (ST?.boot) return toast('电脑雷达的引擎还在启动，稍等一下再买', 3500); /* UIFIX7 */ if (ST?.noW) return toast(NOW_BUY, 3500); /* UIFIX6：电脑没连钱包 → 说明原因、不送单 */ if (DT && DT.c === c && DT.d && DT.d.riskPending && !(await confirmBox('⚠️ 风险检查还没完成', '蜜罐／合约检查中，现在买可能看不到风险。\n要等检查完就按取消，过几秒再买。', '我知道风险，仍然执行', 'rr'))) return; /* ZR-INT-RP：只警告，你决定 */
+  net = net || NET; const I = qbInfo(net); const u = I?.u || ''; const v = I ? I.get(u)[k] : 0; const nW = ST?.qbW?.[net] || 1; const ul = u === 'U' ? 'U（USDT）' : u;
+  if (!(+v > 0)) return toast(I && anyAmt(I) ? noAmt(u) + '，请在电脑的「⚡ 快速买卖设定」填你自己的金额' : '先在电脑的「⚡ 快速买卖设定」设好金额', 3500);
+  if (!(await confirmBox('确定要买？', `${sym || c.slice(0, 8)}（${NET_N(net)}）\n${nW > 1 ? `${nW} 个钱包各买 ${v} ${ul}，总共 ${+(v * nW).toFixed(6)} ${ul}` : `买 ${v} ${ul}`}\n雷达会先做安全检查，有风险会先提示你，你确认才买。新池子风险高。`, '确定买', 'g'))) return;
+  const a = { net, c, k, name: sym || '', v: +v, src: 'phone' }; a.u = u; /* NX-1103：带上显示的金额 */
+  try { const r = await req('buy', a); toast(r?.msg || '已送出，结果看 TG'); ackPoll(); } catch (e) { toast('❌ ' + e.message, 4000); }
+}
+async function onStop() { /*UXP2-ESOFF*/if (!PC_ON) return toast('电脑离线：紧急全停送不到电脑。请确认电脑开着、雷达在跑；急的话直接在电脑按「紧急全停」。', 5000);
+  if (ST?.estop) return toast('已经是紧急全停。要重新打开，请回电脑雷达重新设定。', 4000);
+  if (!(await confirmBox('🛑 确定紧急全停？', '① 买入全部停止（自动买、手动买、强制铸造、TG 买）\n② 自动卖出正常执行（有设止盈止损的照设定卖）\n③ 可以手动卖出\n要重新打开买入，回电脑雷达重新设定。', '确定全停', 'rr'))) return;
+  try { const r = await req('estop', { src: 'phone' }); toast(r?.msg || '已紧急全停'); refresh(); } catch (e) { toast('❌ ' + e.message, 4000); }
+}
+
+/* ── 所有按钮都走这里（画面原地更新也不用重新绑） ── */
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches?.('.tr[role="button"]')) e.target.click(); });
+document.addEventListener('click', async (e) => {
+  const el = e.target.closest('[data-a]'); if (!el) return; const a = el.dataset.a;
+  if (a === 'tab') { const t = el.dataset.t; const same = TAB === t; if (DT) closeTok(); /* UIFIX4：切分页一律关掉代币详情 */ TAB = t; render(); if (!same) window.scrollTo(0, 0); if (t === 'board') { loadBoard(); loadPnl(); } if (t === 'sig') loadSig(); if (t === 'hold') loadPnl(); }
+  else if (a === 'bretry') { loadBoard(); } /* UIFIX4：看盘读不到 → 重试 */
+  else if (a === 'cfx') { window.__cfh = String(ST?.cf?.dir || ''); render(); } else if (a === 'cfshow') { window.__cfh = ''; render(); } /* UIFIX4：冲突红条收起／再显示 */
+  else if (a === 'net') { if (NET !== el.dataset.n) { NET = el.dataset.n; COL = 0; render(); loadBoard(); if (typeof PCAT !== 'undefined' && PCAT === 'ai') loadMint(); } }
+  else if (a === 'pcat') { PCAT = el.dataset.k === 'ai' ? 'ai' : 'gen'; render(); if (PCAT === 'ai') loadMint(); } /* AI-BOARD5 */
+  else if (a === 'pkind') { PKIND = el.dataset.k === 'nft' ? 'nft' : 'tok'; MCOL = 0; render(); loadMint(); }
+  else if (a === 'mcol') { MCOL = +el.dataset.i || 0; render(); }
+  else if (a === 'mmore') { loadMint({ more: 1, retry: el.dataset.r ? 1 : 0 }); }
+  else if (a === 'col') { COL = +el.dataset.i; PWL = 0; render(); }
+  else if (a === 'wlcol') { PWL = PWL ? 0 : 1; render(); try { window.PXP?.sync?.(); } catch {} } /* BOARD-V3 ⭐ 自选 */
+  else if (a === 'dsub') { DSUB = el.dataset.k === 'hot' ? 'hot' : 'new'; lsSet('rcDoneSub', DSUB); render(); } /* NX-1103 */
+  else if (a === 'strip') { STRIP = !STRIP; lsSet('rcStrip', STRIP ? '1' : '0'); render(); }
+  else if (a === 'pper') perSheet(); /* PER-1103 */
+  else if (a === 'pfix') { if (PFIX.includes(el.dataset.k)) PBASE = el.dataset.k; PMORE = ''; render(); }
+  else if (a === 'pperset') { const k = el.dataset.k; if (PERS.some((p) => p[0] === k) && !PFIX.includes(k)) PMORE = k; closeSheet(); render(); }
+  else if (a === 'plat') { PLAT[NET] = el.dataset.k; lsSet('rcPlat_' + NET, PLAT[NET]); render(); }
+  else if (a === 'hx') { HEROX = !HEROX; lsSet('rcHeroX', HEROX ? '1' : '0'); const h = document.querySelector('.hero[data-cmp="1"]'); if (h) { h.classList.toggle('cmp', !HEROX); if (HEROX) h.removeAttribute('data-a'); else h.setAttribute('data-a', 'hx'); } PNLX = null; requestAnimationFrame(drawPnl); }
+  else if (a === 'rzap') { const n = el.dataset.net; if (ST?.estop) return toast('紧急全停中：买入全部停止，可以手动卖出', 3500); if (ST?.mOff) return toast('「手动买卖」没打开，不能买', 3500); doBuy(el.dataset.c, el.dataset.s, +el.dataset.k, n); }
+  else if (a === 'sf') { SIGF = el.dataset.k; render(); }
+  else if (a === 'pr') { if (PNLR !== el.dataset.r) { PNLR = el.dataset.r; lsSet('rcPnlR', PNLR); PNLX = null; render(); loadPnl(); } }
+  else if (a === 'bmore') { const B = BOARD[NET]; const c = (B?.cols || []).find((x) => (x.k || '') === el.dataset.k); if (c) { const n = (c.items || []).length; BLIM[NET][c.k || ''] = n + PH_MORE; el.disabled = true; el.textContent = '载入中…'; loadBoard(); } }
+  else if (a === 'open') openTok(el.dataset.c, el.dataset.s, el.dataset.net);
+  else if (a === 'stop') onStop();
+  else if (a === 'unpair') { if (!(await confirmBox('取消配对？', '这支手机会忘记配对，要用的话要回电脑重新扫 QR 码。', '取消配对', 'rr'))) return; try { localStorage.removeItem('rcKey'); } catch {} location.replace('/#'); }
+  else if (a === 'hsell') { const h = (ST?.hold || [])[+el.dataset.i]; if (!h) return; const p = +el.dataset.p; if (!(await confirmBox('确定要卖？', `${h.sym}\n卖 ${p >= 100 ? '全部' : p + '%'}${(h.ws || []).length > 1 ? '（' + h.ws.length + ' 个钱包一起卖）' : ''}`, '确定卖', 'rr'))) return; try { const r = await req('sell', { c: h.c, pct: p, ch: h.ch, name: h.sym, src: 'phone' }); toast(r?.msg || '已送出卖单，结果看 TG'); ackPoll(); } catch (er) { toast('❌ ' + er.message, 4000); } }
+  else if (a === 'ave') { if (ST?.ref?.ave) window.open(ST.ref.ave, '_blank', 'noopener'); } /* ZR-INT-AVE：只在你按的时候打开 */
+  else if (a === 'bnref') { if (ST?.ref?.bnUrl) window.open(ST.ref.bnUrl, '_blank', 'noopener'); } /* INTEG2：只在你按的时候打开 */
+  else if (a === 'bncopy') { const c = ST?.ref?.bnCode || ''; if (!c) return; try { await navigator.clipboard.writeText(c); toast('已复制邀请码'); } catch { toast(c, 5000); } }
+  else if (a === 'bnskip') { try { localStorage.setItem('gbnSkip', '1'); } catch {} const bn = $('#bnr'); if (bn) { bn.dataset.s = '0'; bn.innerHTML = ''; } }
+  else if (a === 'close') closeSheet();
+  else if (!DT) return;
+  else if (a === 'back') history.back();
+  else if (a === 'tf') loadK(el.dataset.tf);
+  else if (a === 'dtab') { DT.tab = el.dataset.k; document.querySelectorAll('.dtabs button').forEach((b) => b.classList.toggle('on', b === el)); paintPane(); }
+  else if (a === 'unit') setUnit(el.dataset.u);
+  else if (a === 'buysheet') buySheet();
+  else if (a === 'sellsheet') sellSheet();
+  else if (a === 'zap') { const why = buyBlock(); if (why) return toast(why, 3500); const I = qbInfo(DT.net); const k = I.get(I.u).findIndex((v) => +v > 0); if (k < 0) return toast(noAmt(I.u) + '，请在电脑的「⚡ 快速买卖设定」填你自己的金额', 3500); doBuy(DT.c, DT.d?.sym || DT.sym, k, DT.net); }
+  else if (a === 'qb') { closeSheet(); doBuy(DT.c, DT.d?.sym || DT.sym, +el.dataset.k, DT.net); }
+  else if (a === 'sp') { closeSheet(); doSell(DT.c, DT.d?.sym || DT.sym, +el.dataset.p, DT.net); }
+  else if (a === 'copy') { try { await navigator.clipboard.writeText(DT.c); toast('已复制合约地址'); } catch { toast(DT.c, 5000); } }
+  else if (a === 'share') { const t = `${DT.d?.sym || DT.sym || ''} ${DT.c}`; try { if (navigator.share) await navigator.share({ text: t }); else { await navigator.clipboard.writeText(t); toast('已复制，可以贴给朋友'); } } catch {} }
+});
+async function refresh() { if (!PC_ON) return; if (TAB === 'board') loadBoard(); /* PERF-1103 看盘清单不用等状态回来，同时问 */ try { ST = await req('state'); render(); askAcks(); } catch {} if (TAB === 'board') { if (Date.now() - SIG_T > 60e3) loadSig(); } if (TAB === 'board' || TAB === 'hold') loadPnl(); }
+setInterval(() => { if (!document.hidden) refresh(); }, 20000);
+
+/* ── 启动：QR 码带来的金钥存进这支手机，然后从网址拿掉 ── */
+(async () => {
+  try {
+    const m = location.hash.match(/k=([A-Za-z0-9_-]{43})/);
+    if (m) localStorage.setItem('rcKey', m[1]); /* 网址里的 # 留着：iPhone「加入主画面」后是另一个储存空间，要靠网址带金钥 */
+    if (m) { const sa = (() => { try { return navigator.standalone === true || matchMedia('(display-mode: standalone)').matches; } catch { return false; } })(); /* UI2-1104 S8 */
+      if (sa) { try { history.replaceState(null, '', location.pathname + location.search); } catch {} } /* 已经是主画面 App：金钥存好了 → 从网址拿掉 */
+      else setTimeout(() => (() => { /*UXP2-KWARN*/ const w = document.createElement('div'); w.id = 'uxKw'; w.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#3a1d1d;color:#ffb4b4;padding:calc(env(safe-area-inset-top) + 10px) 44px 10px 12px;font-size:13px;line-height:1.45'; w.textContent = '⚠️ 这个网址里带着配对金钥：不要截图、不要分享给别人。加入主画面后会自动从网址拿掉'; const x = document.createElement('button'); x.textContent = '×'; x.setAttribute('aria-label', '关闭'); x.style.cssText = 'position:absolute;right:6px;bottom:4px;background:none;border:0;color:inherit;font-size:22px;padding:4px 10px'; x.onclick = () => { w.remove(); document.body.style.paddingTop = ''; }; w.appendChild(x); document.body.appendChild(w); try { document.body.style.paddingTop = w.offsetHeight + 'px'; } catch {} })(), 1500); }
+    const k = localStorage.getItem('rcKey');
+    if (k) { await setup(ub64u(k)); pbLoad(); connect(); }
+  } catch (e) { toast('配对资料坏了，请重新扫 QR 码'); try { localStorage.removeItem('rcKey'); } catch {} }
+  render();
+})();
+</script>
+<script>/*PL-1104-BEGIN*/
+/* PL-1104 产品补强（手机）：⭐ 自选。在币的详情页按右上角 ☆ 加入／移除；看盘页最上面一排是你的自选（价格、涨跌从电脑传来的看盘／持仓资料读，读不到就写「—」）。
+   BOARD-V3：清单以电脑为准（经中继读写电脑的自选；电脑没在线先记在这支手机，连上后补送）；只是清单，不会自动买卖。 */
+(function(){
+if(window.__pxOn)return;window.__pxOn=1;
+const PXC={tick:1500,snip:24,caH:8};/* 技术用：多久检查一次画面要不要补上 ☆／自选列、名字最多显示几个字、没名字时显示合约前几个字 */
+const Q=(s)=>document.querySelector(s);const lc=(x)=>String(x??'').toLowerCase();const A40=/^0x[0-9a-f]{40}$/;
+const E=(x)=>typeof esc==='function'?esc(x):String(x??'');
+let W=[];try{const o=JSON.parse(localStorage.getItem('pxW')||'[]');if(Array.isArray(o))W=o.filter((x)=>x&&A40.test(lc(x.c)))}catch{}
+const save=()=>{try{localStorage.setItem('pxW',JSON.stringify(W))}catch{}};
+const has=(c)=>W.some((x)=>x.c===lc(c));
+const css=document.createElement('style');css.textContent=`
+#pxPStar{font-size:13px;white-space:nowrap;color:#b9c0cb;width:auto;padding:0 8px}#pxPStar.on{color:var(--gold,#f0b90b)}
+#pxPW{margin:0 0 6px}#pxPW .sl{flex:none;font-size:12px;color:var(--mute,#8a93a5);padding:0 2px 0 4px}#pxPW .mv .v{font-weight:600;font-size:11.5px}
+#pxPW .mv .up{color:var(--green,#2ecc8f)}#pxPW .mv .dn{color:var(--red,#ff6161)}#pxPW .mv .mu{color:var(--mute,#8a93a5)}`;document.head.appendChild(css);
+function find(x){const B=typeof BOARD!=='undefined'?BOARD[x.net==='rh'?'rh':'bsc']:null;for(const c of B?.cols||[])for(const it of c.items||[])if(lc(it.c)===x.c)return{price:it.price,ch:it.h1,sym:it.sym,img:it.img};
+ const h=(typeof ST!=='undefined'&&ST?.hold||[]).find((y)=>lc(y.c)===x.c);if(h)return{sym:h.sym,val:h.val,img:h.img};return null}
+function row(){const pg=Q('#bStrip');let el=Q('#pxPW');if(!pg||!W.length){if(el)el.remove();return}
+ if(!el){el=document.createElement('div');el.id='pxPW';pg.after(el)}else if(el.previousElementSibling!==pg)pg.after(el);
+ const html=`<div class="mvs"><span class="sl">⭐ 自选 <b>${W.length}</b></span>${W.map((x)=>{const I=find(x);const sym=I?.sym||x.sym||x.c.substring(0,PXC.caH);const pr=I?.price!=null&&typeof pxf==='function'?pxf(I.price):I?.val!=null&&typeof money==='function'?money(I.val):'—';const cg=I?.ch!=null&&typeof pct==='function'?`<span class="v ${I.ch<0?'dn':'up'}">${pct(I.ch)} <small class="mu">1h</small></span>`:'';
+  const at=typeof openAttr==='function'?openAttr(x.c,sym,x.net):`data-a="open" data-c="${E(x.c)}" data-s="${E(sym)}" data-net="${x.net}"`;return `<button class="mv" ${at}>${typeof logo==='function'?logo(sym,x.c,I?.img,'xs'):''}${E(String(sym).substring(0,PXC.snip))}<span class="v mu">${pr}</span>${cg}</button>`}).join('')}</div>`;
+ if(el.__h!==html){el.__h=html;el.innerHTML=html}}
+function star(){const h=Q('#dt .dth');if(!h||typeof DT==='undefined'||!DT)return;let b=Q('#pxPStar');if(!b){b=document.createElement('button');b.id='pxPStar';b.className='ib';b.setAttribute('aria-label','加入／移除自选');const sh=h.querySelector('[data-a="share"]');if(sh)h.insertBefore(b,sh);else h.appendChild(b);
+  b.addEventListener('click',(e)=>{e.stopPropagation();const c=lc(DT?.c);if(!A40.test(c))return;const i=W.findIndex((x)=>x.c===c);if(i>=0){W.splice(i,1);if(typeof toast==='function')toast('已从自选移除')}else{W.unshift({c,net:DT.net==='rh'?'rh':'bsc',sym:String(DT.d?.sym||DT.sym||'').substring(0,PXC.snip),at:Date.now()});if(typeof toast==='function')toast('已加入自选（看盘页最上面）')}save();star();row();push(i>=0?'del':'add',c,DT.net==='rh'?'rh':'bsc',String(DT.d?.sym||DT.sym||''))})}
+ const on=has(DT.c);const tx=on?'★ 已自选':'☆ 加自选';if(b.textContent!==tx)b.textContent=tx;if(b.classList.contains('on')!==on)b.classList.toggle('on',on)}
+function tick(){try{star();row()}catch(e){console.log('px',e)}}
+const dt=Q('#dt');if(dt)new MutationObserver(()=>{if(!Q('#pxPStar'))star()}).observe(dt,{childList:true});
+setInterval(tick,PXC.tick);tick();
+/* BOARD-V3：跟电脑同步。PQ＝还没送到电脑的加／移除（电脑没在线时先记着） */
+const PXS={sync:10e3};/* 技术用：多久跟电脑对一次自选 */
+let PQ=[];try{const o=JSON.parse(localStorage.getItem('pxWQ')||'[]');if(Array.isArray(o))PQ=o}catch{}
+if(!localStorage.getItem('pxWMig')){for(const x of W)PQ.push({op:'add',c:x.c,net:x.net,sym:x.sym||''});try{localStorage.setItem('pxWMig','1')}catch{}}/* 以前只存在手机的自选，第一次连上补送到电脑 */
+const qSave=()=>{try{localStorage.setItem('pxWQ',JSON.stringify(PQ))}catch{}};qSave();
+function apply(r){if(!r||!Array.isArray(r.list))return;W=r.list.filter((x)=>x&&A40.test(lc(x.c))).map((x)=>({c:lc(x.c),net:x.net==='rh'?'rh':'bsc',sym:String(x.sym||'').substring(0,PXC.snip),at:0}));save();star();row();try{if(typeof TAB!=='undefined'&&TAB==='board'&&typeof render==='function')render()}catch{}}
+let SY=0;async function sync(){if(SY||typeof req!=='function'||typeof PC_ON==='undefined'||!PC_ON)return;SY=1;try{while(PQ.length){const q=PQ[0];const r=await req('wl',q);PQ.shift();qSave();apply(r)}apply(await req('wl',{}))}catch(e){console.log('px sync',e)}finally{SY=0}}
+function push(op,c,net,sym){PQ.push({op,c,net,sym});qSave();if(typeof PC_ON==='undefined'||!PC_ON){if(typeof toast==='function')toast('电脑雷达没在线：先记在这支手机，连上后会同步到电脑');return}sync()}
+setInterval(sync,PXS.sync);setTimeout(sync,PXC.tick);
+window.PXP={W:()=>W,tick,sync};/* 测试用 */
+})();
+
+/*PL-1104-END*/</script>
+<style>/*UXP2-PCSS*/body.uxPcOff [data-a="stop"]{opacity:.45}</style><script>/*UXP2-PJS*/setInterval(()=>{try{document.body.classList.toggle('uxPcOff',!PC_ON)}catch{}},1000);</script>
+<script>/* AI-BOARD5（11/4）：手机看盘「一般代币｜AI专属」。AI专属＝铸造代币五栏／铸造 NFT 四栏，资料经电脑（PHM.mint）读；手机只能看，强制铸造请在电脑雷达按 */
+let PCAT = 'gen', PKIND = 'tok', MCOL = 0; const MINT = {}; let MINTB = 0;
+function catPaint() { setHTML('#bCat', `<button data-a="pcat" data-k="gen" class="${PCAT === 'gen' ? 'on' : ''}">🪙 一般代币</button><button data-a="pcat" data-k="ai" class="${PCAT === 'ai' ? 'on' : ''}">🤖 AI专属</button>`); }
+async function loadMint(o = {}) { if (!PC_ON || MINTB) return; const k = NET + ':' + PKIND; MINTB = 1; try { const d = await req('mint', { net: NET, kind: PKIND, more: o.more ? 1 : 0, retry: o.retry ? 1 : 0 }, 40000); MINT[k] = d; } catch (e) { if (!MINT[k] || MINT[k].err) MINT[k] = { err: e.message }; } MINTB = 0; if (TAB === 'board' && PCAT === 'ai') render(); }
+function rowMint(x) { const pct = x.p != null ? `<span class="tag pg"><i style="width:${Math.max(0, Math.min(100, +x.p))}%"></i><span>${Math.round(+x.p)}%</span></span>` : '<span class="tag">进度读不到</span>';
+  const vd = x.v === 'ok' ? (x.off ? `<span class="tag o">${esc(x.note || '符合条件（没开自动打）')}</span>` : '<span class="tag g">✅ 会打</span>') /* UIFIX5 */ : x.v === 'done' ? '<span class="tag g">✔ 已打</span>' : x.v === 'no' ? `<span class="tag">${esc(x.note || '不打')}</span>` : x.v ? '<span class="tag o">⏳ 观察中</span>' : '';
+  const tags = pct + (x.h ? '<span class="tag g">已持有</span>' : '') + (x.my ? '<span class="tag g">有打到</span>' : '') + (x.op ? '<span class="tag b">已开盘</span>' : '') + vd;
+  const sub = (PKIND === 'tok' && NET === 'bsc' ? `🤖 ${x.ag ?? '—'} · 👤 ${x.gen ?? '—'}` : `👤 ${x.ag ?? '—'} 真人 · 共 ${x.tot ?? '—'}`) + (x.op ? ` · 市值 ${money(x.mc)} · 24h ${money(x.v24)}` : '') + (x.at ? ' · ' + agoMs(x.at) : '');
+  const op = x.op ? openAttr(x.tok || x.c, x.n, NET) : ''; return `<div class="tr" ${op ? 'role="button" tabindex="0" ' + op : ''}>${logo(x.n, x.c, x.img)}<div class="nm"><div class="t"><b>${esc(x.n || x.c.slice(0, 8))}</b>${tags}</div><small>${sub}</small></div></div>`; }
+function fillMint() { const k = NET + ':' + PKIND; const D = MINT[k]; const cols = D?.cols || []; if (MCOL >= cols.length) MCOL = 0;
+  setHTML('#bStrip', ''); setHTML('#bCol', cols.map((c, i) => `<button data-a="mcol" data-i="${i}" class="${i === MCOL ? 'on' : ''}">${esc(c.t)}</button>`).join('') || '<span class="mu" style="font-size:12px;padding:0 4px">AI专属</span>');
+  setHTML('#bNet', `<button data-a="net" data-n="bsc" class="${NET === 'bsc' ? 'on' : ''}">BSC</button><button data-a="net" data-n="rh" class="${NET === 'rh' ? 'on' : ''}">RH</button>`);
+  setHTML('#bSort', `<button data-a="pkind" data-k="tok" class="${PKIND === 'tok' ? 'on' : ''}">铸造代币</button><button data-a="pkind" data-k="nft" class="${PKIND === 'nft' ? 'on' : ''}">铸造 NFT</button>`);
+  const c = cols[MCOL]; const pgCol = c && ['hotopen', 'open', 'done'].includes(c.k); const G = D?.pg || {};
+  const foot = pgCol ? (G.err ? `<div class="empty">这一页读不到（${esc(G.err)}）<br><button class="btn g s" data-a="mmore" data-r="1" style="margin-top:8px">重试</button></div>` : G.end ? (c.items.length ? '<div class="empty">已经到雷达看过最早的铸造项目了</div>' : '<div class="empty">目前没有</div>') : `<div class="empty"><button class="btn g s" data-a="mmore">${G.busy || !G.started ? '正在往回读…' : '载入更早的'}</button></div>`) : '';
+  setHTML('#bList', !D ? (PC_ON ? skRows(9) : '<div class="empty">电脑雷达没在线</div>') : D.err ? `<div class="empty">暂时读不到（${esc(D.err)}）<br><button class="btn g s" data-a="mmore" data-r="1" style="margin-top:8px">重试</button></div>` : ((c?.items || []).map(rowMint).join('') || (pgCol ? '' : '<div class="empty">目前没有</div>')) + foot);
+  setHTML('#bCat', `<button data-a="pcat" data-k="gen" class="${PCAT === 'gen' ? 'on' : ''}">🪙 一般代币</button><button data-a="pcat" data-k="ai" class="${PCAT === 'ai' ? 'on' : ''}">🤖 AI专属</button>`); }
+setInterval(() => { if (PC_ON && TAB === 'board' && PCAT === 'ai' && !document.hidden) loadMint(); }, 10000);
+</script>
+</body>
+</html>

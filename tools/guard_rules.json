@@ -1,0 +1,251 @@
+{
+ "_说明": "guard_check 的白名单：domains＝能连的网站；allow＝已知合法的例外（rule＋档案＋那一行要符合的样子＋最多几处）。每一条都要写理由；新加的例外要维护者确认后重新签名发布。",
+ "domains": {
+  "bsc-dataseed.bnbchain.org": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc-dataseed1.binance.org": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc-dataseed2.binance.org": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc-dataseed1.defibit.io": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc-dataseed1.ninicoin.io": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc-dataseed2.ninicoin.io": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc-rpc.publicnode.com": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc.publicnode.com": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc.drpc.org": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "1rpc.io": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "binance.llamarpc.com": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc.blockrazor.xyz": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc.meowrpc.com": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc.blockpi.network": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc-mainnet.public.blastapi.io": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "bsc-mainnet.nodereal.io": "BNB Chain 公开节点（读链上资料，多节点轮替）",
+  "rpc.mainnet.chain.robinhood.com": "Robinhood 链公开节点",
+  "robinhood.drpc.org": "Robinhood 链公开节点",
+  "4663.rpc.thirdweb.com": "Robinhood 链公开节点",
+  "api.dexscreener.com": "公开行情／合约验证／貔貅检查 API（只读）",
+  "api.geckoterminal.com": "公开行情／合约验证／貔貅检查 API（只读）",
+  "api.binance.com": "公开行情／合约验证／貔貅检查 API（只读）",
+  "data-api.binance.vision": "公开行情／合约验证／貔貅检查 API（只读）",
+  "api.honeypot.is": "公开行情／合约验证／貔貅检查 API（只读）",
+  "api.llama.fi": "公开行情／合约验证／貔貅检查 API（只读）",
+  "coins.llama.fi": "公开行情／合约验证／貔貅检查 API（只读）",
+  "api.coingecko.com": "公开行情／合约验证／貔貅检查 API（只读）",
+  "prod.ave-api.com": "公开行情／合约验证／貔貅检查 API（只读）",
+  "wss.ave-api.xyz": "AVE 即时推送 WebSocket（AVE-WSS 11/4：只有转接站 relay/worker.js 用 Cloudflare 秘密变数里的金钥连；用户只连自己的转接站）",
+  "sourcify.dev": "公开行情／合约验证／貔貅检查 API（只读）",
+  "rdap.org": "公开行情／合约验证／貔貅检查 API（只读）",
+  "api.telegram.org": "玩家自己的 TG 机器人通知与指令",
+  "github.com": "官方仓库（repo.cjs）：版本检查、签名过的显示资料",
+  "raw.githubusercontent.com": "官方仓库（repo.cjs）：版本检查、签名过的显示资料",
+  "api.github.com": "官方仓库（repo.cjs）：版本检查、签名过的显示资料",
+  "nodejs.org": "安装脚本下载 Node／npm 套件",
+  "registry.npmmirror.com": "安装脚本下载 Node／npm 套件",
+  "npmmirror.com": "安装脚本下载 Node／npm 套件",
+  "ipfs.io": "读 NFT／代币图片的公开网关",
+  "arweave.net": "读 NFT／代币图片的公开网关",
+  "dexscreener.com": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "www.geckoterminal.com": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "bscscan.com": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "explorer.chain.robinhood.com": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "revoke.cash": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "x.com": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "t.me": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "web3.binance.com": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "share.ave.ai": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "four.meme": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "flap.sh": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "genius.fun": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "ponsfamily.com": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "app.long.xyz": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "bankr.bot": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "aizo.fun": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "toshx.xyz": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "airdrops.io": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "element.market": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "grok.com": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "chatgpt.com": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "claude.ai": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "nightshift.fans": "只给玩家点开的连结（浏览器打开，雷达不送资料）",
+  "www.w3.org": "XML／SVG 命名空间字串，不连网",
+  "www.apple.com": "XML／SVG 命名空间字串，不连网",
+  "do": "relay/worker.js 内部的 Durable Object／快取假网址，不出 Cloudflare",
+  "ave-cache.robincat": "relay/worker.js 内部的 Durable Object／快取假网址，不出 Cloudflare",
+  "docs": "radar/air.cjs 组空投官网子网域（https://docs.＋网域），网域来自玩家点的空投清单",
+  "blog": "radar/air.cjs 组空投官网子网域（https://docs.＋网域），网域来自玩家点的空投清单"
+ },
+ "allow": [
+  {
+   "rule": "BAW_RAW",
+   "file": "^watch\\.mjs$",
+   "match": "bawGuard|bawGlobalEntry|BINANCE_BAW_DIR|const bin = join\\(DIR, wc\\.bawPkg|const BAW_BIN|const pk = join\\(DIR, 'baw2pkg'\\)|const kill = \\(\\)|existsSync\\(BAW_BIN\\)|npm', \\['install', '@binance/agentic-wallet",
+   "max": 11,
+   "reason": "引擎建立币安钱包 CLI 的地方（makeBaw／bawFor／安装第二个钱包用的 baw2pkg）；产生的函式之后全部由 guardBaw 包上统一动作闸门"
+  },
+  {
+   "rule": "BAW_RAW",
+   "file": "^login\\.mjs$",
+   "match": "BINANCE_BAW_DIR|agentic-wallet",
+   "max": 2,
+   "reason": "命令列扫码登入钱包（auth signin／verify，不送交易）"
+  },
+  {
+   "rule": "BAW_RAW",
+   "file": "^setup\\.mjs$",
+   "match": "bawDir",
+   "max": 2,
+   "reason": "第一次设定写入钱包资料夹名称（不执行 baw）"
+  },
+  {
+   "rule": "BAW_RAW",
+   "file": "^setup_wallet2\\.bat$",
+   "match": "agentic-wallet|baw2pkg",
+   "max": 10,
+   "reason": "安装第二个钱包用的独立 baw（官方 npm 套件；OPS-RT5 照 baw2lock 锁定版本安装、关掉 keytar）"
+  },
+  {
+   "rule": "BAW_RAW",
+   "file": "^一键安装-Mac\\.command$",
+   "match": "agentic-wallet|baw2pkg",
+   "max": 12,
+   "reason": "Mac 一键安装：装官方币安钱包 CLI（OPS-RT5 锁定版本）＋第二个钱包"
+  },
+  {
+   "rule": "BAW_RAW",
+   "file": "^一键安装\\.bat$",
+   "match": "agentic-wallet",
+   "max": 6,
+   "reason": "Windows 一键安装：装官方币安钱包 CLI（OPS-RT5 锁定版本）"
+  },
+  {
+   "rule": "BAW_SWAP",
+   "file": "^watch\\.mjs$",
+   "match": "baw: makeBaw\\(wc\\)|baw: bawFor\\(w\\)",
+   "max": 2,
+   "reason": "WALLETS 建立时放入原始 baw，紧接着 guardBaw 包上闸门（之后 push 的也会包）"
+  },
+  {
+   "rule": "BAW_SWAP",
+   "file": "^watch\\.mjs$",
+   "match": "g\\._gate = 1; W\\.baw = g;",
+   "max": 1,
+   "reason": "guardBaw 本身：把闸门装在最里层"
+  },
+  {
+   "rule": "BAW_SWAP",
+   "file": "^plugins\\.mjs$",
+   "match": "const mkW = \\(W0, nw = ",
+   "max": 1,
+   "reason": "外挂专用包装（RISK-FIX 3：每次送单都取现在的第一个钱包）：等雷达送完再送，里面呼叫的是已经过闸门的 WALLETS[0].baw；没有钱包就不送"
+  },
+  {
+   "rule": "BAW_SWAP",
+   "file": "^sentinel\\.mjs$",
+   "match": "W\\.baw = nw;",
+   "max": 1,
+   "reason": "安全哨兵在外层包一层只记录交易编号，里面呼叫的是已经过闸门的 W.baw"
+  },
+  {
+   "rule": "RAW_SIGN",
+   "file": "^watch\\.mjs$",
+   "match": "method: 'eth_signTypedData_v4', params: \\[W\\.addr, JSON\\.stringify\\(BIND\\.bindTyped",
+   "max": 1,
+   "reason": "邀请绑定：交给币安钱包 sign-message（经过闸门，只准签 Bind）"
+  },
+  {
+   "rule": "CHILD_PROC",
+   "file": "^watch\\.mjs$",
+   "match": "import \\{ execFile, execFileSync \\} from 'node:child_process'|execSync\\('npm i telegram@",
+   "max": 2,
+   "reason": "引擎：执行币安钱包 CLI、第一次安装 TG 套件"
+  },
+  {
+   "rule": "CHILD_PROC",
+   "file": "^login\\.mjs$",
+   "match": "node:child_process",
+   "max": 1,
+   "reason": "命令列登入钱包"
+  },
+  {
+   "rule": "CHILD_PROC",
+   "file": "^plugins\\.mjs$",
+   "match": "node:child_process|child_process\\|globalThis|spawnSync\\(process\\.execPath, \\[fl, '-e', '0'\\]",
+   "max": 3,
+   "reason": "外挂沙盒：fork 隔离程式、侦测 Node 权限模式；还有一行是外挂危险字的提示清单"
+  },
+  {
+   "rule": "CHILD_PROC",
+   "file": "^radar/main\\.cjs$",
+   "match": "function startEngine|require\\('child_process'\\)",
+   "max": 3,
+   "reason": "雷达主程式：启动引擎、更新前用 node --check 验新档"
+  },
+  {
+   "rule": "CHILD_PROC",
+   "file": "^一键安装\\.bat$",
+   "match": "require\\('child_process'\\)\\.execFileSync\\('powershell'",
+   "max": 1,
+   "reason": "安装时读桌面路径建立捷径"
+  },
+  {
+   "rule": "DYN_CODE",
+   "file": "^plugin-host\\.mjs$",
+   "match": "data:text/javascript;base64",
+   "max": 1,
+   "reason": "外挂沙盒：用「检查过指纹的同一份内容」载入外挂（沙盒内没有网路／档案权限）"
+  },
+  {
+   "rule": "DYN_IMPORT",
+   "file": "^plugin-host\\.mjs$",
+   "match": "await import\\(URL0\\)",
+   "max": 1,
+   "reason": "外挂沙盒：载入上面那一份 data: 内容"
+  },
+  {
+   "rule": "DYN_IMPORT",
+   "file": "^radar/next\\.cjs$",
+   "match": "import\\(pathToFileURL\\(path\\.join\\(C\\.ROOT, 'weekly\\.mjs'\\)\\)",
+   "max": 1,
+   "reason": "雷达主程式载入本机固定档 weekly.mjs"
+  },
+  {
+   "rule": "SECRET",
+   "file": "^ave\\.mjs$",
+   "match": "RCR_ONLINE_KEY|online\\.pem",
+   "max": 1,
+   "reason": "官方营运端的「线上金钥」（只签看盘资料上传；不是钱包私钥，发布私钥不在这里）"
+  },
+  {
+   "rule": "SECRET",
+   "file": "^radar/main\\.cjs$",
+   "match": "\\[TG金钥\\]|online\\.pem",
+   "max": 4,
+   "reason": "日志遮掉金钥的正则；官方营运端用线上金钥签手机通行证（不是钱包私钥）"
+  },
+  {
+   "rule": "SECRET",
+   "file": "^radar/ui/index\\.html$",
+   "match": "seed phrase|mnemonic|private|助记词|私钥",
+   "max": 6,
+   "reason": "画面上的安全提醒文字、设定页拒绝显示这类栏位的规则"
+  },
+  {
+   "rule": "SECRET",
+   "file": "^radar/main\\.cjs$",
+   "match": "guard_key\\.weak\\.pem",
+   "max": 1,
+   "reason": "GATE-2 守护金钥的退路档（没有系统加密时放使用者资料夹的 Ed25519 签章金钥；不是钱包私钥、不碰任何钱包资料）"
+  },
+  {
+   "rule": "SECRET",
+   "file": "^radar/main\\.cjs$",
+   "match": "const PH_NEVER",
+   "max": 1,
+   "reason": "手机改设定的禁止清单：列出钱包、TG 金钥等键名是为了挡手机去改它们，不是读取"
+  },
+  {
+   "rule": "SECRET",
+   "file": "^radar/ui/index\\.html$",
+   "match": "GATE-2|keyring / DPAPI|钥匙圈／DPAPI",
+   "max": 1,
+   "reason": "GATE-2 画面黄条「本机保护较弱」的说明文字提到 DPAPI"
+  }
+ ]
+}

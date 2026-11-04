@@ -1,0 +1,46 @@
+# 罗宾猫雷达 · 手机转接站（Cloudflare Worker）部署说明——只要这个 repo：
+#   1. 在 repo 根目录：cd relay && npm ci        （worker.js 会 import ../repo.cjs，所以要整个 repo 一起，不能只拿 relay/）
+#   2. npx wrangler login
+#   3. npx wrangler secret put AVE_KEY             （AVE 金钥只放 Cloudflare 秘密变数；不设＝/ave 一律回 not allowed，其他功能照常）
+#   4. npx wrangler deploy                         （Durable Object「Room」第一次部署会自动建立）
+#   改 repo.cjs 的 PUBKEY／DATA_RAW＝换成你自己的官方来源；雷达那边也要连到你的转接站网址。
+name = "robincat-relay"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+# H8-D2：每个钱包每天最多用多少 AVE 单位、每秒最多几次（主人 11/4 决定；拿掉＝不限，只有总上限）
+AVE_USER_DAY_CU = "15000"
+AVE_USER_RPS = "4"
+# OPS-RT6：以下全部是营运设定（程式里没有写死的数字）；留空或拿掉＝那一项不限
+# 整个转接站每天的 AVE 总额度（单位跟上面一样）、送到 AVE 的总速度（每秒几次）
+# AVE-WSS（11/4）：AVE API Level 2 方案＝每月 3 亿 CU、整个金钥每秒最多 20 次 REST、WSS 最多 5 条连线（全部用户共用）。
+# 每天约 900 万（＝3 亿 ÷ 31 天，留一点给即时推送和作者自己的雷达）；全体每秒 16 次（留 4 次给作者电脑上 ave.mjs 直接打 AVE，加起来不超过 20）。
+# 即时推送（/avews）不用另外设定：转接站最多开 5 条 WSS（程式常数 AVEWS_UP_MAX）。不要设 AVE_WSS_TEST_URL（只给本机测试用）。
+AVE_DAY_CU = "9000000"
+AVE_GLOBAL_RPS = "16"
+# 每个邀请码每天最多用多少 AVE 单位（同一个码绑很多钱包也只算一份；作者本人不算在任何码里）。
+# 主人 11/4 决定：额度不用管 → 预设留空＝不限。以后想限制再填数字（例："60000"），改完 wrangler deploy 就生效。
+AVE_CODE_DAY_CU = ""
+# 全体额度用到几 %（例："80"）就先停背景查询（体检／KOL／盈亏），玩家自己点的照常。
+# 主人 11/4 决定：不用管 → 预设留空＝不限（背景查询照常，直到总额度 AVE_DAY_CU 用完）。
+AVE_BG_STOP_PCT = ""
+# OPS-RT15：转接站通行证（session token）有效几秒；没设＝不发通行证（雷达连不上 AVE／手机连结）。HMAC 金钥可另外用 `npx wrangler secret put SESSION_KEY` 设，不设就自动产生存在 Durable Object
+SESSION_TTL_S = "3600"
+# 线上金钥的公钥（Ed25519 SPKI DER base64）：AVE 看盘资料上传（POST /aveboard）和作者手机通行证只认这把，不用 repo.cjs 的发布金钥 PUBKEY。
+# 值由 `node sign_radar.mjs onlinekey <树>` 产生（私钥存在 <树>/.sign_radar/online.pem），把印出来的那串贴在下面引号里。
+# 留空＝转接站拒绝所有看盘上传（回 503 并说明原因）、作者手机通行证也不能用；其他功能照常。
+ONLINE_PUBKEY = "MCowBQYDK2VwAyEA6yiFLuIICmiINfXUBFCf6/bUDGZK+Hx4ecwv9AiqtEM="
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
