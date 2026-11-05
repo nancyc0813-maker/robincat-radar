@@ -672,6 +672,13 @@
   },
   {
    "rule": "SLICE",
+   "file": "rh\\.mjs",
+   "match": "\\$\\{String\\(sp\\.tx\\)\\.slice\\(0,\\ 12\\)\\}…\\ 节点查不到，而且钱包的交易序号\\ \\$\\{n\\}\\ ",
+   "value": "12",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "SLICE",
    "file": "mintpick\\.mjs$",
    "match": "c\\.slice\\(0, 8\\)",
    "value": "8",
@@ -13505,6 +13512,12 @@
     "1000"
    ],
    "reason": "POL-MINE：合约给的募资截止秒数换成毫秒，只拿来显示"
+  },
+  {
+   "rule": "SLICE",
+   "file": "^rh\\.mjs$",
+   "match": "String\\(sp\\.tx\\)\\.slice\\(0, 12\\)",
+   "reason": "RHPEND114 日志里显示交易编号前 12 码（显示用）"
   },
   {
    "rule": "SLICE",

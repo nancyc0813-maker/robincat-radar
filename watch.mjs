@@ -501,9 +501,9 @@ async function holdW(W, head, onlyFast) { // 所有钱包同时跑（速战：�
       else if (await (async () => { /*ENG111-NONCE：不靠数字判断「确定没上链」：读不到任何一项＝继续等（不猜）*/ const hx = (v) => (typeof v === 'string' && /^0x[0-9a-f]+$/i.test(v) ? parseInt(v, 16) : null);
         const nl = hx(await rpc('eth_getTransactionCount', [W.addr, 'latest']).catch(() => null)); if (nl == null) return false;
         if (sp.tx) { const tx = await rpc('eth_getTransactionByHash', [sp.tx]).catch(() => undefined); if (tx === undefined) return false; if (tx) { const n = hx(tx.nonce); if (n != null && sp.txN !== n) { sp.txN = n; save(); } return false; } /* 节点还查得到这笔＝还在排队或刚上链，继续等 */
-          const n = sp.txN != null ? sp.txN : sp.n0P; if (n == null || !(nl > n)) return false; restore(`交易 ${sp.tx.slice(0, 12)}… 节点查不到，而且钱包的交易序号 ${n} 已经${sp.txN != null ? '被别的交易用掉' : '用过了'}（已上链序号到 ${nl}）＝这笔被丢弃、没上链`); return true; }
-        const np = hx(await rpc('eth_getTransactionCount', [W.addr, 'pending']).catch(() => null)); if (np == null || sp.n0L == null || sp.n0P == null) return false;
-        if (nl === sp.n0L && np === sp.n0P) { restore(`送出逾时、没有交易编号，而且钱包的交易序号没有前进（已上链 ${nl}、含排队 ${np}，跟送出前一样）＝这笔没送出去`); return true; } return false; })()) { /* 已恢复规则 */ }
+          const n = sp.txN; if (n == null || !(nl > n)) return false; /*PENDFIX114：只用节点查到过的这笔交易自己的 nonce（没查到过＝继续等），不用送出前的 pending*/ restore(`交易 ${sp.tx.slice(0, 12)}… 节点查不到，而且钱包的交易序号 ${n} 已经${sp.txN != null ? '被别的交易用掉' : '用过了'}（已上链序号到 ${nl}）＝这笔被丢弃、没上链`); return true; }
+        /*PENDFIX114：没有交易编号＝只能等（余额变化／查到收据／你的 sell.pendMin 到期）；nonce 没前进不代表没送出（很多节点看不到排队中的交易）*/
+        return false; })()) { /* 已恢复规则 */ }
       else if (pm != null && Date.now() - sp.at >= pm * 60e3) restore(`等了 ${pm} 分钟（你的 sell.pendMin）余额没变`);
       else { if (pm == null && !sp.pmLog) { sp.pmLog = 1; log(`[${W.name}] ${t.sym} 卖出结果待确认：余额还没变、也还没查到收据；你没填 sell.pendMin → 一直等到余额变化或查到收据（持仓保留、不重复卖）`); } continue; } }
     if (t0.pending && balAll > 0n) { delete t0.pending; await tg(`✅ [${W.name}] ${t.sym} 之前结果不明的买入：读到余额了，开始照规则追踪`).catch(() => {}); save(); } else if (t0.pending) continue; /* 结果不明的部位，读到余额才开始跑卖出规则 */
@@ -2888,7 +2888,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.0.13', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.0.14', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;
