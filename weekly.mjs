@@ -10,7 +10,7 @@ const readJ = (f, d) => { try { return JSON.parse(readFileSync(f, 'utf8')); } ca
 const r2 = (x) => Math.round((Number(x) || 0) * 100) / 100;
 const md = (t) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}`; };
 /* 判断日志的一行 → 条件名称：「✅ 进度 N%（你设至少 X%）」→「进度」 */
-export function condName(line) { const m = /^(✅|❌|⚠️|…)\s*(.+)$/.exec(String(line || '')); if (!m) return null; let t = m[2].replace(/（.*$/, '').replace(/读不到.*$/, '').replace(/还没查.*$/, '').replace(/\s*→.*$/, '').trim(); t = t.replace(/\s+-?[\d.,]+\s*\S*$/, '').trim(); return t ? { ok: m[1] === '✅', bad: m[1] === '❌' || m[1] === '⚠️', name: t.slice(0, 30) } : null; }
+export function condName(line) { const m = /^(✅|❌|✗|⚠️|…)\s*(.+)$/.exec(String(line || '')); /*ENG111：✗＝条件没达到*/ if (!m) return null; let t = m[2].replace(/（.*$/, '').replace(/读不到.*$/, '').replace(/还没查.*$/, '').replace(/\s*→.*$/, '').trim(); t = t.replace(/\s+-?[\d.,]+\s*\S*$/, '').trim(); return t ? { ok: m[1] === '✅', bad: m[1] === '❌' || m[1] === '✗' || m[1] === '⚠️', name: t.slice(0, 30) } : null; }
 
 /* 行情资料（看盘读链存下来的最近成交）：某个币在 t 之后的价格表现（只算比值，不需要换算成美元） */
 function priceIndex(DIR) { const T = {}; for (const f of ['market_bsc.json', 'market_bsc_v4.json', 'market_rh.json']) { const D = readJ(join(DIR, 'data', f), null); for (const [c, x] of Object.entries(D?.tokens || {})) if (Array.isArray(x?.tr) && x.tr.length) T[String(c).toLowerCase()] = x.tr; } return T; }

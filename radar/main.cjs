@@ -59,7 +59,7 @@ function snapshot() {
     if (!(Z0.auto === true || +Z0.auto === 1)) return 'auto'; if (!Z0.setupDone) return 'setup'; if (!zon(Z0, sw)) return 'sw'; return ''; };
   const OFF_ZH = { nowal: '符合条件（还没连钱包，不会自动打）', hours: '符合条件（时段外，不会自动打）', confl: '符合条件（另一个雷达在用同一钱包，已停买）', pause: '符合条件（暂停中，不会自动打）', auto: '符合条件（自动买总开关没开）', setup: '符合条件（还没完成设定，不会自动打）', sw: '符合条件（没开自动打）', bind: '符合条件（邀请绑定未完成，暂不打）', bindre: '符合条件（正在用现在的钱包重签邀请绑定，暂不打）' /* UIFIX7 */ }; /* UIFIX5：画面照代码换中英，这里是手机／旧画面用的中文 */
   const board = Object.entries(S.paid || {}).filter(([c, P]) => keepH == null || !(keepH > 0) || !P.at || now - P.at <= keepH * 3600e3).map(([c, P]) => {
-    const prog = Math.round((P.progress || 0) * 100), ag = P.agents || 0, grp = Object.keys(S.grpHits?.[c]?.chats || {}).length;
+    const prog = Math.round((P.progress || 0) * 100), ag = P.agNowAt ? (P.agNow || 0) : (P.agents || 0) /*ENG111-AGC：跟买入判断同一个数（现在、已确认）；还没取样才先用最高*/, grp = Object.keys(S.grpHits?.[c]?.chats || {}).length;
     const done = Object.values(P.done || {}).some((x) => x === 'minted' || x === 'free');
     const why = String(P.lastReason || '');
     /* LA-1103：每个发现的项目都列出来，标的是「你自己的条件」的结果；条件只决定买不买和标签，不决定看不看得到 */

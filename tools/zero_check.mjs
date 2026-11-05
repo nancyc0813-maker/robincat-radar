@@ -179,8 +179,13 @@ for (const f of files) {
   if (ext === '.json') scanJSON(src, rel); else if (ext === '.html') scanHTML(src, rel); else scanJS(src, rel);
 }
 
-const viol = [], ok = [];
-for (const v of out) { const a = allowed(v); if (a) { a.hits++; ok.push({ ...v, reason: a.reason }); } else viol.push(v); }
+/* ENG111-P2-1：检查整棵树时，plugins/ 里不在官方清单（radar/official.json）的外挂＝你自己（或你的 AI）写的：
+   它们的数字是你自己的设定／显示用，不是「官方数字」→ 另外列出来提醒、不算进退出码。
+   外挂要照外挂规矩检查：node tools/guard_check.mjs --plugin plugins/你的档.mjs（会买卖的外挂，数字一定要做成设定栏位）。加 --strict-plugins 就一起算。 */
+const OFFI = (() => { try { const fl = JSON.parse(readFileSync(join(root, 'radar', 'official.json'), 'utf8')).files; return new Set(Array.isArray(fl) ? fl : Object.keys(fl || {})); } catch { return null; } })();
+const userPlug = (rel) => !statSync(root).isFile() && !args.includes('--strict-plugins') && !!OFFI && /^plugins\/[^/_][^/]*\.mjs$/.test(rel) && !OFFI.has(rel);
+const viol = [], ok = [], uviol = [];
+for (const v of out) { const a = allowed(v); if (a) { a.hits++; ok.push({ ...v, reason: a.reason }); } else if (userPlug(v.file)) uviol.push(v); else viol.push(v); }
 const by = {}; for (const v of viol) { by[v.rule] = (by[v.rule] || 0) + 1; }
 const byFile = {}; for (const v of viol) { byFile[v.file] = (byFile[v.file] || 0) + 1; }
 if (!quiet) for (const v of viol) console.log(`${v.rule.padEnd(11)} ${v.file}:${v.line}:${v.col}  [${v.value}]  ${v.snip}`);
@@ -189,5 +194,6 @@ console.log('files scanned:', files.length, '| findings:', out.length, '| allowl
 console.log('by rule:', JSON.stringify(by));
 console.log('by file:', JSON.stringify(byFile));
 const unused = allow.filter((a) => !a.hits); if (unused.length) console.log('allowlist entries with no hits (stale?):', unused.length);
-const jo = opt('--json'); if (jo) writeFileSync(jo, JSON.stringify({ viol, ok }, null, 1));
+if (uviol.length) { const uf = [...new Set(uviol.map((v) => v.file))]; console.log(`\nℹ️ 你自己的外挂（不在官方清单，不算进退出码）：${uf.length} 个档、${uviol.length} 处数字`); for (const f of uf) console.log(`   ${f}：${uviol.filter((v) => v.file === f).length} 处 → 请跑 node tools/guard_check.mjs --plugin ${f}（会买卖的外挂，数字要做成设定栏位让你填；只是显示用的不影响）`); }
+const jo = opt('--json'); if (jo) writeFileSync(jo, JSON.stringify({ viol, ok, user: uviol }, null, 1));
 process.exit(viol.length ? 1 : 0);

@@ -503,9 +503,16 @@
    "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：毫秒换算（分钟、秒）与 K 线周期读不到时的预设间距（只用来把成交标在哪根 K 棒）"
   },
   {
+   "rule": "FALLBACK0",
+   "file": "radar/ui/index\\.html",
+   "match": "用标记显示，这里不重复\\ \\*/\\ if\\(\\(A\\.bt\\|\\|0\\)>0\\|\\|\\(A\\.st\\|\\|0\\)>0\\)T\\.push\\(\\[",
+   "value": "0",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用"
+  },
+  {
    "rule": "FALLBACK",
    "file": "radar/ui/index\\.html",
-   "match": "FB\\.rows=\\+e\\.target\\.value\\|\\|100;fbSave\\(\\);fmRender\\(\\)\\}\\}\\);\\ ",
+   "match": "FB\\.rows=\\+e\\.target\\.value\\|\\|100;fbSave\\(\\);fmRender\\(\\)\\}if\\(e",
    "value": "100",
    "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：「显示笔数」下拉读不到时的预设（只是画面上限）"
   },
@@ -634,6 +641,13 @@
    "match": "\\.filter\\(x=>FB\\.wpC\\?!\\(\\+x\\.b>0\\.5\\):\\(\\+x\\.b>0\\)\\)\\.filter\\(x=>FB\\.",
    "value": "0.5",
    "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：时间格式（秒／分／小时换算）、地址缩写长度、AVE 盈亏比例单位判断（0～1 或 0～100）、钱包页小额持仓显示门槛；只影响显示"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html",
+   "match": "/\\*\\ 标签栏：最多\\ 2\\ 个最重要的（貔貅／风险／KOL／聪明钱）＋「\\+N」，",
+   "value": "2 个",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：注解里描述快取时间，不是规则"
   },
   {
    "rule": "STRING_NUM",
@@ -776,6 +790,126 @@
    "file": "radar/official\\.json$",
    "match": "Elysium",
    "reason": "官方签名清单 official.json 里抄的是上一版（v1.0.7）的版本说明「最近 10 分钟／1 小时」——描述显示栏位，不是门槛；这个档发布时由 sign_radar 重新产生"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^watch\\.mjs$",
+   "match": "SCAN_FILL_MAX = 6000|FILL_MS = 3e3|FILL_BACK_MAX = 300e3|FILL_LOG_MS = 60e3|MW_FILL_MAX = 200000|MW_FILL_STEP = 2000|AG_WIN_B = 6000",
+   "reason": "ENG111 背景补扫的技术常数（节点额度）：新合约最多补几块、补扫间隔、限流退避最久、进度日志间隔、钱包统计最多补几块／每次查几块、「现在」的 Agent 钱包看最近几块（原本就是 6000 块，只是取名）—— 不影响买不买"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "^watch\\.mjs$",
+   "match": "F\\.next \\|\\| 0|F\\.logAt \\|\\| 0|_mwfNext \\|\\| 0|_mwfLogAt \\|\\| 0|logBad\\.get\\(u\\) \\|\\| 0|m\\.at \\|\\| 0\\)",
+   "reason": "ENG111 补扫排程时间戳没设＝从没排过（0＝马上可以做）、节点冷却时间没设＝没冷却、统计时间没设＝很久没更新（当读不到）—— 技术用"
+  },
+  {
+   "rule": "CMP",
+   "file": "^watch\\.mjs$",
+   "match": "length \\* 2 >= LOG_NODES|txb\\.size \\* 4 < MW_FILL_TX|capV !== 111|P\\.capV = 111|x < 1e12 && capOk|const trunc = hashes\\.length >= 4000|M\\.gapAt < 3600e3\\) \\|\\| M\\.holes|> 20 \\* 60e3\\) return \\{ \\.\\.\\.c0, v: null, missWhy",
+   "reason": "ENG111 技术判断：一半以上节点冷却就让开、补扫段很冷清就把段放大、总量探测规则版本号（111）、总量不能大到不合理（沿用原本 1e12）、原本就有的一轮 4000 笔／1 小时／20 分钟没更新＝读不到（只是那行加了补扫／原因）—— 不是买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^watch\\.mjs$",
+   "match": "> 20 \\* 60e3\\) return \\{ \\.\\.\\.c0, v: null, missWhy|\\/ 60e3\\)\\} 分钟没更新|MINTW\\.has\\(c\\) \\? AG_WIN_B : 20000",
+   "reason": "ENG111：原本就有的「统计 20 分钟没更新＝读不到」加上原因文字（毫秒换分钟）；第一次统计看 20000 块（原本就有，只是 6000 改用常数名）—— 技术用"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "^watch\\.mjs$",
+   "match": "Promise\\.all\\(Array\\.from\\(\\{ length: 24 \\}, async \\(\\) => \\{ while \\(idx < nums",
+   "reason": "原本就有的新合约扫描同时抓 24 块（节点额度），ENG111 只把抓区块的函式拿出来跟补扫共用 —— 技术用"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "^watch\\.mjs$",
+   "match": "includes\\('63' \\+ s\\)",
+   "reason": "ENG111 认函式名字：EVM 程式码里 0x63＝PUSH4（后面接 4 码函式编号）—— 位元组码格式，不是数字门槛"
+  },
+  {
+   "rule": "SLICE",
+   "file": "^watch\\.mjs$",
+   "match": "capTimeSels\\(\\)\\.has\\(s\\)\\)\\.slice\\(0, 40\\)",
+   "reason": "ENG111 找总量时最多读 40 个时间函式的值（节点额度）—— 技术用"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "^watch\\.mjs$",
+   "match": "约 45 分钟|最多看 40 个",
+   "reason": "ENG111 注解：说明技术常数（6000 块≈45 分钟、最多读 40 个时间函式）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^watch\\.mjs$",
+   "match": "DLOG_WIN_MS = 10 \\* 60e3|o0\\.at\\) / 60e3\\)\\)\\} 分钟同样原因",
+   "reason": "ENG111 P1-2 日志去重：同一项目同一种原因 10 分钟内只写一次（技术用：日志量），附上几分钟内重复几次；不影响买不买，买／不买变了一定马上写"
+  },
+  {
+   "rule": "TIMEWIN|STRING_NUM",
+   "file": "^watch\\.mjs$",
+   "match": "L\\.slice\\(0, -4000\\)|L\\.slice\\(-4000\\)\\.join|逐条判断日志 data/decisions\\.jsonl 超过 3MB",
+   "reason": "ENG111 P1-3 判断日志滚存：原本就有的「超过 3MB 留最近 4000 笔」（技术用：档案大小），截掉的改存到 decisions.1.jsonl 并写日志说明"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "^radar/ui/index\\.html$",
+   "match": "每 2 秒更新。逐条判断记录在",
+   "reason": "实时日志原本就写「每 2 秒更新」（画面刷新频率），ENG111 只在后面加判断日志档名说明"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^watch\\.mjs$",
+   "match": "TOK_RETRY_MS = 30 \\* 60e3|TOK_EVERY_MS = 30e3",
+   "reason": "ENG111-TOK 背景补读代币地址：读不到隔 30 分钟再试、每 30 秒跑一轮（技术用：节点额度）；只给开盘显示用，不影响买不买"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "^watch\\.mjs$",
+   "match": "_tokNext \\|\\| 0|P\\.tokAt \\|\\| 0",
+   "reason": "ENG111-TOK 排程时间戳没设＝从没排过／从没读过（马上可以读）—— 技术用"
+  },
+  {
+   "rule": "CMP|OBJNUM",
+   "file": "^(watch\\.mjs|radar/next\\.cjs)$",
+   "match": "tokV === 111|tokV !== 111|tokV: 111|P\\.tokV = 111",
+   "reason": "ENG111-TOK 代币地址「验证过」的版本标记（111＝这一版的验证规则），不是门槛"
+  },
+  {
+   "rule": "SLICE",
+   "file": "^watch\\.mjs$",
+   "match": "t\\.slice\\(0, 10\\) \\+ '：'|x\\.slice\\(0, 10\\) \\+ '：'|nm\\.slice\\(0, 40\\)",
+   "reason": "ENG111 日志里显示地址前 10 码、名称最多 40 字（显示用）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^watch\\.mjs$",
+   "match": "PAID_ARC_MAX = 3000",
+   "reason": "ENG111-P11 被清掉的铸造项目最多记 3000 个（技术用：存档大小）"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "^watch\\.mjs$",
+   "match": "delete P\\.soldOut; if \\(\\(P\\.progress \\|\\| 0\\) >= 1\\)",
+   "reason": "ENG111-P0A 之前版本误判已铸完的项目把进度清成读不到（0），下一轮重算 —— 不是预设值"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "^(watch\\.mjs|radar/v4\\.cjs)$",
+   "match": "66 个项目的 tok|10 个地址",
+   "reason": "ENG111 注解：说明回报的现象（66 个项目）、公开节点限制（一次 10 个地址）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "^radar/v4\\.cjs$",
+   "match": "\\.slice\\(0, 200\\); try \\{ let G2",
+   "reason": "原本就有的「最多看 200 个曲线地址」（节点额度），ENG111 只改成每 10 个一批"
+  },
+  {
+   "rule": "SLICE",
+   "file": "^watch\\.mjs$",
+   "match": "sp\\.tx\\.slice\\(0, 12\\)",
+   "reason": "ENG111-NONCE 日志里显示交易编号前 12 码（显示用）"
   },
   {
    "rule": "CMP",
@@ -13267,6 +13401,112 @@
    "reason": "Bytes→kB unit conversion in an error message, not a time window"
   },
   {
+   "rule": "OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "start: 131822405, ev: '0xaedd1625",
+   "values": [
+    "131822405"
+   ],
+   "reason": "POL-MINE：网站设定里的合约起始区块（合约事实），只拿来决定从哪个区块开始找你的仓位事件，不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN|OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "const POL_T = \\{ tick: 30 \\* 60e3, first: 100e3|spanN: 100, ttl: 180, day: 86400 \\}",
+   "values": [
+    "30",
+    "60e3",
+    "100e3",
+    "4000",
+    "100",
+    "180",
+    "86400"
+   ],
+   "reason": "POL-MINE：运作常数——多久看一次、开机后多久第一次看、查事件一次几个区块／一轮最多几段（区块分页）、交易有效期秒数（合约要的截止时间，网站同样用几分钟内）、一天的秒数（只用来算今天参与几份）；都跟要不要参与、参与几份无关"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "const polSqrt = \\(n\\) => \\{ if \\(n < 2n\\) return n;",
+   "values": [
+    "2n"
+   ],
+   "reason": "POL-MINE：整数开平方（照 PancakeSwap V2 池子合约的 LP 增发公式）的数学边界，不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "const polFloor = \\(x, bps\\) => \\(x \\* BigInt\\(10000 - bps\\)\\) / 10000n;",
+   "values": [
+    "10000"
+   ],
+   "reason": "POL-MINE：万分比换算（你填的价格保护 % × 100 ＝ 万分之几），数字本身是单位不是门槛"
+  },
+  {
+   "rule": "SLICE",
+   "file": "watch\\.mjs$",
+   "match": "''\\)\\.slice\\(0, 60\\); \\} catch \\{\\} \\} return \\{ sel, why: POL_ER",
+   "values": [
+    "60"
+   ],
+   "reason": "POL-MINE：合约回的拒绝原因文字的显示长度上限（防日志被撑爆），不是买卖数字"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "slip != null && slip > 0 && slip < 100 \\? Math\\.round\\(slip \\* 100\\) : null",
+   "values": [
+    "100"
+   ],
+   "reason": "POL-MINE：你填的价格保护 % 只能在 0～100 之间才有意义（百分比的数学范围），×100 换成万分比；没填或超出＝不参与，不是工具替你定的数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "row\\.nextAt = fut\\.length \\? Math\\.min\\(\\.\\.\\.fut\\) \\* 1000 : null;",
+   "values": [
+    "1000"
+   ],
+   "reason": "POL-MINE：合约给的秒数换成毫秒（下一笔到期时间）只拿来显示，不是时间窗"
+  },
+  {
+   "rule": "SLICE",
+   "file": "watch\\.mjs$",
+   "match": "没成功：\\$\\{String\\(e\\?\\.message \\|\\| e\\)\\.slice\\(0, 120\\)\\}|m\\.slice\\(0, (120|80)\\)",
+   "values": [
+    "120",
+    "80"
+   ],
+   "reason": "POL-MINE：日志／判断日志里错误讯息的显示长度上限（防日志被撑爆），不是买卖数字"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "else if \\(lpMode === 2\\) \\{ if \\(slipBps == null\\)",
+   "values": [
+    "2"
+   ],
+   "reason": "POL-MINE：pol.lpMode 是你选的选项编号（1＝领原始 LP、2＝退出），比对的是选项不是门槛"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "When due: claim the raw LP'\\):a\\?\\.lpMode===2\\?nxT\\('到期：退出",
+   "values": [
+    "2"
+   ],
+   "reason": "POL-MINE：画面显示你选的 LP 处理方式（选项编号 1／2），不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "polDt\\(v\\.endsAt\\*1000,en\\)",
+   "values": [
+    "1000"
+   ],
+   "reason": "POL-MINE：合约给的募资截止秒数换成毫秒，只拿来显示"
+  },
+  {
    "rule": "SLICE",
    "file": "radar/main\\.cjs$",
    "match": "if \\(B\\.err\\) o\\.err = String\\(B\\.err\\)\\.slice\\(0, 150\\); \\{ const wl = ",
@@ -13411,6 +13651,55 @@
     "1e-12"
    ],
    "reason": "RISK-FIX3 A：卖剩成本是否为 0 的浮点误差容许值（判断要不要重算平均价），不是交易门槛"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "t\\ tierOk=\\(p\\)=>p\\.length===2\\&\\&p\\[0\\]>0\\&\\&p\\[1\\]>0\\&\\&p\\[1\\]<=1",
+   "value": "2",
+   "reason": "SIMPLE113（简单／进阶模式）：资料格式检查（跟引擎 tpslNorm 同一个边界）：止盈一档是「涨幅:卖出%」两个数字、卖出比例最多 100%（＝全部）；格式看不懂就只读显示，不是买卖门槛"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "2\\&\\&p\\[0\\]>0\\&\\&p\\[1\\]>0\\&\\&p\\[1\\]<=100;\\ /\\*\\ 跟引擎\\ tpslNorm\\ 一样：涨幅＞0",
+   "value": "100",
+   "reason": "SIMPLE113（简单／进阶模式）：资料格式检查（跟引擎 tpslNorm 同一个边界）：止盈一档是「涨幅:卖出%」两个数字、卖出比例最多 100%（＝全部）；格式看不懂就只读显示，不是买卖门槛"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html",
+   "match": ":'全部卖出\\ '\\)\\+\\(nm\\|\\|c\\.slice\\(0,8\\)\\)\\+'？\\\\n'\\+\\(en\\?'Every\\ conne",
+   "value": "8",
+   "reason": "SIMPLE113（简单／进阶模式）：显示用：确认框里没有名字时显示合约前几码"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "大于\\ 1'\\);else\\ if\\(!\\(y>0\\&\\&y<=100\\)\\)err\\.push\\(en\\?'Sell\\ %\\ mus",
+   "value": "100",
+   "reason": "SIMPLE113（简单／进阶模式）：输入检查：卖出比例最多 100%（＝全部），超过就不存并说原因；不是买卖门槛"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html",
+   "match": "/\\*\\ 简单／进阶模式：只影响画面（body\\.smpOn＝简单）\\ \\*/\\\n\\#smpSw\\{display:",
+   "value": "100%",
+   "reason": "SIMPLE113（简单／进阶模式）：CSS 版面（宽度 100%＝整栏），不是数字规则"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html",
+   "match": "大于\\ 1'\\);else\\ if\\(!\\(y>0\\&\\&y<=100\\)\\)err\\.push\\('卖出比例要大于\\ 0、最多\\ ",
+   "value": "100",
+   "reason": "SIMPLE113（简单／进阶模式）：输入检查：卖出比例最多 100%（＝全部），超过就不存并说原因；不是买卖门槛"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html",
+   "match": "l\"\\]'\\)\\]\\)\\{if\\(\\+b\\.dataset\\.p>=100\\)\\{if\\(b\\.textContent!=='卖'\\)",
+   "value": "100",
+   "reason": "SIMPLE113（简单／进阶模式）：手机简单模式：认出原本的「全卖」按钮（data-p＝全部），只留这一颗；不是新数字"
   },
   {
    "rule": "KWLIST",
@@ -15908,6 +16197,36 @@
    "file": "^relay/phone\\.html$",
    "match": "TAPE_PH_MS = 1000",
    "reason": "TAPE110 手机详情页每 1 秒读成交（老板要求），技术用"
+  },
+  {
+   "rule": "TIMEWIN|COMMENT_NUM",
+   "file": "^radar/main\\.cjs$",
+   "match": "ZOOM110|ZOOM_MIN_CSS_W = 1000",
+   "reason": "ZOOM110／112 画面大小：几档缩放、版面最少 1000px 宽（显示用，不是交易数字）"
+  },
+  {
+   "rule": "STRING_NUM|CMP",
+   "file": "^radar/ui/index\\.html$",
+   "match": "画面大小|Screen size|回到 100%|data-zoom|Math\\.abs\\(s-Z\\.f\\)<1e-6",
+   "reason": "ZOOM110 画面大小说明文字与按钮（100% 等显示倍数）"
+  },
+  {
+   "rule": "MINMAX|CMP",
+   "file": "^radar/ui/index\\.html$",
+   "match": "Math\\.max\\(bw,0\\.5\\)|if\\(L0<2\\)\\{L0=2\\}",
+   "reason": "DET112 K 线时间轴排版：像素间距（最小 0.5px 棒宽、离左边 2px），显示用"
+  },
+  {
+   "rule": "SLICE|FALLBACK0",
+   "file": "^relay/worker\\.js$",
+   "match": "AVEWS112|W\\.lastClose = String\\(q\\.get\\('lc'\\)\\)\\.slice\\(0, 100\\)|U\\.openAt \\|\\| 0",
+   "reason": "AVEWS112 转接站 WSS 诊断：最后断线原因只留 100 字、连线开始时间读不到当 0（＝很久以前，不算很快就断）—— 技术用，跟买卖无关"
+  },
+  {
+   "rule": "SLICE|TIMEWIN|STRING_NUM|CMP",
+   "file": "^(radar/ui/index|relay/phone)\\.html$",
+   "match": "DH112|String\\(B\\.err\\)\\.slice\\(0,80\\)|Math\\.round\\(m/n\\*1000\\)/10",
+   "reason": "DH112 资料健康：错误讯息只留 80 字、百分比取一位小数 —— 只是显示，不做判断、不影响买卖"
   }
  ]
 }

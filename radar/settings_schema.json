@@ -1078,8 +1078,8 @@
    "max": 1,
    "zh": "Agent 钱包数介于 ___ 到 ___ 才打",
    "en": "Agent wallets between ___ and ___",
-   "dzh": "看「现在」有几个 Agent ID 钱包在打（附取样时间）。最少、最多都可以不填（只填一个＝只限一边）。还没取样／读不到＝不买。建议值仅供参考，不填＝不用这条",
-   "den": "Current number of Agent ID wallets minting. Min and max are both optional. Not sampled / unreadable = no buy. Suggestions are for reference only; empty = rule not used"
+   "dzh": "看「现在」有几个 Agent ID 钱包在打（附取样时间）：最近一段时间内（画面会写是最近几分钟）来打、确认有 Agent ID、套用你的防小号过滤的不同钱包；画面显示「已确认 N，待查 M」，跟判断用的是同一个数。还在查时 N 是「至少」：「至少 ___」够了就算过，「最多 ___」＝读不到。最少、最多都可以不填（只填一个＝只限一边）。还没取样／读不到＝不买。建议值仅供参考，不填＝不用这条",
+   "den": "Current number of Agent ID wallets minting: distinct wallets with an Agent ID (after your anti-sybil filters) that minted recently (the screen shows how many minutes), shown as “confirmed N, pending M” — the same number used for the decision. While still counting N is a minimum: “at least ___” passes once reached, “at most ___” = unreadable. Min and max are both optional. Not sampled / unreadable = no buy. Suggestions are for reference only; empty = rule not used"
   },
   {
    "k": "bsc.agMin",
@@ -1151,8 +1151,8 @@
    "max": 1,
    "zh": "最近 1 小时至少新增几个钱包才打",
    "en": "Min new wallets in the last hour",
-   "dzh": "看「最近 1 小时第一次来打的钱包」有几个（AI 钱包＋一般钱包都算），用来抓一次性爆发。统计不满 1 小时、或太热没抓完整时＝读不到 → 不买；钱包太多、只留最近一批时显示「≥N（已截断）」：至少 N 已经达到你填的下限就算过，没达到或有填「最多」＝读不到 → 不买",
-   "den": "Wallets that minted for the first time in the last hour (AI + normal). Catches one-time bursts. Less than 1 h of data, or too busy to read fully = unreadable → no buy. When there are too many wallets and only the latest are kept it shows “≥N (truncated)”: passes if N already reaches your minimum; otherwise, or if you set a maximum, unreadable → no buy"
+   "dzh": "看「最近 1 小时第一次来打的钱包」有几个（AI 钱包＋一般钱包都算），用来抓一次性爆发。统计不满 1 小时、或太热没抓完整时＝读不到 → 不买；钱包太多、只留最近一批时显示「≥N（已截断）」：至少 N 已经达到你填的下限就算过，没达到或有填「最多」＝读不到 → 不买。有漏看的区块会在背景补扫：补扫中＝读不到 → 不买（日志写「补扫中 x/y 块」），补完自动恢复",
+   "den": "Wallets that minted for the first time in the last hour (AI + normal). Catches one-time bursts. Less than 1 h of data, or too busy to read fully = unreadable → no buy. When there are too many wallets and only the latest are kept it shows “≥N (truncated)”: passes if N already reaches your minimum; otherwise, or if you set a maximum, unreadable → no buy. Missed blocks are back-filled in the background: while back-filling = unreadable → no buy (log shows the progress), recovers automatically"
   },
   {
    "k": "bsc.new1hMin",
