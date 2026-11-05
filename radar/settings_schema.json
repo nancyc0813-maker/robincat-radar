@@ -112,6 +112,11 @@
    "en": "🪂 Airdrops"
   },
   {
+   "id": "agc",
+   "zh": "⛏ AGC 挖矿（agcc.fun）",
+   "en": "⛏ AGC mining (agcc.fun)"
+  },
+  {
    "id": "sentry",
    "zh": "🛡 安全哨兵（只提醒，不会帮你做任何动作）",
    "en": "🛡 Security sentinel (alerts only)"
@@ -1141,8 +1146,8 @@
    "max": 1,
    "zh": "最近 1 小时至少新增几个钱包才打",
    "en": "Min new wallets in the last hour",
-   "dzh": "看「最近 1 小时第一次来打的钱包」有几个（AI 钱包＋一般钱包都算），用来抓一次性爆发。统计不满 1 小时、或太热没抓完整时＝读不到 → 不买",
-   "den": "Wallets that minted for the first time in the last hour (AI + normal). Catches one-time bursts. Less than 1 h of data, or too busy to read fully = unreadable → no buy"
+   "dzh": "看「最近 1 小时第一次来打的钱包」有几个（AI 钱包＋一般钱包都算），用来抓一次性爆发。统计不满 1 小时、或太热没抓完整时＝读不到 → 不买；钱包太多、只留最近一批时显示「≥N（已截断）」：至少 N 已经达到你填的下限就算过，没达到或有填「最多」＝读不到 → 不买",
+   "den": "Wallets that minted for the first time in the last hour (AI + normal). Catches one-time bursts. Less than 1 h of data, or too busy to read fully = unreadable → no buy. When there are too many wallets and only the latest are kept it shows “≥N (truncated)”: passes if N already reaches your minimum; otherwise, or if you set a maximum, unreadable → no buy"
   },
   {
    "k": "bsc.new1hMin",
@@ -7092,6 +7097,81 @@
    "den": "Upper bound in USD; empty = none (both empty = no alert)",
    "need": "mine.liqRemind",
    "pair": "mine.liqMin"
+  },
+  {
+   "k": "agc.auto",
+   "g": "agc",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "自动挖 AGC（agcc.fun 免费挖）",
+   "en": "Auto-mine AGC (agcc.fun free mint)",
+   "dzh": "开着＋下面的份数有填，雷达每天帮每个钱包挖：押 BNB 换份数，到期自动领回 BNB＋AGC。每份押多少、押多久，照合约链上读到的显示在「⛏ AI挖矿」的 AGC 卡片。钱包要有 Agent ID；要开右上角自动买总开关；每一笔送出前先预演，只准扣说好的 BNB、不准有授权。没开＝不挖（雷达自己挖的那几笔照样到期领回）",
+   "den": "On + a share count below: each day the radar mints for each wallet — lock BNB for shares, then claims the BNB back plus AGC when due. The price per share and lock time are read from the contract and shown on the AGC card under “⛏ AI mining”. The wallet needs an Agent ID and the auto-buy master switch must be on; every send is simulated first (only the agreed BNB may leave, no approvals). Off = no mining (deposits the radar made are still claimed back when due)"
+  },
+  {
+   "k": "agc.maxShares",
+   "g": "agc",
+   "need": "agc.auto",
+   "min": 1,
+   "max": 1000000000,
+   "unit": "份",
+   "uen": " shares",
+   "zh": "每个钱包每天最多挖几份",
+   "en": "Max shares per wallet per day",
+   "dzh": "包括你自己在 agcc.fun 挖的；合约给的额度比较少时照合约的。要填正整数；空白＝不挖",
+   "den": "Includes shares you mint yourself on agcc.fun; if the contract allows fewer, the contract wins. Whole number; empty = no mining"
+  },
+  {
+   "k": "agc.poolMin",
+   "g": "agc",
+   "need": "agc.auto",
+   "min": 0,
+   "max": 10000000000.0,
+   "unit": "U",
+   "zh": "AGC 池子流动性介于（下限）",
+   "en": "AGC pool liquidity between (from)",
+   "dzh": "选填条件：AGC 池子流动性在你填的范围内才挖；空白＝不设下限。填了但读不到流动性＝不挖",
+   "den": "Optional: mine only while the AGC pool liquidity is in your range; empty = no lower bound. Set but unreadable = no mining",
+   "pair": "agc.poolMax"
+  },
+  {
+   "k": "agc.poolMax",
+   "g": "agc",
+   "need": "agc.auto",
+   "min": 0,
+   "max": 10000000000.0,
+   "unit": "U",
+   "zh": "AGC 池子流动性介于（上限）",
+   "en": "AGC pool liquidity between (to)",
+   "dzh": "空白＝不设上限（两个都空白＝不看池子）",
+   "den": "Empty = no upper bound (both empty = pool not checked)",
+   "pair": "agc.poolMin"
+  },
+  {
+   "k": "agc.tg",
+   "g": "agc",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "TG：AGC 挖到／领回时通知",
+   "en": "TG: notify when AGC is minted / claimed",
+   "dzh": "没开＝只写雷达日志（领不回来的警告看下面那一项）",
+   "den": "Off = radar log only (for “can’t claim” alerts see the next item)"
+  },
+  {
+   "k": "agc.warnH",
+   "g": "agc",
+   "min": 0.1,
+   "max": 720,
+   "unit": "小时",
+   "uen": "h",
+   "zh": "到期后过多久还领不回来就通知",
+   "en": "Alert if still unclaimed this long after due",
+   "dzh": "押的 BNB 到期后过了这么久还领不回来，发 TG 通知一次；空白＝不通知（照样一直自动重试）",
+   "den": "One TG alert if a due deposit still can’t be claimed after this long; empty = no alert (keeps retrying)"
   }
  ]
 }

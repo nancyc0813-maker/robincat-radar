@@ -1,6 +1,55 @@
 {
  "entries": [
   {
+   "rule": "TIMEWIN|OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "tick: 30 \\* 60e3, first: 90e3|first: 90e3, day: 86400 \\}",
+   "values": [
+    "30",
+    "60e3",
+    "90e3",
+    "86400"
+   ],
+   "reason": "AGC-BACK：AGC 引擎多久看一次、开机后多久第一次看（运作排程，跟要不要挖无关）；86400＝一天的秒数，合约用「区块时间 ÷ 一天」换日（合约事实），只用来算今天挖了几份，不是买卖门槛"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "r\\.length >= 2 \\+ 64 \\* \\(i \\+ 1\\)",
+   "values": [
+    "2"
+   ],
+   "reason": "AGC-BACK：ABI 解码（0x 前缀 2 个字元＋每个字 64 个十六进位字元）的长度检查，读不到就回 null，不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "row\\.nextAt = nx\\.length \\? Math\\.min\\(\\.\\.\\.nx\\) \\* 1000|new Date\\(Number\\(F\\.until\\) \\* 1000\\)",
+   "values": [
+    "1000"
+   ],
+   "reason": "AGC-BACK：合约给的秒数换成毫秒（下一笔可领时间、暂停到何时）只拿来显示，不是时间窗"
+  },
+  {
+   "rule": "SLICE",
+   "file": "watch\\.mjs$",
+   "match": "m\\.slice\\(0, (120|80)\\)|String\\(e\\?\\.message \\|\\| e\\)\\.slice\\(0, 120\\)\\}`\\); if \\(warnH",
+   "values": [
+    "120",
+    "80"
+   ],
+   "reason": "AGC-BACK：日志／判断日志里错误讯息的显示长度上限（防日志被撑爆），不是买卖数字"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/next\\.cjs$",
+   "match": "replace\\(/\\[\\\\u0000-\\\\u001f<>\\]/g, ''\\)\\.slice\\(0, 40\\); const WEI",
+   "values": [
+    "40"
+   ],
+   "reason": "AGC-BACK：画面显示的钱包名称／说明文字长度上限（引擎写的 data/mine_adp.json 只拿来显示），不是买卖数字"
+  },
+  {
    "rule": "CMP",
    "file": "radar/main\\.cjs$",
    "match": "Array\\.isArray\\(cdA\\) && cdA\\.length >= 2",
@@ -15201,6 +15250,15 @@
    "file": "radar/ui/index\\.html$",
    "match": "约 30 秒|about 30 s|10 分钟|10 minutes",
    "reason": "V105-1 画面提示文字：引擎约 30 秒重签一次、邀请名单约 10 分钟更新一次（原本 TG 绑定提示就有的说明，只是改写成雷达直接送出），是说明不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "await sleep\\(Math\\.max\\(0, 15000 - \\(Date\\.now\\(\\) - tS0\\)\\)\\)",
+   "values": [
+    "15000"
+   ],
+   "reason": "V105-FIX2：卖出成交后等 BNB 余额更新再算换回多少（原本就是 sleep(15000)），现在扣掉等收据已经花的时间；技术等待，不是交易数字"
   }
  ]
 }

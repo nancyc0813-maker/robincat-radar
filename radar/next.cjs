@@ -32,11 +32,30 @@ function mineFields(x) { /* 官方清单（remote.json mine[]）新增的栏位�
   return o;
 }
 function mineNorm(x, src) { const url = HTTPS(x?.url); if (!url) return null; const f = mineFields(x); return { ...f, id: (src === 'mine' ? 'my:' : 'of:') + (f.id || url.slice(8, 120)), src, name: String(x.name || '').slice(0, 40) || url.replace(/^https:\/\//, '').slice(0, 30), url, note: String(x.note || '').slice(0, 160), c: A40(x.c), down: +x.down || 0, at: +x.at || 0 }; }
+/* AGC-BACK：雷达学会「怎么挖、怎么领回」的项目（内建）。跟其他挖矿项目同一张清单、同一套筛选和提醒；
+   差别只在雷达可以帮你挖 —— 开关和数字在「设定 → 更多设定 → ⛏ AGC 挖矿」由你自己填（预设关）。
+   合约事实（每份押多少、多久能领回、有没有暂停、奖励币）由引擎从链上读、写 data/mine_adp.json，这里只拿来显示 */
+const ADP = [{ adp: 'agc', id: 'agc', name: 'AGC', url: 'https://agcc.fun', scope: 'ai', kind: 'agent', cost: 'deposit', chain: 'bsc', c: '0x6288dfe86f22b53eeb6886ae2d78941de7483743', approve: 0,
+  note: '押 BNB 换份数，到期领回 BNB＋AGC（钱包要有 Agent ID）。雷达学会了怎么挖、怎么领回：开关和份数在设定里由你填，预设关。',
+  noteEn: 'Lock BNB for shares, then claim the BNB back plus AGC when due (the wallet needs an Agent ID). The radar knows how to mint and claim this one: the switch and share count are yours to set in Settings, off by default.',
+  risk: { src: '', level: 'yellow', text: '押的 BNB 锁在项目合约里，到期才领得回；项目方可以暂停合约，暂停期间领不回也挖不了；AGC 价格可能大跌。只是提醒，挖不挖你自己决定。' },
+  riskEn: 'The BNB you lock stays in the project contract until it is due; the project can pause the contract (no claiming or minting while paused); AGC can drop sharply. Just a notice — whether to mine is your call.' }];
+function mineAdp() { const J = readJSON(path.join(C.DATA, 'mine_adp.json'), null); const out = [];
+  const S40 = (x) => String(x ?? '').replace(/[\u0000-\u001f<>]/g, '').slice(0, 40); const WEI = (x) => (/^\d{1,40}$/.test(String(x ?? '')) ? String(x) : null);
+  for (const a of ADP) { const m = mineNorm(a, 'adp'); if (!m) continue; m.id = 'ad:' + a.id; m.adp = a.adp; m.noteEn = a.noteEn; m.riskEn = a.riskEn;
+    const v = J && J[a.adp] && typeof J[a.adp] === 'object' ? J[a.adp] : null; const f = v && v.facts && typeof v.facts === 'object' ? v.facts : null;
+    if (f && A40(f.tok)) m.rewardTok = A40(f.tok);
+    const known = !!f && Number.isFinite(f.until) && Number.isFinite(f.now); m.status = known ? (f.until > f.now ? '' : 'live') : ''; m.paused = known && f.until > f.now ? f.until * 1000 : 0;
+    m.adpV = v ? { at: +J.at || 0, on: v.on ? 1 : 0, maxN: fin(v.maxN), price: f ? WEI(f.price) : null, delay: f ? fin(f.delay) : null,
+      wallets: (Array.isArray(v.wallets) ? v.wallets : []).map((x) => ({ w: S40(x?.w), lockedWei: WEI(x?.lockedWei), lockedN: fin(x?.lockedN), due: fin(x?.due), nextAt: fin(x?.nextAt), today: fin(x?.today), why: S40(x?.why) })) } : null;
+    out.push(m); }
+  return out; }
 let MI = null; const miF = () => path.join(C.DATA, 'mine_info.json');
 function mineInfo() { if (!MI) MI = readJSON(miF(), { c: {}, t: {} }); return MI; }
 function mineAll(v, set) {
   const I = mineInfo(); const out = [];
   for (const x of v?.remote?.mine || readJSON(path.join(C.DATA, 'remote.json'), {}).mine || []) { const m = mineNorm(x, 'official'); if (m) out.push(m); }
+  try { for (const m of mineAdp()) out.push(m); } catch {} /* AGC-BACK */
   for (const x of Array.isArray(set?.['mine.my']) ? set['mine.my'] : []) { const m = mineNorm(x, 'mine'); if (m) { m.id = 'my:' + String(x.id || '').replace(/[^\w.-]/g, '').slice(0, 40); out.push(m); } }
   for (const m of out) { const ci = m.c ? I.c[m.chain + ':' + m.c] : null; if (m.verified !== 1 && ci?.v === true) m.verified = 1; m.vAt = ci?.at || null; const ti = m.rewardTok ? I.t[m.rewardTok] : null; m.pool = ti && ti.pool != null ? Math.round(ti.pool) : null; m.poolAt = ti?.at || null; }
   return out;
@@ -175,7 +194,7 @@ async function boardPage(o) {
 /* ───── ① ② 看盘快照补资料 ───── */
 function aug(v, S) {
   if (!v) return v; const set = readJSON(C.SET, {});
-  for (const x of v.board || []) { const P = S?.paid?.[x.c]; if (!P) continue; const m = P.mw; if (m) x.mw = { ai: m.ai, gen: m.gen, unk: m.unk, tot: m.tot, n1: m.new1h, n1r: m.new1hRaw, n1ai: m.new1hAi, w5: m.w5, w15: m.w15, w60: m.w60, at: m.at, why: m.why1h || '', part: m.part || 0, since: m.since }; x.agP = P.agents ?? null; x.agN = P.agNow ?? null; x.agT = P.agTrunc ? 1 : 0; /* AGN-1103 */ x.agAt = P.agNowAt || null; if (P.soldOut) x.soldOut = 1; if (/^0x[0-9a-fA-F]{40}$/.test(String(P.tok || ''))) x.tok = String(P.tok).toLowerCase(); /* AI-BOARD5：铸出来的代币地址（看开盘用） */ }
+  for (const x of v.board || []) { const P = S?.paid?.[x.c]; if (!P) continue; const m = P.mw; if (m) x.mw = { ai: m.ai, gen: m.gen, unk: m.unk, tot: m.tot, n1: m.new1h, n1lb: m.new1hLb ?? null /*V104-NEW1HLB*/, n1r: m.new1hRaw, n1ai: m.new1hAi, w5: m.w5, w15: m.w15, w60: m.w60, at: m.at, why: m.why1h || '', part: m.part || 0, since: m.since }; x.agP = P.agents ?? null; x.agN = P.agNow ?? null; x.agT = P.agTrunc ? 1 : 0; /* AGN-1103 */ x.agAt = P.agNowAt || null; if (P.soldOut) x.soldOut = 1; if (/^0x[0-9a-fA-F]{40}$/.test(String(P.tok || ''))) x.tok = String(P.tok).toLowerCase(); /* AI-BOARD5：铸出来的代币地址（看开盘用） */ }
   { const F = readJSON(path.join(C.DATA, 'force_status.json'), null); v.forceStat = F && Array.isArray(F.list) ? F.list.slice(-8).reverse() : []; }
   try { const L = mineAll(v, set); v.mineL = { ai: L.filter((m) => m.scope === 'ai'), gen: L.filter((m) => m.scope === 'gen') }; } catch { v.mineL = { ai: [], gen: [] }; }
   try { const d = path.join(C.DATA, 'weekly'); if (fs.existsSync(d)) { const f = fs.readdirSync(d).filter((x) => /^\d{4}-\d{2}-\d{2}(-\d{2})?\.json$/.test(x)).sort().pop(); if (f) { const j = readJSON(path.join(d, f), null); if (j) v.weeklyLast = { at: j.at, auto: j.auto ? 1 : 0, f }; } } } catch {}
@@ -215,7 +234,7 @@ async function mbProgOne(R, c) { const h = MBP.get(c); if (h && Date.now() - h.a
 async function mintProg(o) { const net = o.net === 'rh' ? 'rh' : 'bsc'; const R = mbRpc(net); if (!R) return { err: '读链模组还没准备好，稍后再试' }; const cs = (Array.isArray(o.cs) ? o.cs : []).map(A40).filter(Boolean).slice(0, MB_PROG_N); const p = {}; await Promise.all(cs.map(async (c) => { p[c] = await mbProgOne(R, c); })); return { p }; }
 function mbCands(net, kind) { const S = readJSON(path.join(C.DATA, 'watch_state.json'), {}) || {}; const H = readJSON(path.join(C.DATA, 'radar_hist.json'), {}) || {}; const out = new Map();
   const add = (c, o) => { c = A40(c); if (!c || out.has(c)) return; out.set(c, { c, ...o }); }; const dn = (D) => (D && typeof D === 'object' && Object.keys(D).length ? 1 : 0);
-  if (net === 'bsc' && kind === 'tok') for (const [c, Pp] of Object.entries(S.paid || {})) add(c, { tok: A40(Pp.tok), name: String(Pp.name || '').slice(0, 40), at: +Pp.at || 0, prog: Pp.progress != null ? Math.round(Pp.progress * 100) : null, done: Object.values(Pp.done || {}).some((x) => x === 'minted' || x === 'free') ? 1 : 0 });
+  if (net === 'bsc' && kind === 'tok') for (const [c, Pp] of Object.entries(S.paid || {})) add(c, { tok: A40(Pp.tok), name: String(Pp.name || '').slice(0, 40), at: +Pp.at || 0, prog: Pp.progress > 0 ? Math.round(Pp.progress * 100) : null /*V104-CAPSANE：读不到＝不显示百分比*/, done: Object.values(Pp.done || {}).some((x) => x === 'minted' || x === 'free') ? 1 : 0 });
   if (net === 'bsc' && kind === 'nft') for (const [c, M] of Object.entries(S.bscNft?.m || {})) add(c, { name: String(M.name || M.sym || '').slice(0, 40), at: +M.first || 0, done: dn(M.done) });
   if (net === 'rh') for (const [c, M] of Object.entries(S.rh?.mint || {})) if (!!M.nft === (kind === 'nft')) add(c, { name: String(M.name || M.sym || '').slice(0, 40), at: +M.first || 0, done: dn(M.done) });
   const pre = net === 'rh' ? 'rh:' : kind === 'nft' ? 'nft:' : 'bsc:'; if (!(net === 'rh' && kind === 'nft')) for (const [k, a] of Object.entries(H)) if (k.startsWith(pre) && Array.isArray(a) && a.length) add(k.slice(pre.length), { name: '', at: +a[0]?.t || 0, hist: 1 });

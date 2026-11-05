@@ -87,13 +87,27 @@ rm -f data_wallets.txt
 echo ""
 echo "[罗宾猫雷达] 正在安装桌面视窗（第一次大约要 1～3 分钟）…"
 ( cd radar && if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi )
+# V104-ELEC：Electron 执行档不在＝下载失败（大陆常连不上 GitHub）→ 先用国内镜像直接重下，再不行用国内镜像重装；还是不行就不建桌面捷径、不开视窗，印原因和手动指令
 if [ ! -d radar/node_modules/electron/dist/Electron.app ]; then
   echo "桌面视窗元件（Electron）没下载完整，改用国内镜像（npmmirror）再试一次…"
-  ( cd radar && ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/" npm ci --no-audit --no-fund --registry=https://registry.npmmirror.com )
+  [ -f radar/node_modules/electron/install.js ] && ( cd radar && ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/" node node_modules/electron/install.js )
+  [ -d radar/node_modules/electron/dist/Electron.app ] || ( cd radar && ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/" npm ci --no-audit --no-fund --registry=https://registry.npmmirror.com )
 fi
-[ -d radar/node_modules/electron/dist/Electron.app ] || echo "⚠️ 桌面视窗元件还是没装好（网络被挡？）。引擎照样会装好、在背景跑；之后网络正常时再执行一次这个安装档就好"
+EOK=1; [ -d radar/node_modules/electron/dist/Electron.app ] || EOK=""
 chmod +x "启动罗宾猫雷达-Mac.command" "start_loop.sh" 2>/dev/null
-ln -sf "$(pwd)/启动罗宾猫雷达-Mac.command" "$HOME/Desktop/罗宾猫雷达.command" && echo "桌面已建立「罗宾猫雷达」"
+if [ -n "$EOK" ]; then
+  ln -sf "$(pwd)/启动罗宾猫雷达-Mac.command" "$HOME/Desktop/罗宾猫雷达.command" && echo "桌面已建立「罗宾猫雷达」"
+else
+  echo ""
+  echo "⚠️ 桌面视窗元件还是没装好（Electron 下载失败，常见原因：连不上 GitHub）。"
+  echo "   这次先不建立桌面捷径；引擎照样会装好、在背景跑，自动买卖不受影响。"
+  echo "   修好的方法（二选一）："
+  echo "   1. 网络正常后（或开 VPN），再执行一次这个「一键安装-Mac.command」"
+  echo "   2. 手动：打开「终端机」，依序输入下面两行（每行输完按回车键）："
+  echo "      cd \"$(pwd)/radar\""
+  echo "      ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ npm ci --registry=https://registry.npmmirror.com"
+  echo "   装好后再执行一次安装档就会建立桌面捷径。"
+fi
 
 # ---- 5. 开机自动启动 + 现在启动 ----
 echo ""
@@ -114,12 +128,12 @@ cat > "$PL" <<EOF
 </dict></plist>
 EOF
 launchctl unload "$PL" 2>/dev/null; launchctl load "$PL" && echo "已设定开机自动启动"
-open "$HOME/Desktop/罗宾猫雷达.command" 2>/dev/null || ./启动罗宾猫雷达-Mac.command &
+if [ -n "$EOK" ]; then open "$HOME/Desktop/罗宾猫雷达.command" 2>/dev/null || ./启动罗宾猫雷达-Mac.command & fi
 echo ""
 echo "=============================================="
-echo "  ✅ 安装完成，工具已在背景运行，罗宾猫雷达视窗也打开了"
+if [ -n "$EOK" ]; then echo "  ✅ 安装完成，工具已在背景运行，罗宾猫雷达视窗也打开了"; else echo "  ✅ 安装完成，工具已在背景运行（桌面视窗元件没装好，视窗这次没打开，照上面的方法装好就行）"; fi
 echo "  - 第一次打开雷达：输入邀请码、连接钱包；买卖条件全部预设关，自己开、自己填（没开就不会自动打）"
-echo "  - 桌面上的「罗宾猫雷达」可以随时打开视窗"
+[ -n "$EOK" ] && echo "  - 桌面上的「罗宾猫雷达」可以随时打开视窗"
 echo "  - 日志：data/watch.log"
 echo "  - 停止：在这个资料夹建立一个叫 WATCH_STOP 的文件"
 echo "  - Mac 要保持不睡眠（系统设定 → 电池／能源 → 防止自动睡眠），不然会漏单"

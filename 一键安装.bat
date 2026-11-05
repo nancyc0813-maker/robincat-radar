@@ -99,28 +99,49 @@ echo [罗宾猫雷达] 正在安装桌面视窗（第一次大约要 1～3 分�
 pushd radar
 if exist package-lock.json (call npm ci --no-audit --no-fund) else (call npm install --no-audit --no-fund)
 popd
+REM V104-ELEC：electron.exe 不在＝下载失败（大陆常连不上 GitHub）→ 先用国内镜像直接重下，再不行用国内镜像重装；还是不行就不建桌面捷径、不开视窗，印原因和手动指令
 if not exist radar\node_modules\electron\dist\electron.exe (
   echo 桌面视窗元件（Electron）没下载完整，改用国内镜像（npmmirror）再试一次...
   set "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/"
+  if exist radar\node_modules\electron\install.js node radar\node_modules\electron\install.js
+)
+if not exist radar\node_modules\electron\dist\electron.exe (
+  echo 还是没有，改用国内镜像重新安装桌面视窗元件...
   pushd radar
   call npm ci --no-audit --no-fund --registry=https://registry.npmmirror.com
   popd
 )
-if not exist radar\node_modules\electron\dist\electron.exe echo ⚠️ 桌面视窗元件还是没装好（网络被挡？）。引擎照样会装好、在背景跑；之后网络正常时再执行一次这个安装档就好
+set "EOK=1"
+if not exist radar\node_modules\electron\dist\electron.exe set "EOK="
+if defined EOK goto :desk_link
+echo.
+echo ⚠️ 桌面视窗元件还是没装好（Electron 下载失败，常见原因：连不上 GitHub）。
+echo    这次先不建立桌面捷径（免得点了跳「系统找不到指定的文件」）；引擎照样会装好、在背景跑，自动买卖不受影响。
+echo    修好的方法（二选一）：
+echo    1. 网络正常后（或开 VPN），再执行一次这个「一键安装.bat」
+echo    2. 手动：打开「命令提示符」（cmd），依序输入下面三行，每行按 Enter：
+echo       cd /d "%~dp0radar"
+echo       set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+echo       npm ci --registry=https://registry.npmmirror.com
+echo    装好后再执行一次「一键安装.bat」就会建立桌面捷径。
+goto :desk_done
+:desk_link
 REM 桌面捷径：用 Windows 真正的桌面位置（开了 OneDrive 备份时桌面在 OneDrive 里）
 node -e "const p=require('path'),fs=require('fs'),os=require('os');let d='';try{d=require('child_process').execFileSync('powershell',['-NoProfile','-Command',`[Console]::OutputEncoding=[Text.Encoding]::UTF8;[Environment]::GetFolderPath('Desktop')`],{encoding:'utf8'}).trim()}catch{}if(!d||!fs.existsSync(d))d=p.join(os.homedir(),'Desktop');const f=p.join(d,'罗宾猫雷达.vbs');const t='CreateObject(\"WScript.Shell\").Run \"\"\"'+p.join(process.cwd(),'radar','启动罗宾猫雷达.vbs')+'\"\"\", 0, False\r\n';try{fs.writeFileSync(f,Buffer.concat([Buffer.from([0xff,0xfe]),Buffer.from(t,'utf16le')]));console.log('桌面已建立「罗宾猫雷达」')}catch(e){console.log('建立桌面捷径失败，可以直接点 radar\\启动罗宾猫雷达.vbs')}"
+:desk_done
 
 REM ---- 5. 开机自动启动 + 现在启动 ----
 echo.
 echo [5/5] 设定开机自动启动
 node -e "const p=require('path'),fs=require('fs');const f=p.join(process.env.APPDATA,'Microsoft','Windows','Start Menu','Programs','Startup','robincat-radar-engine.vbs');const t='CreateObject(\"WScript.Shell\").Run \"\"\"'+p.join(process.cwd(),'start_hidden.vbs')+'\"\"\", 0, False\r\n';fs.writeFileSync(f,Buffer.concat([Buffer.from([0xff,0xfe]),Buffer.from(t,'utf16le')]));console.log('已设定开机自动启动')"
 start "" wscript "%~dp0start_hidden.vbs"
-start "" wscript "%~dp0radar\启动罗宾猫雷达.vbs"
+if defined EOK start "" wscript "%~dp0radar\启动罗宾猫雷达.vbs"
 echo.
 echo ==============================================
-echo   ✅ 安装完成，工具已在背景运行，罗宾猫雷达视窗也打开了
+if defined EOK echo   ✅ 安装完成，工具已在背景运行，罗宾猫雷达视窗也打开了
+if not defined EOK echo   ✅ 安装完成，工具已在背景运行（桌面视窗元件没装好，视窗这次没打开，照上面的方法装好就行）
 echo   - 第一次打开雷达：输入邀请码、连接钱包；买卖条件全部预设关，自己开、自己填（没开就不会自动打）
-echo   - 桌面上的「罗宾猫雷达」可以随时打开视窗
+if defined EOK echo   - 桌面上的「罗宾猫雷达」可以随时打开视窗
 echo   - 日志：data\watch.log
 echo   - 停止：在这个资料夹建立一个叫 WATCH_STOP 的文件
 echo   - 有新版时雷达右上角会提醒（TG 提醒要自己在设定打开）；在雷达按更新或 TG 回「更新」才会更新，更新失败不会自动退回旧版

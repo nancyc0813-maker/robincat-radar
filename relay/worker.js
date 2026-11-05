@@ -56,6 +56,18 @@ async function checkBind(env, o) { /* o＝{ w, k, c, s, v }（POST /session 的�
   return ok ? '' : '邀请绑定的签名核对不过';
 }
 async function inList(env, w) { const rw = await members(env); if (!rw) return false; const h = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode('rcrelay1:' + w))).slice(0, 12)); return rw.has(h); }
+/* ── V105-2（11/5）积分 points.json／X 监测 xwatch.json 镜像（大陆读不到 GitHub 时雷达改读这里）：跟 /invites.json 同一套 —— 原样的官方签名档；
+   转接站先核对官方签名、type 要对、seq 不能比上次收过的旧（记在 sig-seq 物件，全球一致），雷达拿到后照样自己再验一次 ── */
+const MIRROR = { points: { ms: 10 * 60e3 }, xwatch: { ms: 2 * 60e3 } }; /* 技术用：多久重新抓一次（跟雷达读 GitHub 的间隔一样） */
+const MIRROR_RETRY_MS = 60e3; /* 技术用：抓失败后多久再试（失败时继续给手上验过的那份） */
+async function offVerify(j) { if (typeof j?.data !== 'string' || typeof j?.sig !== 'string') return false; const key = await crypto.subtle.importKey('spki', Uint8Array.from(atob(OFFICIAL_PUB), (c) => c.charCodeAt(0)), { name: 'Ed25519' }, false, ['verify']); return await crypto.subtle.verify({ name: 'Ed25519' }, key, Uint8Array.from(atob(j.sig), (c) => c.charCodeAt(0)), enc.encode(j.data)); }
+async function mirrorGet(env, name) { const C = MIRROR[name]; if (!C.raw) C.raw = ''; if (!C.seq) C.seq = 0; if (!C.at) C.at = 0;
+  if (Date.now() - C.at >= C.ms) { C.at = Date.now();
+    try { const j = await (await fetch(OFFI.DATA_RAW + name + '.json?t=' + Math.floor(Date.now() / C.ms), { cf: { cacheTtl: 60 } })).json(); if (!(await offVerify(j))) throw new Error('sig');
+      const D = JSON.parse(j.data); if (!D || D.type !== name || !Number.isSafeInteger(D.seq)) throw new Error('type'); if (D.seq < C.seq || !(await seqOk(env, name, D.seq))) throw new Error('old');
+      C.raw = JSON.stringify({ data: j.data, sig: j.sig }); C.seq = D.seq; }
+    catch { C.at = Date.now() - C.ms + MIRROR_RETRY_MS; } }
+  return C.raw ? new Response(C.raw, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }) : J({ err: 'not loaded' }, 503); }
 /* ── V105-1（11/5）雷达内直接绑定（不经过 TG）──
    雷达用钱包签好的「邀请绑定」（EIP-712，跟 TG「绑定 RCB1.」同一份签名）→ POST /bind { w, k, c, s, v }。转接站只核对签名（三种 domain，跟 checkBind／bind.mjs BIND_VC 一样），
    放进 Durable Object「bind-q」的队列；老板电脑的邀请机器人每 30 秒用线上金钥（online.pem，ONLINE_PUBKEY 核对）签名 POST /bind/queue 取走、照原本 TG 那套验证登记、回写结果；
@@ -243,6 +255,8 @@ export default {
     if (u.pathname === '/bind/queue' && req.method === 'POST') return bindQueue(req, env); /* V105-1：官方邀请机器人取队列＋回写结果（线上金钥签名） */
     if (req.method !== 'GET') return new Response('method', { status: 405 });
     if (u.pathname === '/ave') return aveProxy(req, u, env);
+    if (u.pathname === '/points.json') return mirrorGet(env, 'points'); /* V105-2：积分镜像 */
+    if (u.pathname === '/xwatch.json') return mirrorGet(env, 'xwatch'); /* V105-2：X 监测镜像 */
     if (u.pathname === '/bind/status') return bindStat(u, env); /* V105-1 */
     if (u.pathname === '/avews') return aveWsRoute(req, env); /* AVE-WSS（11/4）：即时推送（WebSocket） */
     if (u.pathname === '/avestat') { const C = await sessOf(req, env); if (!C || C.id !== 'owner') return J({ err: 'session' }, 401); return J(await (await env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter_get')).json()); } /*RISK-FIX 10：只有作者通行证看得到今天的 AVE 用量（REST 单位＋WSS 订阅／推送），跟 AVE 对帐用 */

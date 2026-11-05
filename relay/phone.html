@@ -800,12 +800,16 @@ function fillHold() {
 /* PHONE-4：挖矿部位（手机只能看）。电脑把引擎的 data/mine_pos.json 原样放在 ST.mine＝{ at, items:[{ id, src, name, url, chain, token, status, costUsd, qty(字串), priceUsd, valueUsd, liqUsd, wallets:[…], why }] }；
    ST.mine 是 null／不是这个格式＝「读不到」，个别栏位读不到也写「读不到」，不猜 */
 const usdOr = (v) => v != null && v !== '' && isFinite(+v) ? money(+v) : '读不到';
+/* AGC-BACK：雷达会挖的 AGC（挖矿部位里的 agc 栏位）：开关、押着多少、可领几笔、今天挖几份。只显示 */
+function agcPh(a) { if (!a || typeof a !== 'object') return ''; const P = [a.on ? (a.maxN != null ? '自动挖：开（每个钱包每天最多 ' + a.maxN + ' 份）' : '自动挖：开，但份数没填（不会挖）') : '自动挖：关'];
+  try { if (a.lockedWei != null) P.push('押着 ' + (Number(BigInt(a.lockedWei)) / 1e18).toFixed(4).replace(/\.?0+$/, '') + ' BNB（' + (a.lockedN ?? '?') + ' 笔）'); } catch {}
+  if (a.due > 0) P.push('可领回 ' + a.due + ' 笔'); if (a.nextAt > 0) P.push('下一笔 ' + new Date(+a.nextAt).toLocaleString('zh-CN', { hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' 可领'); if (a.today != null) P.push('今天挖了 ' + a.today + ' 份'); return P.join(' · '); }
 function mineHold() { if (!ST) return ''; const M = ST.mine; const L = M && Array.isArray(M.items) ? M.items.filter(Boolean) : null;
   const head = `<div class="sech">⛏ 挖矿部位${L ? ` <span class="cnt">${L.length}</span>` : ''}${L && +M.at > 0 ? `<small>${esc(agoMs(+M.at))}更新</small>` : ''}</div>`;
   if (!L) return head + '<div class="empty">读不到</div>';
   if (!L.length) return head + '<div class="empty">目前没有挖矿部位</div>';
   return head + L.map((m) => { const ws = Array.isArray(m.wallets) ? m.wallets.map((w) => String(w && typeof w === 'object' ? (w.name || w.addr || '') : w)).filter(Boolean) : []; const ok = typeof m.url === 'string' && /^https:\/\//.test(m.url);
-    return `<div class="hr"><div class="tr"><div class="nm"><div class="t"><b>${esc(m.name || '读不到名称')}</b>${m.chain ? `<span class="tag">${esc(/*PH3-MH*/m.chain === 'rh' ? 'Robinhood' : m.chain === 'bsc' ? 'BNB Chain' : String(m.chain))}</span>` : ''}${m.status ? `<span class="tag"${m.status === 'live' ? ' style="color:#2ebd85"' : ''}>${esc({ live: '进行中', soon: '还没开始', ended: '已结束' }[m.status] || String(m.status))}</span>` : ''}</div><small style="white-space:normal">数量 ${m.qty != null && m.qty !== '' ? esc(String(m.qty)) : '读不到'}${m.token ? ' <span title="' + esc(String(m.token)) + '">' + esc(/^0x[0-9a-fA-F]{40}$/.test(String(m.token)) ? String(m.token).slice(0, 6) + '…' + String(m.token).slice(-4) : String(m.token)) + '</span>' : ''} · 成本 ${usdOr(m.costUsd)} · 单价 ${usdOr(m.priceUsd)} · 池子 ${usdOr(m.liqUsd)}${ws.length ? ' · ' + esc(ws.join('、')) : ''}${m.why ? '<br>' + esc(String(m.why)) : ''}</small></div><div class="rt"><b>${usdOr(m.valueUsd)}</b>${ok ? `<small><a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">打开 ↗</a></small>` : ''}</div></div></div>`; }).join(''); }
+    return `<div class="hr"><div class="tr"><div class="nm"><div class="t"><b>${esc(m.name || '读不到名称')}</b>${m.chain ? `<span class="tag">${esc(/*PH3-MH*/m.chain === 'rh' ? 'Robinhood' : m.chain === 'bsc' ? 'BNB Chain' : String(m.chain))}</span>` : ''}${m.status ? `<span class="tag"${m.status === 'live' ? ' style="color:#2ebd85"' : ''}>${esc({ live: '进行中', soon: '还没开始', ended: '已结束' }[m.status] || String(m.status))}</span>` : ''}</div><small style="white-space:normal">数量 ${m.qty != null && m.qty !== '' ? esc(String(m.qty)) : '读不到'}${m.token ? ' <span title="' + esc(String(m.token)) + '">' + esc(/^0x[0-9a-fA-F]{40}$/.test(String(m.token)) ? String(m.token).slice(0, 6) + '…' + String(m.token).slice(-4) : String(m.token)) + '</span>' : ''} · 成本 ${usdOr(m.costUsd)} · 单价 ${usdOr(m.priceUsd)} · 池子 ${usdOr(m.liqUsd)}${ws.length ? ' · ' + esc(ws.join('、')) : ''}${m.agc ? '<br>' + esc(agcPh(m.agc)) : ''}${m.why ? '<br>' + esc(String(m.why)) : ''}</small></div><div class="rt"><b>${usdOr(m.valueUsd)}</b>${ok ? `<small><a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">打开 ↗</a></small>` : ''}</div></div></div>`; }).join(''); }
 /* PHONE-4：挖矿提醒＝引擎的 data/mine_alerts.json（[{ at, id, name, liqUsd, text }]），电脑放在 ST.mineAlerts。设定页有卡片；这次打开之后的新提醒也跳提示 */
 const MASEEN = new Set(); const MA_T0 = Date.now();
 function mineAlertCard() { const L = Array.isArray(ST?.mineAlerts) ? ST.mineAlerts.filter(Boolean) : null; if (!L || !L.length) return ''; return `<div class="card"><h4>⛏ 挖矿提醒</h4><p class="note">只提醒，不会帮你做任何动作。</p>${L.map((x) => `<div class="qrow"><span>${esc(x.at ? agoMs(+x.at) : '')} ${esc(x.name || '')}</span><b>${esc(String(x.text || ''))}${x.liqUsd != null ? ' · 池子 ' + usdOr(x.liqUsd) : ''}</b></div>`).join('')}</div>`; }
@@ -818,6 +822,15 @@ function uxMeCards() { const d = document.createElement('div'); d.innerHTML = pg
 const uxIsSet = (c) => /自订策略|快速买卖设定/.test(c.querySelector?.('h4')?.textContent || '');
 function pgSet() { return `<div class="ptitle">🎯 自订策略</div><div class="psub">跟电脑「🎯 自订策略」同一套；快速买卖金额只能在电脑改</div><div style="height:8px"></div>` + uxMeCards().filter((c) => c.classList.contains('card') && uxIsSet(c)).map((c) => c.outerHTML).join(''); }
 function pgMore() { return uxMeCards().filter((c) => !(c.classList.contains('card') && uxIsSet(c))).map((c) => c.outerHTML).join(''); }
+/* PTS-1105:phfn 积分卡（手机只看；资料是电脑雷达从官方签名的 points.json 算好带过来的，数字一个都不写死；读不到＝写「积分资料暂时读不到」） */
+const PTSO = { d: 0, t: 0 }; document.addEventListener('toggle', (e) => { const k = e.target?.dataset?.pto; if (k) PTSO[k] = e.target.open ? 1 : 0; }, true);
+function ptsCard() { const P = ST?.pts; const hd = '<div class="card"><h4>🏅 我的积分</h4>';
+  if (!P || !P.ok) return hd + '<p class="note">积分资料暂时读不到</p></div>';
+  const M = P.mine, R = P.rules || {}; const kn = (k) => k === 'inv' ? '有效邀请' : k === 'act' ? '持续使用' : (/^m:(.+)$/.test(k) ? (R.manual?.[k.slice(2)]?.zh || k.slice(2)) : k); const stN = (s) => s === 'ok' ? '已入帐' : s === 'pd' ? '待确认' : '审核中'; const ico = (s) => s === 'ok' ? '✅' : s === 'pd' ? '⏳' : '🔎'; const why = (w) => w === 'wait' ? '等满观察期' : w === 'act' ? '等链上交易' : w === 'rpc' ? '链上资料读取中' : '';
+  let h = hd + (M ? `<div class="qrow"><span>已入帐／待确认</span><b>${M.ok}／${M.pd}</b></div>${M.rv ? `<div class="qrow"><span>审核中</span><b>${M.rv}</b></div>` : ''}<div class="qrow"><span>名次</span><b>${M.rk ? '第 ' + M.rk + ' 名' : '还没上榜'}</b></div>` : `<p class="note">${P.pending ? '计算中…' : '还没有积分'}</p>`);
+  if (M) h += '<p class="note">📋 明细请在 TG 机器人传「积分」查看 <a href="https://t.me/RobinCatRadar_bot" target="_blank" rel="noopener">打开 TG 机器人</a></p>'; /* PTS-1105:phfn2 公开档不放明细（隐私） */
+  const T = P.top || []; h += `<details data-pto="t" ${PTSO.t ? 'open' : ''}><summary class="note">🏆 积分排行（前 ${R.top || T.length} 名）</summary>${T.length ? T.map((x) => `<div class="qrow"><span>${x.rk}. ${esc(x.pub ? x.n : '#' + x.n)}</span><b>${x.ok}</b></div>`).join('') : '<p class="note">还没有人有已入帐的积分</p>'}</details>`;
+  return h + '</div>'; }
 function pgMe() {
   const qrows = (net) => { const I = qbInfo(net); if (!I) return '<div class="qrow"><span>没设</span></div>'; const us = UNITS(net); return (us.length ? us : ['']).map((u) => { const v = I.get(u).filter((x) => x > 0); return `<div class="qrow"><span>${NET_N(net)} · ${esc(u === 'U' ? 'U（USDT）' : u || '-')}</span><b>${v.length ? esc(v.join(' / ')) : '<span class="mu">电脑还没设</span>'}</b></div>`; }).join(''); };
   return `<div class="ptitle">更多</div><div class="psub">紧急全停、安全哨兵、设定（电脑上在「⚙️ 设定」里）</div><div style="height:8px"></div>
@@ -825,7 +838,7 @@ function pgMe() {
   <div class="card"><h4>⚡ 快速买卖设定（只能在电脑改）</h4><p class="note">照电脑雷达的「⚡ 快速买卖设定」，手机不能改——就算手机掉了，别人也没办法用它买超过你设的金额。买的时候可以选这次用哪一组。</p>${qrows('bsc')}${qrows('rh')}</div>
   ${sentCard()}
   ${mineAlertCard()}
-  ${mpkCard()}<div class="card"><h4>✨ 叫 AI 加功能</h4><p class="note">想要新的面板、提醒或筛选？在电脑雷达「✨ AI 加功能」写下需求、复制给你的 AI，再把 AI 回的那段贴回来安装。为了安全，手机不能装外挂。</p></div><!--UXP2-AICARD-->
+  ${mpkCard()}${ptsCard()}<!--PTS-1105:phcard--><div class="card"><h4>✨ 叫 AI 加功能</h4><p class="note">想要新的面板、提醒或筛选？在电脑雷达「✨ AI 加功能」写下需求、复制给你的 AI，再把 AI 回的那段贴回来安装。为了安全，手机不能装外挂。</p></div><!--UXP2-AICARD-->
   <div class="card"><h4>📲 加到主画面</h4><p class="note">iPhone：Safari 下方「分享」→「加入主画面」。<br>Android：Chrome 右上角「⋮」→「加到主画面」。<br>加好之后从主画面的罗宾猫图标打开就好。</p></div>
   <div class="card"><h4>📱 这支手机</h4><p class="note">电脑雷达 ${esc(ST?.ver ? 'v' + ST.ver : '')} · ${PC_ON ? '在线' : '离线'}<br>手机遗失：回电脑雷达按「解除旧手机」，这支手机就再也连不上。</p><button class="btn r" data-a="unpair" style="width:100%">这支手机取消配对</button></div>`;
 }

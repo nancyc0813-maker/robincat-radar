@@ -69,7 +69,8 @@
   "do": "relay/worker.js 内部的 Durable Object／快取假网址，不出 Cloudflare",
   "ave-cache.robincat": "relay/worker.js 内部的 Durable Object／快取假网址，不出 Cloudflare",
   "docs": "radar/air.cjs 组空投官网子网域（https://docs.＋网域），网域来自玩家点的空投清单",
-  "blog": "radar/air.cjs 组空投官网子网域（https://docs.＋网域），网域来自玩家点的空投清单"
+  "blog": "radar/air.cjs 组空投官网子网域（https://docs.＋网域），网域来自玩家点的空投清单",
+  "agcc.fun": "AGC 挖矿官网（AGC-BACK：只用来让你按「看项目」打开网页；雷达不从这个网站读资料，挖／领回只走链上合约、经过统一动作闸门）"
  },
  "allow": [
   {
