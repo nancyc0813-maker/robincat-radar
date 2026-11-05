@@ -5,7 +5,7 @@ const rhConds = (o) => [ /* NJ-1103：Robinhood 热门代币的条件（照你�
   { k: 'rh.minRealBuyers', name: RHC.realWinMin != null ? `${RHC.realWinMin} 分钟内真实买家` : '真实买家（没填「几分钟内」）', unit: ' 个', op: '>=', v: RHC.realWinMin != null ? o.real : null, missWhy: RHC.realWinMin != null ? undefined : '你没填「几分钟内」' }, /* 「几分钟内」空白＝读不到（不买），不拿掉这条 */ { k: 'rh.maxBundle', name: '捆绑钱包持有', unit: '%', op: '<=', v: o.bundle },
   { k: 'rh.maxTop10', name: '前 10 大持有', unit: '%', op: '<=', v: o.top10 }, { k: 'rh.maxDev', name: '部署者自己持有', unit: '%', op: '<=', v: o.dev },
   { k: 'rh.mcMin', name: '市值', unit: ' U', op: '>=', v: o.mc }, { k: 'rh.mcMax', name: '市值', unit: ' U', op: '<=', v: o.mc }, { k: 'rh.maxRoundTrip', name: '模拟买进马上卖的亏损', unit: '%', op: '<=', v: o.rt },
-  { k: 'rh.needSmart', name: '你标记的聪明钱包买过', op: 'yes', v: o.smart }, { k: 'rh.needCall', name: '被你监测的频道／帐号喊过', op: 'yes', v: o.call }, { k: 'rh.needSocial', name: '有官方 X／TG', op: 'yes', v: o.social } ];
+  { k: 'rh.needSmart', name: '你标记的聪明钱包买过', op: 'yes', v: o.smart }, { k: 'rh.needCall', name: '被你监测的频道／帐号喊过', op: 'yes', v: o.call }, { k: 'rh.needSocial', name: '有官方 X／TG', op: 'yes', v: o.social }, { k: 'rh.kolMin', name: 'KOL 持有', unit: ' 位', op: '>=', v: o.kol, missWhy: o.kolWhy, bk: o.kolBk } ]; /* KOL-AVE */
 const rhJ = (o) => (globalThis.NR?.judge ? globalThis.NR.judge('rh', rhConds(o)) : { buy: false, why: '设定还没载入', lines: [], text: '设定还没载入，不会买' });
 export const RHC = { /* NR-1103（11/3 Nancy）：程式里不留任何官方数字。全部来自你的设定 rh.*；没开／没填 = 「至少」类 0、「最多」类无限大、金额 null（不自动买） */
   usd: null, dayUsd: null, /* apply() 定期照你的设定更新 */ maxPos: Infinity, maxAgeMin: Infinity, minLiqUsd: 0, minRealBuyers: 0, real: 0, oldNonce: 0, minEth: 0, earlySec: null, freshNonce: null, sameAmtN: null,
@@ -146,7 +146,7 @@ export function startRH(ctx) {
     if (!manual) { { const J = rhJ(o); if (J.buy === false) return { ok: false, why: J.text, facts, J }; }
       if (num('rh.mcMin') != null || num('rh.mcMax') != null) { o.mc = null; try { const ps = await (await fetch('https://api.dexscreener.com/tokens/v1/robinhood/' + c, { signal: AbortSignal.timeout(10000) })).json(); const mc = Math.max(0, ...(Array.isArray(ps) ? ps : []).map((p) => +(p.marketCap || p.fdv) || 0)); if (mc > 0) o.mc = mc; } catch {} } /* 市值读不到＝算「读不到」 */
       if (on('rh.needSmart')) o.smart = !!(S.smartW?.seen?.['robinhood' + c + '买'] && (num('rh.smartWinH') == null || Date.now() - S.smartW.seen['robinhood' + c + '买'] < num('rh.smartWinH') * 3600e3));
-      if (on('rh.needCall')) o.call = !!(S.callHits?.[c]?.length);
+      if (on('rh.needCall')) o.call = !!(S.callHits?.[c]?.length); if (on('rh.kolMin.on')) Object.assign(o, globalThis.kolO ? globalThis.kolO('rh', 'rh', c) : { kol: null, kolWhy: '雷达本体还没载入 KOL 判断' }); /* KOL-AVE：读不到＝照你选的 rh.kolMin.miss */
       if (on('rh.needSocial')) { o.social = null; try { const ps = await (await fetch('https://api.dexscreener.com/tokens/v1/robinhood/' + c, { signal: AbortSignal.timeout(10000) })).json(); o.social = (Array.isArray(ps) ? ps : []).some((p) => (p.info?.socials || []).some((x) => /twitter|x\.com|telegram|t\.me/i.test((x.type || '') + ' ' + (x.url || '')))); } catch {} } /* 读不到＝算「读不到」 */
       { const J = rhJ(o); if (J.buy === false) return { ok: false, why: J.text, facts, J }; } }
     if (opt.noQuote) return { ok: true, why: '（回测）链上检查全部通过' + (manual ? '' : '：' + rhJ(o).text), facts };

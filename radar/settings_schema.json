@@ -2828,6 +2828,72 @@
    "cname": "有 KOL 喊单"
   },
   {
+   "k": "gen.kolMin.on",
+   "g": "gen",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "KOL 持有才买",
+   "en": "Only if KOLs hold it",
+   "dzh": "AVE 持有人前 100 名里，被 AVE 标成 KOL 的钱包数要达到你填的才买（用 AVE 的持有人标签；要开着雷达视窗才查得到；官方 KOL 名单只显示，不算在这里）",
+   "den": "Only buy if at least the number you set of AVE-tagged KOL wallets are among the top 100 holders (AVE holder tags; needs the radar window open; the official KOL list is display-only and not counted here)"
+  },
+  {
+   "k": "gen.kolMin",
+   "g": "gen",
+   "min": 0,
+   "max": 1000000.0,
+   "unit": "位",
+   "uen": "KOLs",
+   "zh": "KOL 持有至少",
+   "en": "KOL holders at least",
+   "dzh": "单位 位（几个不同的 KOL 钱包）",
+   "den": "Number of different KOL wallets",
+   "need": "gen.kolMin.on",
+   "cond": "gen",
+   "op": ">=",
+   "cname": "KOL 持有"
+  },
+  {
+   "k": "gen.kolMin.miss",
+   "g": "gen",
+   "missOf": "gen.kolMin",
+   "need": "gen.kolMin.on",
+   "opts": [
+    {
+     "v": 1,
+     "zh": "不买",
+     "en": "Don't buy"
+    },
+    {
+     "v": 2,
+     "zh": "用备用条件",
+     "en": "Use the backup condition"
+    }
+   ],
+   "zh": "读不到 KOL 资料时",
+   "en": "If KOL data can’t be read",
+   "dzh": "AVE 持有人标签读不到（雷达视窗没开、AVE 读不到、资料太旧）时：直接不买，或改用「你标记的聪明钱包在 N 小时内买过」（没有「跳过这个条件」）",
+   "den": "If AVE holder tags can’t be read (radar window closed, AVE unreachable, data too old): don’t buy, or use “a smart wallet you marked bought within N hours” (there is no “skip this condition”)"
+  },
+  {
+   "k": "gen.kolBkH",
+   "g": "gen",
+   "min": 0.1,
+   "max": 720,
+   "unit": "小时",
+   "uen": "h",
+   "zh": "备用条件：你标记的聪明钱包在几小时内买过",
+   "en": "Backup: a smart wallet you marked bought within (hours)",
+   "dzh": "单位 小时；空白＝备用条件没填好 → 不买",
+   "den": "Hours; empty = backup not set → don’t buy",
+   "need": "gen.kolMin.on",
+   "when": {
+    "gen.kolMin.miss": 2
+   }
+  },
+  {
    "k": "gen.perRound",
    "g": "gen",
    "min": 1,
@@ -3841,6 +3907,72 @@
    "cond": "rh",
    "op": "yes",
    "cname": "被喊过"
+  },
+  {
+   "k": "rh.kolMin.on",
+   "g": "rh",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "KOL 持有才买",
+   "en": "Only if KOLs hold it",
+   "dzh": "AVE 持有人前 100 名里，被 AVE 标成 KOL 的钱包数要达到你填的才买（用 AVE 的持有人标签；要开着雷达视窗才查得到；官方 KOL 名单只显示，不算在这里）",
+   "den": "Only buy if at least the number you set of AVE-tagged KOL wallets are among the top 100 holders (AVE holder tags; needs the radar window open; the official KOL list is display-only and not counted here)"
+  },
+  {
+   "k": "rh.kolMin",
+   "g": "rh",
+   "min": 0,
+   "max": 1000000.0,
+   "unit": "位",
+   "uen": "KOLs",
+   "zh": "KOL 持有至少",
+   "en": "KOL holders at least",
+   "dzh": "单位 位（几个不同的 KOL 钱包）",
+   "den": "Number of different KOL wallets",
+   "need": "rh.kolMin.on",
+   "cond": "rh",
+   "op": ">=",
+   "cname": "KOL 持有"
+  },
+  {
+   "k": "rh.kolMin.miss",
+   "g": "rh",
+   "missOf": "rh.kolMin",
+   "need": "rh.kolMin.on",
+   "opts": [
+    {
+     "v": 1,
+     "zh": "不买",
+     "en": "Don't buy"
+    },
+    {
+     "v": 2,
+     "zh": "用备用条件",
+     "en": "Use the backup condition"
+    }
+   ],
+   "zh": "读不到 KOL 资料时",
+   "en": "If KOL data can’t be read",
+   "dzh": "AVE 持有人标签读不到（雷达视窗没开、AVE 读不到、资料太旧）时：直接不买，或改用「你标记的聪明钱包在 N 小时内买过」（没有「跳过这个条件」）",
+   "den": "If AVE holder tags can’t be read (radar window closed, AVE unreachable, data too old): don’t buy, or use “a smart wallet you marked bought within N hours” (there is no “skip this condition”)"
+  },
+  {
+   "k": "rh.kolBkH",
+   "g": "rh",
+   "min": 0.1,
+   "max": 720,
+   "unit": "小时",
+   "uen": "h",
+   "zh": "备用条件：你标记的聪明钱包在几小时内买过",
+   "en": "Backup: a smart wallet you marked bought within (hours)",
+   "dzh": "单位 小时；空白＝备用条件没填好 → 不买",
+   "den": "Hours; empty = backup not set → don’t buy",
+   "need": "rh.kolMin.on",
+   "when": {
+    "rh.kolMin.miss": 2
+   }
   },
   {
    "k": "rh.antiWash",

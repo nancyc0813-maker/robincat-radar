@@ -94,8 +94,28 @@ export function startAve({ DIR, log, tg }) {
   let busy4 = false; async function hotTick() { if (busy4 || slowCheck()) return; busy4 = true;
     try { const all = []; for (const [ch, M] of Object.entries(B.m)) for (const [a, v] of Object.entries(M)) all.push([ch, a, +v.v24 || 0]); all.sort((x, y) => y[2] - x[2]);
       const ids = all.slice(0, 50).map(([ch, a]) => a + '-' + (ch === 'rh' ? 'robinhood' : 'bsc')); if (!ids.length) return; const d = await call('/v2/tokens/search', 100, { token_ids: ids }); let n = 0; for (const t of Array.isArray(d) ? d : d?.tokens || []) { put(pack(t)); n++; } if (n) save(); } catch (e) { log('[AVE] 热门补查 ' + e.message); } finally { busy4 = false; } }
+  const htParse = (L) => { /* KOL-AVE：AVE 持有人 new_tags → 各类人数／占比（%）。en 有写就照 en 判断（type 编号可能会变），en 空白才看 type；同一个持有人每类只算一次 */
+  const C = { kol: [/^kol$/i, '31'], sm: [/^smart\s*money$/i, '30'], wh: [/^whale$/i, '39'], bu: [/^bundle/i, '36'], ca: [/^cabal$/i, '35'], ph: [/^phishing/i, '34'] };
+  const rs = L.map((x) => Number(x?.balance_ratio) || 0); const isPct = rs.reduce((a, b) => a + b, 0) > 1.0001; const o = { n: L.length, all: [] }; for (const k of Object.keys(C)) o[k] = { n: 0, p: 0 }; o.kol.w = [];
+  L.forEach((x, i) => { let G = x?.new_tags; if (typeof G === 'string') { try { G = JSON.parse(G); } catch { G = []; } } const a = String(x?.holder || x?.address || x?.wallet_address || '').toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(a)) o.all.push(a); const hit = new Set(); let nick = '';
+    for (const t of Array.isArray(G) ? G : []) { if (!t || typeof t !== 'object') continue; const en = String(t.en ?? '').trim(), ty = String(t.type ?? '').trim(); for (const [k, [re, code]] of Object.entries(C)) if (en ? re.test(en) : ty === code) { hit.add(k); if (k === 'kol' && !nick) nick = String(t.nick_name || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 30); } }
+    if (hit.has('kol') && !nick) nick = String(x?.addr_alias || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 30); /* nick_name 空白时用 AVE 的地址别名 */
+    for (const k of hit) { o[k].n++; o[k].p += isPct ? rs[i] : rs[i] * 100; } if (hit.has('kol') && o.kol.w.length < 20 /* 显示用：最多列几位 */) o.kol.w.push({ a, nm: nick }); });
+  for (const k of Object.keys(C)) o[k].p = Math.round(o[k].p * 10) / 10; return o; };
+  /* KOL-AVE（v1.0.2）：看盘前排代币的持有人标签（卡片显示「🎙 KOL×n」；引擎读不到 main.cjs 的资料时也会参考）。
+     每轮从每个榜单前几名里挑最久没查的几个币，查 /v2/tokens/holders（top100 的 new_tags 只有 TOPn，holders 才有 KOL 等标签）；B.ht[ch][币] = { at, n, k（KOL 人数）, kn（KOL 名字）, sm, wh, bu:[人数, 占比%], ca, ph } */
+  const HT_BATCH = 15; /* 吞吐量：每轮查几个币（AVE 额度；其余下一轮轮到） */ const HT_TOPN = 10; /* 吞吐量：每个榜单看前几名 */ const HT_FRESH_MS = 30 * 60e3; /* 运作：同一个币多久重查 */ const HT_MAX = 400; /* 技术用：最多记几个币（上传大小） */
+  let busy5 = false; async function htTick() { if (busy5 || slowCheck()) return; busy5 = true;
+    try { const now = Date.now(); B.ht = B.ht || { bsc: {}, rh: {} }; for (const ch of ['bsc', 'rh']) B.ht[ch] = B.ht[ch] || {};
+      const cand = new Map(); for (const L of Object.values(B.cols || {})) for (const a of (Array.isArray(L) ? L : []).slice(0, HT_TOPN)) { const ch = B.m.bsc?.[a] ? 'bsc' : B.m.rh?.[a] ? 'rh' : ''; if (ch) cand.set(ch + ':' + a, [ch, a, +B.m[ch][a].v24 || 0]); }
+      const pick = [...cand.values()].filter(([ch, a]) => !(now - (+B.ht[ch][a]?.at || 0) < HT_FRESH_MS)).sort((x, y) => (+B.ht[x[0]][x[1]]?.at || 0) - (+B.ht[y[0]][y[1]]?.at || 0) || y[2] - x[2]).slice(0, HT_BATCH);
+      let n = 0; for (const [ch, a] of pick) { try { const d = await call(`/v2/tokens/holders/${a}-${ch === 'rh' ? 'robinhood' : 'bsc'}?limit=100`, 10); const L = Array.isArray(d) ? d : Array.isArray(d?.list) ? d.list : []; if (!L.length) continue; const o = htParse(L);
+          B.ht[ch][a] = { at: Date.now(), n: o.n, k: o.kol.n, kn: o.kol.w.map((w) => w.nm).filter(Boolean).slice(0, 5), sm: o.sm.n, wh: o.wh.n, bu: [o.bu.n, o.bu.p], ca: [o.ca.n, o.ca.p], ph: [o.ph.n, o.ph.p] }; n++; } catch (e) { log('[AVE] 持有人标签 ' + e.message); break; } await new Promise((r) => setTimeout(r, 100 /* 技术用：两次呼叫之间隔一下 */)); }
+      for (const ch of ['bsc', 'rh']) { const E = Object.entries(B.ht[ch]).filter(([, v]) => now - (+v.at || 0) < 3 * 3600e3 /* 运作：太旧的拿掉 */).sort((x, y) => y[1].at - x[1].at).slice(0, HT_MAX); B.ht[ch] = Object.fromEntries(E); }
+      if (n) save(); } finally { busy5 = false; } }
+  setTimeout(htTick, 100e3); setInterval(htTick, 10 * 60e3).unref(); /* KOL-AVE：定时跑，第一次在清单之后 */
   setTimeout(listTick, 15e3); setInterval(listTick, 5 * 60e3).unref(); setInterval(wantTick, 2 * 60e3).unref();
   setTimeout(smartTick, 40e3); setInterval(smartTick, 10 * 60e3).unref(); setTimeout(hotTick, 90e3); setInterval(hotTick, 15 * 60e3).unref();
   log('[AVE] 资料同步启动（清单每 5 分钟、新币补查每 2 分钟）');
-  return { listTick, wantTick, smartTick, hotTick, ingestList: (tag, arr) => { const n = ingestList(tag, arr); if (n) save(); return n; }, ingestTokens: (arr) => { const n = ingestTokens(arr); if (n) save(); return n; } };
+  return { listTick, wantTick, smartTick, hotTick, htTick, /* KOL-AVE */ ingestList: (tag, arr) => { const n = ingestList(tag, arr); if (n) save(); return n; }, ingestTokens: (arr) => { const n = ingestTokens(arr); if (n) save(); return n; } };
 }
