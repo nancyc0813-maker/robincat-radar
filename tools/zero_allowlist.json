@@ -713,6 +713,12 @@
    "reason": "Disk-space cap for the alerts log file before rotation; plumbing only."
   },
   {
+   "rule": "SLICE",
+   "file": "^radar/ui/index\\.html$",
+   "match": "String\\(SNAP\\.aveStatus\\.msg\\)\\.slice\\(0,80\\)",
+   "reason": "CONFLICT116-5 画面显示转接站拒绝原因最多 80 字（显示用）"
+  },
+  {
    "rule": "TIMEWIN|OBJNUM|NUMSTR|CMP|SLICE|MINMAX|COMMENT_NUM",
    "file": "^elysium\\.mjs$",
    "match": ".",
@@ -16240,6 +16246,18 @@
    "file": "^(radar/ui/index|relay/phone)\\.html$",
    "match": "DH112|String\\(B\\.err\\)\\.slice\\(0,80\\)|Math\\.round\\(m/n\\*1000\\)/10",
    "reason": "DH112 资料健康：错误讯息只留 80 字、百分比取一位小数 —— 只是显示，不做判断、不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN|FALLBACK0|COMMENT_NUM",
+   "file": "^radar/main\\.cjs$",
+   "match": "SPEED113|AVT_PRE_MS = 60e3|PRE_SEEN\\.get\\(net \\+ a\\) \\|\\| 0|AVE_FG_HOLD_MS = 15e3",
+   "reason": "SPEED113 速度：AVE 排队每秒 8 次（转接站每人每秒 10 次留 2 次）、预抓的行情留 1 分钟／同一个币 1 分钟内不重抓、没抓过当 0 —— 技术用；要不要预抓、抓几个是玩家自己的设定 board.preN（空＝不预抓）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^radar/ui/index\\.html$",
+   "match": "SPEED113|\\.slice\\(0,n\\)\\)\\.catch\\(\\(\\)=>\\{\\}\\)\\}catch\\{\\}\\},5000\\)",
+   "reason": "SPEED113 看盘预抓每 5 秒看一次画面上看得到的币（数量是玩家设定），技术用"
   }
  ]
 }

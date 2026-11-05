@@ -1,10 +1,13 @@
 {
-  "version": "1.0.14",
+  "version": "1.0.15",
   "date": "2026-11-05",
   "critical": false,
   "notes": [
-    "修好：卖出结果待确认时，在部分节点上会误判成「没送出去」而重复卖（例如止盈只该卖一半却卖光）。现在没有交易编号时只等余额变化、查到收据或你设的 sell.pendMin 到期",
-    "修好：Robinhood 卖单如果被节点丢弃，会自动恢复卖出规则，不会卡住"
+    "修好：按「紧急全停」后不再有一小段时间还能买进；全停也不会再被旧设定盖掉",
+    "修好：好几个功能同时买时会吃掉你设定要保留的 BNB；现在同一个钱包的花费排队、先扣保留额，读不到余额就不买",
+    "止盈止损只套用手动买、一键买和 TG 买；自动策略买到的币照策略自己的卖出规则，不再互相盖掉",
+    "同一个钱包已经由别的策略买过的币，AI 热门代币策略不会再买一次",
+    "AVE 出错时背景会先停一下，不再把当天额度用光；转接站拒绝时只停背景，画面写出真正原因"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -39,16 +42,16 @@
     "radar/desklink.cjs": "21b4593af23fabadbcbf12c2e1f61da75f03c074fc3ddd8da9982f0d750d15bc",
     "radar/ghmine.cjs": "085154c479db11c9f4347e14f508ab2744cd1951313990005e083b171c0fc415",
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
-    "radar/main.cjs": "a2156fa3391819e6508f8fb8f211152e5b8503d3f3ced4a993034082fc73453f",
+    "radar/main.cjs": "e5befbb2ab63f0a2b832699f48eb63f87fd1964ccb21265ea2832ef89855917d",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
     "radar/next.cjs": "12a81d310cf230e4f4251fb949087bc0cf81274bbf602e9d2b4e7e56862078ca",
-    "radar/official.json": "353739532f1efe178b0cd16a37169eafb2afc5cee97f519d4a10935570b45db2",
-    "radar/official.sig": "31c51724a3280f3727754da4ec7bbd241487f1a35874371af71aa94a38a9ed9d",
+    "radar/official.json": "8bcc26ca19872303ed73a6088fd78bb4cae9e1eb3c0129eb0303df22415cd807",
+    "radar/official.sig": "45738a5ed4346f4aea8008fb88a03792b6116c3351677f05d827326c217e370f",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "84466ecd922c3f0e1de04c4746ede5c6d120696dfb517c1203036a00e0d0b852",
+    "radar/package.json": "42d6cdc5e59a390d51f4ce4b90f7d2e7388574e9228d228439396eac52d834bc",
     "radar/preload.cjs": "602cbdbc6ba9f7b68f30bbd9bbbaf38085a47805ff55cc39b4fafd3a49faced5",
-    "radar/settings_schema.json": "d90271a47500656166607d0ae86311c0934caf4b35b89b7c95e4f690eb916141",
-    "radar/ui/index.html": "bc7e23de7e45208ae1f928ea8140188663e355289033010cc9b6d81ededaab6e",
+    "radar/settings_schema.json": "d8e63265512189cb0dcbd75d1fbd8bb8491fdaab8cc098075536a4834224a8e8",
+    "radar/ui/index.html": "611b83ea2748f10bc5453becbd02f65ce803ba8b6602d74cd6b8c6a331f2d53c",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -59,7 +62,7 @@
     "relay/package-lock.json": "9e5ca69afb5a1fb949fa76f15fc0c5dba5dfd5f1ad1749d8a28d917b9306f9fb",
     "relay/package.json": "864796815252ad0b81d8fa80453fbc7b95ca20764f73e82d364bcbeff3df6f52",
     "relay/phone.html": "e2de8995cda3615d3fd390fb82957e907aa59c6aee24e541044d45fc4e266b83",
-    "relay/worker.js": "d29334465e543b67285f107b4fa39163e147c806dd8c235ff8ff6158edfd790f",
+    "relay/worker.js": "c71216ecb86489d83a113a1ef90c857a0438d9dd51094c34b0057d54437cce88",
     "relay/wrangler.toml": "57f8adcd8010e23f0160daafff4b1844301beeeb578c535020cd83005ef913ac",
     "repo.cjs": "dff6ac23ac9f445560e64b0bf83a47db82f7b5dd22d8c9acdcb9152c1210ff02",
     "rh.mjs": "eb818fa3a21da810455913d46aa04e939413a30faec7e9a7d4dd107f1f9ebc64",
@@ -74,13 +77,13 @@
     "tg_login.bat": "1b358e1311fe5c0ef32580f47a150904f0028a4451b6409124f9eed46f81dbc9",
     "tools/guard_check.mjs": "da8b958b19bd1e436517e68b3371dc118a693480fa2724fc1044691f67a9964a",
     "tools/guard_rules.json": "f8df49bce7288aa6de55ead23567429f0768a433ef78813f9f4146d68334f877",
-    "tools/zero_allowlist.json": "d3447f8350b26ed9bea0103bbe03a83f238628a9b3788a1afa883514ea3f5e96",
+    "tools/zero_allowlist.json": "99ae2e991266927fbb55f3572f0f4e658022fddefb4a11176ebab514c38cb727",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "236e93aaf061ce38d10f1ff3442f591f6f656994cc434afd5eb4a219723bbb00",
+    "watch.mjs": "014f7deac6e0ee818b42321aba6fdaa2f77c6d2caf85f830f957f9a14069dd7b",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
     "一键安装.bat": "77e45841b87f533dcc53db561c07c2dbb47d7337b8734aaa8c213eb5822bbd50",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "236e93aaf061ce38d10f1ff3442f591f6f656994cc434afd5eb4a219723bbb00"
+  "sha256": "014f7deac6e0ee818b42321aba6fdaa2f77c6d2caf85f830f957f9a14069dd7b"
 }

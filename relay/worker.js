@@ -146,10 +146,11 @@ async function aveProxy0(req, u, env) { /* AVE-WSS：外面包了一层 aveProxy
   const mq = new URLSearchParams({ cu: String(rule[2]), w, code, bg: bg ? '1' : '0', ucap: ev('AVE_USER_DAY_CU'), urps: ev('AVE_USER_RPS'), ccap: ev('AVE_CODE_DAY_CU'), grps: ev('AVE_GLOBAL_RPS'), cap: ev('AVE_DAY_CU'), bgpct: ev('AVE_BG_STOP_PCT') });
   const m = await (await env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter?' + mq)).json();
   if (['daily cap', 'user cap', 'code cap', 'bg paused'].includes(m.deny)) return J({ err: m.deny }, 429); if (m.deny) return new Response(JSON.stringify({ err: m.deny }), { status: 429, headers: { ...SEC, 'content-type': 'application/json', 'retry-after': '2' } });
-  const r = await fetch('https://prod.ave-api.com' + p, { headers: { 'X-API-KEY': String(env.AVE_KEY).trim() } }); const body = await r.text();
-  if (r.status === 429) return new Response(JSON.stringify({ err: 'ave busy' }), { status: 503, headers: { ...SEC, 'content-type': 'application/json', 'retry-after': '2' } }); /* H8-D2 */
-  if (!r.ok) return J({ err: 'ave ' + r.status }, 502);
-  let good = false; try { good = JSON.parse(body)?.status === 1; } catch {} if (!good) return new Response(body, { status: 502, headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'no-store' } }); /* H8-D7：AVE 回错误就不快取 */
+  const refund = () => env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter_refund?' + new URLSearchParams({ cu: String(rule[2]), w, code })).catch(() => {}); /*CONFLICT116-6：AVE 没成功就把这次扣的额度退回*/
+  let r, body; try { r = await fetch('https://prod.ave-api.com' + p, { headers: { 'X-API-KEY': String(env.AVE_KEY).trim() } }); body = await r.text(); } catch { await refund(); return J({ err: 'ave unreachable' }, 502); }
+  if (r.status === 429) await refund(); if (r.status === 429) return new Response(JSON.stringify({ err: 'ave busy' }), { status: 503, headers: { ...SEC, 'content-type': 'application/json', 'retry-after': '2' } }); /* H8-D2 */
+  if (!r.ok) { await refund(); return J({ err: 'ave ' + r.status }, 502); }
+  let good = false; try { good = JSON.parse(body)?.status === 1; } catch {} if (!good) await refund(); if (!good) return new Response(body, { status: 502, headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'no-store' } }); /* H8-D7：AVE 回错误就不快取 */
   mcPut(p, body, rule[1]); const resp = new Response(body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': `public, max-age=${rule[1]}` } }); await caches.default.put(ck, resp.clone()); return resp;
 }
 let BOARD_MEM = { at: 0, body: '' }; const BOARD_MEM_MS = 60e3, BOARD_MAX_BYTES = 1.8e6; /* 运作：看盘资料在记忆体留 60 秒／上传大小上限（位元组） */
@@ -185,7 +186,7 @@ const AVEWS_METER_MS = 60e3; /*RISK-FIX 10 技术用：WSS 用量多久写一次
 const AVEWS_CMD_WIN_MS = 10e3, AVEWS_CMD_MAX = 30; /* 运作（防滥用）：每条连线每 10 秒最多送几则指令 */
 const AVEWS_MSG_MAX = 16 * 1024; /* 技术用：用户送来的单则讯息大小上限（位元组） */
 const AVEWS_PING_MS = 20e3, AVEWS_DEAD_MS = 65e3; /* 技术用：对 AVE 送心跳的间隔／多久收不到任何东西就当断线重连 */
-const AVEWS_RETRY_MS = [1e3, 3e3, 10e3, 30e3]; /* 技术用：上游断线后第 1、2、3、4 次以上重连前等多久 */
+const AVEWS_RETRY_MS = [1e3, 3e3, 10e3, 30e3, 60e3, 120e3]; /*AVEWS112*/ const AVEWS_STABLE_MS = 60e3, AVEWS_STRIKE_MAX = 3; /* 技术用：上游连线撑多久才算稳（重连次数才归零）／连上不久就断几次才把那个订阅当成 AVE 不接受 */ /* 技术用：上游断线后第 1、2、3、4 次以上重连前等多久 */
 const AVEWS_IDLE_MS = 60e3; /* 技术用：上游没有订阅多久后关掉（省连线） */
 const AVEWS_AUTH_MS = 15e3; /* 技术用：用户连上后几秒内要送通行证 */
 const AVEWS_TICK_MS = 5e3; /* 技术用：集线器巡逻间隔（心跳、逾时、过期通行证） */
@@ -314,9 +315,11 @@ export class Room extends DurableObject {
       let deny = ''; if (cap != null && m.cu + cu > cap) deny = 'daily cap'; else if (bg && cap != null && bgpct != null && m.cu * 100 >= cap * bgpct) deny = 'bg paused'; /* OPS-RT6：全体用到营运设定的比例 → 先停背景查询 */ else if (code && ccap != null && (m.c[code] || 0) + cu > ccap) deny = 'code cap'; /* OPS-RT6：每个邀请码每天的额度 */ else if (w && ucap != null && (m.u[w] || 0) + cu > ucap) deny = 'user cap'; else if (w && urps != null && uq.length >= urps) deny = 'slow down'; else if (grps != null && (this.gq.length >= grps || (bg && this.gq.length >= Math.ceil(grps / 2)))) deny = 'busy'; /* 背景查询只能用一半的速度，你点的优先 */
       if (!deny) { m.cu += cu; if (w) m.u[w] = (m.u[w] || 0) + cu; if (code) m.c[code] = (m.c[code] || 0) + cu; this.gq.push(now); uq.push(now); this.uq.set(w, uq); if (this.uq.size > 5000) this.uq.clear(); await this.ctx.storage.put('m', m); }
       return new Response(JSON.stringify({ d, cu: m.cu, ucu: w ? m.u[w] || 0 : 0, deny })); }
+    if (iu.pathname === '/_meter_refund') { /*CONFLICT116-6：AVE 回错误／连不上 → 退回刚刚扣的额度（速度计数不退）*/ const q = iu.searchParams, d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); const cu = Math.max(0, Math.min(100, +q.get('cu') || 0)); const w = String(q.get('w') || '').slice(0, 64), code = String(q.get('code') || '').slice(0, 16);
+      const m = (await this.ctx.storage.get('m')) || null; if (m && m.d === d && cu > 0) { m.cu = Math.max(0, m.cu - cu); if (w && m.u?.[w]) m.u[w] = Math.max(0, m.u[w] - cu); if (code && m.c?.[code]) m.c[code] = Math.max(0, m.c[code] - cu); await this.ctx.storage.put('m', m); } return new Response('ok'); }
     if (iu.pathname === '/_meter_ws') { /*RISK-FIX 10：WSS 用量（每天一份，跟 REST 额度同一个记录；只记录、不设上限） */ const q = iu.searchParams, d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); const n = (k) => { const v = Number(q.get(k)); return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0; };
       let m = (await this.ctx.storage.get('m')) || { d, cu: 0, u: {}, c: {} }; if (m.d !== d) m = { d, cu: 0, u: {}, c: {} }; const W = (m.ws = m.ws || { sub: 0, unsub: 0, push: 0, rx: 0, peak: 0, now: 0 });
-      for (const k of ['sub', 'unsub', 'push', 'rx']) W[k] += n(k); W.peak = Math.max(W.peak, n('peak')); W.now = n('now'); W.at = Date.now(); await this.ctx.storage.put('m', m); return new Response('ok'); }
+      for (const k of ['sub', 'unsub', 'push', 'rx', 'open', 'close', 'fast', 'err', 'topic', 'miss']) W[k] = (W[k] || 0) + n(k); if (q.get('lc')) W.lastClose = String(q.get('lc')).slice(0, 100); /*AVEWS112-METER2*/ W.peak = Math.max(W.peak, n('peak')); W.now = n('now'); W.at = Date.now(); await this.ctx.storage.put('m', m); return new Response('ok'); }
     if (iu.pathname === '/_meter_get') { const m = (await this.ctx.storage.get('m')) || null; return new Response(JSON.stringify(m ? { d: m.d, cu: m.cu, ws: m.ws || null } : {})); } /*RISK-FIX 10*/
     if (iu.pathname === '/_seq') { /* OPS-RT4：签名资料 seq 只能往前（全球一致） */ const t = String(iu.searchParams.get('t') || '').slice(0, 20), sq = Number(iu.searchParams.get('s')); if (!t || !Number.isSafeInteger(sq)) return new Response(JSON.stringify({ ok: false }));
       const k = 'seq:' + t, last = await this.ctx.storage.get(k); if (Number.isSafeInteger(last) && sq < last) return new Response(JSON.stringify({ ok: false, last })); if (!(sq === last)) await this.ctx.storage.put(k, sq); return new Response(JSON.stringify({ ok: true })); }
@@ -366,7 +369,7 @@ export class Room extends DurableObject {
     const Q = await this.bindGc(((await this.ctx.storage.get('Q')) || []).filter((x) => !fin.has(x.i))); const items = [];
     for (const x of Q) { if (items.length >= BIND_TAKE_MAX) break; const R = await this.bindRec(x.i); if (!R || !R.P) continue; if (R.st === 't' && now - (R.tk || 0) < BIND_RETAKE_MS) continue; R.st = 't'; R.tk = now; await this.ctx.storage.put('b:' + x.i, R); items.push({ id: x.i, ...R.P }); }
     return BR({ items, fin: n }); }
-  hub() { if (this.H) return this.H; const H = (this.H = { ref: new Map(), cs: new Map(), at: new Map(), cnt: new Array(AVEWS_UP_MAX).fill(0), up: [], bad: new Map(), rid: 0, tick: null, lastUp: -1, st: { sub: 0, unsub: 0, push: 0, rx: 0, peak: 0 }, stAt: Date.now() }); /*RISK-FIX 10：H.st＝还没写进 ave-meter 的 WSS 用量 */
+  hub() { if (this.H) return this.H; const H = (this.H = { ref: new Map(), cs: new Map(), at: new Map(), cnt: new Array(AVEWS_UP_MAX).fill(0), up: [], bad: new Map(), rid: 0, tick: null, lastUp: -1, st: { sub: 0, unsub: 0, push: 0, rx: 0, peak: 0, open: 0, close: 0, fast: 0, err: 0, topic: 0, miss: 0 }, stAt: Date.now(), strike: new Map(), lastClose: '' }); /*AVEWS112-ST*/ /*RISK-FIX 10：H.st＝还没写进 ave-meter 的 WSS 用量 */
     for (const w of this.ctx.getWebSockets('avews')) if (this.awA(w).ok) this.sys(w, { resub: 1 }); return H; }
   awA(w) { try { return w.deserializeAttachment() || {}; } catch { return {}; } }
   atSet(k, i) { const H = this.hub(); H.at.set(k, i); H.cnt[i]++; }
@@ -377,19 +380,19 @@ export class Room extends DurableObject {
   hubPatrol() { const H = this.hub(), now = Date.now(); const socks = this.ctx.getWebSockets('avews');
     for (const w of socks) { const A = this.awA(w); if (!A.ok) { if (now - A.at > AVEWS_AUTH_MS) { try { w.close(4003, 'auth timeout'); } catch {} this.hubDrop(w); } } else if (!(now < A.exp)) { this.sys(w, { expired: 1 }); try { w.close(4001, 'session expired'); } catch {} this.hubDrop(w); } }
     H.up.forEach((U, i) => { if (!U) return; if (U.pend.size > AVEWS_PEND_MAX) U.pend.clear(); if (!U.ws) return; if (now - U.rx > AVEWS_DEAD_MS) { this.upDown(i); return; }
-      if (now - U.ping >= AVEWS_PING_MS) { U.ping = now; try { U.ws.send(JSON.stringify({ jsonrpc: '2.0', method: 'ping', id: ++H.rid })); } catch { this.upDown(i); return; } }
+      if (U.retry && now - (U.openAt || now) >= AVEWS_STABLE_MS) U.retry = 0; /*AVEWS112-STABLE*/ if (now - U.ping >= AVEWS_PING_MS) { U.ping = now; try { U.ws.send(JSON.stringify({ jsonrpc: '2.0', method: 'ping', id: ++H.rid })); } catch { this.upDown(i); return; } }
       if (!H.cnt[i] && now - U.idle > AVEWS_IDLE_MS) this.upClose(i); });
     H.st.peak = Math.max(H.st.peak, H.at.size); const idle = !socks.length && !H.up.some((U) => U && (U.ws || U.wait || U.busy)); if (!socks.length || now - H.stAt >= AVEWS_METER_MS) this.hubMeter(); /* 没有用户连着就马上写（不用等满 AVEWS_METER_MS） */
     if (idle) { clearInterval(H.tick); H.tick = null; } }
-  hubMeter() { /*RISK-FIX 10：WSS 用量写进 ave-meter（订阅／退订几个、转给用户几则、AVE 送来几则、同时订阅最多几个）；只记录，方便跟 AVE 对帐 */ const H = this.hub(), s = H.st; H.stAt = Date.now(); if (!(s.sub || s.unsub || s.push || s.rx || s.peak)) return;
-    const q = new URLSearchParams({ sub: String(s.sub), unsub: String(s.unsub), push: String(s.push), rx: String(s.rx), peak: String(Math.max(s.peak, H.at.size)), now: String(H.at.size) }); H.st = { sub: 0, unsub: 0, push: 0, rx: 0, peak: H.at.size };
+  hubMeter() { /*RISK-FIX 10：WSS 用量写进 ave-meter（订阅／退订几个、转给用户几则、AVE 送来几则、同时订阅最多几个）；只记录，方便跟 AVE 对帐 */ const H = this.hub(), s = H.st; H.stAt = Date.now(); if (!(s.sub || s.unsub || s.push || s.rx || s.peak || s.open || s.close)) return;
+    const q = new URLSearchParams({ sub: String(s.sub), unsub: String(s.unsub), push: String(s.push), rx: String(s.rx), peak: String(Math.max(s.peak, H.at.size)), now: String(H.at.size), open: String(s.open), close: String(s.close), fast: String(s.fast), err: String(s.err), topic: String(s.topic), miss: String(s.miss), lc: H.lastClose || '' }); H.st = { sub: 0, unsub: 0, push: 0, rx: 0, peak: H.at.size, open: 0, close: 0, fast: 0, err: 0, topic: 0, miss: 0 }; /*AVEWS112-METER*/
     try { this.env.ROOM.get(this.env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter_ws?' + q).catch(() => {}); } catch {} }
   hubUpNow() { const H = this.hub(); for (let i = 0; i < AVEWS_UP_MAX; i++) if (H.cnt[i] && !(H.up[i] && H.up[i].ws)) return 0; return 1; }
   hubUpNote() { const H = this.hub(), u = this.hubUpNow(); if (u === H.lastUp) return; H.lastUp = u; for (const w of this.ctx.getWebSockets('avews')) if (this.awA(w).ok) this.sys(w, { up: u }); }
   hubPlace(k) { const H = this.hub(); if (H.at.has(k)) return true; let best = -1, bn = Infinity, free = -1;
     for (let i = 0; i < AVEWS_UP_MAX; i++) { const U = H.up[i], used = !!H.cnt[i] || !!(U && (U.ws || U.busy || U.wait)); if (!used) { if (free < 0) free = i; continue; } if (H.cnt[i] < AVEWS_UP_SUBS && H.cnt[i] < bn) { best = i; bn = H.cnt[i]; } }
     if (free >= 0 && (best < 0 || bn >= AVEWS_UP_SPREAD)) best = free; if (best < 0) return false; this.atSet(k, best); return true; }
-  hubSend(k, m) { const H = this.hub(), S = H.ref.get(k); if (!S) return; const s = JSON.stringify(m); for (const w of S) { try { w.send(s); H.st.push++; } catch {} } } /*RISK-FIX 10：记推送量 */
+  hubSend(k, m) { const H = this.hub(), S = H.ref.get(k); if (!S) { H.st.miss++; return; } /*AVEWS112-MISS*/ const s = JSON.stringify(m); for (const w of S) { try { w.send(s); H.st.push++; } catch {} } } /*RISK-FIX 10：记推送量 */
   hubDrop(ws) { const H = this.hub(); const s = H.cs.get(ws); if (!s) return; H.cs.delete(ws); for (const k of s) { const S = H.ref.get(k); if (S) { S.delete(ws); if (!S.size) H.ref.delete(k); } } this.hubFlush(); }
   hubSet(ws, A, list) { const H = this.hub(), now = Date.now(); const want = []; for (const it of list.slice(0, AVEWS_USER_SUBS * 4)) { const k = awKey(it); if (k && !want.includes(k)) want.push(k); }
     let other = 0; for (const [w, s] of H.cs) if (w !== ws && this.awA(w).id === A.id) other += s.size;
@@ -408,15 +411,15 @@ export class Room extends DurableObject {
     if (H.bad.size > AVEWS_PEND_MAX) for (const [k, t] of H.bad) if (t < now) H.bad.delete(k); this.hubFlush(); }
   async upOpen(i) { const H = this.hub(); const U = (H.up[i] = H.up[i] || { ws: null, sent: new Set(), pend: new Map(), retry: 0, rx: 0, ping: 0, idle: Date.now(), wait: null, busy: false }); if (U.ws || U.busy || U.wait) return; U.busy = true;
     try { const r = await fetch(aveWsUrl(this.env), { headers: { Upgrade: 'websocket', 'X-API-KEY': String(this.env.AVE_KEY || '').trim() } }); const ws = r.webSocket; if (!ws) throw new Error('upstream ' + r.status); ws.accept();
-      U.ws = ws; U.sent = new Set(); U.pend = new Map(); U.rx = U.ping = Date.now(); U.retry = 0;
-      ws.addEventListener('message', (e) => { if (U.ws === ws) this.upRx(i, U, e.data); }); ws.addEventListener('close', () => { if (U.ws === ws) this.upDown(i); }); ws.addEventListener('error', () => { if (U.ws === ws) this.upDown(i); });
+      U.ws = ws; U.sent = new Set(); U.pend = new Map(); U.rx = U.ping = Date.now(); U.openAt = Date.now(); U.topicRx = 0; H.st.open++; /*AVEWS112-OPEN 连上不归零 retry，等收到推送或撑过 AVEWS_STABLE_MS*/
+      ws.addEventListener('message', (e) => { if (U.ws === ws) this.upRx(i, U, e.data); }); ws.addEventListener('close', (e) => { if (U.ws === ws) { H.lastClose = String((e && e.code) || '') + ' ' + String((e && e.reason) || '').slice(0, 80); this.upDown(i); } }); ws.addEventListener('error', () => { if (U.ws === ws) this.upDown(i); });
     } catch { U.busy = false; this.upDown(i); return; } U.busy = false; this.hubTick(); this.hubFlush(); }
-  upDown(i) { const H = this.hub(), U = H.up[i]; if (!U) return; const ws = U.ws; U.ws = null; U.sent = new Set(); U.pend = new Map(); if (ws) { try { ws.close(1000, 'bye'); } catch {} }
+  upDown(i) { const H = this.hub(), U = H.up[i]; if (!U) return; const ws = U.ws; const sent0 = U.sent; if (ws) { H.st.close++; if (Date.now() - (U.openAt || 0) < AVEWS_STABLE_MS && !U.topicRx) { H.st.fast++; const bad = []; for (const k of sent0) { const n = (H.strike.get(k) || 0) + 1; H.strike.set(k, n); if (n >= AVEWS_STRIKE_MAX) { H.strike.delete(k); bad.push(k); } } if (H.strike.size > AVEWS_PEND_MAX) H.strike.clear(); if (bad.length) setTimeout(() => this.hubBad(bad), 0); } } /*AVEWS112-DOWN 连上不久就断、没收到推送 → 记一次；满 AVEWS_STRIKE_MAX 次当成不接受*/ U.ws = null; U.sent = new Set(); U.pend = new Map(); if (ws) { try { ws.close(1000, 'bye'); } catch {} }
     this.hubUpNote(); if (H.cnt[i] && !U.wait) { const ms = AVEWS_RETRY_MS[Math.min(U.retry, AVEWS_RETRY_MS.length - 1)]; U.retry++; U.wait = setTimeout(() => { U.wait = null; this.upOpen(i); }, ms); } }
   upRetry1(i, U, ks) { /*RISK-FIX 9：整批被拒的订阅一个一个重送（单个再被拒才算 bad） */ const H = this.hub(); for (const k of ks) { if (H.at.get(k) !== i || !U.ws || !H.ref.has(k)) continue; for (const [params, kk] of awParams([k])) { const id = ++H.rid; U.pend.set(id, kk); try { U.ws.send(JSON.stringify({ jsonrpc: '2.0', method: 'subscribe', params, id })); H.st.sub += kk.length; } catch {} } } }
   upClose(i) { const U = this.hub().up[i]; if (!U) return; if (U.wait) { clearTimeout(U.wait); U.wait = null; } const ws = U.ws; U.ws = null; U.sent = new Set(); if (ws) { try { ws.close(1000, 'idle'); } catch {} } }
   upRx(i, U, data) { U.rx = Date.now(); if (typeof data !== 'string' || data.trim() === 'pong') return; let j; try { j = JSON.parse(data); } catch { return; } if (!j || typeof j !== 'object') return;
-    this.hub().st.rx++; /*RISK-FIX 10*/
+    this.hub().st.rx++; /*RISK-FIX 10*/ if (j.error != null) this.hub().st.err++; else if (j.result && typeof j.result === 'object' && j.result.topic) { const H = this.hub(); H.st.topic++; U.topicRx = (U.topicRx || 0) + 1; U.retry = 0; if (H.strike.size) H.strike.clear(); } /*AVEWS112-RX 收到推送＝连线正常，重连次数归零*/
     if (j.error != null && j.id != null) { const ks = U.pend.get(j.id); U.pend.delete(j.id); if (ks && ks.length > 1) this.upRetry1(i, U, ks); else if (ks) this.hubBad(ks); return; } /* AVE 拒绝这个订阅 → 告诉用户端（改回定时查询） */ /*RISK-FIX 9：一整批（价格订阅一则带好几个币）被拒 → 拆成一个一个重送，只把真的不行的标 bad */
     const R = j.result; if (!R || typeof R !== 'object') return; if (!R.topic && j.id != null) U.pend.delete(j.id);
     if (R.topic === 'price' && Array.isArray(R.prices)) { for (const q of R.prices) { if (!q || typeof q !== 'object') continue; const ch = awL(q.chain), p = { u: awN(q.uprice), c24: awN(q.price_change_24h), c: awN(q.price_change ?? q.change), tvl: awN(q.tvl), v24: awN(q.volume_24_u), n24: awN(q.tx_count_24h), tm: awN(q.time) };
