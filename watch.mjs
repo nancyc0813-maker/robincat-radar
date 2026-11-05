@@ -243,7 +243,8 @@ const parseOut = (res) => (e, so, se) => { const t = String(so || se || e?.messa
 const BAW_ADDR_F = new Set(['--tokenContract', '--spender', '--to', '--from', '--fromToken', '--toToken', '--address', '--owner', '--contract']), BAW_NUM_F = new Set(['--fromTokenQty', '--value', '--binanceChainId', '--chainId', '--limit']);
 function bawArgsBad(args, sh) { for (let i = 0; i < args.length; i++) { const a = String(args[i]); const f = String(args[i - 1] || ''); if (f === '--message') { if (sh ? !/^"(?:[^"`$\\]|\\[nrt"\\/])*"$|^[A-Za-z0-9_.:\/@=,+\-]*$/.test(a) : a.length > 4000) return '--message 格式不对'; continue; } /* 登入签名的讯息：经过 shell 时不能有会被 shell 解读的字元 */ if (!/^[A-Za-z0-9_.:\/@=,+\-]*$/.test(a)) return `参数格式不对：${a.slice(0, 40)}`; if (BAW_ADDR_F.has(f) && !/^0x[0-9a-fA-F]{40}$/.test(a)) return `${f} 不是合约地址：${a.slice(0, 50)}`; if (BAW_NUM_F.has(f) && !/^\d+(\.\d+)?(e[-+]?\d+)?$/i.test(a)) return `${f} 不是数字：${a.slice(0, 30)}`; if (f === '--inputData' && !/^0x([0-9a-fA-F]{2})*$/.test(a)) return '--inputData 不是十六进位'; if (f === '--slippage' && !/^(auto|\d+(\.\d+)?)$/.test(a)) return '--slippage 格式不对'; } return ''; }
 const BAW_SEND = /^(market-order swap|contract-call execute|approvals revoke|sign-message execute)$/;
-const bawGuard = (fn) => Object.assign((args, timeout) => { const bad = bawArgsBad(args || [], !!fn.sh || (!!fn.maybeSh && !existsSync(BAW_BIN))); if (bad) { log('⛔ baw 参数检查没过，没执行：' + bad); return Promise.resolve({ t: '参数检查没过：' + bad, j: { success: false, error: { message: '参数检查没过：' + bad } } }); } return fn(args, timeout).then((r) => { if (r && !r.j && !r.timeout && r.ok0 && BAW_SEND.test(String((args || [])[0]) + ' ' + String((args || [])[1]))) return { ...r, t: 'TIMEOUT(结果不明：送出后读不懂回应) ' + r.t, timeout: 1 }; return r; }); /* 会花钱的指令正常结束却读不懂回应＝结果不明 */ }, fn.sh ? { sh: 1 } : {});
+/*BINDSH108*/const bawShNow = (fn) => !!fn?.sh || (!!fn?.maybeSh && !existsSync(BAW_BIN)); /* 这次呼叫会不会经过 shell（bawGuard 检查和 bindSign 包引号用同一个判断） */
+const bawGuard = (fn) => Object.assign((args, timeout) => { const bad = bawArgsBad(args || [], bawShNow(fn)); if (bad) { log('⛔ baw 参数检查没过，没执行：' + bad); return Promise.resolve({ t: '参数检查没过：' + bad, j: { success: false, error: { message: '参数检查没过：' + bad } } }); } return fn(args, timeout).then((r) => { if (r && !r.j && !r.timeout && r.ok0 && BAW_SEND.test(String((args || [])[0]) + ' ' + String((args || [])[1]))) return { ...r, t: 'TIMEOUT(结果不明：送出后读不懂回应) ' + r.t, timeout: 1 }; return r; }); /* 会花钱的指令正常结束却读不懂回应＝结果不明 */ }, fn.sh ? { sh: 1 } : fn.maybeSh ? { maybeSh: 1 } : {}); /*BINDSH108 把 maybeSh 带出去*/
 function makeBaw(wc) { return bawGuard(makeBaw0(wc)); }
 let _bawG; function bawGlobalEntry() { if (_bawG !== undefined) return _bawG; _bawG = ''; const rel = join('@binance', 'agentic-wallet', 'dist', 'index.js'); const roots = []; try { roots.push(String(execFileSync('npm', ['root', '-g'], { shell: true, windowsHide: true, timeout: 15000, encoding: 'utf8' })).trim()); } catch {} const nd = dirname(process.execPath); roots.push(join(nd, 'node_modules'), join(nd, '..', 'lib', 'node_modules')); if (process.env.APPDATA) roots.push(join(process.env.APPDATA, 'npm', 'node_modules')); for (const r of roots) { if (!r) continue; const f = join(r, rel); if (existsSync(f)) { _bawG = f; break; } } return _bawG; } /* 找全域安装的 baw 主程式（npm root -g 是固定指令、没有使用者输入）；找不到才用 shell 的 baw */
 function makeBaw0(wc) {
@@ -1987,7 +1988,7 @@ async function actionGate(W, a) {
     return sellish ? out(true, '闸门判断出错，但这是卖出／撤销授权，照常：' + String(e?.message || e)) : out(false, '读不到资料／判断出错，只能不买：' + String(e?.message || e));
   }
 }
-function guardBaw(W) { if (W._g) return; W._g = 1; const o = W.baw; const g = async (a, ...r) => { const G = await actionGate(W, a); if (!G.ok) { if (!/登入过期/.test(G.why)) log(`[安全] ${W.name} 挡下一笔：${G.why}`); return { t: G.why, j: { success: false, error: { message: G.why } } }; } const res = await o(a, ...r); if (G.rec) { try { const rid = String(res?.j?.data?.requestId || '').toLowerCase(); if (rid) { RID_KIND.set(rid, { kind: G.kind, target: G.target }); if (a[0] === 'contract-call') RID_BUY.set(rid, bawBuyLike(a)); if (RID_BUY.size > 2000) RID_BUY.delete(RID_BUY.keys().next().value); if (RID_KIND.size > RID_KIND_MAX) RID_KIND.delete(RID_KIND.keys().next().value); /*RISK-FIX 5*/ } } catch {} } return res; }; if (o.sh) g.sh = o.sh; g._gate = 1; W.baw = g; } /* GATE-1：闸门包在最里层（直接包住真正的币安钱包 CLI）；外面再包一层（例如安全哨兵记录交易）照样要先过闸门 */
+function guardBaw(W) { if (W._g) return; W._g = 1; const o = W.baw; const g = async (a, ...r) => { const G = await actionGate(W, a); if (!G.ok) { if (!/登入过期/.test(G.why)) log(`[安全] ${W.name} 挡下一笔：${G.why}`); return { t: G.why, j: { success: false, error: { message: G.why } } }; } const res = await o(a, ...r); if (G.rec) { try { const rid = String(res?.j?.data?.requestId || '').toLowerCase(); if (rid) { RID_KIND.set(rid, { kind: G.kind, target: G.target }); if (a[0] === 'contract-call') RID_BUY.set(rid, bawBuyLike(a)); if (RID_BUY.size > 2000) RID_BUY.delete(RID_BUY.keys().next().value); if (RID_KIND.size > RID_KIND_MAX) RID_KIND.delete(RID_KIND.keys().next().value); /*RISK-FIX 5*/ } } catch {} } return res; }; if (o.sh) g.sh = o.sh; if (o.maybeSh) g.maybeSh = o.maybeSh; /*BINDSH108*/ g._gate = 1; W.baw = g; } /* GATE-1：闸门包在最里层（直接包住真正的币安钱包 CLI）；外面再包一层（例如安全哨兵记录交易）照样要先过闸门 */
 for (const W of WALLETS) guardBaw(W);
 { const _push = WALLETS.push; Object.defineProperty(WALLETS, 'push', { value: function (...ws) { for (const w of ws) guardBaw(w); return _push.apply(this, ws); }, writable: false, configurable: false }); } /* GATE-1：之后新增的钱包也一定先包上闸门 */
 try { for (const W of WALLETS) W.off = !!(S.wOff || {})[W.addr]; } catch {} /* 重开后先沿用上次的登入状态 */
@@ -2758,7 +2759,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.0.7', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.0.8', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;
@@ -3019,14 +3020,14 @@ let BIND = null; try { BIND = await import('./bind.mjs'); } catch (e) { log('邀
 const BIND_UNSUP = /953004|don'?t support signing|not support/i; /* BIND-FIX：币安说「不支援这种讯息」 */
 const BIND_DEV = /35180\d|developer ?mode|dev ?mode/i; /* BIND-FIX：开发者模式没开／过期 */
 const BIND_BACKOFF = [60e3, 600e3, 3600e3, 86400e3]; /* 技术用：绑定签名失败后多久自动再试（1 分钟、10 分钟、1 小时，之后一天一次），不会每分钟一直送预览、一直跳币安通知 */
-const BIND_FMT = 'b2'; /* 技术用：签名写法版本，雷达更新后重新算失败次数 */
+const BIND_FMT = 'b3'; /*BINDSH108：修好 shell 引号后旧的失败次数作废、马上重试*/ /* 技术用：签名写法版本，雷达更新后重新算失败次数 */
 async function bindSign(kind, code) { const W = WALLETS[0]; if (!W || !BIND) throw new Error('还没有钱包');
   /* BIND-FIX 11/5：照币安说明书送 {method, params}；依序试 BIND.BIND_VC 的写法，只有币安回「不支援这种讯息」(953004) 才换下一种，其他错误（开发者模式没开、登入过期…）立刻停，不连发。
      拿掉旧的「换一种引号再送一次」：那次送的是被包成字串的 JSON，币安一定拒绝，还会盖掉第一次真正的错误 */
   let p = null, vf = '';
   for (const vc of BIND.BIND_VC || ['']) { vf = vc;
     const msg = JSON.stringify({ method: 'eth_signTypedData_v4', params: [W.addr, JSON.stringify(BIND.bindTyped(kind, code, W.addr, vc))] });
-    p = await W.baw(['sign-message', 'preview', '--binanceChainId', '56', '--message', W.baw.sh ? JSON.stringify(msg) : msg, '--signType', 'EIP712'], 60000);
+    p = await W.baw(['sign-message', 'preview', '--binanceChainId', '56', '--message', bawShNow(W.baw) ? JSON.stringify(msg) : msg, /*BINDSH108*/ '--signType', 'EIP712'], 60000);
     if ((p.j?.success && p.j?.data?.requestId) || !BIND_UNSUP.test(String(p.j?.error?.message || p.j?.error?.code || p.t || ''))) break; }
   const rid = p.j?.data?.requestId; if (!p.j?.success || !rid) { const em = String(p.j?.error?.message || p.t || ''); throw new Error('签名预览失败 ' + em.slice(0, 100) + (BIND_DEV.test(em) ? '（要先在币安 App 的 Agentic 钱包设定打开「开发者模式」）' : '')); }
   let pm = {}; try { pm = JSON.parse(p.j.data.parsedMessage?.message || '{}'); } catch {} if (pm && pm.message && typeof pm.message === 'object') pm = pm.message; /* parsedMessage 可能是整份 typed data */

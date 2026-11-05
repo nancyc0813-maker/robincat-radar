@@ -1,12 +1,10 @@
 {
-  "version": "1.0.7",
+  "version": "1.0.8",
   "date": "2026-11-05",
   "critical": false,
   "notes": [
-    "新增：看盘「🌐 Elysium（只看）」——列出 Elysium 链上新铸出的代币，看最近 10 分钟／1 小时有几个不同钱包、铸了几笔",
-    "只看不买：雷达不连钱包、不签名、不送任何交易；监测开关预设关，关着完全不连线",
-    "每个代币有「在 AVE 打开」：先复制合约、再打开 AVE 网页，交易在你自己的 AVE 钱包完成，雷达不经手",
-    "注意：Elysium 主网 11/9 才正式上线，现在是偷跑链；跨链桥目前只能跨进不能跨出；资料来自社群节点，不是官方"
+    "修好：连上钱包后「邀请绑定」签名被雷达自己的安全检查误挡，导致 AVE 资料（K 线、成交明细等）拿不到、邀请和积分登记不了；更新后雷达会自动重新签一次",
+    "绑定完成后，K 线、成交明细等 AVE 资料会恢复正常"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -43,10 +41,10 @@
     "radar/main.cjs": "4d45589f7efab2f41220a9392f2b86d4789d3aab3860cc45a45a81eabafe9455",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
     "radar/next.cjs": "5e5de63de0fae925cf72c1146e24df876e5ae6b1b5e928a1e03d33cea8561f81",
-    "radar/official.json": "f53cfa3b5eeb00affe02166cad0e89a8c6334389178f00dde2ca7f6619fd4105",
-    "radar/official.sig": "ed2676cba2236df5253d1258988c0f57bdb6db24ae1599927dc5ce17131f1211",
+    "radar/official.json": "6b75dafbc292a1475142284d0cb71f85d88122fa73b3045aa002c589ed01b660",
+    "radar/official.sig": "69fa2368661e8606bd78dda7fab19b6c1f947b0386c5addef3a9fdd5af05f18a",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "81c423a61ac411b478473920fda056620e03f47a93a50d0e432abd8138505c0c",
+    "radar/package.json": "5eee79fa06b8873f83f309bf383c31480a73cc860536c31eec69da398aebebee",
     "radar/preload.cjs": "b2daf89f6b552016ca56df21811dd4cb970a1383831f8cdf780c410218e2eff1",
     "radar/settings_schema.json": "94c18f19d119f1a35b2cb95ec0e6898c91f64cc44775873c1180eb045c647bf3",
     "radar/ui/index.html": "b18256f3466eda84c70f637a36fa57f733582e8ed6e3e1365e02a06c59145f8e",
@@ -77,11 +75,11 @@
     "tools/guard_rules.json": "f57276645ea307429cd627b6d3e586321a6f4debbe51e25ef7c1b71de0545335",
     "tools/zero_allowlist.json": "df482143cd4eb449fc161ca8943dd785da9d0e038403d7d0cde155c35d3e39e4",
     "tools/zero_check.mjs": "f2cbc69aba4ab36cfb21ec0b61b441dd3af66babc22d5e11966cff6e13ebdb83",
-    "watch.mjs": "8a602f4115310814331f1ac78394df3dbf37726e57992829123f1b41993d0bb4",
+    "watch.mjs": "81e81d876216d62e9a01a584de81fa6cdc7ce860b8863996c0f794991f02eef1",
     "weekly.mjs": "29607307001098f6fc275fb36e19e71e7ec47797b1fd68fb8002a335bd2c2ca9",
     "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
     "一键安装.bat": "771cc00b587b82d51dcd93bd654c303d6edc07bffd76707852b6fb68526bd07b",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "8a602f4115310814331f1ac78394df3dbf37726e57992829123f1b41993d0bb4"
+  "sha256": "81e81d876216d62e9a01a584de81fa6cdc7ce860b8863996c0f794991f02eef1"
 }
