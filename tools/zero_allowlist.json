@@ -307,6 +307,356 @@
    "reason": "BOARD-V3 技术用：手机多久跟电脑对一次自选清单（运作频率，跟买卖无关）。"
   },
   {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "钟快取）。\\ \\*/\\ const\\ FB_TY\\ =\\ \\{\\ '31':\\ 'kol',\\ '30':\\ 'sm',\\ '39'",
+   "value": "'31'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "t\\ FB_TY\\ =\\ \\{\\ '31':\\ 'kol',\\ '30':\\ 'sm',\\ '39':\\ 'wh',\\ '40':",
+   "value": "'30'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "'31':\\ 'kol',\\ '30':\\ 'sm',\\ '39':\\ 'wh',\\ '40':\\ 'bw',\\ '41':",
+   "value": "'39'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "\\ '30':\\ 'sm',\\ '39':\\ 'wh',\\ '40':\\ 'bw',\\ '41':\\ 'dh',\\ '42':",
+   "value": "'40'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "\\ '39':\\ 'wh',\\ '40':\\ 'bw',\\ '41':\\ 'dh',\\ '42':\\ 'ap',\\ '44':",
+   "value": "'41'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "\\ '40':\\ 'bw',\\ '41':\\ 'dh',\\ '42':\\ 'ap',\\ '44':\\ 'pp',\\ '16':",
+   "value": "'42'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "\\ '41':\\ 'dh',\\ '42':\\ 'ap',\\ '44':\\ 'pp',\\ '16':\\ 'rat',\\ '19'",
+   "value": "'44'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "\\ '42':\\ 'ap',\\ '44':\\ 'pp',\\ '16':\\ 'rat',\\ '19':\\ 'sn',\\ '25'",
+   "value": "'16'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "'44':\\ 'pp',\\ '16':\\ 'rat',\\ '19':\\ 'sn',\\ '25':\\ 'dv',\\ '36':",
+   "value": "'19'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "'16':\\ 'rat',\\ '19':\\ 'sn',\\ '25':\\ 'dv',\\ '36':\\ 'bu',\\ '35':",
+   "value": "'25'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "\\ '19':\\ 'sn',\\ '25':\\ 'dv',\\ '36':\\ 'bu',\\ '35':\\ 'ca',\\ '34':",
+   "value": "'36'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "\\ '25':\\ 'dv',\\ '36':\\ 'bu',\\ '35':\\ 'ca',\\ '34':\\ 'ph',\\ '43':",
+   "value": "'35'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "\\ '36':\\ 'bu',\\ '35':\\ 'ca',\\ '34':\\ 'ph',\\ '43':\\ 'lot',\\ '45'",
+   "value": "'34'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "\\ '35':\\ 'ca',\\ '34':\\ 'ph',\\ '43':\\ 'lot',\\ '45':\\ 'hot',\\ '1'",
+   "value": "'43'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "'34':\\ 'ph',\\ '43':\\ 'lot',\\ '45':\\ 'hot',\\ '1':\\ 'bh',\\ '2':\\ ",
+   "value": "'45'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs",
+   "match": "\\ '45':\\ 'hot',\\ '1':\\ 'bh',\\ '2':\\ 'lp'\\ \\};\\ const\\ FB_EN\\ =\\ \\[",
+   "value": "'2'",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：AVE holders new_tags 的 type 编号对照（资料格式：哪个编号＝哪种标签），只决定画面显示哪种标签，不影响买卖"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/main\\.cjs",
+   "match": ",\\ \\['dv',\\ /\\^dev\\(eloper\\)\\?\\$/i\\]\\];\\ const\\ FB_NEG\\ =\\ /诈骗\\|骗",
+   "value": "诈骗|骗子|骗局|拉盘|砸盘|操盘|跑路|貔貅|老鼠|收割|镰刀|黑客|洗钱|scam|rug|fraud|dump|h",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用字典：链智数据负面标签字词（只决定标签显示成红色）／稳定币与原生币不列入钱包页赚赔排行；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs",
+   "match": "th\\ \\&\\&\\ !mr\\.length\\ \\&\\&\\ i\\ >=\\ 100\\)\\ return;\\ const\\ r\\ =\\ isPct",
+   "value": "100",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：时间格式（秒／分／小时换算）、地址缩写长度、AVE 盈亏比例单位判断（0～1 或 0～100）、钱包页小额持仓显示门槛；只影响显示"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs",
+   "match": "\\],\\ nm,\\ neg:\\ neg\\.slice\\(0,\\ 3\\),\\ mr:\\ mr\\.slice\\(0,\\ 3\\),\\ pc",
+   "value": "3",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs",
+   "match": "push\\(\\{\\ src:\\ src\\.slice\\(0,\\ 40\\),\\ at:\\ Number\\(e\\.at\\)\\ \\|\\|\\ 0\\ ",
+   "value": "40",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs",
+   "match": "u001f<>\\]/g,\\ ''\\)\\.slice\\(0,\\ 16\\),\\ b:\\ N\\(t\\.balance_usd\\),\\ b",
+   "value": "16",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/main\\.cjs",
+   "match": "fit\\)\\ \\}\\)\\)\\.filter\\(\\(t\\)\\ =>\\ !/\\^\\(wbnb\\|weth\\|usdt\\|usdc\\|bnb\\|eth\\|busd\\|fdusd\\)\\$/i",
+   "value": "^(wbnb|weth|usdt|usdc|bnb|eth|busd|fdusd)$",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用字典：链智数据负面标签字词（只决定标签显示成红色）／稳定币与原生币不列入钱包页赚赔排行；不影响买卖"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/main\\.cjs",
+   "match": "/\\*\\ 看盘\\ FOMO\\ 版资料接线，只读、只显示：\\ fbWho：AVE\\ holders\\ new_tag",
+   "value": "30 分钟",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：注解里描述快取时间，不是规则"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/main\\.cjs",
+   "match": "/\\*\\ 运作：同一个钱包\\ 30\\ 分钟查一次\\ \\*/",
+   "value": "30 分钟",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：注解里描述快取时间，不是规则"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html",
+   "match": "',\\{maximumFractionDigits:2,minimumFractionDigits:2\\}",
+   "value": "2",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：百分比小数位数"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html",
+   "match": "aximumFractionDigits:2,minimumFractionDigits:2\\}",
+   "value": "2",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：百分比小数位数"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "g\\(a\\|\\|''\\);return\\ a\\.length>12\\?a\\.slice\\(0,6\\)\\+'…'\\+a\\.slice",
+   "value": "12",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：时间格式（秒／分／小时换算）、地址缩写长度、AVE 盈亏比例单位判断（0～1 或 0～100）、钱包页小额持仓显示门槛；只影响显示"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html",
+   "match": "k\\(x\\.at\\?\\(Date\\.now\\(\\)\\-x\\.at\\)/60e3:null,'age'\\)\\&\\&ok\\(x\\.vol\\?\\.\\[",
+   "value": "60e3",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：毫秒换算（分钟、秒）与 K 线周期读不到时的预设间距（只用来把成交标在哪根 K 棒）"
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/ui/index\\.html",
+   "match": "FB\\.rows=\\+e\\.target\\.value\\|\\|100;fbSave\\(\\);fmRender\\(\\)\\}\\}\\);\\ ",
+   "value": "100",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：「显示笔数」下拉读不到时的预设（只是画面上限）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html",
+   "match": "FB\\.tf;\\ const\\ C=W\\.slice\\(0,10\\)\\.map\\(x=>\\(\\{k:'w:'\\+String\\(",
+   "value": "10",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html",
+   "match": "\\{W=bvWlItems\\(CH\\)\\.slice\\(0,12\\)\\}catch\\{\\}const\\ tf=FB\\.tf;\\ ",
+   "value": "12",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html",
+   "match": "\\?\\(M2\\.cs\\[1\\]\\.t\\-M2\\.cs\\[0\\]\\.t\\):300e3;const\\ y=\\(v\\)=>8\\+\\(M2\\.H\\-70\\)",
+   "value": "300e3",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：毫秒换算（分钟、秒）与 K 线周期读不到时的预设间距（只用来把成交标在哪根 K 棒）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html",
+   "match": "';\\ const\\ tip=v\\.L\\.slice\\(0,6\\)\\.map\\(z=>`\\$\\{z\\.T\\.nm\\|\\|z\\.T\\.l",
+   "value": "6",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "\\)\\.join\\('\\\\n'\\)\\+\\(v\\.L\\.length>6\\?`\\\\n\\+\\$\\{v\\.L\\.length\\-6\\}`:''\\)",
+   "value": "6",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：时间格式（秒／分／小时换算）、地址缩写长度、AVE 盈亏比例单位判断（0～1 或 0～100）、钱包页小额持仓显示门槛；只影响显示"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html",
+   "match": "h\\.round\\(\\(Date\\.now\\(\\)\\-x\\.t\\)/1000\\)\\):null;return\\ sec==null\\?",
+   "value": "1000",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：毫秒换算（分钟、秒）与 K 线周期读不到时的预设间距（只用来把成交标在哪根 K 棒）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "return\\ sec==null\\?'—':sec<60\\?sec\\+'s':sec<3600\\?Math\\.ro",
+   "value": "60",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：时间格式（秒／分／小时换算）、地址缩写长度、AVE 盈亏比例单位判断（0～1 或 0～100）、钱包页小额持仓显示门槛；只影响显示"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "l\\?'—':sec<60\\?sec\\+'s':sec<3600\\?Math\\.round\\(sec/60\\)\\+'m':M",
+   "value": "3600",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：时间格式（秒／分／小时换算）、地址缩写长度、AVE 盈亏比例单位判断（0～1 或 0～100）、钱包页小额持仓显示门槛；只影响显示"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html",
+   "match": "\\)\\-\\(\\+p\\.v\\.bal\\|\\|0\\)\\)\\.slice\\(0,100\\);if\\(!L2\\.length\\)return;\\ c",
+   "value": "100",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "v\\.tpr\\*\\(Math\\.abs\\(\\+v\\.tpr\\)<=50\\?100:1\\)\\)\\}</small>`:''\\}</s",
+   "value": "50",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：时间格式（秒／分／小时换算）、地址缩写长度、AVE 盈亏比例单位判断（0～1 或 0～100）、钱包页小额持仓显示门槛；只影响显示"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "pr\\*\\(Math\\.abs\\(\\+hh\\.v\\.tpr\\)<=50\\?100:1\\)\\)\\+'\\)':''\\}</div>`:'",
+   "value": "50",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：时间格式（秒／分／小时换算）、地址缩写长度、AVE 盈亏比例单位判断（0～1 或 0～100）、钱包页小额持仓显示门槛；只影响显示"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html",
+   "match": "/small></div>\\$\\{G\\.slice\\(0,6\\)\\.map\\(z=>\\{const\\ pn=z\\.cost",
+   "value": "6",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "H\\.tpr\\*\\(Math\\.abs\\(\\+H\\.tpr\\)<=50\\?100:1\\)\\):''\\}</div><div\\ cl",
+   "value": "50",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：时间格式（秒／分／小时换算）、地址缩写长度、AVE 盈亏比例单位判断（0～1 或 0～100）、钱包页小额持仓显示门槛；只影响显示"
+  },
+  {
+   "rule": "MINMAX",
+   "file": "radar/ui/index\\.html",
+   "match": "\\(W\\-P\\)/Math\\.max\\(cs\\.length,40\\),ox=\\(W\\-P\\)\\-cs\\.length\\*bw;\\ ",
+   "value": "40",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：K 线最少画几格宽（版面），不影响资料"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html",
+   "match": "length>1\\?cs\\[1\\]\\.t\\-cs\\[0\\]\\.t:300e3;for\\(const\\ r\\ of\\ mine\\)\\{let",
+   "value": "300e3",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：毫秒换算（分钟、秒）与 K 线周期读不到时的预设间距（只用来把成交标在哪根 K 棒）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html",
+   "match": "allet':'关注的钱包'\\)\\)\\.slice\\(0,30\\)\\}\\);\\ try\\{await\\ rsave\\(\\{'sm",
+   "value": "30",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html",
+   "match": "\\(\\(a,b\\)=>b\\.p\\-a\\.p\\)\\.slice\\(0,5\\);FB\\.wpSm=FB\\.wpSm\\|\\|0;FB\\.w",
+   "value": "5",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html",
+   "match": "\\.filter\\(x=>FB\\.wpC\\?!\\(\\+x\\.b>0\\.5\\):\\(\\+x\\.b>0\\)\\)\\.filter\\(x=>FB\\.",
+   "value": "0.5",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：时间格式（秒／分／小时换算）、地址缩写长度、AVE 盈亏比例单位判断（0～1 或 0～100）、钱包页小额持仓显示门槛；只影响显示"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html",
+   "match": "/\\*BOARD\\-FOMO\\-CSS\\*/\\\n/\\*\\ 只在看盘（一般代币＋BNB／Robinhood）时套用：",
+   "value": "18%",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：CSS 颜色混合比例（样式），不是数字规则"
+  },
+  {
+   "rule": "MINMAX",
+   "file": "relay/phone\\.html",
+   "match": "W\\-R\\-6\\)/Math\\.max\\(K\\.length,30\\),ox=\\(W\\-R\\-6\\)\\-K\\.length\\*bw;",
+   "value": "30",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：K 线最少画几格宽（版面），不影响资料"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/phone\\.html",
+   "match": ">1\\?T\\(K\\[1\\]\\[0\\]\\)\\-T\\(K\\[0\\]\\[0\\]\\):300e3;const\\ me=mine\\(\\);const\\ mn",
+   "value": "300e3",
+   "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：毫秒换算（分钟、秒）与 K 线周期读不到时的预设间距（只用来把成交标在哪根 K 棒）"
+  },
+  {
    "rule": "SLICE",
    "file": "mintpick\\.mjs$",
    "match": "c\\.slice\\(0, 8\\)",
@@ -12254,6 +12604,114 @@
    "reason": "C* decoding: which of the first 4 call arguments is a share count (a share count is 2..100 in observed mint calls); only used to scale a copied call down to the user's budget."
   },
   {
+   "rule": "OBJNUM|TIMEWIN",
+   "file": "radar/newx\\.cjs$",
+   "match": "(first|tick|aveEvery|chainEvery|llamaEvery|rpcEvery|timeout|back|span|txLook|symLook|keepMs|keepEv|keepKeys|keepItems|keepSec|firstToks|hotToks|txt|baseRounds|manualGap|tokTries): ?\\d",
+   "values": [
+    "30e3",
+    "60e3",
+    "900e3",
+    "21600e3",
+    "3600e3",
+    "120e3",
+    "15e3",
+    "600",
+    "400",
+    "40",
+    "10",
+    "86400e3",
+    "4000",
+    "300",
+    "200",
+    "5",
+    "20",
+    "80",
+    "2",
+    "3"
+   ],
+   "reason": "NEWX-1105 plumbing constants (NXT, commented 技术用): polling intervals per source (AVE quota saving), request timeout, block back-fill/span per eth_getLogs, tx/symbol lookups per tick, retention window and size caps of stored lists, text truncation, number of first tokens kept for display, warm-up rounds treated as baseline, manual 'check now' throttle, retries. None decides buy/sell/skip/notify; the 'possible launchpad' tag + TG use only the user's newx.facMin/newx.facWinMin."
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/newx\\.cjs$",
+   "match": "\\(mainnet\\|chain\\|network\\)\\$",
+   "reason": "NEWX-1105: chain-name normalization (strip a trailing 'mainnet/chain/network' suffix so 'Robinhood Chain' and AVE 'robinhood' match). Not a keyword blacklist or labeling list."
+  },
+  {
+   "rule": "CMP|TIMEWIN",
+   "file": "radar/newx\\.cjs$",
+   "match": "v < 1e12 \\? v \\* 1e3",
+   "values": [
+    "1e12",
+    "1e3"
+   ],
+   "reason": "NEWX-1105: unit detection/conversion — AVE timestamps arrive as seconds or milliseconds; values below 1e12 are seconds and are multiplied by 1000. Not a threshold."
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/newx\\.cjs$",
+   "match": "jsonrpc: '2\\.0'",
+   "value": "'2.0'",
+   "reason": "NEWX-1105: JSON-RPC protocol version string, not an amount."
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/newx\\.cjs$",
+   "match": "d\\.length >= 2 \\+ 64 \\* 2",
+   "value": "2",
+   "reason": "NEWX-1105: ABI decoding of symbol() — a dynamic string needs at least two 32-byte words (offset + length); otherwise it's a fixed bytes32. Protocol layout, not a threshold."
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/newx\\.cjs$",
+   "match": "wMin \\* 60e3",
+   "value": "60e3",
+   "reason": "NEWX-1105: minutes→ms conversion of the user's own newx.facWinMin. Not a built-in window."
+  },
+  {
+   "rule": "OBJNUM|TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "const NXU=\\{paint:2000,short:6,ph:40\\}",
+   "values": [
+    "2000",
+    "6",
+    "40"
+   ],
+   "reason": "NEWX-1105 UI plumbing (commented 技术用): repaint check interval, how many address chars to show, max items forwarded to the phone. Display only."
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "if\\(h<48\\)return en\\(\\)\\?h\\+'h ago'",
+   "value": "48",
+   "reason": "NEWX-1105: 'time ago' formatting (switch from hours to days after two days). Display only."
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "keepMs\\|\\|0\\)/3600e3",
+   "value": "3600e3",
+   "reason": "NEWX-1105: ms→hours conversion to display the tool's retention window (value comes from radar/newx.cjs NXT.keepMs). Display only."
+  },
+  {
+   "rule": "OBJNUM|TIMEWIN",
+   "file": "relay/phone\\.html$",
+   "match": "const NXP = \\{ tick: 30000, short: 6 \\}|req\\('newx', \\{\\}, 20000\\)",
+   "values": [
+    "30000",
+    "6",
+    "20000"
+   ],
+   "reason": "NEWX-1105 phone plumbing (commented 技术用): how often the phone asks the PC for the new-chains page, address chars shown, request timeout. Display only."
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "s < 172800 \\? Math\\.round\\(s / 3600\\)",
+   "value": "172800",
+   "reason": "NEWX-1105: phone 'time ago' formatting (hours → days after two days). Display only."
+  },
+  {
    "rule": "TIMEWIN",
    "file": "relay/worker\\.js$",
    "match": " rw: null, raw: '' \\}; const INV_RETRY_BA",
@@ -15420,6 +15878,36 @@
    "file": "^relay/phone\\.html$",
    "match": "XW_EVERY = 30e3",
    "reason": "XACC108 手机：多久重新跟电脑要一次 X 帐号列表（30 秒），技术用节流"
+  },
+  {
+   "rule": "TIMEWIN|CMP|COMMENT_NUM",
+   "file": "^radar/main\\.cjs$",
+   "match": "AVE_RPS_SELF = 3, AVE_FG_HOLD_MS = 15e3|AVE_SLOT\\.q; while \\(T\\.length && now - T\\[0\\] >= 1000\\)|Math\\.max\\(20, 1000 - \\(now - \\(T\\[0\\] \\|\\| now\\)\\)|ra > 0 \\? ra \\* 1000 : AVE_BUSY_MS|AVE_FG_BUSY_MS = 3e3|AVE110-LIM 排队",
+   "reason": "AVE110 AVE 查询排队：每秒最多 3 次（转接站每人每秒 4 次留 1 次余裕）、1 秒滑动窗口、详情页开着时背景让路 15 秒、前景被限速时照 retry-after（秒→毫秒）再试、真的不行停 3 秒 —— 技术用，跟买卖无关"
+  },
+  {
+   "rule": "KWLIST|CMP",
+   "file": "^(radar/ui/index|relay/phone)\\.html$",
+   "match": "KEEP110|ENT>400|INPUT\\|TEXTAREA\\|SELECT|checkbox\\|radio\\|file\\|button\\|submit|\\[-\\+≈~\\$\\]\\?",
+   "reason": "KEEP110 重画保留状态：辨认输入框种类、按 Enter 后 400ms 内不还原（程式在清空）、展开状态的键要去掉会变的数字 —— 只是画面状态，跟买卖无关"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^radar/ui/index\\.html$",
+   "match": "TAPE_MS=1000|FD_SLOW_MS=5e3",
+   "reason": "TAPE110 详情页每 1 秒读成交（老板要求）、AVE110 读取超过 5 秒就写原因 —— 技术用"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "^radar/ui/index\\.html$",
+   "match": "每 5 秒自动重试|retrying every 5 s|每人每秒最多 4 次|max 4 per second",
+   "reason": "说明文字：成交读不到时的重试间隔、转接站限速（每人每秒 4 次）的白话说明，不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^relay/phone\\.html$",
+   "match": "TAPE_PH_MS = 1000",
+   "reason": "TAPE110 手机详情页每 1 秒读成交（老板要求），技术用"
   }
  ]
 }

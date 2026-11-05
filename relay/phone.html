@@ -395,6 +395,28 @@ button[data-a="tf"]::before,button[data-a="net"]::before,button[data-a="strip"]:
 </style>
 </head>
 <body>
+<script>/*KEEP110 重画保留状态（展开／捲动／输入）*/
+(function(){if(window.__keep110)return;window.__keep110=1;const LS='keepState110',MAXK=400;/* 技术用：状态表最多记几个展开状态 */
+let ST={};try{ST=JSON.parse(localStorage.getItem(LS)||'{}')||{}}catch{}const save=()=>{try{const k=Object.keys(ST);if(k.length>MAXK)for(const x of k.slice(0,k.length-MAXK))delete ST[x];localStorage.setItem(LS,JSON.stringify(ST))}catch{}};
+const anc=(e)=>{let a=e.parentElement;while(a&&!a.id)a=a.parentElement;return a?a.id:''};
+const norm=(t)=>String(t||'').replace(/[（(]\s*[\d,.]+\s*[)）]/g,'').replace(/[-+≈~$]?\d[\d,]*\.\d+\s*[%Ux倍]?|[-+≈~$]\d[\d,]*|\d[\d,]*\s*(%|U|x|倍|笔|个|次|分钟|秒|小时|天)/g,'').replace(/\s+/g,' ').trim().slice(0,48);
+const dkey=(d)=>{if(d.dataset&&d.dataset.keep)return 'k:'+d.dataset.keep;const s=d.querySelector(':scope>summary');return anc(d)+'|'+norm(s?s.textContent:'')};
+document.addEventListener('toggle',(e)=>{const d=e.target;if(!d||d.tagName!=='DETAILS'||!d.isConnected||d.__keepSet)return;ST[dkey(d)]=d.open?1:0;save()},true);
+let ENT=0;document.addEventListener('keydown',(e)=>{if(e.key==='Enter')ENT=Date.now()},true);/* 按 Enter 送出后画面重画＝程式要清空，不还原输入 */
+const SCR=new Map();let RAF=0;document.addEventListener('scroll',(e)=>{const x=e.target;if(!x||x===document||!x.id)return;if(x.scrollTop||x.scrollLeft)SCR.set(x.id,[x.scrollTop,x.scrollLeft]);else SCR.delete(x.id)},true);
+function apply(root){if(!root||!root.querySelectorAll)return;const L=root.tagName==='DETAILS'?[root,...root.querySelectorAll('details')]:root.querySelectorAll('details');for(const d of L){const k=dkey(d);if(k in ST){const w=!!ST[k];if(d.open!==w){d.__keepSet=1;d.open=w;setTimeout(()=>{d.__keepSet=0},0)}}}}
+window.keepApply=apply;window.keepState=()=>ST;/* 给其他模组／测试用 */
+const D=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');if(!D||!D.set)return;
+Object.defineProperty(Element.prototype,'innerHTML',{configurable:true,enumerable:D.enumerable,get(){return D.get.call(this)},set(v){
+ if(!this.isConnected){D.set.call(this,v);return}
+ const ae=document.activeElement;let F=null;if(Date.now()-ENT>400&&ae&&ae!==document.body&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)&&this.contains(ae)&&(ae.id||ae.name||(ae.dataset&&ae.dataset.k))&&!/^(checkbox|radio|file|button|submit)$/.test(ae.type)){F={id:ae.id,name:ae.name,k:ae.dataset&&ae.dataset.k,v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}}
+ D.set.call(this,v);
+ if(String(v).indexOf('<details')>=0)apply(this);
+ if(SCR.size){const me=this;if(!RAF)RAF=requestAnimationFrame(()=>{RAF=0;for(const [id,p] of SCR){const x=document.getElementById(id);if(x&&(x.scrollTop!==p[0]||x.scrollLeft!==p[1])){x.scrollTop=p[0];x.scrollLeft=p[1]}}})}/* 捲动位置放到下一帧画之前还原（不强迫马上排版，重画很多次也只做一次） */
+ if(F){let n=F.id?document.getElementById(F.id):null;if((!n||!this.contains(n))&&F.k)n=this.querySelector('[data-k="'+CSS.escape(F.k)+'"]');if((!n||!this.contains(n))&&F.name)n=this.querySelector('[name="'+CSS.escape(F.name)+'"]');if(n&&this.contains(n)&&/^(INPUT|TEXTAREA|SELECT)$/.test(n.tagName)){if(n.value!==F.v)n.value=F.v;try{n.focus({preventScroll:true});if(F.s!=null&&n.setSelectionRange)n.setSelectionRange(F.s,F.e)}catch{}}}
+}});})();
+</script>
+
 <div id="app"></div>
 <div class="dt" id="dt"></div>
 <div class="se" id="se"></div>
@@ -1178,7 +1200,7 @@ function liveTick(v, src) {
   }
   if (D.pxRef != null) { const el = $('#dPx'); const t = pxf(v * D.pxRef); if (el && el.textContent !== t) el.textContent = t; }
 }
-async function loadTape() { if (!DT) return; const c = DT.c; let r; try { r = await req('tape', { net: DT.net, c, pool: DT.d?.pool || '' }, 30000); } catch (e) { r = { err: e.message, rows: DT.tape?.rows || [] }; } if (!DT || DT.c !== c) return; DT.tape = r; paintTape(); clearTimeout(loadTape._t); loadTape._t = setTimeout(() => { if (DT && DT.c === c && !document.hidden) loadTape(); }, 15000); }
+async function loadTape() { if (!DT) return; const c = DT.c; let r; try { r = await req('tape', { net: DT.net, c, pool: DT.d?.pool || '' }, 30000); } catch (e) { r = { err: e.message, rows: DT.tape?.rows || [] }; } if (!DT || DT.c !== c) return; DT.tape = r; paintTape(); clearTimeout(loadTape._t); loadTape._t = setTimeout(() => { if (DT && DT.c === c && !document.hidden) loadTape(); }, TAPE_PH_MS); } const TAPE_PH_MS = 1000; /*TAPE110 技术用：手机详情页开着时多久读一次成交*/
 function tapeHTML() {
   const pre = PAW.why === 'replaced' ? '<div class="note">这个帐号在另一台装置打开了即时推送，这支手机先改用一般读取 <button type="button" data-pawre="1" style="margin-left:6px">在这支手机重新连线</button></div>' : ''; /*V101-1*/ if (pre && DT?.tape) return pre + tapeHTML0();
   return tapeHTML0(); }
