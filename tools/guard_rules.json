@@ -70,7 +70,9 @@
   "ave-cache.robincat": "relay/worker.js 内部的 Durable Object／快取假网址，不出 Cloudflare",
   "docs": "radar/air.cjs 组空投官网子网域（https://docs.＋网域），网域来自玩家点的空投清单",
   "blog": "radar/air.cjs 组空投官网子网域（https://docs.＋网域），网域来自玩家点的空投清单",
-  "agcc.fun": "AGC 挖矿官网（AGC-BACK：只用来让你按「看项目」打开网页；雷达不从这个网站读资料，挖／领回只走链上合约、经过统一动作闸门）"
+  "agcc.fun": "AGC 挖矿官网（AGC-BACK：只用来让你按「看项目」打开网页；雷达不从这个网站读资料，挖／领回只走链上合约、经过统一动作闸门）",
+  "rpc-live.boxa.club": "Elysium 社群节点（ELY107：只读 eth_chainId／eth_blockNumber／eth_getLogs／eth_call；不是官方；玩家可在设定改）",
+  "ave.ai": "只给玩家点开的连结（ELY107：https://ave.ai/token/<合约>-elysium，浏览器打开，雷达不送资料）"
  },
  "allow": [
   {

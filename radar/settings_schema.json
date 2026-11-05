@@ -120,6 +120,11 @@
    "id": "sentry",
    "zh": "🛡 安全哨兵（只提醒，不会帮你做任何动作）",
    "en": "🛡 Security sentinel (alerts only)"
+  },
+  {
+   "id": "ely",
+   "zh": "🌐 Elysium 链监测（只看，不买卖）",
+   "en": "🌐 Elysium chain monitor (view only, no trading)"
   }
  ],
  "items": [
@@ -7172,6 +7177,57 @@
    "en": "Alert if still unclaimed this long after due",
    "dzh": "押的 BNB 到期后过了这么久还领不回来，发 TG 通知一次；空白＝不通知（照样一直自动重试）",
    "den": "One TG alert if a due deposit still can’t be claimed after this long; empty = no alert (keeps retrying)"
+  },
+  {
+   "k": "ely.on",
+   "g": "ely",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "Elysium 新币监测（只看）",
+   "en": "Elysium new-token monitor (view only)",
+   "dzh": "打开后雷达只向下面的节点「读」区块，列出 Elysium 上新铸出的代币（看盘 → 🌐 Elysium）。不连钱包、不签名、不送交易、没有买卖。关着＝完全不连线。主网 11/9 前是偷跑链，资料来自社群节点",
+   "den": "When on, the radar only READS blocks from the nodes below and lists newly minted Elysium tokens (Board → 🌐 Elysium). No wallet, no signing, no transactions, no trading. Off = no connection at all. Pre-launch chain before mainnet on 11/9; data comes from a community node"
+  },
+  {
+   "k": "ely.rpc",
+   "g": "ely",
+   "type": "text",
+   "need": "ely.on",
+   "def": "https://rpc-live.boxa.club",
+   "zh": "Elysium 节点网址",
+   "en": "Elysium node URLs",
+   "dzh": "只收 https 网址，用逗号分开（最多 5 个，依序用，坏了换下一个）。预设是社群节点 https://rpc-live.boxa.club（不是官方）。连线前会核对链编号必须是 99901，不对就停用那个节点。清空＝不连线",
+   "den": "https URLs only, comma separated (up to 5, tried in order). Default is the community node rpc-live.boxa.club (not official). The chain id must be 99901 or that node is not used. Empty = no connection"
+  },
+  {
+   "k": "ely.keepN",
+   "g": "ely",
+   "need": "ely.on",
+   "min": 1,
+   "unit": "个",
+   "uen": "tokens",
+   "zh": "最多显示几个代币（最近出现的）",
+   "en": "Show at most N tokens (most recent)",
+   "dzh": "只影响画面留几个（最近出现的先留）。空白＝先显示 100 个；工具最多 500 个",
+   "den": "Only affects how many rows are kept (most recent first). Empty = 100; tool limit 500",
+   "cap": {
+    "v": 500,
+    "zh": "工具最多留 500 个",
+    "en": "The tool keeps at most 500"
+   }
+  },
+  {
+   "k": "ely.excl",
+   "g": "ely",
+   "type": "text",
+   "need": "ely.on",
+   "def": "0xba876237b0f021a6c6d852d6c26e107997cc5e81,WHYPE",
+   "zh": "不显示的代币（合约或符号）",
+   "en": "Hide these tokens (contract or symbol)",
+   "dzh": "合约地址或符号，用逗号分开。预设放 WHYPE（包装 HYPE，0xba876237b0f021a6c6d852d6c26e107997cc5e81，来源：链上读到的名称／符号就是 WHYPE），它铸币最多但不是新币。只影响显示。清空＝全部显示",
+   "den": "Contract addresses or symbols, comma separated. Default hides WHYPE (wrapped HYPE, 0xba87…5e81, read on-chain as WHYPE) — most mints, but not a new token. Display only. Empty = show all"
   }
  ]
 }

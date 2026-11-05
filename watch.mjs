@@ -2147,6 +2147,7 @@ setTimeout(() => agcTick().catch((e) => log('AGC ' + e.message)), AGC_T.first); 
 try { const { startAir } = await import('./air.mjs?v=' + Date.now()); startAir({ DIR, WALLETS, rpc, log, tgSay, radarSet }); } catch (e) { log('空投页载入失败 ' + e.message); } 
 try { const { startMintPick } = await import('./mintpick.mjs?v=' + Date.now()); globalThis.MINTPICK = startMintPick({ scanBack, DIR, S, save, WALLETS, rpc, rpcBatch, logsRpc, log, tg, freshDeadline, safeAddrs, revWhy, badSel, bnbUsd, previewExec, drainCheck, trackFromSim, codeOf, fullCode, estop: () => ESTOP(), manualOff: () => MANUAL_OFF(), confl: () => !!CONFL, locked: () => LOCKED(), keepBnb: () => PAID.keepBnb }); } catch (e) { log('选打法模组载入失败 ' + e.message); } /* 认不出打法的项目让你自己选 */
 try { const { startSentinel } = await import('./sentinel.mjs?v=' + Date.now()); globalThis.SENTINEL = startSentinel({ DIR, S, save, WALLETS, rpc, logsRpc, log, tgSay, nOnce, rhRpc: () => RH?.rpc || null }); } catch (e) { log('安全哨兵载入失败 ' + e.message); } /* 🛡 安全哨兵（只提醒，全部预设关） */
+try { const { startElysium } = await import('./elysium.mjs?v=' + Date.now()); globalThis.ELYSIUM = startElysium({ DIR, log, radarSet }); } catch (e) { log('Elysium 监测载入失败 ' + e.message); } /* ELY107 🌐 Elysium 只读监测：不给钱包、不签名、不送交易；开关 ely.on 预设关 */
 try { const { startJournal } = await import('./journal.mjs?v=' + Date.now()); startJournal({ DIR, S, save, WALLETS, log, tg }); } catch (e) { log('交易日记载入失败 ' + e.message); } /* 交易日记，全部本地跑 */
 try { const { startPlugins } = await import('./plugins.mjs?v=' + Date.now()); await startPlugins({ DIR, WALLETS, log, tg, S, save, radarOff, radarSet, rpc, walletBusy: () => INFLIGHT > 0, keepBnb: () => PAID.keepBnb /* 传读取函式，设定改了马上生效 */, bnbUsd }); } catch (e) { log('外挂载入器失败 ' + e.message); } /* 量化外挂（网格、定投…），要在雷达按允许才载入 */
 const AUTO_INFL = new Set(); /* 自动策略之间不重复买同一个币（一个在买时，另一个跳过） */
@@ -2757,7 +2758,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.0.6', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.0.7', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;

@@ -201,6 +201,7 @@ function aug(v, S) {
   try { const SN = readJSON(path.join(C.DATA, 'sentinel.json'), null); /* SEN-1103：🛡 安全哨兵 — 提醒清单、项目标签、假币不算持仓价值 */ if (SN) { v.sentinel = { at: SN.at, on: SN.on || {}, st: SN.st || {}, n: SN.n, q: SN.q, alerts: Array.isArray(SN.alerts) ? SN.alerts : [] }; const lab = SN.proj || {}, fk = SN.fake || {};
     for (const x of v.board || []) { const L = lab['bsc:' + x.c]; if (L && L.length) x.note = '🛡 ' + L.join('、') + (x.note ? ' · ' + x.note : ''); }
     for (const h of v.hold || []) { const k = (h.chain === 'rh' ? 'rh:' : 'bsc:') + String(h.addr).toLowerCase(); const L = lab[k]; if (L && L.length) h.sw = L.join('、'); if (fk[k]) { h.sw = '可能是假币／地址投毒'; h.fake = 1; h.value = null; } } } } catch {}
+  try { const Y = readJSON(path.join(C.DATA, 'elysium.json'), null); v.ely = Y && typeof Y === 'object' && !Array.isArray(Y) ? Y : null; } catch { v.ely = null; } /* ELY107：🌐 Elysium（只看） */
   return v;
 }
 

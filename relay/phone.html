@@ -889,7 +889,7 @@ function seRow(it, ro) {
   else if (it.type === 'order') ctl = '';
   else if (it.dynN) { const n = (SE.d.items || []).filter((c) => c.cond === it.dynN && seCondOn(c)).length; const has = v != null && v !== ''; ctl = `<select data-sek="${K}" ${D}><option value="">请选择</option>${Array.from({ length: n }, (_, i) => `<option value="${i + 1}" ${has && +v === i + 1 ? 'selected' : ''}>${i + 1}</option>`).join('')}${has && !(Number.isInteger(+v) && +v >= 1 && +v <= n) ? `<option value="${esc(v)}" selected>${esc(v)}（要重新选）</option>` : ''}</select>`; }
   else if (Array.isArray(it.opts)) ctl = `<select data-sek="${K}" ${D}><option value="">请选择</option>${it.opts.map((o) => `<option value="${esc(o.v)}" ${v != null && v !== '' && +o.v === +v ? 'selected' : ''}>${esc(o.zh)}</option>`).join('')}</select>`;
-  else if (it.type === 'text') ctl = `<input type="text" class="seTx" data-sek="${K}" value="${esc(v ?? '')}" placeholder="${ph}" ${D}>`;
+  else if (it.type === 'text') ctl = `<input type="text" class="seTx" data-sek="${K}" value="${esc(v ?? it.def ?? '')}" placeholder="${ph}" ${D}>`;
   else if (it.rg) { const ni = (x) => `<input type="text" inputmode="decimal" autocomplete="off" data-sek="${esc(x.k)}" value="${esc(seVal(x.k) ?? '')}" placeholder="${esc(x.phzh || '自己填')}" ${D}>`; const lo = seIt(it.rg.lo) || it, hi = seIt(it.rg.hi) || it; ctl = `<span class="seNum seRg">介于 ${ni(lo)} 到 ${ni(hi)}${it.unit ? `<small>${esc(it.unit)}</small>` : ''}</span>`; }
   else ctl = `<span class="seNum"><input type="text" inputmode="decimal" autocomplete="off" data-sek="${K}" value="${esc(v ?? '')}" placeholder="${ph}" ${D}>${it.unit ? `<small>${esc(it.unit)}</small>` : ''}</span>`;
   const tip = [lk ? '<span class="nd">🔒 只能在电脑改</span>' : '', it.floor ? '<span class="fl">🔒 底线：不参加组合，开着的一定要过</span>' : '', needOff ? `<span class="nd">要先打开「${esc(seIt(it.need)?.zh || it.need)}」</span>` : '', it.cond && it.op !== 'yes' && !seIt(it.k + '.miss') ? '<span class="rg">读不到这个资料时：不买</span>' : ''].join('');
@@ -1307,5 +1307,39 @@ function fillMint() { const k = NET + ':' + PKIND; const D = MINT[k]; const cols
   setHTML('#bCat', `<button data-a="pcat" data-k="gen" class="${PCAT === 'gen' ? 'on' : ''}">🪙 一般代币</button><button data-a="pcat" data-k="ai" class="${PCAT === 'ai' ? 'on' : ''}">🤖 AI专属</button>`); }
 setInterval(() => { if (PC_ON && TAB === 'board' && PCAT === 'ai' && !document.hidden) loadMint(); }, 10000);
 </script>
+<script>/*ELY107-PHONE-BEGIN*/
+/* ELY-107（11/5）：手机看盘多一个「🌐 Elysium」（只看）。资料经电脑（PHM.ely）读 data/elysium.json；手机没有买卖按钮。
+   「在 AVE 打开」＝复制合约＋打开 AVE 网页（交易在你自己的 AVE 钱包完成，雷达不经手）；监测开关请在电脑雷达打开。 */
+let ELYD = null, ELYB = 0; const ELYP = { tick: 10000, short: 6 }; /* 技术用：多久跟电脑要一次、合约显示前后几码 */
+const ELY_A40 = /^0x[0-9a-f]{40}$/; const elyAve = (c) => { c = String(c || '').toLowerCase(); return ELY_A40.test(c) ? 'https://ave.ai/token/' + c + '-elysium' : ''; };
+async function loadEly() { if (!PC_ON || ELYB) return; ELYB = 1; try { ELYD = await req('ely', {}, 20000); } catch (e) { if (!ELYD || ELYD.err) ELYD = { err: e.message }; } ELYB = 0; if (TAB === 'board' && PCAT === 'ely') render(); }
+function catPaint() { setHTML('#bCat', `<button data-a="pcat" data-k="gen" class="${PCAT === 'gen' ? 'on' : ''}">🪙 一般代币</button><button data-a="pcat" data-k="ai" class="${PCAT === 'ai' ? 'on' : ''}">🤖 AI专属</button><button data-a="pcat" data-k="ely" class="${PCAT === 'ely' ? 'on' : ''}">🌐 Elysium（只看）</button>`); }
+{ const f0 = fillMint; fillMint = function () { const r = f0.apply(this, arguments); catPaint(); return r; }; }
+function fillEly() { const D = ELYD; const sh = (c) => c.slice(0, ELYP.short + 2) + '…' + c.slice(-ELYP.short + 2);
+  const ago2 = (t) => { if (!t) return '—'; const s = Math.max(0, Math.round((Date.now() - t) / 1000)); return s < 60 ? s + ' 秒前' : s < 3600 ? Math.round(s / 60) + ' 分钟前' : Math.round(s / 3600) + ' 小时前'; };
+  const nv = (v, tr) => v == null ? '读不到' : (tr ? '≥' : '') + v;
+  setHTML('#bStrip', ''); setHTML('#bCol', '<span class="mu" style="font-size:12px;padding:0 4px">🌐 Elysium · 只看</span>'); setHTML('#bNet', ''); setHTML('#bSort', '');
+  const warn = '<div style="margin:0 4px 8px;padding:9px 11px;border-radius:10px;background:#3a2a0b;border:1px solid #f0b90b77;color:#ffd98a;font-size:12.5px;line-height:1.6">⚠️ 主网 11/9 前是偷跑链；跨链桥目前只能跨进不能跨出；资料来自社群节点，不是官方；这里只显示，不提供买卖；交易在你自己的 AVE 钱包完成，雷达不经手。<br><span style="opacity:.8">Pre-launch chain before mainnet on 11/9 · bridge is in-only for now · community node, not official · view only, no buying or selling · trades happen in your own AVE wallet.</span></div>';
+  const dl = ST?.ref?.ave ? '<div style="padding:0 4px 8px"><a data-ely-dl="1" style="color:var(--gold,#f0b90b);font-size:12.5px">还没装 AVE？下载 · Get AVE</a></div>' : '';
+  if (!D) { setHTML('#bList', warn + (PC_ON ? skRows(5) : '<div class="empty">电脑雷达没在线</div>')); return; }
+  if (D.err) { setHTML('#bList', warn + `<div class="empty">暂时读不到（${esc(D.err)}）</div>`); return; }
+  if (!D.on) { setHTML('#bList', warn + '<div class="empty">Elysium 监测关着（雷达没有连线）。<br>要看请在电脑雷达「📡 看盘 → 🌐 Elysium（只看）」按「打开监测」。</div>'); return; }
+  const st = D.st || {}; const M = { ok: '监测中（只读）', catch: '正在补区块', start: '连线中…', err: '读不到', badchain: '已停止：链编号不对', norpc: '没有可用的节点', off: '关着' };
+  const head = `<div class="mu" style="font-size:12px;padding:0 4px 8px">状态：<b>${esc(M[st.code] || st.code || '—')}</b>${st.msg ? ' · ' + esc(st.msg) : ''}${D.rpcNow ? ' · 节点 ' + esc(D.rpcNow) + '（社群，不是官方）' : ''}${D.nEx ? ' · 排除清单藏了 ' + D.nEx + ' 个' : ''}</div>`;
+  const L = (D.list || []).filter((x) => ELY_A40.test(String(x.c || '').toLowerCase())).sort((a, b) => (b.w10 - a.w10) || (b.w60 - a.w60) || (b.m60 - a.m60) || (b.first - a.first));
+  const rows = L.map((x) => { const c = String(x.c).toLowerCase(); const nm = x.sym || x.name ? esc(x.sym || x.name) : (x.meta === 0 ? '读取中…' : '名称读不到');
+    return `<div class="tr"><div class="nm"><div class="t"><b>${nm}</b>${x.name && x.sym ? ` <span class="mu" style="font-size:11px">${esc(x.name)}</span>` : ''}</div><small><span data-ely-cp="${esc(c)}">${esc(sh(c))} 📋</span> · ${ago2(x.first)}</small><small class="l2">钱包 10 分钟 ${nv(x.w10, x.trunc)} · 1 小时 ${nv(x.w60, x.trunc)} · 铸币 ${nv(x.m10, x.trunc)}／${nv(x.m60, x.trunc)}</small></div><div class="rt"><button class="btn g s" data-ely-ave="${esc(c)}">在 AVE 打开<br><small>Open in AVE</small></button></div></div>`; }).join('');
+  setHTML('#bList', warn + dl + head + (rows || `<div class="empty">${['err', 'badchain', 'norpc'].includes(st.code) ? '读不到（原因见上面），不猜数字' : '从开始监测到现在还没看到新代币'}</div>`)); }
+{ const fb0 = fillBoard; fillBoard = function () { if (typeof PCAT !== 'undefined' && PCAT === 'ely') { try { catPaint(); } catch {} return fillEly(); } return fb0.apply(this, arguments); }; }
+document.addEventListener('click', async (ev) => {
+  const p = ev.target.closest?.('[data-a="pcat"][data-k="ely"]'); if (p) { ev.stopImmediatePropagation(); PCAT = 'ely'; render(); loadEly(); return; }
+  const b = ev.target.closest?.('[data-ely-cp],[data-ely-ave],[data-ely-dl]'); if (!b) return; ev.stopImmediatePropagation();
+  if (b.dataset.elyDl != null) { const u = ST?.ref?.ave; if (u && /^https:\/\//.test(u)) window.open(u, '_blank', 'noopener'); return; }
+  const c = String(b.dataset.elyCp ?? b.dataset.elyAve ?? '').toLowerCase(); if (!ELY_A40.test(c)) return;
+  let cp; try { cp = navigator.clipboard.writeText(c); } catch (e) { cp = Promise.reject(e); } /* 先送出复制，再同步打开网页（手机浏览器要在按下的当下开新页，不然会被挡） */
+  if (b.dataset.elyAve != null) { const u = elyAve(c); if (u) window.open(u, '_blank', 'noopener'); }
+  try { await cp; toast('已复制合约'); } catch { toast('复制不了，请长按合约自己复制'); } }, true);
+setInterval(() => { if (PC_ON && TAB === 'board' && PCAT === 'ely' && !document.hidden) loadEly(); }, ELYP.tick);
+/*ELY107-PHONE-END*/</script>
 </body>
 </html>
