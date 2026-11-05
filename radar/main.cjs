@@ -512,6 +512,20 @@ async function relaySessGet(R, body) { const key = JSON.stringify(body); if (RSE
     if (!r.ok || typeof j?.t !== 'string' || !Number.isFinite(+j.exp)) { RSESS = { t: '', renew: 0, R, key, deny: r.status === 403 ? String(j?.err || 'deny').slice(0, 120) : '' }; return ''; }
     const now = Date.now(); RSESS = { t: j.t, renew: now + (+j.exp - now) / 2, R, key, deny: '' }; return j.t; } catch { return ''; } finally { RSESS_P = null; } })(); return RSESS_P; }
 async function relayHdr(R) { const b = aveProof(); if (!b) return null; const t = await relaySessGet(R, b); return t ? { 'x-rc-session': t } : null; }
+/* V105-1（11/5）雷达内直接绑定（不经过 TG）：把 data/bind.json 里引擎签好的绑定（种类／码／钱包／签名，跟 TG「绑定 RCB1.」同一份）POST 到转接站 /bind，
+   转接站验签后排队、官方邀请机器人取走登记；画面用 bindRelayStat 轮询结果。没有转接站／连不上／旧版转接站 → 回 err，画面退回 TG 方式。只送签名资料，不送私钥、不花钱 */
+const BIND_RELAY_TO_MS = 15000; /* 技术用：等转接站回应最多几毫秒 */
+const BIND_RELAY_ERR = new Set(['sig', 'fmt', 'slow', 'busy', 'full']);
+function bindRelayOut(j) { return { id: String(j.id), st: ['wait', 'ok', 'no', 'exp', 'none'].includes(j.st) ? j.st : 'wait', msg: String(j.msg || '').replace(/[<>]/g, '').slice(0, 300), bot: j.bot ? 1 : 0, dup: j.dup ? 1 : 0 }; }
+async function bindRelay(k) { k = k === 'code' ? 'code' : 'join'; const R = relayAny(); if (!R) return { err: 'relay' }; const x = (readJSON(path.join(DATA, 'bind.json'), {}) || {})[k];
+  if (!x || !/^0x[0-9a-f]{40}$/.test(String(x.wallet || '').toLowerCase()) || !CODE_OK(String(x.code || '')) || !/^[0-9a-f]{128}$/.test(String(x.sig || ''))) return { err: 'nosig' };
+  let r = null, j = null; try { r = await fetch(R + '/bind', { method: 'POST', headers: { 'content-type': 'application/json', 'User-Agent': 'robincat-radar' }, body: JSON.stringify({ w: String(x.wallet).toLowerCase(), k, c: String(x.code), s: String(x.sig), v: x.v ?? '' }), signal: AbortSignal.timeout(BIND_RELAY_TO_MS) }); try { j = await r.json(); } catch {} } catch { return { err: 'net' }; }
+  if (r.ok && /^[0-9a-f]{32}$/.test(String(j?.id || ''))) return bindRelayOut(j); const e = String(j?.err || ''); return { err: r.status === 404 ? 'old' : BIND_RELAY_ERR.has(e) ? e : 'net' }; }
+async function bindRelayStat(id) { id = String(id || ''); if (!/^[0-9a-f]{32}$/.test(id)) return { err: 'fmt' }; const R = relayAny(); if (!R) return { err: 'relay' };
+  try { const r = await fetch(R + '/bind/status?id=' + id, { headers: { 'User-Agent': 'robincat-radar' }, signal: AbortSignal.timeout(BIND_RELAY_TO_MS) }); if (!r.ok) return { err: 'net' }; return bindRelayOut({ ...(await r.json()), id }); } catch { return { err: 'net' }; } }
+function relayAny() { /* V105-1：转接站网址＝官方签名 remote 的 relay；这次开雷达还没读到（GitHub 被挡）→ 用上次验过签存下的 data/remote.json（一样只认 *.workers.dev） */
+  const ok = (r) => (/^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.workers\.dev$/.test(r) ? r : ''); let r = ''; try { r = ok(String(RMT?.relay || '')); } catch {} if (!r) r = ok(String((readJSON(path.join(DATA, 'remote.json'), {}) || {}).relay || '')); return r; }
+ipcMain.handle('bindRelay', (e, k) => bindRelay(k)); ipcMain.handle('bindRelayStat', (e, id) => bindRelayStat(id));
 let AVE_BG_STOP = 0; /* OPS-RT6：转接站说全体额度用到营运设定的比例 → 背景查询（体检／KOL／盈亏）停到台湾时间半夜，你自己点的照常 */
 function aveOK() { return fs.existsSync(AVE_KF) || !!(aveRelay() && aveProof()); }
 let AVE_DENY = 0;

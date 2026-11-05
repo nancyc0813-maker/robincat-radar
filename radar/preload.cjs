@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('radar', {
   nx: (a, o) => call('nx', S(a, 40), O(o)), /* radar/next.cjs 的功能 */
   ghm: (a, o) => call('ghm', S(a, 40), O(o)), /* GHM-1104 GitHub 观察（只读） */
   invReload: () => call('invReload'),
+  bindRelay: (k) => call('bindRelay', k === 'code' ? 'code' : 'join'), /* V105-1：雷达内直接绑定（送到转接站，不经过 TG） */
+  bindRelayStat: (id) => call('bindRelayStat', S(id, 40)), /* V105-1：查绑定结果 */
   guardAsk: () => call('guardAsk'), /* WAL-GATE：再跳一次守护金钥确认视窗 */
   invCheck: (c) => call('invCheck', S(c, 80)),
   hotBoard: (n) => call('hotBoard', S(n, 20)),

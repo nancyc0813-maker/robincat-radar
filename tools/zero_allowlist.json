@@ -175,6 +175,30 @@
    "reason": "AVE-WSS：原本就有的手机成交列表显示笔数（只是前面加了「AVE 即时推送」标示）"
   },
   {
+   "rule": "TIMEWIN|SLICE|OBJNUM|FALLBACK|FALLBACK0|COMMENT_NUM",
+   "file": "relay/worker\\.js$",
+   "match": "BIND_(F_MAX|IP_MAX|IP_WIN_MS|IP_MEM|PEND_MS|RETAKE_MS|RETRY_MS|KEEP_MS|Q_SKEW_MS|BOT_ALIVE_MS|ERR_ST)|rcbind1:|rcbip1:|V105-1（11/5）雷达内直接绑定|R0\\.fin \\|\\| 0|R\\.tk \\|\\| 0|busy: 409, fmt: 400 \\}|P\\.s\\]\\.join\\('\\|'\\)\\)\\)\\)\\)\\.slice\\(0, 32\\)|'cf-connecting-ip'\\) \\|\\| '\\?'\\)\\)\\)\\)\\)\\.slice\\(0, 24\\)",
+   "reason": "BIND-RELAY（V105-1） 转接站绑定队列：防滥用／防重放的运作参数（每 IP 每小时笔数、排队作废时间、失败后多久能重送、结果保留天数、机器人时间误差、在线判断）与 HTTP 状态码表、指纹截断长度；只管转接站排队，不碰买卖、不是交易门槛。缺 fin/tk＝从没结束／没取走，当成可以处理（不是把缺资料当成通过买卖条件）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "BIND_RELAY_TO_MS = 15000",
+   "reason": "BIND-RELAY 雷达：等转接站回应的逾时（技术用，不是交易数字）"
+  },
+  {
+   "rule": "TIMEWIN|SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "BIND_UI_(POLL|FAST|SLOW|GIVEUP)_MS|bind\\?\\.\\[k\\]\\?\\.sig\\|\\|''\\)\\.slice\\(0,16\\)",
+   "reason": "BIND-RELAY（V105-1） 画面：查绑定结果的轮询间隔／最多追多久（技术用，不是交易数字）；签名前 16 字当作「是不是同一份签名」的比对键"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "约 30 秒|about 30 s|10 分钟|10 minutes",
+   "reason": "BIND-RELAY（V105-1） 画面提示文字：引擎约 30 秒重签一次、邀请名单约 10 分钟更新一次（原本 TG 绑定提示就有的说明，只是改写成雷达直接送出），是说明不是门槛"
+  },
+  {
    "rule": "CMP|SLICE|OBJNUM|FALLBACK|MINMAX|STRING_NUM|COMMENT_NUM",
    "file": "radar/ui/index\\.html$",
    "match": "BOARD_SHOW",
@@ -14988,6 +15012,195 @@
     "8"
    ],
    "reason": "HN-FIX（v1.0.3）：中文电脑名换成英文设备名时，取电脑名 hex 前 8 字元当识别，纯技术用，不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "it: Math\\.min\\(200000, Math\\.max\\(1000, D\\.it\\)\\)",
+   "values": [
+    "200000",
+    "1000"
+   ],
+   "reason": "PTS-1105 积分：points.json 指纹 PBKDF2 次数的上下限（CPU 保护，跟邀请名单 invites.json 的 it 同一组上下限），不是买卖数字，也不是时间窗"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/main\\.cjs$",
+   "match": "\\^\\(ok\\|pd\\|rv\\)\\$|\\^\\(wait\\|act\\|rpc\\)\\$",
+   "reason": "PTS-1105 积分：points.json 栏位格式白名单（明细状态 ok/pd/rv、待确认原因 wait/act/rpc），只用来丢掉认不得的资料，不是关键字黑名单、不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "(String\\(v\\.(zh|en) \\|\\| k\\)\\.replace|\\.slice\\(0, 30\\) \\}; o\\.top)",
+   "values": [
+    "20",
+    "30"
+   ],
+   "reason": "PTS-1105 积分：官方签名 points.json 里手动加分种类名称的显示长度上限（防版面被撑爆），纯显示，不是买卖数字"
+  },
+  {
+   "rule": "JSON_NUM",
+   "file": "radar/official\\.json$",
+   "match": "seq",
+   "reason": "official.json 的签名序号（每次发布自动产生的 type＋seq 防回放），不是买卖数字；v1.0.3 基线就有"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "name: P\\.name \\|\\| c\\.slice\\(0, 8\\), prog, pu: P\\.progress",
+   "values": [
+    "8"
+   ],
+   "reason": "V104-BUGS 看盘项目没有名称时显示合约前 8 码（原本就有的显示截断；这次只是同一行加了 pu 读不到旗标），纯显示，不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "capLooksTs\\(x\\) \\{ const s = Date\\.now\\(\\) / 1e3",
+   "values": [
+    "1e3"
+   ],
+   "reason": "V104-BUGS CAPSANE：秒↔毫秒换算（判断总量候选像不像 Unix 时间戳），单位换算不是时间窗、不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "\\(x >= \\(s - y\\) \\* 1e3 && x <= \\(s \\+ y\\) \\* 1e3\\)",
+   "values": [
+    "1e3"
+   ],
+   "reason": "V104-BUGS CAPSANE：同上，毫秒时间戳的范围换算"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "if \\(x >= 100 && x <= 1e7 && capOk\\(s, x, null\\)\\)",
+   "values": [
+    "100",
+    "1e7"
+   ],
+   "reason": "V104-BUGS 既有的「总份数」候选范围（v1.0.3 就有，这次只在同一行加 capOk 合理性检查、记下函式编号），属于认合约读法的技术判断，不是买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "const MW_GONE_MAX = 200000;",
+   "values": [
+    "200000"
+   ],
+   "reason": "V104-BUGS NEW1HLB：最多记几个被截断丢掉的钱包（记忆体上限），超过就不给下限＝读不到（更保守），不是时间窗也不是买卖数字"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "if \\(M\\.w\\.size > 6000\\) \\{ const all = ",
+   "values": [
+    "6000"
+   ],
+   "reason": "V104-BUGS 既有的打款钱包统计记忆体上限（v1.0.3 就有，这次只改成同时记下被丢掉的钱包），不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "for \\(const \\[a\\] of all\\.slice\\(5000\\)\\) M\\.gone\\.add|M\\.w = new Map\\(all\\.slice\\(0, 5000\\)\\); M\\.cut = 1;",
+   "values": [
+    "5000"
+   ],
+   "reason": "V104-BUGS 既有的统计截断保留数量（v1.0.3 就有），不是时间窗、不是买卖数字"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "watch\\.mjs$",
+   "match": "钱包太多，只留最近 5000 个",
+   "values": [
+    "5000 个"
+   ],
+   "reason": "V104-BUGS 既有说明文字（照实说统计只留最近这么多个），NEW1HLB 加了「至少 N 个（已截断）」，不是买卖门槛"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "watch\\.mjs$",
+   "match": "if \\(Date\\.now\\(\\) - \\(m\\.at \\|\\| 0\\) > 20 \\* 60e3\\) return \\{ \\.\\.\\.c0, v: null \\}",
+   "values": [
+    "0"
+   ],
+   "reason": "V104-BUGS 既有：统计太久没更新＝读不到（v1.0.3 同一判断，这次改成函式写法）；没时间＝当成很旧 → 读不到，不会默认通过"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "if \\(Date\\.now\\(\\) - \\(m\\.at \\|\\| 0\\) > 20 \\* 60e3\\) return \\{ \\.\\.\\.c0, v: null \\}",
+   "values": [
+    "20"
+   ],
+   "reason": "V104-BUGS 既有：钱包统计资料超过这么久没更新就当读不到（资料新鲜度，v1.0.3 就有），只会让条件变「读不到→不买」，不会放行"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "if \\(Date\\.now\\(\\) - \\(m\\.at \\|\\| 0\\) > 20 \\* 60e3\\) return \\{ \\.\\.\\.c0, v: null \\}",
+   "values": [
+    "60e3"
+   ],
+   "reason": "V104-BUGS 同上（分钟换毫秒）"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "x > 0 && x < 1e9 && capOk\\(P\\.capSel, x, sold",
+   "values": [
+    "1e9"
+   ],
+   "reason": "V104-BUGS 既有的总量候选上限（v1.0.3 就有），这次只加 capOk 合理性检查、拿掉「已售当总量」；认合约读法的技术判断，不是买卖门槛"
+  },
+  {
+   "rule": "SLICE",
+   "file": "watch\\.mjs$",
+   "match": "uri\\.slice\\(0, 40\\) \\+ '）' : '空的'",
+   "values": [
+    "40"
+   ],
+   "reason": "V104-BUGS 既有（v1.0.3 就有）：NFT 图片连结在说明文字里只显示前 40 字；这次 FREEPATH 在下一行插入 replayPayState，扫描的上下文变了才重新列出，纯显示，不是买卖数字"
+  },
+  {
+   "rule": "SLICE",
+   "file": "watch\\.mjs$",
+   "match": "风控检查读不到（' \\+ String\\(e\\?\\.message \\|\\| e\\)\\.slice\\(0, 60\\)",
+   "values": [
+    "60"
+   ],
+   "reason": "V104-FREEPATH：免费路径风控检查出错时，原因文字只显示前 60 字（读不到＝不打）；纯显示截断，不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN|SLICE|OBJNUM|FALLBACK|FALLBACK0|COMMENT_NUM",
+   "file": "relay/worker\\.js$",
+   "match": "BIND_(F_MAX|IP_MAX|IP_WIN_MS|IP_MEM|PEND_MS|RETAKE_MS|RETRY_MS|KEEP_MS|Q_SKEW_MS|BOT_ALIVE_MS|ERR_ST)|rcbind1:|rcbip1:|V105-1（11/5）雷达内直接绑定|R0\\.fin \\|\\| 0|R\\.tk \\|\\| 0|busy: 409, fmt: 400 \\}|P\\.s\\]\\.join\\('\\|'\\)\\)\\)\\)\\)\\.slice\\(0, 32\\)|'cf-connecting-ip'\\) \\|\\| '\\?'\\)\\)\\)\\)\\)\\.slice\\(0, 24\\)",
+   "reason": "V105-1 转接站绑定队列：防滥用／防重放的运作参数（每 IP 每小时笔数、排队作废时间、失败后多久能重送、结果保留天数、机器人时间误差、在线判断）与 HTTP 状态码表、指纹截断长度；只管转接站排队，不碰买卖、不是交易门槛。缺 fin/tk＝从没结束／没取走，当成可以处理（不是把缺资料当成通过买卖条件）"
+  },
+  {
+   "rule": "TIMEWIN|OBJNUM",
+   "file": "relay/worker\\.js$",
+   "match": "MIRROR(_RETRY_MS)? = |MIRROR = \\{|cacheTtl: 60|points: \\{ ms: 10 \\* 60e3 \\}, xwatch: \\{ ms: 2 \\* 60e3 \\}",
+   "reason": "V105-2 points.json／xwatch.json 镜像：多久重新抓 GitHub（跟雷达本来读 GitHub 的间隔一样）、失败后多久再试、CDN 快取秒数；纯技术，不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "BIND_RELAY_TO_MS = 15000|xwatch\\.json\\?t=' \\+ Math\\.floor\\(Date\\.now\\(\\) / 120e3\\)\\); if \\(!j\\) return; /\\* V105-2",
+   "reason": "V105 雷达：等转接站回应的逾时（技术用）；xwatch 网址防快取参数（原本就有，V105-2 只换了读法，数字没变）"
+  },
+  {
+   "rule": "TIMEWIN|SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "BIND_UI_(POLL|FAST|SLOW|GIVEUP)_MS|bind\\?\\.\\[k\\]\\?\\.sig\\|\\|''\\)\\.slice\\(0,16\\)",
+   "reason": "V105-1 画面：查绑定结果的轮询间隔／最多追多久（技术用，不是交易数字）；签名前 16 字当作「是不是同一份签名」的比对键"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "约 30 秒|about 30 s|10 分钟|10 minutes",
+   "reason": "V105-1 画面提示文字：引擎约 30 秒重签一次、邀请名单约 10 分钟更新一次（原本 TG 绑定提示就有的说明，只是改写成雷达直接送出），是说明不是门槛"
   }
  ]
 }

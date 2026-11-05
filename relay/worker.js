@@ -56,6 +56,44 @@ async function checkBind(env, o) { /* o＝{ w, k, c, s, v }（POST /session 的�
   return ok ? '' : '邀请绑定的签名核对不过';
 }
 async function inList(env, w) { const rw = await members(env); if (!rw) return false; const h = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode('rcrelay1:' + w))).slice(0, 12)); return rw.has(h); }
+/* ── V105-1（11/5）雷达内直接绑定（不经过 TG）──
+   雷达用钱包签好的「邀请绑定」（EIP-712，跟 TG「绑定 RCB1.」同一份签名）→ POST /bind { w, k, c, s, v }。转接站只核对签名（三种 domain，跟 checkBind／bind.mjs BIND_VC 一样），
+   放进 Durable Object「bind-q」的队列；老板电脑的邀请机器人每 30 秒用线上金钥（online.pem，ONLINE_PUBKEY 核对）签名 POST /bind/queue 取走、照原本 TG 那套验证登记、回写结果；
+   雷达 GET /bind/status?id= 看结果。转接站不判断邀请码对不对（那是机器人的事），也不发通行证。
+   防重放：同一份签名只收一次（id＝签名内容的指纹；成功过就不再排；失败或过期要等 BIND_RETRY_MS 才能再送）；机器人的请求带签名时间，只能往前。
+   不存敏感资料：签名／钱包只在排队中留着，机器人回写结果（或过期）就删掉，只留「成功／失败＋原因」；IP 只在记忆体算次数（存的是指纹，不写进储存）。 ── */
+const BIND_BODY_MAX = 2 * 1024; /* 技术用：POST /bind 内容上限（签名资料约 300 字） */
+const BIND_Q_BODY_MAX = 64 * 1024; /* 技术用：POST /bind/queue 内容上限（机器人回写的结果） */
+const BIND_IP_MAX = 12, BIND_IP_WIN_MS = 3600e3; /* 运作（防滥用）：同一个 IP 一小时内最多排几笔新的绑定 */
+const BIND_IP_MEM = 5000; /* 技术用：记 IP 指纹的表上限（超过清空重记） */
+const BIND_Q_MAX = 500; /* 运作（防滥用）：队列里同时最多几笔等机器人处理 */
+const BIND_PEND_MS = 24 * 3600e3; /* 运作：排队多久机器人都没处理就作废（雷达显示「请再按一次」） */
+const BIND_RETAKE_MS = 3 * 60e3; /* 技术用：机器人取走后多久没回结果，就再给机器人一次 */
+const BIND_RETRY_MS = 10 * 60e3; /* 运作（防重放）：同一份签名失败／作废后，多久才能再送一次 */
+const BIND_KEEP_MS = 7 * 86400e3; /* 技术用：结果（成功／失败＋原因）留多久给雷达查 */
+const BIND_TAKE_MAX = 20; /* 技术用：机器人每次最多取几笔 */
+const BIND_F_MAX = 1500; /* 技术用：已结束结果清单最多留几笔（Durable Object 单一值有 128KB 上限；超过先删最旧的） */
+const BIND_Q_SKEW_MS = 5 * 60e3; /* 技术用：机器人签名时间跟转接站时间最多差多少 */
+const BIND_BOT_ALIVE_MS = 3 * 60e3; /* 技术用：机器人多久内取过队列就算「在线」（只给雷达显示） */
+const BIND_MSG_MAX = 300; /* 技术用：结果原因最多几个字 */
+const BIND_ID_RE = /^[0-9a-f]{32}$/;
+const BR = (o) => new Response(JSON.stringify(o));
+function bindParse(o) { const w = String(o?.w || '').toLowerCase(), k = String(o?.k || ''), c = String(o?.c || '').toLowerCase(), s = String(o?.s || '').toLowerCase().replace(/^0x/, ''); const v0 = o?.v === '' || o?.v == null ? 0 : Number(o.v);
+  if (!/^0x[0-9a-f]{40}$/.test(w) || !['join', 'code'].includes(k) || !/^[a-z0-9]{3,10}$/.test(c) || !/^[0-9a-f]{128}$/.test(s) || ![0, 1, 27, 28].includes(v0)) return null; return { w, k, c, s, v: v0 % 27 }; }
+function bindSigOk(P) { for (const vc of ['', P.w, BIND_ZERO]) { try { const d = bindDigest(P.k, P.c, P.w, vc); for (const r of [P.v, 1 - P.v]) if (recover(d, P.s, r) === P.w) return true; } catch {} } return false; } /* 跟 checkBind 同一套（三种 domain） */
+const BIND_ERR_ST = { slow: 429, full: 503, busy: 409, fmt: 400 };
+async function bindPost(req, env) { const t = await req.text(); if (t.length > BIND_BODY_MAX) return J({ err: 'big' }, 413); let o; try { o = JSON.parse(t); } catch { return J({ err: 'fmt' }, 400); }
+  const P = bindParse(o); if (!P) return J({ err: 'fmt' }, 400); if (!bindSigOk(P)) return J({ err: 'sig' }, 403);
+  const id = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode('rcbind1:' + [P.k, P.c, P.w, P.s].join('|'))))).slice(0, 32);
+  const iph = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode('rcbip1:' + String(req.headers.get('cf-connecting-ip') || '?'))))).slice(0, 24);
+  const j = await (await env.ROOM.get(env.ROOM.idFromName('bind-q')).fetch('https://do/_bind_put', { method: 'POST', body: JSON.stringify({ id, iph, P }) })).json();
+  return J(j, j.err ? BIND_ERR_ST[j.err] || 503 : 200); }
+async function bindStat(u, env) { const id = String(u.searchParams.get('id') || ''); if (!BIND_ID_RE.test(id)) return J({ err: 'fmt' }, 400); return J(await (await env.ROOM.get(env.ROOM.idFromName('bind-q')).fetch('https://do/_bind_get?id=' + id)).json()); }
+async function bindQueue(req, env) { const t = await req.text(); if (t.length > BIND_Q_BODY_MAX) return J({ err: 'big' }, 413); let o; try { o = JSON.parse(t); } catch { return J({ err: 'fmt' }, 400); }
+  const ok = await onlineVerify(env, o && o.sig, o && o.data); if (ok === null) return J({ err: 'ONLINE_PUBKEY not set' }, 503); if (!ok) return J({ err: 'bad sig' }, 403); /* 只认线上金钥（老板电脑的 .sign_radar/online.pem） */
+  let D = null; try { D = JSON.parse(o.data); } catch {} if (!D || D.t !== 'rcbindq1' || !Number.isSafeInteger(D.ts) || Math.abs(Date.now() - D.ts) > BIND_Q_SKEW_MS) return J({ err: 'stale' }, 400);
+  const j = await (await env.ROOM.get(env.ROOM.idFromName('bind-q')).fetch('https://do/_bind_q', { method: 'POST', body: JSON.stringify({ ts: D.ts, done: Array.isArray(D.done) ? D.done.slice(0, BIND_TAKE_MAX * 2) : [] }) })).json();
+  return J(j, j.err ? 409 : 200); }
 /* ── OPS-RT15：短时效通行证（session token）。绑定签名／作者通行证只在 POST /session 的内容里出现一次，换到 { t, exp }；
    之后 HTTP（/ave、/aveboard）用 header x-rc-session、手机连结的电脑端 WebSocket 用「连上后第一则讯息 {"auth": t}」。网址里不再有任何签名。
    t＝base64url(JSON{id,c,r,exp}).HMAC；HMAC 金钥用 Cloudflare 秘密变数 SESSION_KEY，没设就由 Durable Object「sess-key」第一次自动产生并保存。
@@ -201,8 +239,11 @@ export default {
     const u = new URL(req.url);
     if (u.pathname === '/aveboard' && (req.method === 'GET' || req.method === 'POST')) return aveBoard(req, u, env);
     if (u.pathname === '/session' && req.method === 'POST') return sessionNew(req, env); /* OPS-RT15 */
+    if (u.pathname === '/bind' && req.method === 'POST') return bindPost(req, env); /* V105-1：雷达内直接绑定 */
+    if (u.pathname === '/bind/queue' && req.method === 'POST') return bindQueue(req, env); /* V105-1：官方邀请机器人取队列＋回写结果（线上金钥签名） */
     if (req.method !== 'GET') return new Response('method', { status: 405 });
     if (u.pathname === '/ave') return aveProxy(req, u, env);
+    if (u.pathname === '/bind/status') return bindStat(u, env); /* V105-1 */
     if (u.pathname === '/avews') return aveWsRoute(req, env); /* AVE-WSS（11/4）：即时推送（WebSocket） */
     if (u.pathname === '/avestat') { const C = await sessOf(req, env); if (!C || C.id !== 'owner') return J({ err: 'session' }, 401); return J(await (await env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter_get')).json()); } /*RISK-FIX 10：只有作者通行证看得到今天的 AVE 用量（REST 单位＋WSS 订阅／推送），跟 AVE 对帐用 */
     if (u.pathname === '/invites.json') { await members(env); return INV.raw ? new Response(INV.raw, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=120' } }) : J({ err: 'not loaded' }, 503); } /* H2-M2：邀请名单镜像（原样的官方签名档，雷达照样核对签名） */
@@ -266,6 +307,9 @@ export class Room extends DurableObject {
     if (iu.pathname === '/_seq') { /* OPS-RT4：签名资料 seq 只能往前（全球一致） */ const t = String(iu.searchParams.get('t') || '').slice(0, 20), sq = Number(iu.searchParams.get('s')); if (!t || !Number.isSafeInteger(sq)) return new Response(JSON.stringify({ ok: false }));
       const k = 'seq:' + t, last = await this.ctx.storage.get(k); if (Number.isSafeInteger(last) && sq < last) return new Response(JSON.stringify({ ok: false, last })); if (!(sq === last)) await this.ctx.storage.put(k, sq); return new Response(JSON.stringify({ ok: true })); }
     if (iu.pathname === '/_skey') { /* OPS-RT15：没设 SESSION_KEY 时，通行证的 HMAC 金钥第一次自动产生、存在这个物件里（外面连不到这个路径：/ws/ 房间号格式不同） */ let k = await this.ctx.storage.get('skey'); if (!k) { const b = new Uint8Array(32); crypto.getRandomValues(b); k = [...b].map((x) => x.toString(16).padStart(2, '0')).join(''); await this.ctx.storage.put('skey', k); } return new Response(k); }
+    if (iu.pathname === '/_bind_put') return this.bindPut(await req.json()); /* V105-1（只有 /bind 会转到这里，物件名固定 bind-q） */
+    if (iu.pathname === '/_bind_get') return this.bindGet(String(iu.searchParams.get('id') || ''));
+    if (iu.pathname === '/_bind_q') return this.bindTake(await req.json());
     if (iu.pathname === '/_board') { if (req.method === 'PUT') { await this.ctx.storage.put('b', await req.text()); return new Response('ok'); } const b = await this.ctx.storage.get('b'); return b ? new Response(b) : new Response('none', { status: 404 }); }
     const role = iu.searchParams.get('r');
     if (role === 'pc') { /* OPS-RT15：电脑端先接起来但「还没验证」：连上后第一则讯息要是 {"auth": 通行证}，过了才绑房间、才算连上（见 pcAuth）。同时只留最新一条还没验证的连线 */
@@ -282,6 +326,32 @@ export class Room extends DurableObject {
     return new Response(null, { status: 101, webSocket: client });
   }
   /* ── AVE-WSS 集线器（只在名为 ave-wss 的这一个物件里跑）：全部用户共用最多 AVEWS_UP_MAX 条上游连线；订阅表在记忆体，物件被系统重启过就请用户端重送 ── */
+  /* ── V105-1 绑定队列（只在名为 bind-q 的物件里）：'b:'+id → { st: q 排队／t 机器人取走／ok／no／exp, at, tk, fin, msg, P（签名资料，只在 q／t 时留着） }；
+     'Q'＝排队中的 [{ i, wk, at }]；'F'＝[id, 结束时间]（过 BIND_KEEP_MS 删掉）；'qts'＝机器人上次的签名时间（只能往前）；'bp'＝机器人上次取队列的时间 ── */
+  async bindRec(id) { return (await this.ctx.storage.get('b:' + id)) || null; }
+  bindOut(id, R, bp) { const st = !R ? 'none' : R.st === 'q' || R.st === 't' ? 'wait' : R.st; return { id, st, ...(R && R.msg ? { msg: R.msg } : {}), bot: bp && Date.now() - bp < BIND_BOT_ALIVE_MS ? 1 : 0 }; }
+  async bindFin(id, R, st, msg) { R.st = st; R.fin = Date.now(); R.msg = String(msg || '').slice(0, BIND_MSG_MAX); delete R.P; delete R.tk; await this.ctx.storage.put('b:' + id, R); const F = (await this.ctx.storage.get('F')) || []; F.push([id, R.fin]); while (F.length > BIND_F_MAX) { const [oid, ot] = F.shift(); const O = await this.bindRec(oid); if (O && O.fin === ot) await this.ctx.storage.delete('b:' + oid); } await this.ctx.storage.put('F', F); }
+  async bindGc(Q) { const now = Date.now(), keep = [];
+    for (const x of Q) { if (now - x.at > BIND_PEND_MS) { const R = await this.bindRec(x.i); if (R && (R.st === 'q' || R.st === 't')) await this.bindFin(x.i, R, 'exp', ''); continue; } keep.push(x); }
+    const F = (await this.ctx.storage.get('F')) || []; const F2 = []; for (const [id, t] of F) { if (now - t > BIND_KEEP_MS) { const R = await this.bindRec(id); if (R && R.fin === t) await this.ctx.storage.delete('b:' + id); } else F2.push([id, t]); }
+    if (F2.length !== F.length) await this.ctx.storage.put('F', F2); await this.ctx.storage.put('Q', keep); return keep; }
+  async bindPut(o) { const now = Date.now(), id = String(o?.id || ''), P = o?.P; if (!BIND_ID_RE.test(id) || !P || typeof P !== 'object') return BR({ err: 'fmt' });
+    const bp = await this.ctx.storage.get('bp'); const R0 = await this.bindRec(id);
+    if (R0 && (R0.st === 'q' || R0.st === 't' || R0.st === 'ok' || now - (R0.fin || 0) < BIND_RETRY_MS)) return BR({ ...this.bindOut(id, R0, bp), dup: 1 }); /* 同一份签名只收一次（防重放）：回原本的结果，不再排 */
+    this.bip = this.bip || new Map(); const iph = String(o.iph || '').slice(0, 32); const L = (this.bip.get(iph) || []).filter((t) => now - t < BIND_IP_WIN_MS); if (L.length >= BIND_IP_MAX) { this.bip.set(iph, L); return BR({ err: 'slow' }); }
+    const Q = await this.bindGc((await this.ctx.storage.get('Q')) || []); if (Q.length >= BIND_Q_MAX) return BR({ err: 'full' });
+    const wk = P.w + '|' + P.k; if (Q.some((x) => x.wk === wk)) return BR({ err: 'busy' }); /* 同一个钱包同一种绑定，同时只排一笔 */
+    L.push(now); if (this.bip.size >= BIND_IP_MEM) this.bip.clear(); this.bip.set(iph, L);
+    const R = { st: 'q', at: now, P: { w: P.w, k: P.k, c: P.c, s: P.s, v: P.v } }; await this.ctx.storage.put('b:' + id, R); Q.push({ i: id, wk, at: now }); await this.ctx.storage.put('Q', Q); return BR(this.bindOut(id, R, bp)); }
+  async bindGet(id) { if (!BIND_ID_RE.test(id)) return BR({ err: 'fmt' }); const R = await this.bindRec(id);
+    if (R && (R.st === 'q' || R.st === 't') && Date.now() - R.at > BIND_PEND_MS) await this.bindGc((await this.ctx.storage.get('Q')) || []);
+    return BR(this.bindOut(id, await this.bindRec(id), await this.ctx.storage.get('bp'))); }
+  async bindTake(o) { const now = Date.now(), ts = Number(o?.ts); const last = await this.ctx.storage.get('qts'); if (!Number.isSafeInteger(ts) || (Number.isSafeInteger(last) && ts <= last)) return BR({ err: 'replay' }); /* 机器人请求重放 → 不收 */
+    await this.ctx.storage.put('qts', ts); await this.ctx.storage.put('bp', now); const fin = new Set(); let n = 0;
+    for (const d of Array.isArray(o.done) ? o.done : []) { const id = String(d?.id || ''); if (!BIND_ID_RE.test(id) || fin.has(id)) continue; const R = await this.bindRec(id); if (!R || (R.st !== 'q' && R.st !== 't')) continue; await this.bindFin(id, R, d.ok === 1 || d.ok === true ? 'ok' : 'no', d.msg); fin.add(id); n++; }
+    const Q = await this.bindGc(((await this.ctx.storage.get('Q')) || []).filter((x) => !fin.has(x.i))); const items = [];
+    for (const x of Q) { if (items.length >= BIND_TAKE_MAX) break; const R = await this.bindRec(x.i); if (!R || !R.P) continue; if (R.st === 't' && now - (R.tk || 0) < BIND_RETAKE_MS) continue; R.st = 't'; R.tk = now; await this.ctx.storage.put('b:' + x.i, R); items.push({ id: x.i, ...R.P }); }
+    return BR({ items, fin: n }); }
   hub() { if (this.H) return this.H; const H = (this.H = { ref: new Map(), cs: new Map(), at: new Map(), cnt: new Array(AVEWS_UP_MAX).fill(0), up: [], bad: new Map(), rid: 0, tick: null, lastUp: -1, st: { sub: 0, unsub: 0, push: 0, rx: 0, peak: 0 }, stAt: Date.now() }); /*RISK-FIX 10：H.st＝还没写进 ave-meter 的 WSS 用量 */
     for (const w of this.ctx.getWebSockets('avews')) if (this.awA(w).ok) this.sys(w, { resub: 1 }); return H; }
   awA(w) { try { return w.deserializeAttachment() || {}; } catch { return {}; } }
