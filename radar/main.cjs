@@ -875,17 +875,24 @@ async function updRepair() { if (UPD_FIX_BUSY) return { msg: '正在重新下载
 async function updGet(u) { const r = await fetch(u, { signal: AbortSignal.timeout(60000) }); if (!r.ok) throw new Error(String(r.status)); return Buffer.from(await r.arrayBuffer()); }
 ipcMain.handle('updRepair', () => updRepair());
 let engWatchAt = 0; setInterval(() => { try { if (fs.existsSync(path.join(ROOT, 'WATCH_STOP'))) return; const age = hbAgeSec(); try { const pf = path.join(DATA, 'update_pending.json'); if (fs.existsSync(pf)) { const P = JSON.parse(fs.readFileSync(pf, 'utf8')); const since = Date.now() - (P.at || 0); if (since > 3 * 60e3 && since < 30 * 60e3 && age > 150 && !P.failAt) { /* UI2-1104 主人决定：更新失败不自动还原 → 只说清楚原因，给「重新下载这一版」「查看日志」，并发 TG */ const why = updFailWhy(); P.failAt = Date.now(); try { fs.writeFileSync(pf, JSON.stringify(P)); } catch {} fs.writeFileSync(path.join(DATA, 'update_failed.json'), JSON.stringify({ v: P.v, at: Date.now(), why })); const msg = `⚠️ 更新后引擎没有启动成功：${why}`; fs.writeFileSync(path.join(DATA, 'update_result.json'), JSON.stringify({ at: Date.now(), msg })); tgNow(`${msg}\n新版 v${P.v}。不会自动还原：请在雷达画面按「重新下载这一版」，或按「查看日志」把内容贴给我们。`); /* 引擎没在跑 → 雷达自己用你的 TG 机器人发 */ try { new Notification({ title: APP_T(), body: (UL() ? `⚠️ After the update the engine did not start: ${why}` : msg).slice(0, 180), icon: ICON }).show(); } catch {} } } else if (age < 120) { try { fs.unlinkSync(path.join(DATA, 'update_failed.json')); } catch {} } } catch {} if (age < 300 || Date.now() - engWatchAt < 10 * 60e3) return; engWatchAt = Date.now(); startEngine(); try { new Notification({ title: APP_T(), body: UL() ? 'The engine was down for over 5 minutes and was restarted automatically. Take-profit / stop-loss on holdings resume.' : '引擎停了超过 5 分钟，已自动重新启动。持仓的止盈止损会恢复。', icon: ICON }).show(); } catch {} } catch {} }, 60e3);
+/* NOPK-112：雷达不需要任何 Google 登入／通行密钥。封掉这些网址，背景视窗也不让网页叫出 Windows 通行密钥视窗 */
+const NOPK_URLS = ['*://accounts.google.com/*', '*://*.accounts.google.com/*', '*://accounts.youtube.com/*', '*://apis.google.com/js/platform.js*', '*://apis.google.com/js/client*', '*://www.gstatic.com/gsi/*'];
+const NOPK_JS = `(()=>{try{const no=()=>Promise.reject(new DOMException('blocked','NotAllowedError'));const c=navigator.credentials;if(c){try{Object.defineProperty(c,'get',{value:no});Object.defineProperty(c,'create',{value:no})}catch(e){}}try{Object.defineProperty(window,'PublicKeyCredential',{value:undefined})}catch(e){}}catch(e){}})()`;
+const NOPK_DONE = new WeakSet();
+function noPasskeySession(ses) { try { if (!ses || NOPK_DONE.has(ses)) return; NOPK_DONE.add(ses); ses.webRequest.onBeforeRequest({ urls: NOPK_URLS }, (d, cb) => cb({ cancel: true })); } catch {} }
+const nopkCmd = (dbg, m, p) => Promise.race([dbg.sendCommand(m, p).catch(() => null), new Promise((r) => setTimeout(() => r(null), 3000))]);
+async function noPasskeyWc(wc) { try { noPasskeySession(wc.session); if (!wc.getURL()) await Promise.race([wc.loadURL('about:blank').catch(() => {}), new Promise((r) => setTimeout(r, 3000))]); const dbg = wc.debugger; if (!dbg.isAttached()) dbg.attach(); await nopkCmd(dbg, 'Page.enable'); await nopkCmd(dbg, 'Page.addScriptToEvaluateOnNewDocument', { source: NOPK_JS, runImmediately: true }); await nopkCmd(dbg, 'WebAuthn.enable', { enableUI: false }); } catch {} }
 /* 空投融资本地查 — 看不见的浏览器视窗（不显示、不存登入、不跑外挂），一次只开一个，30 秒没载完就放弃 */
 let BQ = Promise.resolve();
 function airBrowse(url, opt = {}) {
   if (!/^https:\/\/[^\s"'<>]+$/.test(String(url)) || String(url).length > 300) return Promise.resolve(null);
-  const run = () => new Promise((res) => {
+  const run = () => new Promise(async (res) => { /*NOPK-112 async*/
     let w = null, done = 0; const fin = (v) => { if (done) return; done = 1; try { w && !w.isDestroyed() && w.destroy(); } catch {} res(v); };
     const to = setTimeout(() => fin(null), 45000);
     try {
       w = new BrowserWindow({ show: false, width: 1280, height: 900, webPreferences: { partition: 'air-fund', sandbox: true, contextIsolation: true, nodeIntegration: false, images: false, webSecurity: true } });
       w.webContents.setAudioMuted(true); w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-      w.webContents.session.setPermissionRequestHandler((wc, perm, cb) => cb(false));
+      w.webContents.session.setPermissionRequestHandler((wc, perm, cb) => cb(false)); /*NOPK-112*/ await noPasskeyWc(w.webContents);
       let got = 0; w.webContents.on('did-finish-load', () => { if (got) return; got = 1; setTimeout(async () => { try { for (let i = 0; i < 5; i++) { const n = await w.webContents.executeJavaScript('(document.body && document.body.innerText || "").length', true).catch(() => 0); if (n > 400) break; await new Promise((r) => setTimeout(r, 2500)); } const re = opt.links ? opt.links.source : ''; const r = await w.webContents.executeJavaScript(`(() => { const re = ${JSON.stringify(re)} ? new RegExp(${JSON.stringify(re)}, 'i') : null; return { title: document.title.slice(0, 120), href: location.href.slice(0, 200), text: (document.body ? document.body.innerText : '').slice(0, 60000), links: re ? [...document.querySelectorAll('a[href]')].filter((a) => re.test(a.href)).slice(0, 30).map((a) => ({ h: a.href, t: (a.innerText || '').trim().slice(0, 80) })) : [] }; })()`, true); clearTimeout(to); fin(r); } catch { clearTimeout(to); fin(null); } }, 3000); });
       w.webContents.on('did-fail-load', (ev, code, desc, u, main) => { if (main && code !== -3) { clearTimeout(to); fin(null); } });
       w.loadURL(url, { userAgent: w.webContents.getUserAgent().replace(/Electron\/\S+\s?/, '').replace(/robincat\S*\s?/i, '') });
@@ -976,6 +983,7 @@ function createWindow() {
 app.whenReady().then(() => { if (process.platform === 'win32') setTimeout(() => { try { require('./desklink.cjs').migrate({ root: ROOT, dataDir: DATA }).catch(() => {}); } catch {} }, 20000); /* DESKLNK-108：已装好的用户把桌面旧的「罗宾猫雷达.vbs」换成猫头图示的 .lnk（只做一次、失败静默、不影响启动） */ });
 app.whenReady().then(() => {
   guardStartup(); /* GATE-2 */
+  try { noPasskeySession(require('electron').session.defaultSession); } catch {} /*NOPK-112 主视窗（含 K 线 iframe）也不载入 Google 登入*/
   createWindow();
   tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 16, height: 16 }));
   trayLang(); /* I18N-FIX：提示与右键选单跟介面语言 */

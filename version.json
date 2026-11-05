@@ -1,12 +1,9 @@
 {
-  "version": "1.0.11",
+  "version": "1.0.12",
   "date": "2026-11-05",
   "critical": false,
   "notes": [
-    "代币详情的「即时成交」改成每 1 秒更新（详情页开着才读，关掉就停）",
-    "修好：点开代币时 K 线、成交一直「读取中」或「资料源忙」——雷达自己排队送 AVE 查询，你点开的优先，背景查询会让路，不再被限速卡住一分钟",
-    "K 线或资料读不到时写清楚真正原因（查询太快被限速／额度用完／邀请绑定还没登记／连不上），并有「重试」",
-    "修好：画面定时更新会把点开的明细收起来、捲动跳回最上面、正在打的字被清掉；现在都会保留，展开状态重开雷达也记得"
+    "修好：雷达在背景查空投项目官网时，有些网站会让 Windows 跳出「选择通行密钥 google.com」视窗。雷达本来就不需要也不会登录 Google，现在一律挡掉，不会再跳出来"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -41,13 +38,13 @@
     "radar/desklink.cjs": "21b4593af23fabadbcbf12c2e1f61da75f03c074fc3ddd8da9982f0d750d15bc",
     "radar/ghmine.cjs": "085154c479db11c9f4347e14f508ab2744cd1951313990005e083b171c0fc415",
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
-    "radar/main.cjs": "61d10e09f183f9329935153ca4b34cc15958a335ce1070efc78e511b6059a69d",
+    "radar/main.cjs": "f37431cb7f267d6b2a8ef34241759d785943c25f628aebbb228cbf8755140b8e",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
     "radar/next.cjs": "5e5de63de0fae925cf72c1146e24df876e5ae6b1b5e928a1e03d33cea8561f81",
-    "radar/official.json": "831512cc8b3a446a73b977e2c3b57c90acc18c0308539cb28cec31b2909a351b",
-    "radar/official.sig": "07fd9fdab3d039c11e661cef60a11adfa229a74c4fc7220ab19a6724e0300eec",
+    "radar/official.json": "78e6f0103a1507cfa418731ae1797df8a749d7839a3a07807284fc756b7e6d79",
+    "radar/official.sig": "3d864239f99d6793fb5d48c8fb03d8098e0a2f2bf232582713e0b113b18e0932",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "8d249d803bf0e9f78c57b7309b29d08a9b66a57abca310d225fcb13984d418e1",
+    "radar/package.json": "c02a9681ee38ddc05617880634b43f341a05f269fb088a31a6749195ef1d936d",
     "radar/preload.cjs": "602cbdbc6ba9f7b68f30bbd9bbbaf38085a47805ff55cc39b4fafd3a49faced5",
     "radar/settings_schema.json": "94c18f19d119f1a35b2cb95ec0e6898c91f64cc44775873c1180eb045c647bf3",
     "radar/ui/index.html": "f401f869c1fbf3b9200a6ca017381933abb6850ea80dfb8901067e37118174b2",
@@ -78,11 +75,11 @@
     "tools/guard_rules.json": "f8df49bce7288aa6de55ead23567429f0768a433ef78813f9f4146d68334f877",
     "tools/zero_allowlist.json": "1980ac5d66093db8ccfc55428ac015f91121f64f7c6a66eef73e81404fc37417",
     "tools/zero_check.mjs": "f2cbc69aba4ab36cfb21ec0b61b441dd3af66babc22d5e11966cff6e13ebdb83",
-    "watch.mjs": "9c415e8a40da0bd4e98e3119e14646307a0444b801b1c443d553f7aaee39bd82",
+    "watch.mjs": "e0ee21bb533e5727cb5824dd1f1d6a529f004dacbbee1489b17cefa78725f351",
     "weekly.mjs": "29607307001098f6fc275fb36e19e71e7ec47797b1fd68fb8002a335bd2c2ca9",
     "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
     "一键安装.bat": "77e45841b87f533dcc53db561c07c2dbb47d7337b8734aaa8c213eb5822bbd50",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "9c415e8a40da0bd4e98e3119e14646307a0444b801b1c443d553f7aaee39bd82"
+  "sha256": "e0ee21bb533e5727cb5824dd1f1d6a529f004dacbbee1489b17cefa78725f351"
 }
