@@ -1,16 +1,11 @@
 {
-  "version": "1.0.5",
+  "version": "1.0.6",
   "date": "2026-11-05",
   "critical": false,
   "notes": [
-    "积分活动上线：「🎁 邀请好友」卡片可以看到自己的积分（已入帐／待确认／审核中）、名次和排行榜，手机同步显示；明细在 TG 机器人传「积分」查看",
-    "防刷分：在雷达里直接绑定、还没用 TG 认领的邀请，积分先放「审核中」；对方在 TG 机器人送同一份绑定后就会计分",
-    "GitHub 读不到时（例如大陆网络），积分和 X 监测资料会自动改读转接站，一样核对官方签名才用",
-    "AGC 挖矿回来了：AI专属 → ⛏ AI挖矿，跟其他挖矿项目同一张清单；自动挖预设关，每天几份由你自己填",
-    "修好：铸造进度会把时间设定误当成「总量」导致进度乱跳；现在读不到合理总量就显示「读不到」，相关买入条件照你选的不买或备用条件",
-    "修好：打款钱包太多被截断时，「1 小时新钱包」条件永远不买；现在用「至少 N（已截断）」判断并显示出来",
-    "修好：安装时 Electron 下载失败还建了桌面捷径、点了跳系统错误；现在会自动换国内镜像重下，还不行就用中文告诉你怎么手动装",
-    "修好：照抄打法遇到免费项目会被付费条件挡住；现在确认零付款的项目走免费路径、套免费的风控，付款状态读不到就不打"
+    "修好：电脑上点邀请码、官方 TG 群等 TG 连结，有装 TG 桌面版会直接打开 TG，不再经过浏览器（大陆网络不开 VPN 也能打开）",
+    "没装 TG 桌面版的电脑照旧用浏览器打开",
+    "陌生网址的安全提醒照旧保留"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -43,13 +38,13 @@
     "radar/air.cjs": "102302df3d8674e5f58e160b055fd1dfc31c0b5e40cdfeca30c2ce8a4daf7b83",
     "radar/ghmine.cjs": "085154c479db11c9f4347e14f508ab2744cd1951313990005e083b171c0fc415",
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
-    "radar/main.cjs": "cb3927da1e0fe39c082bf33597214e8fdbf603406f41520caf8ec95b05beb7fa",
+    "radar/main.cjs": "850df44821bb3b7495f1c020b957cd9c75649b31ac8c49aabfae912ddee8eb3b",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
     "radar/next.cjs": "3eaf68238380397c3ef4535111794ab8f24b5ed609976f12aa26d65f04cc3c1a",
-    "radar/official.json": "93eabef0b47657287390d2d5a6cc45f9570a419c448baa33a0347223c3417742",
-    "radar/official.sig": "4e331705995f6aa15edf2b7f91a8e36c9e756a8122e64f2124283a44b1ca3780",
+    "radar/official.json": "77132ba23fd4a97e76606837feab584f1b9d0e76c5d60dcf08e4d090a2b4b39f",
+    "radar/official.sig": "716e04128fa9a30bf6b5f18dfe2f783f7c8a824ddff362940eeec35bba828b50",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "ad7d0b322ac6040340f7fc9fb5c4b27bc7f3294bc2edd3863b7aea3394089225",
+    "radar/package.json": "3758921cec5756e930dc3fa5102930cd1c58669d52ff8875a5b9e900320e4200",
     "radar/preload.cjs": "b2daf89f6b552016ca56df21811dd4cb970a1383831f8cdf780c410218e2eff1",
     "radar/settings_schema.json": "f445ff228cccf2ae859c6ed66f0e58b177e9e51020a501faac2774baa3d86bc7",
     "radar/ui/index.html": "35561ed604b96b80ea3d1d792340735b2896dc892b469cfa317c35dedb8de3e1",
@@ -80,11 +75,11 @@
     "tools/guard_rules.json": "792ddde49f62c53f743294623f4f8f1650f53a28ea3a4f8120725ef14fc3f411",
     "tools/zero_allowlist.json": "dcbec87666481cb9c1ef4fb26e1d368307d3d73e728ac71afae72fecd7128d18",
     "tools/zero_check.mjs": "f2cbc69aba4ab36cfb21ec0b61b441dd3af66babc22d5e11966cff6e13ebdb83",
-    "watch.mjs": "9332013401bd9163c4f6a25968e02096652e14374693d74601c9cd2836684c00",
+    "watch.mjs": "45d2b7744ee282b54a2ec765c1e56d945449ffdfce9927639d7e0fc9c7306b49",
     "weekly.mjs": "29607307001098f6fc275fb36e19e71e7ec47797b1fd68fb8002a335bd2c2ca9",
     "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
     "一键安装.bat": "771cc00b587b82d51dcd93bd654c303d6edc07bffd76707852b6fb68526bd07b",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "9332013401bd9163c4f6a25968e02096652e14374693d74601c9cd2836684c00"
+  "sha256": "45d2b7744ee282b54a2ec765c1e56d945449ffdfce9927639d7e0fc9c7306b49"
 }
