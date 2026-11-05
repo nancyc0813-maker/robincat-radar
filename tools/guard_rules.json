@@ -181,13 +181,6 @@
    "reason": "雷达主程式：启动引擎、更新前用 node --check 验新档"
   },
   {
-   "rule": "CHILD_PROC",
-   "file": "^一键安装\\.bat$",
-   "match": "require\\('child_process'\\)\\.execFileSync\\('powershell'",
-   "max": 1,
-   "reason": "安装时读桌面路径建立捷径"
-  },
-  {
    "rule": "DYN_CODE",
    "file": "^plugin-host\\.mjs$",
    "match": "data:text/javascript;base64",
@@ -249,6 +242,13 @@
    "match": "GATE-2|keyring / DPAPI|钥匙圈／DPAPI",
    "max": 1,
    "reason": "GATE-2 画面黄条「本机保护较弱」的说明文字提到 DPAPI"
+  },
+  {
+   "rule": "CHILD_PROC",
+   "file": "^radar/desklink\\.cjs$",
+   "match": "cp = require\\('child_process'\\)",
+   "max": 1,
+   "reason": "DESKLNK-108（老板同意）：只用 powershell 建／读桌面捷径（WScript.Shell CreateShortcut、GetFolderPath Desktop），参数是固定指令＋雷达自己的路径，没有使用者输入；不碰私钥、不转钱"
   }
  ]
 }

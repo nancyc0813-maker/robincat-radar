@@ -385,6 +385,13 @@ button[data-a="tf"],button[data-a="net"],button[data-a="strip"],button[data-a="s
 button[data-a="tf"]::before,button[data-a="net"]::before,button[data-a="strip"]::before,button[data-a="stop"]::before,button[data-a="unit"]::before,.ib::before{content:"";position:absolute;left:0;right:0;top:50%;height:44px;min-height:100%;transform:translateY(-50%)}
 .tr b,.tr .c1p,.c3{font-variant-numeric:tabular-nums}
 #bSort{flex-wrap:wrap;overflow-x:visible;row-gap:6px}
+/*XACC108-PHCSS*/
+.xwPBar{display:flex;gap:6px;padding:0 4px 8px}.xwPBar input{flex:1;min-width:0}.xwPBar input,.xwPBar select{background:var(--card2,#1a1f29);border:1px solid var(--line,#2a3140);color:inherit;border-radius:9px;padding:7px 8px;font-size:13px}
+.xwPCnt{font-size:12px;color:var(--mute);padding:0 6px 6px}.xwPList{max-height:62vh;overflow:auto;-webkit-overflow-scrolling:touch}
+.xwPRow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:10px 12px;border-bottom:1px solid #ffffff0d}
+.xwPMain{display:flex;gap:8px;align-items:center;min-width:0}.xwPH{font-weight:700;color:inherit;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.xwPOn{font-size:11.5px;color:var(--green,#2ebd85);white-space:nowrap}
+.xwPMeta{grid-column:1;font-size:12px;color:var(--mute)}.xwPF{grid-row:1/3;grid-column:2;text-decoration:none}
+.xwPPend{margin:0 4px 8px;padding:8px 10px;border:1px dashed #f0b90b66;border-radius:10px;font-size:12.5px}.xwPPend b{color:#f0b90b}.xwPPend span{display:inline-block;margin:3px 8px 0 0}
 </style>
 </head>
 <body>
@@ -782,6 +789,23 @@ function fillSig() {
   const L = F.filter((x) => SIGF === 'all' || (SIGF === 'reso' ? x.reso : SIGF === 'rh' ? x.ch === 'rh' : x.ch !== 'rh'));
   setHTML('#sList', !SIG ? skRows(5) : SIG.err && !F.length ? `<div class="empty">${esc(SIG.err)}</div>` : L.length ? L.map(sigCard).join('') : '<div class="empty">这里最近没有信号</div>');
 }
+/* XACC108：手机「𝕏 帐号」列表（只读：资料经电脑 PHM.xw；关注＝在手机打开 TG 投票，不改电脑设定） */
+let XWD = null, XWB = 0, XWT = 0; const XWP = { q: '', s: 'n', f: 'all' }; const XW_EVERY = 30e3; /* 技术用：手机多久重新跟电脑要一次帐号列表 */
+async function loadXw(force) { if (!PC_ON || XWB) return; if (!force && XWD && Date.now() - XWT < XW_EVERY) return; XWB = 1; XWT = Date.now(); /* 读完会 render() → 不节流就会一直重读（XACC108 修：手机分页卡死） */ try { XWD = await req('xw', {}, 20000); } catch (e) { if (!XWD || XWD.err) XWD = { err: e.message }; } XWB = 0; if (TAB === 'sig' && SIGF === 'xacc') render(); }
+function xwAgoP(t) { if (!t) return '—'; const s = Math.max(0, Math.round((Date.now() - t) / 1000)); if (s < 60) return '刚刚'; const m = Math.round(s / 60); if (m < 60) return m + ' 分钟前'; const h = Math.round(m / 60); if (h < 48) return h + ' 小时前'; return Math.round(h / 24) + ' 天前'; }
+function fillXw() {
+  let X = document.getElementById('sX'); const SL = document.getElementById('sList'); if (!X && SL) { SL.insertAdjacentHTML('afterend', '<div id="sX"></div>'); X = document.getElementById('sX'); } if (SL) SL.style.display = 'none'; if (X) X.style.display = '';
+  const D = XWD; if (!D) { setHTML('#sX', PC_ON ? skRows(5) : '<div class="empty">电脑雷达没在线</div>'); return; } if (D.err) { setHTML('#sX', `<div class="empty">暂时读不到（${esc(D.err)}）</div>`); return; }
+  const fol = new Set((D.fol || []).map((x) => String(x).toLowerCase())); const q = XWP.q.trim().replace(/^@/, '').toLowerCase(); const day = Date.now() - 864e5;
+  const num = (v) => v == null ? -1 : +v; const k = XWP.s === 'last' ? 'last' : XWP.s === 'hits' ? 'k' : 'n';
+  const R = (D.acc || []).filter((x) => x && x.h && (!q || String(x.h).toLowerCase().includes(q)) && (XWP.f === 'all' || (XWP.f === 'mine' ? fol.has(String(x.h).toLowerCase()) : (x.last || 0) >= day))).sort((a, b) => (num(b[k]) - num(a[k])) || (num(b.n) - num(a.n)) || String(a.h).localeCompare(String(b.h)));
+  const bar = document.getElementById('xwPBar'); if (!bar || !document.getElementById('xwPList')) setHTML('#sX', `<div id="xwPBar" class="xwPBar"><input id="xwPq" placeholder="搜寻帐号" value="${esc(XWP.q)}"><select id="xwPs"><option value="n">关注人数</option><option value="last">最近贴合约</option><option value="hits">贴合约次数</option></select><select id="xwPf"><option value="all">全部</option><option value="mine">我关注的</option><option value="24h">24 小时内有贴</option></select></div><div id="xwPPend"></div><div id="xwPCnt" class="xwPCnt"></div><div id="xwPList" class="xwPList"></div>`);
+  const qs = document.getElementById('xwPs'), qf = document.getElementById('xwPf'), qi = document.getElementById('xwPq'); if (qs && !qs._b) { qs._b = 1; qs.value = XWP.s; qf.value = XWP.f; qs.onchange = () => { XWP.s = qs.value; fillXw(); }; qf.onchange = () => { XWP.f = qf.value; fillXw(); }; qi.oninput = () => { XWP.q = qi.value; fillXw(); }; }
+  setHTML('#xwPPend', (D.req || []).length ? `<div class="xwPPend"><b>审核中（${D.req.length}）</b> <small>官方审核通过后才开始监测</small><div>${D.req.map((h) => `<span>⏳ @${esc(h)}</span>`).join(' ')}</div></div>` : '');
+  setHTML('#xwPCnt', `显示 ${R.length}／共 ${(D.acc || []).length} 个帐号`);
+  setHTML('#xwPList', R.length ? R.map((x) => { const h = String(x.h), on = fol.has(h.toLowerCase()); return `<div class="xwPRow"><div class="xwPMain"><a class="xwPH" href="https://x.com/${esc(h)}" target="_blank" rel="noopener">@${esc(h)}</a><span class="xwPOn">● 监测中</span></div><div class="xwPMeta">关注 ${x.n == null ? '—' : Number(x.n).toLocaleString()} · 最近贴合约 ${xwAgoP(x.last)} · 次数 ${x.k == null ? '—' : x.k}</div><a class="btn ${on ? 'g' : 'y'} s xwPF" href="https://t.me/RobinCatRadar_bot?start=x_${esc(h)}" target="_blank" rel="noopener">${on ? '已关注' : '关注'}</a></div>`; }).join('') : `<div class="empty">${!(D.acc || []).length ? (D.ok ? '还没有帐号' : '监测帐号名单暂时读不到，雷达会自动重试') : '没有符合的帐号'}</div>`);
+}
+{ const fs0 = fillSig; fillSig = function () { const r = fs0.apply(this, arguments); try { const n = (XWD?.acc || []).length; const sf = document.getElementById('sF'); if (sf && !sf.querySelector('[data-k="xacc"]')) sf.insertAdjacentHTML('beforeend', `<button data-a="sf" data-k="xacc" class="${SIGF === 'xacc' ? 'on' : ''}">𝕏 帐号<small>${n || ''}</small></button>`); if (SIGF === 'xacc') { loadXw(); fillXw(); } else { const X = document.getElementById('sX'), SL = document.getElementById('sList'); if (X) X.style.display = 'none'; if (SL) SL.style.display = ''; } } catch (e) { console.error(e); } return r; }; }
 function sigCard(x) {
   const m = x.mc0 > 0 && x.max > 0 ? x.max / x.mc0 : 0, n = x.mc0 > 0 && x.mc > 0 ? x.mc / x.mc0 : 0;
   const sc = (v) => v <= 0 ? 0 : Math.max(2, Math.min(100, Math.log(Math.max(1, v)) / Math.log(10) * 100)); /* 1 倍＝0、10 倍＝满 */
@@ -1195,7 +1219,7 @@ document.addEventListener('click', async (e) => {
   else if (a === 'mcol') { MCOL = +el.dataset.i || 0; render(); }
   else if (a === 'mmore') { loadMint({ more: 1, retry: el.dataset.r ? 1 : 0 }); }
   else if (a === 'col') { COL = +el.dataset.i; PWL = 0; render(); }
-  else if (a === 'wlcol') { PWL = PWL ? 0 : 1; render(); try { window.PXP?.sync?.(); } catch {} } /* BOARD-V3 ⭐ 自选 */
+  else if (a === 'wlcol') { PWL = 1; /*WL108 独立分页*/ render(); try { window.PXP?.sync?.(); } catch {} } /* BOARD-V3 ⭐ 自选 */
   else if (a === 'dsub') { DSUB = el.dataset.k === 'hot' ? 'hot' : 'new'; lsSet('rcDoneSub', DSUB); render(); } /* NX-1103 */
   else if (a === 'strip') { STRIP = !STRIP; lsSet('rcStrip', STRIP ? '1' : '0'); render(); }
   else if (a === 'pper') perSheet(); /* PER-1103 */
@@ -1204,7 +1228,7 @@ document.addEventListener('click', async (e) => {
   else if (a === 'plat') { PLAT[NET] = el.dataset.k; lsSet('rcPlat_' + NET, PLAT[NET]); render(); }
   else if (a === 'hx') { HEROX = !HEROX; lsSet('rcHeroX', HEROX ? '1' : '0'); const h = document.querySelector('.hero[data-cmp="1"]'); if (h) { h.classList.toggle('cmp', !HEROX); if (HEROX) h.removeAttribute('data-a'); else h.setAttribute('data-a', 'hx'); } PNLX = null; requestAnimationFrame(drawPnl); }
   else if (a === 'rzap') { const n = el.dataset.net; if (ST?.estop) return toast('紧急全停中：买入全部停止，可以手动卖出', 3500); if (ST?.mOff) return toast('「手动买卖」没打开，不能买', 3500); doBuy(el.dataset.c, el.dataset.s, +el.dataset.k, n); }
-  else if (a === 'sf') { SIGF = el.dataset.k; render(); }
+  else if (a === 'sf') { SIGF = el.dataset.k; if (SIGF === 'xacc') loadXw(1); render(); } /*XACC108-SF*/
   else if (a === 'pr') { if (PNLR !== el.dataset.r) { PNLR = el.dataset.r; lsSet('rcPnlR', PNLR); PNLX = null; render(); loadPnl(); } }
   else if (a === 'bmore') { const B = BOARD[NET]; const c = (B?.cols || []).find((x) => (x.k || '') === el.dataset.k); if (c) { const n = (c.items || []).length; BLIM[NET][c.k || ''] = n + PH_MORE; el.disabled = true; el.textContent = '载入中…'; loadBoard(); } }
   else if (a === 'open') openTok(el.dataset.c, el.dataset.s, el.dataset.net);
@@ -1315,7 +1339,7 @@ const ELY_A40 = /^0x[0-9a-f]{40}$/; const elyAve = (c) => { c = String(c || '').
 async function loadEly() { if (!PC_ON || ELYB) return; ELYB = 1; try { ELYD = await req('ely', {}, 20000); } catch (e) { if (!ELYD || ELYD.err) ELYD = { err: e.message }; } ELYB = 0; if (TAB === 'board' && PCAT === 'ely') render(); }
 function catPaint() { setHTML('#bCat', `<button data-a="pcat" data-k="gen" class="${PCAT === 'gen' ? 'on' : ''}">🪙 一般代币</button><button data-a="pcat" data-k="ai" class="${PCAT === 'ai' ? 'on' : ''}">🤖 AI专属</button><button data-a="pcat" data-k="ely" class="${PCAT === 'ely' ? 'on' : ''}">🌐 Elysium（只看）</button>`); }
 { const f0 = fillMint; fillMint = function () { const r = f0.apply(this, arguments); catPaint(); return r; }; }
-function fillEly() { const D = ELYD; const sh = (c) => c.slice(0, ELYP.short + 2) + '…' + c.slice(-ELYP.short + 2);
+function fillEly() { /*ELY108-PH 数字行可换行*/ const D = ELYD; const sh = (c) => c.slice(0, ELYP.short + 2) + '…' + c.slice(-ELYP.short + 2);
   const ago2 = (t) => { if (!t) return '—'; const s = Math.max(0, Math.round((Date.now() - t) / 1000)); return s < 60 ? s + ' 秒前' : s < 3600 ? Math.round(s / 60) + ' 分钟前' : Math.round(s / 3600) + ' 小时前'; };
   const nv = (v, tr) => v == null ? '读不到' : (tr ? '≥' : '') + v;
   setHTML('#bStrip', ''); setHTML('#bCol', '<span class="mu" style="font-size:12px;padding:0 4px">🌐 Elysium · 只看</span>'); setHTML('#bNet', ''); setHTML('#bSort', '');
@@ -1328,7 +1352,7 @@ function fillEly() { const D = ELYD; const sh = (c) => c.slice(0, ELYP.short + 2
   const head = `<div class="mu" style="font-size:12px;padding:0 4px 8px">状态：<b>${esc(M[st.code] || st.code || '—')}</b>${st.msg ? ' · ' + esc(st.msg) : ''}${D.rpcNow ? ' · 节点 ' + esc(D.rpcNow) + '（社群，不是官方）' : ''}${D.nEx ? ' · 排除清单藏了 ' + D.nEx + ' 个' : ''}</div>`;
   const L = (D.list || []).filter((x) => ELY_A40.test(String(x.c || '').toLowerCase())).sort((a, b) => (b.w10 - a.w10) || (b.w60 - a.w60) || (b.m60 - a.m60) || (b.first - a.first));
   const rows = L.map((x) => { const c = String(x.c).toLowerCase(); const nm = x.sym || x.name ? esc(x.sym || x.name) : (x.meta === 0 ? '读取中…' : '名称读不到');
-    return `<div class="tr"><div class="nm"><div class="t"><b>${nm}</b>${x.name && x.sym ? ` <span class="mu" style="font-size:11px">${esc(x.name)}</span>` : ''}</div><small><span data-ely-cp="${esc(c)}">${esc(sh(c))} 📋</span> · ${ago2(x.first)}</small><small class="l2">钱包 10 分钟 ${nv(x.w10, x.trunc)} · 1 小时 ${nv(x.w60, x.trunc)} · 铸币 ${nv(x.m10, x.trunc)}／${nv(x.m60, x.trunc)}</small></div><div class="rt"><button class="btn g s" data-ely-ave="${esc(c)}">在 AVE 打开<br><small>Open in AVE</small></button></div></div>`; }).join('');
+    return `<div class="tr"><div class="nm"><div class="t"><b>${nm}</b>${x.name && x.sym ? ` <span class="mu" style="font-size:11px">${esc(x.name)}</span>` : ''}</div><small><span data-ely-cp="${esc(c)}">${esc(sh(c))} 📋</span> · ${ago2(x.first)}</small><small class="l2" data-ely108-ph="1" style="white-space:normal;overflow:visible;text-overflow:clip">钱包 10 分钟 ${nv(x.w10, x.trunc)} · 1 小时 ${nv(x.w60, x.trunc)} · 铸币 ${nv(x.m10, x.trunc)}／${nv(x.m60, x.trunc)}</small></div><div class="rt"><button class="btn g s" data-ely-ave="${esc(c)}">在 AVE 打开<br><small>Open in AVE</small></button></div></div>`; }).join('');
   setHTML('#bList', warn + dl + head + (rows || `<div class="empty">${['err', 'badchain', 'norpc'].includes(st.code) ? '读不到（原因见上面），不猜数字' : '从开始监测到现在还没看到新代币'}</div>`)); }
 { const fb0 = fillBoard; fillBoard = function () { if (typeof PCAT !== 'undefined' && PCAT === 'ely') { try { catPaint(); } catch {} return fillEly(); } return fb0.apply(this, arguments); }; }
 document.addEventListener('click', async (ev) => {

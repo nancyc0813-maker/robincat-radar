@@ -126,8 +126,8 @@ echo       npm ci --registry=https://registry.npmmirror.com
 echo    装好后再执行一次「一键安装.bat」就会建立桌面捷径。
 goto :desk_done
 :desk_link
-REM 桌面捷径：用 Windows 真正的桌面位置（开了 OneDrive 备份时桌面在 OneDrive 里）
-node -e "const p=require('path'),fs=require('fs'),os=require('os');let d='';try{d=require('child_process').execFileSync('powershell',['-NoProfile','-Command',`[Console]::OutputEncoding=[Text.Encoding]::UTF8;[Environment]::GetFolderPath('Desktop')`],{encoding:'utf8'}).trim()}catch{}if(!d||!fs.existsSync(d))d=p.join(os.homedir(),'Desktop');const f=p.join(d,'罗宾猫雷达.vbs');const t='CreateObject(\"WScript.Shell\").Run \"\"\"'+p.join(process.cwd(),'radar','启动罗宾猫雷达.vbs')+'\"\"\", 0, False\r\n';try{fs.writeFileSync(f,Buffer.concat([Buffer.from([0xff,0xfe]),Buffer.from(t,'utf16le')]));console.log('桌面已建立「罗宾猫雷达」')}catch(e){console.log('建立桌面捷径失败，可以直接点 radar\\启动罗宾猫雷达.vbs')}"
+REM 桌面捷径（DESKLNK-108）：建真正的 Windows 捷径「罗宾猫雷达.lnk」（猫头图示，指向 radar\启动罗宾猫雷达.vbs）；用 Windows 真正的桌面位置（开了 OneDrive 备份时桌面在 OneDrive 里）；建不成才退回旧的 .vbs；旧的 .vbs 只有内容确认是本雷达的才删
+node "%~dp0radar\desklink.cjs" install
 :desk_done
 
 REM ---- 5. 开机自动启动 + 现在启动 ----

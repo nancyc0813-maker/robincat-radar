@@ -386,6 +386,48 @@
    "reason": "ELY107 版本说明：「最近 10 分钟／1 小时」是在描述显示栏位，不是门槛"
   },
   {
+   "rule": "TIMEWIN|OBJNUM|CMP|SLICE|COMMENT_NUM|FALLBACK0|STRING_NUM",
+   "file": "radar/main\\.cjs$",
+   "match": "ttlMs: 180e3|ttlNoneMs: 600e3|retryMs: 30e3|perCall: 4|askMax: 40|cacheMax: 1000|ELY_EP|elyNum|ELY109",
+   "reason": "ELY109 🌐 Elysium 价格区块（ELY109-PX）：多久重查、一次查几个、快取上限都是技术用（省 AVE 额度、防记忆体），都在 ELY_EP 表里有注解；价格只拿来显示和排序，这个功能没有买卖"
+  },
+  {
+   "rule": "OBJNUM|TIMEWIN|CMP|FALLBACK0|SLICE|STRING_NUM|COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "ELY9|ELY109|ely-cols|colItems|pxTick|hotMin\\(\\)|ely-hk|ely-nm|热门＝10 分钟内至少|Hot = at least|从打开监测那一刻开始算",
+   "reason": "ELY109 桌面 Elysium（只看）分栏：每栏最多画几张卡、多久要一次价格、一次问几个（技术用，在 ELY9 表）；「(x||0)」只用在显示排序／时间差；「10 分钟／1 小时」是老板指定的显示栏位；热门门槛来自玩家设定 ely.hotMin（空白＝至少 1 个钱包＝有钱包就算）；CSS 版面百分比。只影响显示，没有买卖"
+  },
+  {
+   "rule": "OBJNUM|TIMEWIN|CMP|FALLBACK0|SLICE|STRING_NUM|COMMENT_NUM",
+   "file": "relay/phone\\.html$",
+   "match": "ELYPS|elyCol|elyPx|ELYCOL|data-ely108-ph|最近 10 分钟没有币达到|钱包 10 分钟 \\$\\{nv|x\\.w10 \\|\\| 0|v >= 0\\.0001|10 \\*\\* \\(z \\+ 3\\)",
+   "reason": "ELY109 手机 Elysium（只看）分栏：排序栏位名「10 分钟／1 小时」（显示栏位）、小数价格显示（小于 0.0001 用下标零、保留 3 位有效数字，纯格式）、(x||0) 只用在排序；热门门槛来自电脑传来的玩家设定。只影响显示，没有买卖"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "relay/worker\\.js$",
+   "match": "ELY109",
+   "reason": "ELY109 转接站白名单注解：Elysium 价格查询快取 60 秒（技术用、大家共用，省 AVE 额度）"
+  },
+  {
+   "rule": "SCHEMA_TXT",
+   "file": "radar/settings_schema\\.json$",
+   "match": "ely\\.hotMin|热门",
+   "reason": "ELY109：ely.hotMin 说明「空白＝至少 1 个」——空白时只要有钱包就放进热门（显示用，不是官方门槛），玩家可以改；没有买卖"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "version\\.json$",
+   "match": "Elysium|分栏",
+   "reason": "ELY109 版本说明：「10 分钟」是在描述热门栏的显示栏位，不是门槛"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/official\\.json$",
+   "match": "Elysium",
+   "reason": "官方签名清单 official.json 里抄的是上一版（v1.0.7）的版本说明「最近 10 分钟／1 小时」——描述显示栏位，不是门槛；这个档发布时由 sign_radar 重新产生"
+  },
+  {
    "rule": "CMP",
    "file": "ave\\.mjs$",
    "match": "那份，本机资料不动）\\ \\*/\\ let\\ i\\ =\\ 0;\\ for\\ \\(let\\ g\\ =\\ 0;\\ g\\ <\\ 20\\ \\&\\&\\ i\\ <\\ all\\.l",
@@ -15306,6 +15348,78 @@
    "file": "radar/ui/index\\.html$",
    "match": "约 30 秒|about 30 s|10 分钟|10 minutes",
    "reason": "V105-1 画面提示文字：引擎约 30 秒重签一次、邀请名单约 10 分钟更新一次（原本 TG 绑定提示就有的说明，只是改写成雷达直接送出），是说明不是门槛"
+  },
+  {
+   "rule": "FALLBACK|TIMEWIN|CMP|FALLBACK0",
+   "file": "^radar/desklink\\.cjs$",
+   "match": ".",
+   "reason": "DESKLNK-108 桌面捷径：PowerShell 逾时（30 秒／20 秒）、档案开头 BOM 位元组（0xff 0xfe／0xef 0xbb 0xbf）、旧 vbs 档大小上限 4096、失败 3 次放弃、启动后 20 秒才做 —— 全是技术用，跟买卖无关"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^radar/main\\.cjs$",
+   "match": "DESKLNK-108",
+   "reason": "DESKLNK-108：雷达启动 20 秒后才迁移桌面捷径（不拖慢启动），技术用"
+  },
+  {
+   "rule": "TIMEWIN|KWLIST|SLICE|FALLBACK0",
+   "file": "^radar/main\\.cjs$",
+   "match": "BACK = \\[60e3|SELF_RE = |digest\\('hex'\\)\\.slice\\(0, 24\\)|s\\.poll \\|\\| 0|s\\.next \\|\\| 0|POLL = 20e3, GIVEUP = 1800e3",
+   "reason": "BAUTO108 邀请绑定自动送出：退避间隔（1 分／5 分／15 分／1 小时／3 小时）、问结果间隔 20 秒、最多等 30 分钟、签名指纹取 24 码、机器人回覆「不能填自己的邀请码」的字样比对 —— 技术用，不是买卖门槛"
+  },
+  {
+   "rule": "SLICE|COMMENT_NUM",
+   "file": "^radar/main\\.cjs$",
+   "match": "XACC108|XW\\.acc \\|\\| \\[\\]\\)\\.slice\\(0, 600\\)",
+   "reason": "XACC108 X 帐号列表：最多 600 个帐号（显示／记忆体上限，老板要求撑到 50 以上、以后更多）；官方 hits 是最近 300 笔的说明 —— 显示用"
+  },
+  {
+   "rule": "TIMEWIN|CMP|FALLBACK0|STRING_NUM|SLICE|COMMENT_NUM",
+   "file": "^radar/ui/index\\.html$",
+   "match": "xwAgo|const day=Date\\.now\\(\\)-864e5|x\\.last\\|\\|0|300 笔|300 posts|24 小时有贴合约|Posted a contract in 24h|XACC108|\\.slice\\(0,20\\)\\.map\\(String\\),fol|xFollow\\|\\|\\[\\]\\)\\.slice\\(0,600\\)",
+   "reason": "XACC108 X 帐号列表：几秒／分钟／小时前的显示换算、「最近 24 小时有贴合约」筛选（老板指定的筛选项）、官方资料最近 300 笔的说明、手机最多传 20 个审核中／600 个关注 —— 只是显示，不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^radar/ui/index\\.html$",
+   "match": "BAUTO108|R\\.next\\|\\|0\\)-Date\\.now\\(\\)\\)/60e3",
+   "reason": "BAUTO108 画面：每 2 秒看一次自动送出的状态、剩几分钟自动重送的显示换算 —— 技术用"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "^radar/ui/index\\.html$",
+   "match": "GATE108-KEEP|XACC108-NAV",
+   "reason": "注解里说明画面每 5 秒重画（tick 间隔），不是数字设定"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "^radar/ui/index\\.html$",
+   "match": "SET108-CSS|ELY108",
+   "reason": "CSS 的 max-width:100% 等版面数值（SET108 设定页输入框、ELY108 Elysium 面板），不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN|CMP|FALLBACK0|STRING_NUM",
+   "file": "^relay/phone\\.html$",
+   "match": "req\\('xw'|xwAgoP|const day = Date\\.now\\(\\) - 864e5|x\\.last \\|\\| 0|xwPq",
+   "reason": "XACC108 手机 X 帐号列表：读取逾时 20 秒、几分钟／小时前显示换算、「24 小时内有贴」筛选 —— 只是显示"
+  },
+  {
+   "rule": "TIMEWIN|CMP",
+   "file": "^radar/ui/index\\.html$",
+   "match": "\\(Date\\.now\\(\\)-t\\)/1000\\)\\);if\\(s<60\\)return en\\?'just now'|const m=Math\\.round\\(s/60\\);if\\(m<60\\)return en\\?m\\+'m ago'|const h=Math\\.round\\(m/60\\);if\\(h<48\\)return en\\?h\\+'h ago'",
+   "reason": "XACC108 xwAgo：「几秒／分钟／小时／天前」的显示换算（秒→分→小时，48 小时以上改写天），只是显示"
+  },
+  {
+   "rule": "TIMEWIN|CMP",
+   "file": "^relay/phone\\.html$",
+   "match": "\\(Date\\.now\\(\\) - t\\) / 1000\\)\\); if \\(s < 60\\) return '刚刚'|const m = Math\\.round\\(s / 60\\); if \\(m < 60\\) return m|const h = Math\\.round\\(m / 60\\); if \\(h < 48\\) return h",
+   "reason": "XACC108 手机 xwAgoP：「几分钟／小时／天前」显示换算，只是显示"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "^relay/phone\\.html$",
+   "match": "XW_EVERY = 30e3",
+   "reason": "XACC108 手机：多久重新跟电脑要一次 X 帐号列表（30 秒），技术用节流"
   }
  ]
 }

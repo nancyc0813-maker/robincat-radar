@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('radar', {
   invReload: () => call('invReload'),
   bindRelay: (k) => call('bindRelay', k === 'code' ? 'code' : 'join'), /* V105-1：雷达内直接绑定（送到转接站，不经过 TG） */
   bindRelayStat: (id) => call('bindRelayStat', S(id, 40)), /* V105-1：查绑定结果 */
+  bindRelayNow: (k) => call('bindRelayNow', k === 'code' ? 'code' : 'join'), /* BAUTO108：画面「重送」＝请主程式马上自动送一次 */
   guardAsk: () => call('guardAsk'), /* WAL-GATE：再跳一次守护金钥确认视窗 */
   invCheck: (c) => call('invCheck', S(c, 80)),
   hotBoard: (n) => call('hotBoard', S(n, 20)),
