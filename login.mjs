@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const DIR = dirname(fileURLToPath(import.meta.url));
+/* HN-FIX 11/5：电脑名是中文时，币安 baw 把它放进 HTTP 标头会出错（登入、扫码、下单全卡）→ 只对 baw 子程序换成英文设备名 */
+{ try { const _os = await import('node:os'); const _h = _os.hostname(); if (/[^\x20-\x7e]/.test(_h)) { const _fs = await import('node:fs'); const _p = join(DIR, 'data', 'hn_shim.cjs'); const _safe = 'RobinCat-' + Buffer.from(_h).toString('hex').slice(0, 8); _fs.mkdirSync(join(DIR, 'data'), { recursive: true }); _fs.writeFileSync(_p, "const os=require('os');os.hostname=()=>" + JSON.stringify(_safe) + ";require('module').syncBuiltinESMExports();\n"); const _o = String(process.env.NODE_OPTIONS || ''); if (!_o.includes('hn_shim.cjs')) process.env.NODE_OPTIONS = (_o + ' --require ' + JSON.stringify(_p)).trim(); } } catch {} }
 const CONFIG = JSON.parse(readFileSync(join(DIR, 'config.json'), 'utf8'));
 const wc = CONFIG.wallets[(Number(process.argv[2]) || 1) - 1];
 if (!wc) { console.error('config.json 里找不到这个钱包（先执行 node setup.mjs 设定钱包）'); process.exit(1); }

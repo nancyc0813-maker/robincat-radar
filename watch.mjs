@@ -10,6 +10,8 @@ import { fileURLToPath } from 'node:url';
 
 import { createRequire } from 'node:module'; import { AsyncLocalStorage } from 'node:async_hooks'; const ACK = new AsyncLocalStorage(); /* 这张单你是否按了「仍然执行」 */ const GATE_CTX = new AsyncLocalStorage(); /* GATE-1：这一笔是谁下的（TG 指令＝src:tg）——统一动作闸门用 */ const FACK = new Set(), FACKA = new Set(); /* 强制打时按了「仍然执行」的合约／也勾了「我看懂了」授权的 */ globalThis.ACK_STORE = () => ACK.getStore(); /* rh.mjs／bscnft.mjs 读：这张单是不是你按了「仍然执行」 */
 const DIR = dirname(fileURLToPath(import.meta.url));
+/* HN-FIX 11/5：电脑名是中文时，币安 baw 把它放进 HTTP 标头会出错（登入、扫码、下单全卡）→ 只对 baw 子程序换成英文设备名 */
+{ try { const _os = await import('node:os'); const _h = _os.hostname(); if (/[^\x20-\x7e]/.test(_h)) { const _fs = await import('node:fs'); const _p = join(DIR, 'data', 'hn_shim.cjs'); const _safe = 'RobinCat-' + Buffer.from(_h).toString('hex').slice(0, 8); _fs.mkdirSync(join(DIR, 'data'), { recursive: true }); _fs.writeFileSync(_p, "const os=require('os');os.hostname=()=>" + JSON.stringify(_safe) + ";require('module').syncBuiltinESMExports();\n"); const _o = String(process.env.NODE_OPTIONS || ''); if (!_o.includes('hn_shim.cjs')) process.env.NODE_OPTIONS = (_o + ' --require ' + JSON.stringify(_p)).trim(); } } catch {} }
 const SELF = fileURLToPath(import.meta.url), SELF_MT = statSync(SELF).mtimeMs;
 const LOG = join(DIR, 'data', 'watch.log'), STATE = join(DIR, 'data', 'watch_state.json');
 if (process.argv.includes('--tg-login')) { /* 选用功能：TG 群组监控的一次性登入（金钥、手机、登入码都由使用者自己在这个视窗输入，只存在本机 data/tg_user.json） */
@@ -2598,7 +2600,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.0.2', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.0.3', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;
