@@ -1,19 +1,9 @@
 {
-  "version": "1.0.9",
+  "version": "1.0.10",
   "date": "2026-11-05",
   "critical": false,
   "notes": [
-    "邀请绑定签好后，雷达会自动送给官方登记（不用再按「送出绑定」）；送不出会自动隔一段时间再送，结果显示在邀请卡片",
-    "填的是你自己的邀请码（码主）时，直接显示「这是你自己的邀请码，不用绑定」，不再显示失败",
-    "AVE 还没拿到通行证时，K 线等区块会写清楚原因（邀请绑定还没被官方登记）",
-    "修好：开始使用的第 3 步新增钱包后画面会跳开（新钱包还没连上就被当成已连接）；现在会留在第 3 步，显示钱包和「连接（扫码）」按钮",
-    "开始使用画面可以「← 改邀请码」回到第 2 步重填；第 3 步说法改成「先连上钱包才能进入」",
-    "桌面图示改成猫头捷径（旧的脚本图示会自动换掉）",
-    "Elysium 面板的数字栏不再变成金色小圆圈；手机版数字不再被切掉",
-    "「𝕏 监测的 X 帐号」改成可搜寻、排序、筛选的列表，审核中的帐号另外列出",
-    "顶部导航放不下时收进「更多 ▾」，每个分页都点得到；「已停买」提示窄视窗只显示短字",
-    "设定页输入框：单位不再挤到框外，长内容可以看到全部",
-    "看盘「⭐ 自选」按几次都只显示自选"
+    "修好：卡在「开始使用」画面的用户按不到右上角 🔔 更新——现在这一页右上角会直接显示「有新版，点这里更新」"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -51,13 +41,13 @@
     "radar/main.cjs": "afbcf178712fbacc43ee5a2bdfc478b6e7525a804c1ff3e1f0715208607852e2",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
     "radar/next.cjs": "5e5de63de0fae925cf72c1146e24df876e5ae6b1b5e928a1e03d33cea8561f81",
-    "radar/official.json": "3b76c254e3808219d10634d3451aff1fe9b973619f4ddffa9ac27d3b7a397858",
-    "radar/official.sig": "0a9e92059342b6670bb2fbc01c5ed4ff60f8c832161e204f4b7c9e9428553a05",
+    "radar/official.json": "16a6e856709a976e82fed240c179addac8c656f7e15aaa60529fe54752cb82b8",
+    "radar/official.sig": "63b72c401d02fb106843a0269f3795577c5411bdfd2ac84e12c5a015d8f18b67",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "38f2ee87eb45daecff956238854627fbb5b08c35f4a9a4e0fd9e3cea33ab3de3",
+    "radar/package.json": "9ab0007754b39075e266fd1b7e43b2dbb17aa6fdc1726ba1fc1a1719f3bd0cd3",
     "radar/preload.cjs": "602cbdbc6ba9f7b68f30bbd9bbbaf38085a47805ff55cc39b4fafd3a49faced5",
     "radar/settings_schema.json": "94c18f19d119f1a35b2cb95ec0e6898c91f64cc44775873c1180eb045c647bf3",
-    "radar/ui/index.html": "9ffca994943c20a6c910982031fb9a02d66bbc727feba2f898df170d28210495",
+    "radar/ui/index.html": "54be05629e9774876af543ce203cd4d493762e47e54254956ca8f9b9dc87b15f",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -85,11 +75,11 @@
     "tools/guard_rules.json": "f8df49bce7288aa6de55ead23567429f0768a433ef78813f9f4146d68334f877",
     "tools/zero_allowlist.json": "f5898ac29fb254e50d490dbac69f738bc01cc1f7cc961580dae9e8d6e1458229",
     "tools/zero_check.mjs": "f2cbc69aba4ab36cfb21ec0b61b441dd3af66babc22d5e11966cff6e13ebdb83",
-    "watch.mjs": "2cb42123027a85d248960ab8553cddf3f0d171261a096f464b09410eb9d4f090",
+    "watch.mjs": "5e75f632ed6dc7f69882c76c84c841bc9a8a83c72aadbf718d857c572b50ad29",
     "weekly.mjs": "29607307001098f6fc275fb36e19e71e7ec47797b1fd68fb8002a335bd2c2ca9",
     "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
     "一键安装.bat": "77e45841b87f533dcc53db561c07c2dbb47d7337b8734aaa8c213eb5822bbd50",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "2cb42123027a85d248960ab8553cddf3f0d171261a096f464b09410eb9d4f090"
+  "sha256": "5e75f632ed6dc7f69882c76c84c841bc9a8a83c72aadbf718d857c572b50ad29"
 }
