@@ -9,6 +9,7 @@ const B = (x) => !!x;
 const call = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
 contextBridge.exposeInMainWorld('radar', {
   snapshot: () => call('snapshot'),
+  zoomSet: (f) => call('zoomSet', N(f)), zoomGet: () => call('zoomGet'), onZoom: (fn) => { if (typeof fn === 'function') ipcRenderer.on('zoomChanged', (e, f, eff) => fn(N(f), N(eff))); /*ZOOM112*/ }, /* ZOOM110 画面大小 */
   uiLang: (l) => call('uiLang', l === 'en' ? 'en' : 'zh'), /* I18N-FIX：介面语言告诉主程式（对话框、通知、系统匣） */
   schema: () => call('schema'),
   pnlHist: (r) => call('pnlHist', S(r, 20)),
@@ -31,6 +32,7 @@ contextBridge.exposeInMainWorld('radar', {
   holdHealth: () => call('holdHealth'),
   walletPnl: (f) => call('walletPnl', B(f)),
   tape: (n, a, p) => call('tape', S(n, 20), S(a, 64), S(p, 80)),
+  /*FBM-BEGIN*/walletInfo: (n, a) => call('walletInfo', S(n, 20), S(a, 64)), /* 交易者钱包页（AVE 唯读） *//*FBM-END*/
   livePx: (n, a, p) => call('livePx', S(n, 20), S(a, 64), S(p, 80)),
   aveWsPhSess: () => call('aveWsPhSess'), /*RISK-FIX 7：给手机的 AVE 推送通行证（只能连 /avews） */
   aveWsSess: () => call('aveWsSess'), /* AVE-WSS：即时推送通行证（主程序向转接站换，画面拿去连 /avews） */
@@ -53,6 +55,7 @@ contextBridge.exposeInMainWorld('radar', {
   checkToken: (a) => call('checkToken', S(a, 200)),
   tokenDetail: (n, a) => call('tokenDetail', S(n, 20), S(a, 64)),
   tokenQuick: (n, a) => call('tokenQuick', S(n, 20), S(a, 64)),
+  tokenPre: (n, L) => call('tokenPre', S(n, 20), A(L, 50).map((a) => S(a, 64))), /* SPEED113 看盘先预抓前几个币（数量是你的设定 board.preN） */
   tokenWarm: (n, a) => call('tokenWarm', S(n, 20), S(a, 64)), /* PERF2-1104 滑鼠停在列上先预热（只做不花额度的检查） */
   onTokenDetailMore: (cb) => { if (typeof cb !== 'function') return; ipcRenderer.on('tokenDetailMore', (e, m) => { try { cb(m); } catch {} }); }, /* 风险／持有人后到 */
   hist: (k) => call('hist', S(k, 120)),

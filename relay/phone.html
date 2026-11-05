@@ -850,12 +850,18 @@ const usdOr = (v) => v != null && v !== '' && isFinite(+v) ? money(+v) : '读不
 function agcPh(a) { if (!a || typeof a !== 'object') return ''; const P = [a.on ? (a.maxN != null ? '自动挖：开（每个钱包每天最多 ' + a.maxN + ' 份）' : '自动挖：开，但份数没填（不会挖）') : '自动挖：关'];
   try { if (a.lockedWei != null) P.push('押着 ' + (Number(BigInt(a.lockedWei)) / 1e18).toFixed(4).replace(/\.?0+$/, '') + ' BNB（' + (a.lockedN ?? '?') + ' 笔）'); } catch {}
   if (a.due > 0) P.push('可领回 ' + a.due + ' 笔'); if (a.nextAt > 0) P.push('下一笔 ' + new Date(+a.nextAt).toLocaleString('zh-CN', { hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' 可领'); if (a.today != null) P.push('今天挖了 ' + a.today + ' 份'); return P.join(' · '); }
+/* POL-MINE：Pol · Proof of Liquidity（挖矿部位里的 pol 栏位）：开关、已参与几份、LP 锁着几笔、可领奖励、下一笔到期。只显示 */
+function polPh(a) { if (!a || typeof a !== 'object') return ''; const b = (x) => { try { return (Number(BigInt(x)) / 1e18).toFixed(4).replace(/\.?0+$/, ''); } catch { return null; } };
+  const P = [a.on ? (a.maxDay != null && a.perTx != null && a.slip != null ? '自动参与：开（每个钱包每天最多 ' + a.maxDay + ' 份、单笔 ' + a.perTx + ' 份）' : '自动参与：开，但数字没填齐（不会参与）') : '自动参与：关'];
+  if (a.launched === 0) P.push('还没开池（募资中）'); if (a.shares != null) P.push('已参与 ' + a.shares + ' 份'); if (a.open > 0) P.push('LP 锁着 ' + a.open + ' 笔'); if (a.due > 0) P.push('到期 ' + a.due + ' 笔');
+  if (a.claimWei != null && a.claimWei !== '0' && b(a.claimWei) != null) P.push('可领奖励 ' + b(a.claimWei) + ' Pol');
+  if (a.nextAt > 0) P.push('下一笔 ' + new Date(+a.nextAt).toLocaleString('zh-CN', { hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' 到期'); return P.join(' · '); }
 function mineHold() { if (!ST) return ''; const M = ST.mine; const L = M && Array.isArray(M.items) ? M.items.filter(Boolean) : null;
   const head = `<div class="sech">⛏ 挖矿部位${L ? ` <span class="cnt">${L.length}</span>` : ''}${L && +M.at > 0 ? `<small>${esc(agoMs(+M.at))}更新</small>` : ''}</div>`;
   if (!L) return head + '<div class="empty">读不到</div>';
   if (!L.length) return head + '<div class="empty">目前没有挖矿部位</div>';
   return head + L.map((m) => { const ws = Array.isArray(m.wallets) ? m.wallets.map((w) => String(w && typeof w === 'object' ? (w.name || w.addr || '') : w)).filter(Boolean) : []; const ok = typeof m.url === 'string' && /^https:\/\//.test(m.url);
-    return `<div class="hr"><div class="tr"><div class="nm"><div class="t"><b>${esc(m.name || '读不到名称')}</b>${m.chain ? `<span class="tag">${esc(/*PH3-MH*/m.chain === 'rh' ? 'Robinhood' : m.chain === 'bsc' ? 'BNB Chain' : String(m.chain))}</span>` : ''}${m.status ? `<span class="tag"${m.status === 'live' ? ' style="color:#2ebd85"' : ''}>${esc({ live: '进行中', soon: '还没开始', ended: '已结束' }[m.status] || String(m.status))}</span>` : ''}</div><small style="white-space:normal">数量 ${m.qty != null && m.qty !== '' ? esc(String(m.qty)) : '读不到'}${m.token ? ' <span title="' + esc(String(m.token)) + '">' + esc(/^0x[0-9a-fA-F]{40}$/.test(String(m.token)) ? String(m.token).slice(0, 6) + '…' + String(m.token).slice(-4) : String(m.token)) + '</span>' : ''} · 成本 ${usdOr(m.costUsd)} · 单价 ${usdOr(m.priceUsd)} · 池子 ${usdOr(m.liqUsd)}${ws.length ? ' · ' + esc(ws.join('、')) : ''}${m.agc ? '<br>' + esc(agcPh(m.agc)) : ''}${m.why ? '<br>' + esc(String(m.why)) : ''}</small></div><div class="rt"><b>${usdOr(m.valueUsd)}</b>${ok ? `<small><a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">打开 ↗</a></small>` : ''}</div></div></div>`; }).join(''); }
+    return `<div class="hr"><div class="tr"><div class="nm"><div class="t"><b>${esc(m.name || '读不到名称')}</b>${m.chain ? `<span class="tag">${esc(/*PH3-MH*/m.chain === 'rh' ? 'Robinhood' : m.chain === 'bsc' ? 'BNB Chain' : String(m.chain))}</span>` : ''}${m.status ? `<span class="tag"${m.status === 'live' ? ' style="color:#2ebd85"' : ''}>${esc({ live: '进行中', soon: '还没开始', ended: '已结束' }[m.status] || String(m.status))}</span>` : ''}</div><small style="white-space:normal">数量 ${m.qty != null && m.qty !== '' ? esc(String(m.qty)) : '读不到'}${m.token ? ' <span title="' + esc(String(m.token)) + '">' + esc(/^0x[0-9a-fA-F]{40}$/.test(String(m.token)) ? String(m.token).slice(0, 6) + '…' + String(m.token).slice(-4) : String(m.token)) + '</span>' : ''} · 成本 ${usdOr(m.costUsd)} · 单价 ${usdOr(m.priceUsd)} · 池子 ${usdOr(m.liqUsd)}${ws.length ? ' · ' + esc(ws.join('、')) : ''}${m.agc ? '<br>' + esc(agcPh(m.agc)) : ''}${m.pol ? '<br>' + esc(polPh(m.pol)) : ''}${m.why ? '<br>' + esc(String(m.why)) : ''}</small></div><div class="rt"><b>${usdOr(m.valueUsd)}</b>${ok ? `<small><a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">打开 ↗</a></small>` : ''}</div></div></div>`; }).join(''); }
 /* PHONE-4：挖矿提醒＝引擎的 data/mine_alerts.json（[{ at, id, name, liqUsd, text }]），电脑放在 ST.mineAlerts。设定页有卡片；这次打开之后的新提醒也跳提示 */
 const MASEEN = new Set(); const MA_T0 = Date.now();
 function mineAlertCard() { const L = Array.isArray(ST?.mineAlerts) ? ST.mineAlerts.filter(Boolean) : null; if (!L || !L.length) return ''; return `<div class="card"><h4>⛏ 挖矿提醒</h4><p class="note">只提醒，不会帮你做任何动作。</p>${L.map((x) => `<div class="qrow"><span>${esc(x.at ? agoMs(+x.at) : '')} ${esc(x.name || '')}</span><b>${esc(String(x.text || ''))}${x.liqUsd != null ? ' · 池子 ' + usdOr(x.liqUsd) : ''}</b></div>`).join('')}</div>`; }
@@ -877,6 +883,15 @@ function ptsCard() { const P = ST?.pts; const hd = '<div class="card"><h4>🏅 �
   if (M) h += '<p class="note">📋 明细请在 TG 机器人传「积分」查看 <a href="https://t.me/RobinCatRadar_bot" target="_blank" rel="noopener">打开 TG 机器人</a></p>'; /* PTS-1105:phfn2 公开档不放明细（隐私） */
   const T = P.top || []; h += `<details data-pto="t" ${PTSO.t ? 'open' : ''}><summary class="note">🏆 积分排行（前 ${R.top || T.length} 名）</summary>${T.length ? T.map((x) => `<div class="qrow"><span>${x.rk}. ${esc(x.pub ? x.n : '#' + x.n)}</span><b>${x.ok}</b></div>`).join('') : '<p class="note">还没有人有已入帐的积分</p>'}</details>`;
   return h + '</div>'; }
+/* DH112-PHJS：手机「🩻 资料健康」（数字由电脑 PHM.dh 算好；只读、不上传） */
+let DHPD = null, DHPB = 0;
+async function loadDh() { if (!PC_ON || DHPB) return; DHPB = 1; try { DHPD = await req('dh', {}, 30000); } catch (e) { DHPD = { err: e.message }; } DHPB = 0; if (TAB === 'me') render(); }
+function dhCard() { const D = DHPD; let h = '<div class="card" id="dhPh"><h4>🩻 资料健康</h4><p class="note">只在你自己的电脑／手机显示，不上传；只列原始数字，不影响买卖。</p>';
+  if (!D) h += `<button class="btn g s" data-dhp="re">${DHPB ? '统计中…' : '开始统计'}</button>`;
+  else if (D.err) h += `<p class="note">暂时读不到（${esc(D.err)}）</p><button class="btn g s" data-dhp="re">重试</button>`;
+  else { h += `<pre style="white-space:pre-wrap;font-size:12px;line-height:1.5;margin:6px 0">${esc(D.txt || '')}</pre><div style="display:flex;gap:8px"><button class="btn g s" data-dhp="re">↻ 重新统计</button><button class="btn y s" data-dhp="cp">📋 复制给作者</button></div>`; }
+  return h + '</div>'; }
+document.addEventListener('click', async (ev) => { const b = ev.target.closest?.('[data-dhp]'); if (!b) return; ev.stopImmediatePropagation(); if (b.dataset.dhp === 're') { DHPD = null; render(); loadDh(); return; } try { await navigator.clipboard.writeText(DHPD?.txt || ''); toast('已复制，贴给作者就可以'); } catch { toast('复制失败，请长按上面的文字自己复制'); } }, true);
 function pgMe() {
   const qrows = (net) => { const I = qbInfo(net); if (!I) return '<div class="qrow"><span>没设</span></div>'; const us = UNITS(net); return (us.length ? us : ['']).map((u) => { const v = I.get(u).filter((x) => x > 0); return `<div class="qrow"><span>${NET_N(net)} · ${esc(u === 'U' ? 'U（USDT）' : u || '-')}</span><b>${v.length ? esc(v.join(' / ')) : '<span class="mu">电脑还没设</span>'}</b></div>`; }).join(''); };
   return `<div class="ptitle">更多</div><div class="psub">紧急全停、安全哨兵、设定（电脑上在「⚙️ 设定」里）</div><div style="height:8px"></div>
@@ -884,7 +899,7 @@ function pgMe() {
   <div class="card"><h4>⚡ 快速买卖设定（只能在电脑改）</h4><p class="note">照电脑雷达的「⚡ 快速买卖设定」，手机不能改——就算手机掉了，别人也没办法用它买超过你设的金额。买的时候可以选这次用哪一组。</p>${qrows('bsc')}${qrows('rh')}</div>
   ${sentCard()}
   ${mineAlertCard()}
-  ${mpkCard()}${ptsCard()}<!--PTS-1105:phcard--><div class="card"><h4>✨ 叫 AI 加功能</h4><p class="note">想要新的面板、提醒或筛选？在电脑雷达「✨ AI 加功能」写下需求、复制给你的 AI，再把 AI 回的那段贴回来安装。为了安全，手机不能装外挂。</p></div><!--UXP2-AICARD-->
+  ${mpkCard()}${ptsCard()}${dhCard()}<!--DH112-PH--><!--PTS-1105:phcard--><div class="card"><h4>✨ 叫 AI 加功能</h4><p class="note">想要新的面板、提醒或筛选？在电脑雷达「✨ AI 加功能」写下需求、复制给你的 AI，再把 AI 回的那段贴回来安装。为了安全，手机不能装外挂。</p></div><!--UXP2-AICARD-->
   <div class="card"><h4>📲 加到主画面</h4><p class="note">iPhone：Safari 下方「分享」→「加入主画面」。<br>Android：Chrome 右上角「⋮」→「加到主画面」。<br>加好之后从主画面的罗宾猫图标打开就好。</p></div>
   <div class="card"><h4>📱 这支手机</h4><p class="note">电脑雷达 ${esc(ST?.ver ? 'v' + ST.ver : '')} · ${PC_ON ? '在线' : '离线'}<br>手机遗失：回电脑雷达按「解除旧手机」，这支手机就再也连不上。</p><button class="btn r" data-a="unpair" style="width:100%">这支手机取消配对</button></div>`;
 }
@@ -1387,5 +1402,86 @@ document.addEventListener('click', async (ev) => {
   try { await cp; toast('已复制合约'); } catch { toast('复制不了，请长按合约自己复制'); } }, true);
 setInterval(() => { if (PC_ON && TAB === 'board' && PCAT === 'ely' && !document.hidden) loadEly(); }, ELYP.tick);
 /*ELY107-PHONE-END*/</script>
+<style id="smpPh">/* 简单／进阶模式（手机） */
+#smpPhAdv{margin:6px 14px 0;padding:7px 10px;border-radius:10px;border:1px solid #f0b90b55;background:#f0b90b12;font-size:12.5px;line-height:1.45}#smpPhAdv b{color:#f0b90b}#smpPhAdv small{display:block;color:var(--mute)}
+.smpTp .smpRow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0;font-size:14.5px}.smpTp .smpRow input[type=number]{width:64px;text-align:center;background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 4px;font-size:15px;font-weight:700}
+.smpTp .smpRow input[type=checkbox]{width:20px;height:20px;accent-color:#f0b90b}.smpMode .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+</style><!--/smpPh-->
+<script id="smpPhJs">/* 简单／进阶模式（手机，1.0.13）——只改手机画面，不改下单、不加任何数字。模式存在这支手机（rcMode），不送到电脑。
+   简单：持仓每列一颗「卖」（＝原本的「全卖」，同一个确认框）、详情「全部卖出」（原本的 doSell 确认框）、「自订策略」页换成两个止盈止损勾选；挖矿提醒、铸造方式卡收起来。
+   进阶：跟原本一模一样。顶部写「电脑上进阶里还开着：…」（电脑带来的清单，照跑）。
+   电脑太旧没带清单（ST.smp）→ 不知道开了什么，就用进阶（不藏东西）。止盈止损存档走原本的「确认修改 → 保存 → 可撤销」流程（要电脑打开「手机可以改设定」）。 */
+(function(){
+const MK='rcMode';let M=(()=>{try{const v=localStorage.getItem(MK);return v==='simple'||v==='adv'?v:''}catch{return ''}})();
+const mode=()=>{if(M)return M;const S=ST?.smp;if(!S||!Array.isArray(S.adv))return 'adv';M=S.adv.length||!S.tp?.simple?'adv':'simple';try{localStorage.setItem(MK,M)}catch{}return M};
+const simple=()=>mode()==='simple';
+function setMode(m){if(m!=='simple'&&m!=='adv')return;M=m;try{localStorage.setItem(MK,m)}catch{}const pg=$('#pg');if(pg)pg.dataset.t='';render()}
+const modeCard=()=>{const s=simple();return `<div class="card smpMode"><h4>🧭 画面模式</h4><div class="g2"><button class="btn ${s?'y':''}" data-smpm="simple">简单</button><button class="btn ${s?'':'y'}" data-smpm="adv">进阶</button></div><p class="note">${s?'简单：看盘 ⚡、买、全部卖出、两个止盈止损勾选。':'进阶：显示全部策略、条件、开关、铸造、挖矿。'}模式只影响这支手机的画面，不会关掉电脑上任何功能。</p></div>`};
+const advList=()=>(Array.isArray(ST?.smp?.adv)?ST.smp.adv:[]);
+const advCard=()=>{const A=advList();return A.length?`<div class="card smpAdvC"><h4>进阶里还开着</h4><p class="note">${A.map(esc).join('、')}</p><p class="note">这些在电脑上照常在跑，简单模式只是把画面收起来。<button class="btn" data-smpm="adv" style="margin-top:6px;width:100%">切到进阶查看</button></p></div>`:''};
+function tpCard(){const T=ST?.smp?.tp;if(!T)return `<div class="card"><h4>自动卖（你自己买的币）</h4><p class="note">读不到电脑的止盈止损设定（电脑雷达要更新到新版）。</p></div>`;
+ if(!T.simple)return `<div class="card"><h4>自动卖（你自己买的币）</h4><p class="note">你在进阶设了：<b style="color:#f0b90b">${esc(T.txt||'')}</b>${T.on?'':'（目前关着）'}</p><p class="note">简单模式只显示、不会改掉。要改回两个简单勾选，请在电脑雷达按「改回简单设定」，或切到进阶在「自订策略」改。</p></div>`;
+ const v=(x)=>x==null?'':esc(String(x));
+ return `<div class="card smpTp"><h4>自动卖（你自己买的币）<small class="mu" style="font-weight:400"> · ${T.on&&(T.tpOn||T.slOn)?'开着':'只通知不卖'}</small></h4>
+ <label class="smpRow"><input type="checkbox" data-smpc="tp" ${T.tpOn?'checked':''}>涨到<input type="number" inputmode="decimal" min="0" step="any" data-smpv="x" value="${v(T.x)}" placeholder="倍">倍，卖<input type="number" inputmode="decimal" min="0" step="any" data-smpv="y" value="${v(T.y)}" placeholder="%">%</label>
+ <label class="smpRow"><input type="checkbox" data-smpc="sl" ${T.slOn?'checked':''}>跌<input type="number" inputmode="decimal" min="0" step="any" data-smpv="z" value="${v(T.z)}" placeholder="%">% 全卖</label>
+ <p class="note">两个都不勾＝只通知、不卖；数字留空＝那一条不启用。数字全部你自己填——例如有人会涨到自己定的倍数先卖一半回本。</p>
+ <p class="note">卖掉一部分后，剩下的只有在「跌 … % 全卖」开着时才会被止损；没开就一直拿着。只套用到之后买的币。</p>
+ <button class="btn y" data-smpsave="1" style="width:100%">保存（会先列出修改让你确认）</button></div>`}
+function readTp(){const g=(k)=>{const s=String(document.querySelector(`.smpTp [data-smpv="${k}"]`)?.value??'').trim();return s===''?null:Number(s)};const c=(k)=>!!document.querySelector(`.smpTp [data-smpc="${k}"]`)?.checked;
+ const x=g('x'),y=g('y'),z=g('z');let tp='',sl='';const err=[];
+ if(c('tp')&&x!=null&&y!=null){if(!(x>1))err.push('倍数要大于 1');else if(!(y>0&&y<=100))err.push('卖出比例要大于 0、最多 100');else tp=String(+((x-1)*100).toPrecision(12))+':'+String(y)} /* 卖出比例最多＝全部（资料格式边界） */
+ if(c('sl')&&z!=null){if(!(z>0))err.push('跌幅要大于 0');else sl=z}
+ return {err,ch:{'tpsl.on':tp||sl!==''?1:0,'tpsl.tp':tp,'tpsl.sl':sl}}}
+async function saveTp(){const r=readTp();if(r.err.length)return toast('⚠️ '+r.err.join('；'),3500);
+ let d;try{d=await req('pset',{},30000)}catch(e){return toast('❌ '+e.message,4000)}if(!d||!d.rw)return toast(d?.why||'手机现在只能看设定（电脑上要打开「手机可以改设定」）',4000);
+ const base={};for(const k of Object.keys(r.ch))base[k]=d.vals?.[k]??null;
+ let x;try{x=await req('psetSave',{ch:r.ch,base,floorOk:[],dry:1},30000)}catch(e){return toast('❌ '+e.message,4000)}
+ if(x?.err)return toast('❌ '+(Array.isArray(x.err)?x.err.join('；'):x.err),4000);if(!x?.diff?.length)return toast(x?.msg||'没有改到任何东西');if(!(await diffBox(x)))return toast('没有保存');
+ let s;try{s=await req('psetSave',{ch:r.ch,base,floorOk:[],dry:0},30000)}catch(e){return toast('❌ '+e.message,4000)}if(s?.err)return toast('❌ '+(Array.isArray(s.err)?s.err.join('；'):s.err),4000);toast(s?.msg||'已保存，电脑雷达已更新',3000)}
+/* 画面 */
+const ps0=pgSet;pgSet=function(){if(!simple())return modeCard()+ps0.apply(this,arguments);return `<div class="ptitle">🎯 自订策略</div><div class="psub">简单模式：只有止盈止损两个勾选；完整的策略、条件在「进阶」</div><div style="height:8px"></div>`+tpCard()+advCard()+modeCard()};
+const pm0=pgMore;pgMore=function(){let h=pm0.apply(this,arguments);if(simple()){const d=document.createElement('div');d.innerHTML=h;for(const c of [...d.children])if(/挖矿提醒|铸造方式/.test(c.querySelector?.('h4')?.textContent||''))c.remove();h=d.innerHTML}return modeCard()+h};
+const fh0=fillHold;fillHold=function(){const r=fh0.apply(this,arguments);try{if(simple())document.querySelectorAll('#hList .sells').forEach(s=>{for(const b of [...s.querySelectorAll('[data-a="hsell"]')]){if(+b.dataset.p>=100){if(b.textContent!=='卖')b.textContent='卖'}else b.remove()}})}catch{}return r};
+const pb0=paintBar;paintBar=function(){const r=pb0.apply(this,arguments);try{const b=document.querySelector('#dbar [data-a="sellsheet"]');if(b&&simple()){b.dataset.a='smpsell';b.textContent='全部卖出'}}catch{}return r};
+const r0=render;render=function(){const r=r0.apply(this,arguments);try{paint()}catch{}return r};
+function paint(){const s=simple();if(document.body.classList.contains('smpOn')!==s)document.body.classList.toggle('smpOn',s);let b=$('#smpPhAdv');const bn=$('#bnr');if(!b&&bn){b=document.createElement('div');b.id='smpPhAdv';bn.after(b)}if(!b)return;const A=s?advList():[];const h=A.length?`<b>进阶里还开着：</b>${A.map(esc).join('、')}<small>照常在跑，简单模式只是收起来</small>`:'';if(b._h!==h){b.innerHTML=h;b._h=h}b.style.display=A.length&&TAB!=='set'?'':'none'}
+document.addEventListener('click',(e)=>{const m=e.target.closest?.('[data-smpm]');if(m){e.preventDefault();e.stopPropagation();setMode(m.dataset.smpm);return}
+ const sv=e.target.closest?.('[data-smpsave]');if(sv){e.preventDefault();e.stopPropagation();saveTp();return}
+ const ss=e.target.closest?.('[data-a="smpsell"]');if(ss){e.preventDefault();e.stopPropagation();if(DT)doSell(DT.c,DT.d?.sym||DT.sym,100,DT.net);return}},true); /* 100＝全部卖出（这颗按钮的意思），走原本的 doSell 确认框 */
+})();
+</script><!--/smpPhJs-->
+<style id="fbPh">/*FB-PHONE CSS*/
+#fbPhOv{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:4px 18px 2px;font-size:12px;color:var(--mute)}#fbPhOv .fbPhT{color:var(--ink);font-weight:600}
+#fbPhOv label{display:inline-flex;align-items:center;gap:5px}#fbPhOv input[type=checkbox]{position:absolute;opacity:0;width:0;height:0}#fbPhOv i{width:13px;height:13px;border-radius:3px;border:1.5px solid var(--c);display:inline-block}#fbPhOv input:checked+i{background:var(--c)}
+#fbPhOv .mn input{width:60px;background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:2px 5px;font-size:12px}
+/* 看盘列表：照 FOMO 手机版（圆形图示、名称＋标签、市值；右边价格＋涨跌） */
+#bList .tr{min-height:58px;padding:7px 14px;gap:10px}#bList .tr .nm .t b{font-size:15px}#bList .tr .rt b{font-size:14.5px}#bList .tr .tag{border-radius:6px}
+</style><!--/fbPh-->
+<script id="fbPhJs">/*FB-PHONE：手机版跟电脑同步 —— K 线标出有标签的交易者（KOL 金、聪明钱蓝、巨鲸紫、DEV 红、我的交易绿），K 线下方「图表叠加层」开关（记在这支手机）；看盘列表照 FOMO 手机版密度。资料读不到就不画。*/
+(function(){
+const OVK='fbPhOv';let OV={me:1,kol:1,smart:1,whale:1,dev:0,min:''};try{Object.assign(OV,JSON.parse(localStorage.getItem(OVK)||'{}'))}catch{}
+const sv=()=>{try{localStorage.setItem(OVK,JSON.stringify(OV))}catch{}};
+const COL={me:'#2ebd85',kol:'#f0b90b',smart:'#3b82f6',whale:'#a855f7',dev:'#f6465d'};const LB={me:'我的交易',kol:'KOL',smart:'聪明钱',whale:'巨鲸',dev:'DEV'};
+const mine=()=>new Set((Array.isArray(ST?.wallets)?ST.wallets:[]).map(w=>String(w?.addr||'').toLowerCase()).filter(Boolean));
+function ovBar(){const kn=document.getElementById('kn');if(!kn)return;let b=document.getElementById('fbPhOv');if(!b){b=document.createElement('div');b.id='fbPhOv';kn.after(b);b.addEventListener('change',e=>{const i=e.target;if(!i.dataset.k)return;OV[i.dataset.k]=i.dataset.k==='min'?i.value.trim():(i.checked?1:0);sv();drawK()})}
+ const h='<span class="fbPhT">图表叠加层</span>'+Object.keys(LB).map(k=>`<label><input type="checkbox" data-k="${k}" ${OV[k]?'checked':''}><i style="--c:${COL[k]}"></i>${LB[k]}</label>`).join('')+`<label class="mn">最小金额 $<input type="number" inputmode="decimal" min="0" data-k="min" value="${String(OV.min||'').replace(/[^\d.]/g,'')}" placeholder="不限"></label>`;
+ if(b.__h!==h&&!b.contains(document.activeElement)){b.innerHTML=h;b.__h=h}}
+const d0=drawK;
+drawK=function(){const r=d0.apply(this,arguments);try{ovBar();marks()}catch(e){}return r};
+const t0=paintTape;paintTape=function(){const r=t0.apply(this,arguments);try{if(DT&&(DT.cs||[]).length)drawK()}catch{}return r}; /* 成交到了 → K 线补上标记 */
+function marks(){const cv=document.getElementById('kc');if(!cv||!DT)return;const cs=DT.cs||[];if(!cs.length)return;let R0=[];try{R0=typeof pawTape==='function'?pawTape(DT):(DT.tape?.rows||[])}catch{R0=DT.tape?.rows||[]}if(!R0.length)return;
+ const W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;const R=64;const n=Math.min(cs.length,Math.max(30,Math.floor((W-R)/7)));const K=cs.slice(-n);const vh=40,top=14,ph=H-vh-top-26;
+ let hi=-Infinity,lo=Infinity;for(const k of K){hi=Math.max(hi,k[2]);lo=Math.min(lo,k[3])}{const r0=hi-lo||hi*0.02||1;hi+=r0*0.08;lo=Math.max(0,lo-r0*0.08)}const rg=hi-lo||hi*0.02||1;
+ const y=v=>top+ph*(1-(v-lo)/rg);const bw=(W-R-6)/Math.max(K.length,30),ox=(W-R-6)-K.length*bw;const T=t=>typeof tms==='function'?tms(t):t;
+ const iv=K.length>1?T(K[1][0])-T(K[0][0]):300e3;const me=mine();const mn=+OV.min>0?+OV.min:0;const G=new Map();
+ for(const x of R0){const tg=new Set(x.tg||[]);if(x.w&&me.has(String(x.w).toLowerCase()))tg.add('me');const k=['me','kol','smart','whale','dev'].find(z=>OV[z]&&tg.has(z));if(!k)continue;if(mn&&!(+x.usd>=mn))continue;
+  const t=+x.t;let i=-1;for(let j=K.length-1;j>=0;j--)if(T(K[j][0])<=t){i=j;break}if(i<0||t>T(K[K.length-1][0])+iv)continue;const key=i+':'+(x.b?1:0);const g=G.get(key);if(g)g.n++;else G.set(key,{i,b:x.b,k,n:1})}
+ const g=cv.getContext('2d');const dpr=window.devicePixelRatio||1;g.setTransform(dpr,0,0,dpr,0,0);
+ for(const v of G.values()){const k=K[v.i];const x=4+ox+v.i*bw+bw/2;const yy=v.b?Math.min(top+ph-6,y(k[3])+12):Math.max(8,y(k[2])-12);g.beginPath();g.arc(x,yy,7,0,Math.PI*2);g.fillStyle='#0a0c10';g.fill();g.lineWidth=2;g.strokeStyle=COL[v.k];g.stroke();
+  g.fillStyle=COL[v.k];g.font='700 8px -apple-system,sans-serif';g.textAlign='center';g.fillText(v.k==='me'?'我':v.k==='kol'?'K':v.k==='smart'?'聪':v.k==='whale'?'鲸':'D',x,yy+3);g.beginPath();g.arc(x+5,yy+(v.b?6:-6),2.5,0,Math.PI*2);g.fillStyle=v.b?'#2ebd85':'#f6465d';g.fill();
+  if(v.n>1){g.fillStyle=COL[v.k];g.font='700 9px -apple-system,sans-serif';g.textAlign='left';g.fillText(String(v.n),x+8,yy-5)}}}
+})();
+</script><!--/fbPhJs-->
 </body>
 </html>

@@ -1692,7 +1692,7 @@ const NR = { on: nrOn, num: nrNum, str: nrStr, steps: nrSteps, floor: (k) => NR_
 globalThis.NR = NR;
 /* 每个条件：读不到这个资料时（1 不买／2 用备用条件，备用条件的数字也是你填的）。没有「跳过这个条件」。
    底线是另一层：不参加组合，开着的底线一定要过。每次买／不买都把逐条结果写进日志（data/decisions.jsonl）。 */
-const NR_SNAME = { bsc: '铸造代币（AI 项目）', tok: 'AI 热门代币', gen: '一般新币', rh: 'Robinhood 热门代币', rhmint: 'Robinhood 铸造', nft: 'BNB Chain NFT 铸造', mine: '挖矿流动性提醒', agc: 'AGC 挖矿' };
+const NR_SNAME = { bsc: '铸造代币（AI 项目）', tok: 'AI 热门代币', gen: '一般新币', rh: 'Robinhood 热门代币', rhmint: 'Robinhood 铸造', nft: 'BNB Chain NFT 铸造', mine: '挖矿流动性提醒', agc: 'AGC 挖矿', pol: 'Pol 流动性挖矿' };
 const nrFmt = (v) => (typeof v === 'number' ? (Math.abs(v) >= 100 ? Math.round(v) : Math.round(v * 100) / 100) : v);
 const nrPairK = (c) => (c.op === '>=' ? c.k + '.hi' : c.op === '<=' ? c.k + '.lo' : null); /* 另一边的 key */
 function nrRange(c) { const a = nrNum(c.k), pk = nrPairK(c), b = pk ? nrNum(pk) : null; return c.op === '>=' ? { lo: a, hi: b } : { lo: b, hi: a }; }
@@ -2011,13 +2011,13 @@ function bawBlock(W, a) {
   if (W.off && ['market-order', 'contract-call'].includes(a[0])) return `${W.name} 钱包登入过期，先跳过（到雷达「设定 → 钱包」重新连接）`;
   if (ESTOP() && a[0] === 'contract-call' && a[1] === 'execute') { const rid = bawArg(a, '--requestId'); if (RID_BUY.get(rid) !== false) return '紧急全停中，不送出（预演后才按全停，这笔买入取消）'; }
   if (ESTOP()) {
-    if (a[0] === 'contract-call' && a[1] === 'preview') { const d = bawArg(a, '--inputData'); const revoke = /^0x095ea7b3[0-9a-f]{64}0{64}$/.test(d); const to = String(bawArg(a, '--to') || '').toLowerCase(); const curveSellOk = !!(typeof CURVES !== 'undefined' && CURVES[to] && d.startsWith(CURVES[to].sel) && BigInt(bawArg(a, '--value') || '0') === 0n); /* 全停时自动卖、手动卖都要照常 → 曲线上的币卖出（不付钱、呼叫该币的卖出函式）放行 */ const agcBack = agcClaimOnly(to, d, BigInt(bawArg(a, '--value') || '0')); /*V105-FIX1：AGC 领回（只收不付）全停也放行预演，跟送出时 RID_BUY 同一个判断*/ if (!curveSellOk && !agcBack && (!revoke || BigInt(bawArg(a, '--value') || '0') > 0n)) return '紧急全停中，不送出（只能卖）'; }
+    if (a[0] === 'contract-call' && a[1] === 'preview') { const d = bawArg(a, '--inputData'); const revoke = /^0x095ea7b3[0-9a-f]{64}0{64}$/.test(d); const to = String(bawArg(a, '--to') || '').toLowerCase(); const curveSellOk = !!(typeof CURVES !== 'undefined' && CURVES[to] && d.startsWith(CURVES[to].sel) && BigInt(bawArg(a, '--value') || '0') === 0n); /* 全停时自动卖、手动卖都要照常 → 曲线上的币卖出（不付钱、呼叫该币的卖出函式）放行 */ const agcBack = agcClaimOnly(to, d, BigInt(bawArg(a, '--value') || '0')) || polClaimOnly(to, d, BigInt(bawArg(a, '--value') || '0'), bawArg(a, '--from')); /* POL-MINE：Pol 领回（只收不付）全停也放行预演 */ /*V105-FIX1：AGC 领回（只收不付）全停也放行预演，跟送出时 RID_BUY 同一个判断*/ if (!curveSellOk && !agcBack && (!revoke || BigInt(bawArg(a, '--value') || '0') > 0n)) return '紧急全停中，不送出（只能卖）'; }
     if (a[0] === 'market-order' && a[1] === 'swap') { const f = bawArg(a, '--fromToken'), t2 = bawArg(a, '--toToken'); if (BAW_STABLE.has(f) && !BAW_STABLE.has(t2)) return '紧急全停中，不买（只能卖）'; }
   }
   return '';
 }
 const RID_BUY = new Map(); /* 每个预演单号记下「是不是买入」（卖出／撤销授权＝false），全停时送出前查它 */
-const bawBuyLike = (a) => { const d = bawArg(a, '--inputData'); const v = BigInt(bawArg(a, '--value') || '0'); const to = String(bawArg(a, '--to') || '').toLowerCase(); const revoke = /^0x095ea7b3[0-9a-f]{64}0{64}$/.test(d) && v === 0n; const curveSell = !!(typeof CURVES !== 'undefined' && CURVES[to] && d.startsWith(CURVES[to].sel) && v === 0n); return !(revoke || curveSell || agcClaimOnly(to, d, v)); }; /* AGC-BACK：AGC 领回（只收不付）跟卖出同一类 */
+const bawBuyLike = (a) => { const d = bawArg(a, '--inputData'); const v = BigInt(bawArg(a, '--value') || '0'); const to = String(bawArg(a, '--to') || '').toLowerCase(); const revoke = /^0x095ea7b3[0-9a-f]{64}0{64}$/.test(d) && v === 0n; const curveSell = !!(typeof CURVES !== 'undefined' && CURVES[to] && d.startsWith(CURVES[to].sel) && v === 0n); return !(revoke || curveSell || agcClaimOnly(to, d, v) || polClaimOnly(to, d, v, bawArg(a, '--from'))); }; /* POL-MINE：Pol 领奖励／领 LP／退出／提 BNB（只收不付、收款人只能是自己）跟卖出同一类 */ /* AGC-BACK：AGC 领回（只收不付）跟卖出同一类 */
 /* GATE-1 · 统一动作闸门：买／卖／授权／转出／签名全部从这里过（每个钱包真正的币安钱包 CLI 只包在闸门里面，没有别的路可以送交易）
    ① 只认识雷达用到的钱包指令，其他指令一律不送
    ② 参数格式、钱包登入、紧急全停（bawBlock，原本的检查照旧）
@@ -2182,7 +2182,7 @@ async function agcTry(W, n, price) { /* 先用一般 eth_call 模拟（不花钱
   const d = String(r.revert || ''); const sel = d.slice(2, 10).toLowerCase(); const arg = agcW('0x' + d.slice(10), 0);
   return { sel, arg: arg != null ? Number(arg) : null, why: AGC.err[sel] || '合约拒绝' + (sel ? '（' + sel + '）' : '') };
 }
-function agcWrite(v) { try { const f = join(DIR, 'data', 'mine_adp.json'); writeFileSync(f + '.tmp', JSON.stringify({ at: Date.now(), agc: v })); renameSync(f + '.tmp', f); } catch {} } /* 给画面／持仓／手机看（只显示） */
+function agcWrite(v) { try { const f = join(DIR, 'data', 'mine_adp.json'); let J0 = {}; try { J0 = JSON.parse(readFileSync(f, 'utf8')) || {}; } catch {} writeFileSync(f + '.tmp', JSON.stringify({ ...J0, at: Date.now(), agc: v })); /* POL-MINE：同一个档还有 pol 栏，只改 agc 这栏 */ renameSync(f + '.tmp', f); } catch {} } /* 给画面／持仓／手机看（只显示） */
 function agcSay(text) { log(String(text).replace(/\n/g, ' ')); if (nrOn('agc.tg')) tg(text).catch(() => {}); } /* TG＝你的开关 agc.tg（预设关） */
 function agcMineOf(st) { /* 雷达自己挖的那几笔（第几笔）；mints 是 11/2～11/3 那一版记的格式，一起认 */
   const a = Array.isArray(st?.mine) ? st.mine : []; const b = Array.isArray(st?.mints) ? st.mints.filter((m) => m && !m.old && !m.claimed).map((m) => m.i) : [];
@@ -2262,6 +2262,174 @@ async function agcTick() {
 }
 /* AGC-BACK END */
 setTimeout(() => agcTick().catch((e) => log('AGC ' + e.message)), AGC_T.first); setInterval(() => agcTick().catch((e) => log('AGC ' + e.message)), AGC_T.tick); /* AGC-BACK 排程 */
+/* ── POL-MINE（老板 11/6：Pol · Proof of Liquidity（proofmine.fun）照 AGC 的方式接进「⛏ AI挖矿」）
+   proofmine.fun「Proof of Liquidity」：每份付 BNB，合约拿一半买 Pol、一半配对成 LP 锁住；Pol 奖励在锁仓期间线性释放；LP 到期后领回或退出。只限有 Agent ID 的钱包。
+   · 参与：开关 pol.auto（预设关）＋你填的「每个钱包每天最多几份」pol.maxDay＋「单笔几份」pol.perTx＋「价格保护（最多差几 %）」pol.slip，少一个＝不参与
+   · 合约的事实（每份价格、锁仓多久、开池了没、募资进度）每一轮从链上读；读不到＝这一轮不参与。程式里没有金额、没有份数、没有滑点
+   · 只做 mintB（参与）／claimB（领奖励）／claimRawLP（领原始 LP，收款人＝自己）／withdrawUnderlying（退出：Pol 直接到帐、BNB 记在合约）／withdrawNative（把记在合约的 BNB 提回自己）
+     轻参与 mintA 不做；推荐人一律填 0（不帮任何人拿推荐）；不 approve
+   · 每一笔都走统一动作闸门（W.baw → actionGate）：参与＝买入（自动买总开关、紧急全停、邀请绑定照常挡）；领奖励／领 LP／退出／提 BNB＝只收不付（跟卖出同一类，紧急全停也能领），送出前预演确认只会收到、没有授权
+   · 到期后怎么处理 LP 由你选 pol.lpMode（没选＝LP 不动，只领奖励）；开关关掉后，雷达参与的那几笔要不要继续到期领回由你选 pol.keepClaim（预设关）
+   · 每个钱包每一轮的「参与／不参与」都逐条写进判断日志（data/decisions.jsonl） ── */
+const POL = { c: '0xc338ab4dbb9260b52d4dff24f3cd20d42e25d379', g: '0xe9860c7a51fbbc447bcde138790efbcfe68a0dbe', tok: '0xbea84fadd77644b92ea1c5f3ce335666489fe5f7', reg: '0xe66694c1609790b20e8b022042cd586e5545ad69', liq: '0x90b2bf3768c8992a3b328a8f63c2affcdd8e5a2e',
+  start: 131822405, ev: '0xaedd16255d69393572bfc9a052a9fef40f4c4a7924d6563db5b8768dd0a2516b',
+  price: '0x8d859f3e', lock: '0x4b50cbe3', dayQ: '0xbf2bf7ff', quote: '0xa4eac7c5', bpos: '0x40fa8586', cable: '0xdd60f5b5', credit: '0xc388f22c', agent: '0xe9c9ec73',
+  mint: '0xff32b037', claim: '0x5774f687', rawLP: '0x31244c34', exit: '0x78ded079', wNat: '0x2f622e6b',
+  gLaunch: '0xbf56b371', gStart: '0xaf468682', gEnd: '0x29dcb0cf', gShares: '0x3a98ef39', gTarget: '0xabadb56a',
+  lpTok: '0x5fcbd285', router: '0xf887ea40', wrapped: '0x50e70d48', res: '0x0902f1ac', supply: '0x18160ddd', t0: '0x0dfe1681', kLast: '0x7464fc3d', fac: '0xc45a0155', feeTo: '0x017e7e58', amtOut: '0xd06ca61f', bal: '0x70a08231' };
+/* 技术用（跟要不要参与无关）：多久看一次、开机后多久第一次看、查事件一次几个区块／一轮最多查几次、交易有效期（秒，合约要的截止时间）、一天的秒数（算今天参与几份用）；start＝网站设定的合约起始区块（从这里开始找你的仓位） */
+const POL_T = { tick: 30 * 60e3, first: 100e3, span: 4000, spanN: 100, ttl: 180, day: 86400 };
+function polClaimOnly(to, d, v, from) { /* 闸门分类用：Pol 领奖励／领 LP／退出／提 BNB（都不带 BNB、收款人只能是自己）＝只收不付，跟卖出同一类；送出前预演照样要确认只会收到 */
+  if (v !== 0n || String(to || '').toLowerCase() !== '0xc338ab4dbb9260b52d4dff24f3cd20d42e25d379') return false; const x = String(d || '').toLowerCase(); const me = String(from || '').toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  if (/^0x5774f687[0-9a-f]{64}$/.test(x) || /^0x78ded079[0-9a-f]{256}$/.test(x)) return true; /* claimB(仓位)／withdrawUnderlying(仓位, 最少 Pol, 最少 BNB, 截止) */
+  if (/^0x31244c34[0-9a-f]{128}$/.test(x)) return /^[0-9a-f]{64}$/.test(me) && x.slice(74) === me; /* claimRawLP(仓位, 收款人＝自己) */
+  if (/^0x2f622e6b[0-9a-f]{64}$/.test(x)) return /^[0-9a-f]{64}$/.test(me) && x.slice(10) === me; /* withdrawNative(收款人＝自己) */
+  return false;
+}
+const polW = (r, i) => (typeof r === 'string' && /^0x[0-9a-f]*$/i.test(r) && r.length >= 2 + 64 * (i + 1) ? BigInt('0x' + r.slice(2 + 64 * i, 2 + 64 * (i + 1))) : null);
+const polA = (r) => { const x = polW(r, 0); return x != null && x > 0n ? '0x' + x.toString(16).padStart(40, '0') : null; };
+const polB = (wei) => { try { return (Number(BigInt(wei)) / 1e18).toFixed(4).replace(/\.?0+$/, ''); } catch { return '?'; } }; /* 显示用：wei → BNB／Pol */
+const polSqrt = (n) => { if (n < 2n) return n; let x = n, y = (n + 1n) / 2n; while (y < x) { x = y; y = (n / y + y) / 2n; } return x; };
+async function polRd(to, data, from, value) { try { return await rpc('eth_call', [{ ...(from ? { from } : {}), to, data, ...(value != null ? { value: '0x' + value.toString(16) } : {}) }, 'latest']); } catch (e) { return e?.revert ? { revert: String(e.data || '') } : null; } }
+async function polOne(to, data) { const r = await polRd(to, data); return typeof r === 'string' ? polW(r, 0) : null; }
+async function polFacts() { /* 合约事实：每一轮重读，读不到＝null */
+  const f = { price: await polOne(POL.c, POL.price), lock: await polOne(POL.c, POL.lock), dayQ: await polOne(POL.c, POL.dayQ), launchedAt: await polOne(POL.g, POL.gLaunch), startsAt: await polOne(POL.g, POL.gStart), endsAt: await polOne(POL.g, POL.gEnd), raised: await polOne(POL.g, POL.gShares), target: await polOne(POL.g, POL.gTarget), now: null, block: null };
+  try { const b = await rpc('eth_getBlockByNumber', ['latest', false]); const ts = Number(BigInt(b?.timestamp)); f.now = Number.isFinite(ts) && ts > 0 ? ts : null; const n = Number(BigInt(b?.number)); f.block = Number.isFinite(n) && n > 0 ? n : null; } catch {}
+  f.launched = f.launchedAt == null ? null : f.launchedAt > 0n;
+  return f;
+}
+async function polPair() { /* 池子现况（参与／退出时算最少收到多少用）：读不到任何一项＝null */
+  const lp = polA(await polRd(POL.liq, POL.lpTok)), router = polA(await polRd(POL.liq, POL.router)), wb = polA(await polRd(POL.liq, POL.wrapped)); if (!lp || !router || !wb) return null;
+  const r = await polRd(lp, POL.res); const t0 = polA(await polRd(lp, POL.t0)); const S0 = await polOne(lp, POL.supply); const kL = await polOne(lp, POL.kLast);
+  const fac = polA(await polRd(lp, POL.fac)); const feeTo = fac ? await polRd(fac, POL.feeTo) : null;
+  const bt = await polOne(POL.tok, POL.bal + wa(lp)), bw = await polOne(wb, POL.bal + wa(lp));
+  const r0 = polW(r, 0), r1 = polW(r, 1); if (r0 == null || r1 == null || !t0 || S0 == null || kL == null || typeof feeTo !== 'string' || bt == null || bw == null || !(S0 > 0n)) return null;
+  const tokFirst = t0 === POL.tok; const rt = tokFirst ? r0 : r1, rw = tokFirst ? r1 : r0; if (!(rt > 0n && rw > 0n)) return null;
+  let S = S0; const feeOn = polW(feeTo, 0) !== 0n; if (feeOn && kL > 0n) { const a = polSqrt(rt * rw), b = polSqrt(kL); if (a > b) S = S0 + (S0 * (a - b) * 8n) / (a * 17n + b * 8n); } /* PancakeSwap V2 开发者手续费：移除／加入流动性前会先增发一点 LP（照池子合约的公式算，跟网站一样） */
+  return { lp, router, wb, rt, rw, bt, bw, S0, S };
+}
+const polFloor = (x, bps) => (x * BigInt(10000 - bps)) / 10000n; /* 你设的价格保护：最少收到＝预估 ×（1 − 你填的 %） */
+async function polQuoteMint(n, price, slipBps) { /* 参与 n 份：最少拿到多少奖励／买到多少 Pol／拿到多少 LP（照网站同一套算法），读不到＝{ why } */
+  const P = await polPair(); if (!P) return { why: '池子资料读不到' };
+  const pay = price * BigInt(n), half = pay / 2n, rest = pay - half;
+  const q = await polRd(POL.c, POL.quote + w(n)); const E = typeof q === 'string' ? polW(q, 0) : null; if (E == null) return { why: '读不到这次奖励多少（quoteB）' };
+  const o = await polRd(P.router, POL.amtOut + w(half) + w(64) + w(2) + wa(P.wb) + wa(POL.tok)); const U = typeof o === 'string' ? polW(o, 3) : null; if (U == null || !(U > 0n) || U >= P.rt) return { why: '读不到买得到多少 Pol' };
+  const I = P.rt - U, Q = P.rw + half; let k = U, de = (U * Q) / I; if (de > rest) { de = rest; k = (rest * I) / Q; }
+  const lpOut = (k * P.S0) / I < (de * P.S0) / Q ? (k * P.S0) / I : (de * P.S0) / Q; /* 用增发前的 LP 总量算＝估得比较少，当「最少」比较安全 */
+  const m = { minReward: E === 0n ? 0n : polFloor(E, slipBps), minTok: polFloor(U, slipBps), minLP: polFloor(lpOut, slipBps), reward: E, tok: U, lpOut };
+  if (!(m.minTok > 0n) || !(m.minLP > 0n)) return { why: '算出来的最少数量是 0（份数太小或池子太小）' };
+  return m;
+}
+async function polQuoteExit(lp, slipBps) { const P = await polPair(); if (!P) return { why: '池子资料读不到' }; const t = (lp * P.bt) / P.S, b = (lp * P.bw) / P.S; const m = { minTok: polFloor(t, slipBps), minNat: polFloor(b, slipBps), tok: t, nat: b }; if (!(m.minTok > 0n) || !(m.minNat > 0n)) return { why: '算出来的最少数量是 0' }; return m; }
+const POL_ERR = { '8dda39df': '还没开池（合约回的）' };
+async function polTry(W, data, value) { /* 先用一般 eth_call 模拟（不花钱、不经钱包） */
+  const r = await polRd(POL.c, data, W.addr, value); if (typeof r === 'string') return { ok: 1 }; if (r == null) return { why: '读不到（节点没回应）' };
+  const d = String(r.revert || ''); const sel = d.slice(2, 10).toLowerCase(); let txt = ''; if (sel === '08c379a0') { try { const n = Number(polW('0x' + d.slice(10), 1) ?? 0n); txt = Buffer.from(d.slice(10 + 128, 10 + 128 + n * 2), 'hex').toString('utf8').replace(/[^\x20-\x7e]/g, '').slice(0, 60); } catch {} }
+  return { sel, why: POL_ERR[sel] || (txt ? '合约拒绝：' + txt : '合约拒绝' + (sel ? '（' + sel + '）' : '')) };
+}
+async function polScan(F) { /* 找每个钱包的仓位（合约的 BOpened 事件，账号是第二个索引）；从上次查到的地方接着查，一轮最多 POL_T.spanN 段；回传有没有查到最新 */
+  const st = S.pol; const key = WALLETS.map((x) => x.addr).sort().join(','); if (st.scanKey !== key) { st.scanKey = key; st.scan = POL.start - 1; } /* 钱包换了＝从头找（新钱包以前的仓位也要找到） */
+  if (!WALLETS.length) return true; if (F.block == null) return false;
+  const topics = [POL.ev, null, WALLETS.map((x) => '0x' + wa(x.addr))];
+  for (let i = 0; i < POL_T.spanN && st.scan < F.block; i++) { const from = st.scan + 1, to = Math.min(F.block, from + POL_T.span - 1); let L;
+    try { L = await rpc('eth_getLogs', [{ address: POL.c, topics, fromBlock: '0x' + from.toString(16), toBlock: '0x' + to.toString(16) }]); } catch { return false; } if (!Array.isArray(L)) return false;
+    for (const l of L) { const t = l?.topics || []; if (String(t[0] || '').toLowerCase() !== POL.ev || !t[1] || !t[2]) continue; const acct = '0x' + String(t[2]).slice(-40).toLowerCase(); const id = BigInt(t[1]).toString();
+      const ws = (st.w[acct] = st.w[acct] && typeof st.w[acct] === 'object' ? st.w[acct] : {}); ws.pos = ws.pos && typeof ws.pos === 'object' ? ws.pos : {};
+      if (!ws.pos[id]) ws.pos[id] = { s: Number(polW(l.data, 0) ?? 0n), tx: String(l.transactionHash || '').toLowerCase() };
+      const pend = Array.isArray(ws.pend) ? ws.pend : []; if (pend.includes(ws.pos[id].tx)) { ws.mine = [...new Set([...(Array.isArray(ws.mine) ? ws.mine : []), id])]; ws.pend = pend.filter((h) => h !== ws.pos[id].tx); } }
+    st.scan = to; save(); }
+  return st.scan >= F.block;
+}
+function polWrite(v) { try { const f = join(DIR, 'data', 'mine_adp.json'); let J = {}; try { J = JSON.parse(readFileSync(f, 'utf8')) || {}; } catch {} J.pol = { ...v, at: Date.now() }; writeFileSync(f + '.tmp', JSON.stringify(J)); renameSync(f + '.tmp', f); } catch {} } /* 给画面／持仓／手机看（只显示；跟 AGC 共用 mine_adp.json，只改 pol 这一栏） */
+function polSay(text) { log(String(text).replace(/\n/g, ' ')); if (nrOn('pol.tg')) tg(text).catch(() => {}); } /* TG＝你的开关 pol.tg（预设关） */
+const polOnlyIn = (W) => (sim) => { if (sim?.allowanceChanges?.length || sim?.authorityChanges?.length) return '有授权变化'; const me = (sim?.balanceChanges || []).filter((b) => String(b.owner).toLowerCase() === W.addr); if (me.some((b) => Number(b.change) < 0)) return '领的时候会扣钱'; if (!me.some((b) => Number(b.change) > 0)) return '预演显示什么都收不到（可能已经领过）'; return ''; };
+let POL_BUSY = 0;
+async function polTick() {
+  if (POL_BUSY) return; POL_BUSY = 1;
+  try {
+    S.pol = S.pol && typeof S.pol === 'object' ? S.pol : {}; S.pol.w = S.pol.w && typeof S.pol.w === 'object' ? S.pol.w : {};
+    const on = nrOn('pol.auto'), keep = nrOn('pol.keepClaim'); const maxDay = nrNum('pol.maxDay'), perTx = nrNum('pol.perTx'), slip = nrNum('pol.slip'), lpMode = nrNum('pol.lpMode');
+    const slipBps = slip != null && slip > 0 && slip < 100 ? Math.round(slip * 100) : null;
+    const F = await polFacts(); const scanOk = await polScan(F);
+    const view = { on: on ? 1 : 0, keep: keep ? 1 : 0, maxDay, perTx, slip, lpMode, scanOk: scanOk ? 1 : 0, facts: { price: F.price != null ? F.price.toString() : null, lock: F.lock != null ? Number(F.lock) : null, dayQ: F.dayQ != null ? Number(F.dayQ) : null, launched: F.launched == null ? null : F.launched ? 1 : 0, launchedAt: F.launchedAt != null ? Number(F.launchedAt) : null, startsAt: F.startsAt != null ? Number(F.startsAt) : null, endsAt: F.endsAt != null ? Number(F.endsAt) : null, raised: F.raised != null ? Number(F.raised) : null, target: F.target != null ? Number(F.target) : null, now: F.now }, wallets: [] };
+    const day = F.now != null ? Math.floor(F.now / POL_T.day) : null;
+    for (const W of [...WALLETS]) {
+      const st = (S.pol.w[W.addr] = S.pol.w[W.addr] && typeof S.pol.w[W.addr] === 'object' ? S.pol.w[W.addr] : {}); st.pos = st.pos && typeof st.pos === 'object' ? st.pos : {}; const mine = new Set(Array.isArray(st.mine) ? st.mine.map(String) : []);
+      const row = { w: W.name, addr: W.addr, agent: null, shares: null, open: null, due: null, partial: 0, claimWei: null, credit: null, nextAt: null, today: null, why: '' }; view.wallets.push(row);
+      { const a = await polRd(POL.reg, POL.agent + wa(W.addr)); const x = typeof a === 'string' ? polW(a, 0) : null; row.agent = x == null ? null : x > 0n ? 1 : 0; }
+      /* ① 读每个仓位（到期了没、LP 还在不在、可以领多少奖励） */
+      let bad = !scanOk; const P = []; let sh = 0, cw = 0n;
+      for (const [id, p] of Object.entries(st.pos)) { if (p.done) { sh += p.s || 0; continue; }
+        const r = await polRd(POL.c, POL.bpos + w(BigInt(id))); const cb = await polRd(POL.c, POL.cable + w(BigInt(id)));
+        const ben = typeof r === 'string' ? polA('0x' + r.slice(2, 66)) : null; const opened = polW(r, 1), exited = polW(r, 2), lp = polW(r, 3), rw = polW(r, 4), cl = polW(r, 5), can = typeof cb === 'string' ? polW(cb, 0) : null;
+        if (ben == null || opened == null || exited == null || lp == null || rw == null || cl == null || can == null) { bad = true; sh += p.s || 0; continue; }
+        if (ben !== W.addr) { delete st.pos[id]; continue; } /* 不是这个钱包的（不该发生）＝不管 */
+        sh += p.s || 0; const x = { id, s: p.s || 0, t: Number(opened), exited: exited !== 0n, lp, left: rw - cl, can, mine: mine.has(id) }; P.push(x); cw += can;
+        if (x.exited && x.left <= 0n) { p.done = 1; save(); } }
+      for (const x of P) if (st.pos[x.id] && st.pos[x.id].t0 !== x.t) { st.pos[x.id].t0 = x.t; save(); }
+      row.shares = sh; row.claimWei = cw.toString(); row.partial = bad ? 1 : 0; /* partial＝有仓位读不到／事件还没查完：画面标「还在查」 */
+      row.today = !bad && day != null && Object.values(st.pos).every((p) => Number.isFinite(p.t0)) ? Object.values(st.pos).filter((p) => Math.floor(p.t0 / POL_T.day) === day).reduce((a, p) => a + (p.s || 0), 0) : null;
+      if (F.lock != null) { const lk = Number(F.lock); const unl = P.filter((x) => !x.exited).map((x) => x.t + lk); const fut = unl.filter((t) => F.now == null || t > F.now); row.open = unl.length; row.nextAt = fut.length ? Math.min(...fut) * 1000 : null; row.due = F.now != null ? unl.filter((t) => t <= F.now).length : null; }
+      { const c = await polRd(POL.c, POL.credit + wa(W.addr)); const x = typeof c === 'string' ? polW(c, 0) : null; row.credit = x == null ? null : x.toString(); }
+      /* ② 到期的领回（只收不付）：开关开着＝这个钱包所有到期的仓位；开关关着＋你开了 pol.keepClaim＝只领雷达参与的那几笔 */
+      if (!W.off && F.lock != null && F.now != null) { const lk = Number(F.lock);
+        for (const x of P) { if (x.t + lk > F.now) continue; if (!(on || (keep && x.mine))) continue;
+          const tag = `Pol 第 ${x.id} 号仓位`;
+          if (x.can > 0n) { try { await previewExec(W, POL.c, POL.claim + w(BigInt(x.id)), 0n, polOnlyIn(W), null, { noDrain: true }); cw -= x.can; polSay(`⛏ [${W.name}] ${tag}：领了约 ${polB(x.can)} Pol 奖励`); } catch (e) { log(`[Pol][${W.name}] ${tag} 领奖励没成功：${String(e?.message || e).slice(0, 120)}`); } }
+          if (!x.exited && x.lp > 0n) {
+            if (lpMode === 1) { try { await previewExec(W, POL.c, POL.rawLP + w(BigInt(x.id)) + wa(W.addr), 0n, polOnlyIn(W), null, { noDrain: true }); x.exited = true; polSay(`⛏ [${W.name}] ${tag}：LP 到期，领回原始 LP（${polB(x.lp)}）`); } catch (e) { log(`[Pol][${W.name}] ${tag} 领 LP 没成功：${String(e?.message || e).slice(0, 120)}`); } }
+            else if (lpMode === 2) { if (slipBps == null) { st.noSlip = st.noSlip && typeof st.noSlip === 'object' ? st.noSlip : {}; if (!st.noSlip[x.id]) { st.noSlip[x.id] = 1; save(); /* 同一笔只写一次日志 */ log(`[Pol][${W.name}] ${tag}：你选了「退出」，但价格保护没填 → 先不退出`); } }
+              else { const q = await polQuoteExit(x.lp, slipBps); if (q.why) log(`[Pol][${W.name}] ${tag}：退出前${q.why} → 这一轮先不退出`);
+                else { const data = POL.exit + w(BigInt(x.id)) + w(q.minTok) + w(q.minNat) + w(BigInt(F.now + POL_T.ttl)); const s0 = await polTry(W, data, 0n);
+                  if (!s0.ok) log(`[Pol][${W.name}] ${tag}：模拟退出：${s0.why} → 这一轮先不退出`);
+                  else try { await previewExec(W, POL.c, data, 0n, polOnlyIn(W), null, { noDrain: true }); x.exited = true; polSay(`⛏ [${W.name}] ${tag}：LP 到期退出，约 ${polB(q.tok)} Pol 到帐、约 ${polB(q.nat)} BNB 记在合约（雷达接着提回）`); } catch (e) { log(`[Pol][${W.name}] ${tag} 退出没成功：${String(e?.message || e).slice(0, 120)}`); } } } }
+          } }
+        if (on || keep) { const c = await polRd(POL.c, POL.credit + wa(W.addr)); const cr = typeof c === 'string' ? polW(c, 0) : null;
+          if (cr != null && cr > 0n) { try { await previewExec(W, POL.c, POL.wNat + wa(W.addr), 0n, polOnlyIn(W), null, { noDrain: true }); row.credit = '0'; polSay(`⛏ [${W.name}] Pol：把记在合约的 ${polB(cr)} BNB 提回钱包`); } catch (e) { log(`[Pol][${W.name}] 提回 BNB 没成功：${String(e?.message || e).slice(0, 120)}`); } } }
+        row.claimWei = cw.toString(); }
+      /* ③ 参与：开关＋你填的三个数字全部有、合约事实都读得到、全部过了才参与；读不到任何一项＝不参与 */
+      if (!on) continue;
+      const lines = ['✅ 自动参与 Pol · Proof of Liquidity（你开的）']; let stop = '', n = 0;
+      const no = (why, line) => { if (line) lines.push(line); stop = stop || why; };
+      const posInt = (k, v, name) => { if (v == null) no(name + '没填', `⚠️ ${name}：没填 → 不参与`); else if (!(Number.isInteger(v) && v >= 1)) no(name + '要是正整数', `⚠️ ${name}：${v}（要是正整数）→ 不参与`); };
+      posInt('pol.maxDay', maxDay, '每个钱包每天最多几份'); posInt('pol.perTx', perTx, '单笔几份');
+      if (!stop) { if (slip == null) no('价格保护没填', '⚠️ 价格保护（最多差几 %）：没填 → 不参与'); else if (slipBps == null || slipBps < 1) no('价格保护要大于 0、小于 100', `⚠️ 价格保护：${slip}%（要大于 0、小于 100）→ 不参与`); }
+      if (!stop) { if (F.launched == null) no('读不到开池了没', '⚠️ 读不到开池了没 → 不参与'); else if (!F.launched) no('还没开池', `⏸ 还没开池（募资中${F.raised != null && F.target != null ? ' ' + F.raised + '／' + F.target + ' 份' : ''}；募资没成功会退款）→ 不参与`); }
+      if (!stop) { if (F.price == null || !(F.price > 0n)) no('读不到每份价格', '⚠️ 每份价格读不到 → 不参与'); else if (day == null) no('读不到区块时间', '⚠️ 区块时间读不到 → 不参与'); }
+      if (!stop) { if (row.agent == null) no('读不到 Agent ID', '⚠️ 读不到这个钱包有没有 Agent ID → 不参与'); else if (!row.agent) no('没有 Agent ID', '❌ 这个钱包没有 Agent ID（只限 AI 钱包）→ 不参与'); }
+      if (!stop) { if (!scanOk || row.today == null) no('还没数完今天参与几份', '⚠️ 还没查完你今天参与了几份（查事件没完成）→ 不参与'); else { const left = maxDay - row.today; lines.push(`${left > 0 ? '✅' : '❌'} 今天已参与 ${row.today} 份（你设每个钱包每天最多 ${maxDay} 份）`); if (left <= 0) no('今天份数到了'); else n = Math.min(left, perTx); } }
+      if (!stop && st.skipDay === day) no('今天合约已经说不行', `⏸ 今天合约已经回过「${st.skipWhy || '不行'}」，明天再试`);
+      if (!stop && W.off) no('钱包没登入', '⏸ 这个钱包没登入 → 不参与');
+      if (!stop && radarOff()) no('自动买总开关没开', '⏸ 自动买总开关没开（或暂停中、紧急全停、时段外、还没完成邀请绑定／第一次设定）→ 不参与');
+      if (!stop) { let bal = null; try { bal = big(await rpc('eth_getBalance', [W.addr, 'latest'])); } catch { bal = null; }
+        if (bal == null) no('BNB 余额读不到', '⚠️ BNB 余额读不到 → 不参与');
+        else { const keepWei = BigInt(Math.round(Number(PAID.keepBnb) * 1e18)); const can = bal > keepWei ? Number((bal - keepWei) / F.price) : 0; const ok = can >= 1; lines.push(`${ok ? '✅' : '❌'} BNB 余额 ${polB(bal)}（每份 ${polB(F.price)}${PAID.keepBnb > 0 ? '，你设至少留 ' + PAID.keepBnb : ''}）够 ${can} 份`); if (!ok) no('BNB 不够'); else n = Math.min(n, can); } }
+      let data = '', q = null;
+      if (!stop) { for (const k of n > 1 ? [n, 1] : [n]) { q = await polQuoteMint(k, F.price, slipBps); if (q.why) { no(q.why, `⚠️ ${q.why} → 不参与`); break; }
+          data = POL.mint + w(k) + w(0) + w(q.minReward) + w(q.minTok) + w(q.minLP) + w(BigInt(F.now + POL_T.ttl)); const r = await polTry(W, data, F.price * BigInt(k));
+          if (r.ok) { if (k !== n) lines.push(`… 模拟 ${n} 份合约不肯，改参与 ${k} 份`); n = k; break; }
+          if (k === 1 || n === 1) { if (r.sel === '8dda39df') { st.skipDay = day; st.skipWhy = r.why; save(); } no(r.why, `❌ 模拟参与 ${k} 份：${r.why} → 不参与`); n = 0; break; } } }
+      const J = { buy: !stop && n >= 1, lines, why: stop, text: lines.join('　') + ' → ' + (!stop && n >= 1 ? `参与 ${n} 份` : '不参与' + (stop ? '（' + stop + '）' : '')) };
+      nrDecLog('pol', W.addr, 'Pol·' + W.name, J, 1); if (!J.buy) continue;
+      const val = F.price * BigInt(n);
+      try {
+        const res = await previewExec(W, POL.c, data, val, (sim) => { if (sim?.allowanceChanges?.length || sim?.authorityChanges?.length) return '有授权变化'; const out = (sim?.balanceChanges || []).filter((b) => String(b.owner).toLowerCase() === W.addr && Number(b.change) < 0 && !String(b.contractAddress || '').toLowerCase().startsWith('0xeeee')); return out.length ? '会扣到别的币' : ''; }, null, { noDrain: true });
+        const txh = String(res?.tx || '').toLowerCase(); let got = 0;
+        for (const l of res?.rc?.logs || []) { const t = l?.topics || []; if (String(l?.address || '').toLowerCase() === POL.c && String(t[0] || '').toLowerCase() === POL.ev && t[1] && String(t[2] || '').slice(-40).toLowerCase() === W.addr.slice(2)) { const id = BigInt(t[1]).toString(); st.pos[id] = { s: Number(polW(l.data, 0) ?? 0n), tx: txh, t0: F.now }; mine.add(id); got = 1; } }
+        if (!got && txh) st.pend = [...(Array.isArray(st.pend) ? st.pend : []), txh].slice(-50); /* 收据里没找到仓位编号＝之后查事件时认领 */
+        st.mine = [...mine]; save(); row.today += n;
+        nrDecLog('pol', W.addr, 'Pol·' + W.name, { buy: true, lines: [...lines, `✅ 实际参与 ${n} 份`], why: '', text: J.text + '　✅ 实际参与' }, 1);
+        polSay(`⛏ [${W.name}] Pol 参与 ${n} 份 Proof of Liquidity（付 ${polB(val)} BNB；LP 锁 ${F.lock != null ? +(Number(F.lock) / POL_T.day).toFixed(1) + ' 天' : '到期'}，奖励同期线性释放）`);
+      } catch (e) {
+        const m = String(e?.message || e); nrDecLog('pol', W.addr, 'Pol·' + W.name, { buy: false, lines: [...lines, '⛔ ' + m.slice(0, 120)], why: m.slice(0, 80), text: J.text + '　⛔ 没送出：' + m.slice(0, 120) }, 1);
+        if (/結果不明|结果不明/.test(m)) { st.skipDay = day; st.skipWhy = '送出结果不明'; save(); tg(`⚠️ [${W.name}] Pol 送出结果不明，今天先不再试，请到 proofmine.fun 看看`).catch(() => {}); }
+      }
+    }
+    polWrite(view);
+  } finally { POL_BUSY = 0; }
+}
+/* POL-MINE END */
+setTimeout(() => polTick().catch((e) => log('Pol ' + e.message)), POL_T.first); setInterval(() => polTick().catch((e) => log('Pol ' + e.message)), POL_T.tick); /* POL-MINE 排程 */
 try { const { startAir } = await import('./air.mjs?v=' + Date.now()); startAir({ DIR, WALLETS, rpc, log, tgSay, radarSet }); } catch (e) { log('空投页载入失败 ' + e.message); } 
 try { const { startMintPick } = await import('./mintpick.mjs?v=' + Date.now()); globalThis.MINTPICK = startMintPick({ scanBack, DIR, S, save, WALLETS, rpc, rpcBatch, logsRpc, log, tg, freshDeadline, safeAddrs, revWhy, badSel, bnbUsd, previewExec, drainCheck, trackFromSim, codeOf, fullCode, estop: () => ESTOP(), manualOff: () => MANUAL_OFF(), confl: () => !!CONFL, locked: () => LOCKED(), keepBnb: () => PAID.keepBnb }); } catch (e) { log('选打法模组载入失败 ' + e.message); } /* 认不出打法的项目让你自己选 */
 try { const { startSentinel } = await import('./sentinel.mjs?v=' + Date.now()); globalThis.SENTINEL = startSentinel({ DIR, S, save, WALLETS, rpc, logsRpc, log, tgSay, nOnce, rhRpc: () => RH?.rpc || null }); } catch (e) { log('安全哨兵载入失败 ' + e.message); } /* 🛡 安全哨兵（只提醒，全部预设关） */
@@ -2906,7 +3074,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.0.15', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.0.16', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;

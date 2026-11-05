@@ -117,6 +117,11 @@
    "en": "⛏ AGC mining (agcc.fun)"
   },
   {
+   "id": "pol",
+   "zh": "⛏ Pol 流动性挖矿（proofmine.fun）",
+   "en": "⛏ Pol liquidity mining (proofmine.fun)"
+  },
+  {
    "id": "sentry",
    "zh": "🛡 安全哨兵（只提醒，不会帮你做任何动作）",
    "en": "🛡 Security sentinel (alerts only)"
@@ -6201,6 +6206,18 @@
    "max": 100
   },
   {
+   "k": "board.preN",
+   "g": "label",
+   "zh": "点开前先预抓前几个币",
+   "en": "Pre-load the first tokens",
+   "dzh": "看盘画面上看得到的前几个币，先在背景查好行情和 K 线，第一次点开会比较快；会多用一点 AVE 额度（只用背景额度，你点开的优先）。空着＝不预抓",
+   "den": "Pre-load price and chart for the first visible tokens on the board so they open faster; uses a little more AVE quota (background only, your clicks come first). Empty = off",
+   "unit": "个",
+   "uen": "tokens",
+   "min": 0,
+   "max": 50
+  },
+  {
    "k": "board.freshH",
    "g": "label",
    "zh": "Robinhood「新池」栏时间",
@@ -7228,6 +7245,99 @@
    "en": "Hide these tokens (contract or symbol)",
    "dzh": "合约地址或符号，用逗号分开。预设放 WHYPE（包装 HYPE，0xba876237b0f021a6c6d852d6c26e107997cc5e81，来源：链上读到的名称／符号就是 WHYPE），它铸币最多但不是新币。只影响显示。清空＝全部显示",
    "den": "Contract addresses or symbols, comma separated. Default hides WHYPE (wrapped HYPE, 0xba87…5e81, read on-chain as WHYPE) — most mints, but not a new token. Display only. Empty = show all"
+  },
+  {
+   "k": "pol.auto",
+   "g": "pol",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "自动参与 Pol · Proof of Liquidity",
+   "en": "Auto-join Pol · Proof of Liquidity",
+   "dzh": "开着＋下面三个数字都有填，雷达每天帮每个钱包参与：每份付 BNB，合约拿一半买 Pol、一半配对成 LP 锁住，Pol 奖励在锁仓期间线性释放。每份价格、锁多久、开池了没，照合约链上读到的显示在「⛏ AI挖矿」的 Pol 卡片。钱包要有 Agent ID；要开右上角自动买总开关；每一笔送出前先模拟＋预演，只准扣说好的 BNB、不准有授权。高风险项目，卡片有红字提示。没开＝不参与",
+   "den": "On + all three numbers below: each day the radar joins for each wallet — each share costs BNB; the contract buys Pol with half and pairs the rest into locked LP, and Pol rewards vest linearly over the lock. Price, lock time and pool status are read from the contract and shown on the Pol card under “⛏ AI mining”. The wallet needs an Agent ID and the auto-buy master switch must be on; every send is simulated and previewed first (only the agreed BNB may leave, no approvals). High-risk project — see the red notice on the card. Off = no joining"
+  },
+  {
+   "k": "pol.maxDay",
+   "g": "pol",
+   "need": "pol.auto",
+   "min": 1,
+   "max": 1000000000,
+   "unit": "份",
+   "uen": " shares",
+   "zh": "每个钱包每天最多参与几份",
+   "en": "Max shares per wallet per day",
+   "dzh": "包括你自己在 proofmine.fun 参与的；合约给的额度比较少时照合约的。要填正整数；空白＝不参与",
+   "den": "Includes shares you join yourself on proofmine.fun; if the contract allows fewer, the contract wins. Whole number; empty = no joining"
+  },
+  {
+   "k": "pol.perTx",
+   "g": "pol",
+   "need": "pol.auto",
+   "min": 1,
+   "max": 1000000000,
+   "unit": "份",
+   "uen": " shares",
+   "zh": "单笔参与几份",
+   "en": "Shares per send",
+   "dzh": "每一笔交易参与几份（不会超过上面「每天最多」剩下的份数）。要填正整数；空白＝不参与",
+   "den": "Shares in each transaction (never more than what is left of the daily max above). Whole number; empty = no joining"
+  },
+  {
+   "k": "pol.slip",
+   "g": "pol",
+   "min": 0.01,
+   "max": 99,
+   "unit": "%",
+   "zh": "价格保护（最多差几 %）",
+   "en": "Price protection (max % off)",
+   "dzh": "参与／退出时，最少要拿到「现在估的数量 ×（1 − 你填的 %）」，不然合约直接拒绝（只花 gas）。参与和「到期退出」都要用；空白＝不参与、也不退出",
+   "den": "When joining / exiting you must get at least “current estimate × (1 − your %)”, otherwise the contract rejects it (gas only). Needed for joining and for “exit when due”; empty = no joining and no exiting"
+  },
+  {
+   "k": "pol.lpMode",
+   "g": "pol",
+   "opts": [
+    {
+     "v": 1,
+     "zh": "领回原始 LP（LP 代币进你的钱包）",
+     "en": "Claim the raw LP (LP tokens to your wallet)"
+    },
+    {
+     "v": 2,
+     "zh": "退出（移除流动性，换回 Pol＋BNB）",
+     "en": "Exit (remove liquidity, back to Pol + BNB)"
+    }
+   ],
+   "zh": "LP 到期后怎么处理",
+   "en": "What to do with the LP when due",
+   "dzh": "两个互斥（合约规定只能选一种）。退出时 Pol 直接到帐、BNB 先记在合约，雷达会接着帮你提回钱包。没选＝LP 不动（只领奖励），你可以自己到 proofmine.fun 处理",
+   "den": "Mutually exclusive (the contract allows only one). On exit Pol arrives directly and the BNB is credited in the contract; the radar then withdraws it to your wallet. Not chosen = LP untouched (rewards only); you can handle it yourself on proofmine.fun"
+  },
+  {
+   "k": "pol.keepClaim",
+   "g": "pol",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "关掉自动参与后，到期仍帮我领回（只领、不再参与）",
+   "en": "After auto-join is off, still claim when due (claim only, no joining)",
+   "dzh": "开着＝自动参与关掉后，雷达参与的那几笔照样到期领奖励、照上面的选择处理 LP（只收不付，紧急全停也能领）。自动参与开着时，这个钱包所有到期的仓位都会领",
+   "den": "On = after auto-join is turned off, the positions the radar opened are still claimed when due and the LP handled as chosen above (receive-only; works even during emergency stop). While auto-join is on, every due position of the wallet is claimed"
+  },
+  {
+   "k": "pol.tg",
+   "g": "pol",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "TG：Pol 参与／领回时通知",
+   "en": "TG: notify when Pol is joined / claimed",
+   "dzh": "没开＝只写雷达日志",
+   "den": "Off = radar log only"
   }
  ]
 }

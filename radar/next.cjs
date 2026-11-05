@@ -40,6 +40,18 @@ const ADP = [{ adp: 'agc', id: 'agc', name: 'AGC', url: 'https://agcc.fun', scop
   noteEn: 'Lock BNB for shares, then claim the BNB back plus AGC when due (the wallet needs an Agent ID). The radar knows how to mint and claim this one: the switch and share count are yours to set in Settings, off by default.',
   risk: { src: '', level: 'yellow', text: '押的 BNB 锁在项目合约里，到期才领得回；项目方可以暂停合约，暂停期间领不回也挖不了；AGC 价格可能大跌。只是提醒，挖不挖你自己决定。' },
   riskEn: 'The BNB you lock stays in the project contract until it is due; the project can pause the contract (no claiming or minting while paused); AGC can drop sharply. Just a notice — whether to mine is your call.' }];
+/* POL-MINE：Pol · Proof of Liquidity（proofmine.fun）—— 雷达学会「怎么参与、怎么领回」的第二个内建项目。开关和数字在「设定 → 更多设定 → ⛏ Pol 流动性挖矿」由你自己填（预设关） */
+ADP.push({ adp: 'pol', id: 'pol', name: 'Pol · Proof of Liquidity', url: 'https://proofmine.fun', scope: 'ai', kind: 'lp', cost: 'deposit', chain: 'bsc', c: '0xc338ab4dbb9260b52d4dff24f3cd20d42e25d379', rewardTok: '0xbea84fadd77644b92ea1c5f3ce335666489fe5f7', approve: 0,
+  note: '每份付 BNB：一半买 Pol、一半配对成 LP 锁住；Pol 奖励在锁仓期间线性释放、可分次领；LP 到期后领回或退出。只限有 Agent ID 的钱包。雷达学会了怎么参与、怎么领回：开关和数字在设定里由你填，预设关。',
+  noteEn: 'Each share costs BNB: half buys Pol, half is paired into locked LP; Pol rewards vest linearly over the lock and can be claimed in parts; when due the LP can be claimed or exited. Agent ID wallets only. The radar knows how to join and claim: the switch and numbers are yours to set in Settings, off by default.',
+  risk: { src: '', level: 'red', text: '高风险提示：合约原始码没有公开验证；项目管理多签只要 1 个人签名，能操作金库迁移；付的 BNB 一半买 Pol、一半变成 LP 锁住，到期才能领或退出，Pol 跌价会亏。只是提醒，参不参与你自己决定。' },
+  riskEn: 'High-risk notice: the contract source is not publicly verified; the project’s management multisig needs only 1 signer and can operate the vault migration; half your BNB buys Pol and half becomes LP locked until due — a Pol price drop means a loss. Just a notice — whether to join is your call.' });
+function polAdpV(m, J) { const v = J && J.pol && typeof J.pol === 'object' ? J.pol : null; const f = v && v.facts && typeof v.facts === 'object' ? v.facts : {};
+  const S40 = (x) => String(x ?? '').replace(/[\u0000-\u001f<>]/g, '').slice(0, 40); const WEI = (x) => (/^\d{1,40}$/.test(String(x ?? '')) ? String(x) : null); const b01 = (x) => (x === 1 ? 1 : x === 0 ? 0 : null);
+  m.status = f.launched === 1 ? 'live' : f.launched === 0 ? 'soon' : ''; m.paused = 0;
+  m.adpV = v ? { at: +v.at || 0, on: v.on ? 1 : 0, keep: v.keep ? 1 : 0, maxDay: fin(v.maxDay), perTx: fin(v.perTx), slip: fin(v.slip), lpMode: fin(v.lpMode), scanOk: v.scanOk ? 1 : 0,
+    price: WEI(f.price), lock: fin(f.lock), dayQ: fin(f.dayQ), launched: b01(f.launched), raised: fin(f.raised), target: fin(f.target), endsAt: fin(f.endsAt),
+    wallets: (Array.isArray(v.wallets) ? v.wallets : []).map((x) => ({ w: S40(x?.w), agent: b01(x?.agent), shares: fin(x?.shares), open: fin(x?.open), due: fin(x?.due), claimWei: WEI(x?.claimWei), credit: WEI(x?.credit), nextAt: fin(x?.nextAt), today: fin(x?.today), partial: x?.partial ? 1 : 0, why: S40(x?.why) })) } : null; }
 function mineAdp() { const J = readJSON(path.join(C.DATA, 'mine_adp.json'), null); const out = [];
   const S40 = (x) => String(x ?? '').replace(/[\u0000-\u001f<>]/g, '').slice(0, 40); const WEI = (x) => (/^\d{1,40}$/.test(String(x ?? '')) ? String(x) : null);
   for (const a of ADP) { const m = mineNorm(a, 'adp'); if (!m) continue; m.id = 'ad:' + a.id; m.adp = a.adp; m.noteEn = a.noteEn; m.riskEn = a.riskEn;
@@ -48,6 +60,7 @@ function mineAdp() { const J = readJSON(path.join(C.DATA, 'mine_adp.json'), null
     const known = !!f && Number.isFinite(f.until) && Number.isFinite(f.now); m.status = known ? (f.until > f.now ? '' : 'live') : ''; m.paused = known && f.until > f.now ? f.until * 1000 : 0;
     m.adpV = v ? { at: +J.at || 0, on: v.on ? 1 : 0, maxN: fin(v.maxN), price: f ? WEI(f.price) : null, delay: f ? fin(f.delay) : null,
       wallets: (Array.isArray(v.wallets) ? v.wallets : []).map((x) => ({ w: S40(x?.w), lockedWei: WEI(x?.lockedWei), lockedN: fin(x?.lockedN), due: fin(x?.due), nextAt: fin(x?.nextAt), today: fin(x?.today), why: S40(x?.why) })) } : null;
+    if (a.adp === 'pol') polAdpV(m, J); /* POL-MINE */
     out.push(m); }
   return out; }
 let MI = null; const miF = () => path.join(C.DATA, 'mine_info.json');
