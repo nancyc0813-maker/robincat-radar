@@ -1,9 +1,9 @@
 {
-  "version": "1.0.23",
+  "version": "1.0.24",
   "date": "2026-11-06",
   "critical": false,
   "notes": [
-    "新增「先逛逛」：填好邀请码后，连钱包那一步右上角多了 ✕ 和「先逛逛」，按了直接进主画面先看盘（重开雷达也直接进去）。没连钱包时主画面上方会提示「还没连钱包：只能看、不能买卖 · 去连接」，所有买、卖、铸造、挖矿参与的按钮都改成「先连钱包」，按了会带你回连钱包那一步，不会下单；雷达主程式和引擎也会拒收没钱包时的买卖单。没连钱包时 AVE 专属资料（KOL／聪明钱标记、交易者小卡、AVE K 线）显示「连钱包后解锁」，价格、市值、DexScreener K 线和成交照常显示。连上钱包后提示自动消失、按钮恢复。一键更新照常可按。另外，电脑右下角（Mac 是上方选单列）的罗宾猫图示按右键，多了「检查更新／立即更新」：画面卡住或停在开始页面也能更新，没有新版会告诉你「已是最新版」"
+    "修正第一次安装卡住：「一键安装」装桌面视窗时，以前要从 GitHub 下载视窗元件，大陆网络常常卡住不动、也不报错。现在一开始就改用国内镜像下载（档案照样会核对官方校验码），并加了下载逾时与自动重试。已经装好的用户不受影响，照常一键更新即可"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -41,10 +41,10 @@
     "radar/main.cjs": "0d191f38deb322e1533c6a58c1a9ebd06aa5dc2e2da96f6c01f7ee4f09599155",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
     "radar/next.cjs": "097bfbe9829a78194c1a49fdd81263e947550f63958e75a1ab4f5684b08bf274",
-    "radar/official.json": "d981baeb33fa89f2b3fcf1c03a02b670ae3f7e5e2b08f9f7e063031b1dbc91ea",
-    "radar/official.sig": "19f4f8da69e4e968c523101ba2c0efbbeb09db26d39325b54fdfa382c3508c6f",
+    "radar/official.json": "5dc8150429fdc8662872f000eb780797c364a0def1bc4c883478ed3cda56e998",
+    "radar/official.sig": "4e47ac1bfd11dd200fecf67ff9228ed261882ce505850aa6adf722fd88fa7e44",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "5e695ea2899d62175b0812c37bca8cbbe84f52863e9040b1ba0a36d71a5c03bd",
+    "radar/package.json": "ed8d51633b0c483bcd1c22c5ed6a619cbd73203c0356e99329bca67c43adc719",
     "radar/preload.cjs": "4946ab8867085fcbf54a0edd67c195c41c7c206cc43eb90616e01a74101cd278",
     "radar/settings_schema.json": "21e086734cbc51a3fc3e3ae6a83d99d048d8a0c835e293747b5e07997c61b562",
     "radar/ui/index.html": "76b727ade58c53402f1f2fd018dc2db9a6c876714e77b297be56a99e11908ee5",
@@ -75,11 +75,11 @@
     "tools/guard_rules.json": "ac91171f9601ff71dcf752b6da699a0f1aba4e933b1cf6271994820372c6377f",
     "tools/zero_allowlist.json": "dcc8b936502a014a1b562bb94f8d33d1271f888562c11225a9477ee057e2a28f",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "5056535837b32b835c420a5d5303d2fe5f1f8399fae3a77408fb2441b4539e52",
+    "watch.mjs": "44a0cab0cf5acf1ba6bbf3814a7697a6b2eba35a3a4a50237e3072e0171ad73b",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
-    "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
-    "一键安装.bat": "77e45841b87f533dcc53db561c07c2dbb47d7337b8734aaa8c213eb5822bbd50",
+    "一键安装-Mac.command": "1e141a57ef3b95a3bcd7d2c254b16329fe434b2a8b6a1c7b61b2fb1663fecf65",
+    "一键安装.bat": "c81665cfabc0cff65c64999c43d4a3e14c6909dcfd247107c355c3b9d23c7e21",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "5056535837b32b835c420a5d5303d2fe5f1f8399fae3a77408fb2441b4539e52"
+  "sha256": "44a0cab0cf5acf1ba6bbf3814a7697a6b2eba35a3a4a50237e3072e0171ad73b"
 }

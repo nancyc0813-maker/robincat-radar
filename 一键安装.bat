@@ -95,9 +95,11 @@ del data_wallets.txt >nul 2>nul
 
 REM ---- 4.5 罗宾猫雷达（桌面视窗）----
 echo.
-echo [罗宾猫雷达] 正在安装桌面视窗（第一次大约要 1～3 分钟）...
+echo [罗宾猫雷达] 正在安装桌面视窗（第一次大约要 1～3 分钟，用国内镜像下载；超过 10 分钟没动静：按 Ctrl+C 结束后再执行一次「一键安装.bat」）...
+REM INST124：视窗元件（Electron，约 100MB）一开始就用国内镜像下载：大陆连 GitHub 常常卡住不动、也不报错；镜像档案仍由 electron 套件内建的 SHA256 校验
+set "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/"
 pushd radar
-if exist package-lock.json (call npm ci --no-audit --no-fund) else (call npm install --no-audit --no-fund)
+if exist package-lock.json (call npm ci --no-audit --no-fund --fetch-timeout=60000 --fetch-retries=2) else (call npm install --no-audit --no-fund --fetch-timeout=60000 --fetch-retries=2)
 popd
 REM V104-ELEC：electron.exe 不在＝下载失败（大陆常连不上 GitHub）→ 先用国内镜像直接重下，再不行用国内镜像重装；还是不行就不建桌面捷径、不开视窗，印原因和手动指令
 if not exist radar\node_modules\electron\dist\electron.exe (
