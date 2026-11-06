@@ -2639,7 +2639,7 @@ const TOK_QUOTE = new Set(['0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', '0x55d3
 const addrOf = (r) => (r && r.length >= 66 && /^0x0{24}/.test(r) && BigInt(r.slice(0, 66)) > 0n ? '0x' + r.slice(26, 66).toLowerCase() : null);
 async function tokCheck(x, c, rd = call) { /* 回传 ''＝通过；不然是原因 */
   x = String(x || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(x)) return '地址格式不对'; if (INFRA.has(x) || x === '0x' + REGISTRY || TOK_QUOTE.has(x)) return '是基础合约（Agent ID 登记／WBNB／稳定币），不是项目代币';
-  if (Object.entries(S.paid || {}).some(([c2, P2]) => c2 !== c && P2 && P2.tok === x && c2 !== x)) return '别的项目也记了这个地址（多项目共用，多半不是项目代币）';
+  if (x !== c /*OPEN119-SELF：合约本身就是代币时不套「共用」规则（别的项目记错成它，不代表它不是自己的代币）*/ && Object.entries(S.paid || {}).some(([c2, P2]) => c2 !== c && P2 && P2.tok === x && c2 !== x)) return '别的项目也记了这个地址（多项目共用，多半不是项目代币）';
   const i = await rd(x, '0x01ffc9a780ac58cd00000000000000000000000000000000000000000000000000000000'); if (i && i.length >= 66 && BigInt(i.slice(0, 66)) === 1n) return '是 NFT（ERC721），不是代币';
   const d = await rd(x, '0x313ce567'); if (!(d && d.length >= 66)) return '读不到 decimals（不是 ERC20 代币，或节点没回）'; return ''; }
 async function tokOf(c, rd = call) { const why = [];
@@ -2648,10 +2648,13 @@ async function tokOf(c, rd = call) { const why = [];
   { const s = await rd(c, '0x95d89b41'), ts = await rd(c, '0x18160ddd'); if (s && s.length > 2 && ts && ts.length >= 66) { const w = await tokCheck(c, c, rd); if (!w) return { tok: c, how: '合约本身就是代币' }; why.push('合约本身：' + w); } }
   return { tok: null, why: why.join('；') || 'token()／pair() 都读不到，合约本身也不是代币' }; }
 const nmStr = (r) => { try { const h = String(r || '').slice(2); if (h.length < 128) return ''; const n = Number(BigInt('0x' + h.slice(64, 128))); return Buffer.from(h.slice(128, 128 + n * 2), 'hex').toString('utf8').replace(/[\u0000-\u001f]/g, '').trim(); } catch { return ''; } };
-async function tokFill() { if (Date.now() < (globalThis._tokNext || 0) || INFLIGHT > 0) return; globalThis._tokNext = Date.now() + TOK_EVERY_MS;
+const TOK_FULL_RETRY_MS = 5 * 60e3; /* 技术用：铸满的项目读不到代币地址，隔多久再试 */
+const tokFull = (P) => !!P && ((P.progress || P.prog || 0) >= 1 || !!P.soldOut); /*OPEN119：铸满（进度 100% 或已售完）的项目先验证代币地址（画面要靠它查开盘）*/
+const tokUrgent = (c, P) => tokFull(P) && P.tokV !== 111 && !INFRA.has(c) && Date.now() - (P.tokAt || 0) > TOK_FULL_RETRY_MS;
+async function tokFill() { if (INFLIGHT > 0) return; const urg = Object.entries(S.paid || {}).some(([c, P]) => tokUrgent(c, P)) || Object.entries(S.paidArc || {}).some(([c, P]) => !S.paid?.[c] && tokUrgent(c, P)); if (Date.now() < (globalThis._tokNext || 0) && !urg) return; globalThis._tokNext = Date.now() + TOK_EVERY_MS; /*OPEN119：有铸满还没验证的 → 不等 30 秒那一轮，马上补读*/
   if (!S.eng111so) { S.eng111so = 1; let n = 0; for (const P of Object.values(S.paid || {})) if (P && P.soldOut && !P.soldOk) { delete P.soldOut; if ((P.progress || 0) >= 1) P.progress = 0; if (/已经铸完/.test(P.lastReason || '')) P.lastReason = ''; n++; } if (n) log(`重新检查 ${n} 个之前标成「已铸完」的项目（之前的版本可能把总量当已售），下一轮照新的读法重算`); save(); } /*ENG111-P0A：之前版本误判的已铸完重算一次*/
   if (!S.eng111lp) { S.eng111lp = 1; for (const [c, P] of Object.entries(S.paid || {})) if (P && /^Pancake LPs$/i.test(String(P.name || '').trim()) && !FORCE.has(c)) { delete S.paid[c]; log(`${c}：名称是 Pancake LPs（交易池），不是铸造项目 → 从铸造清单拿掉`); } } /*ENG111-P11*/
-  const L = [...Object.entries(S.paid || {}), ...Object.entries(S.paidArc || {}).filter(([c]) => !S.paid?.[c])].filter(([c, P]) => P && !INFRA.has(c) && P.tokV !== 111 && Date.now() - (P.tokAt || 0) > TOK_RETRY_MS).sort((a, b) => (b[1].progress || 0) - (a[1].progress || 0)).slice(0, TOK_PER); if (!L.length) return; let got = 0, drop = 0;
+  const L = [...Object.entries(S.paid || {}), ...Object.entries(S.paidArc || {}).filter(([c]) => !S.paid?.[c])].filter(([c, P]) => P && !INFRA.has(c) && P.tokV !== 111 && (tokUrgent(c, P) || Date.now() - (P.tokAt || 0) > TOK_RETRY_MS)).sort((a, b) => (tokFull(b[1]) - tokFull(a[1])) || ((b[1].progress || b[1].prog || 0) - (a[1].progress || a[1].prog || 0))).slice(0, TOK_PER); if (!L.length) return; let got = 0, drop = 0; /*OPEN119：铸满的排最前面（含已清掉的 paidArc，它的进度栏位叫 prog）*/
   for (const [c, P] of L) { if (!P.name) { const nm = nmStr(await call(c, '0x06fdde03').catch(() => null)) || nmStr(await call(c, '0x95d89b41').catch(() => null)); if (nm) P.name = nm.slice(0, 40); } /*ENG111-P2：名称读不到的补读 name()／symbol()*/ let r = null; try { r = await tokOf(c); } catch { r = null; } P.tokAt = Date.now(); if (r?.tok) { P.tok = r.tok; P.tokV = 111; P.tokHow = r.how; delete P.tokMiss; got++; } else { if (P.tok) { drop++; log(`${P.name || c}：之前记的代币地址 ${P.tok} 验证不过（${r?.why || '读不到'}）→ 拿掉，当读不到`); delete P.tok; } P.tokMiss = r?.why || '读不到'; } }
   if (got || drop) { log(`补读代币地址：${got}/${L.length} 个项目读到了${drop ? `，${drop} 个旧的不对已拿掉` : ''}（看开盘、试水用）`); save(); } }
 async function heatOf(c, P) { // 算热度：最近一段区块有几个不同的 Agent ID 钱包参与铸造（扫描范围是技术用的区块数）
@@ -3078,7 +3081,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.0.18', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.0.19', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;

@@ -1,11 +1,9 @@
 {
-  "version": "1.0.18",
+  "version": "1.0.19",
   "date": "2026-11-06",
   "critical": false,
   "notes": [
-    "简单模式：设定页只留「钱包、⚡ 快速买金额、自动卖、通知（TG）、画面大小、资料健康、语言」，其他设定都在专业模式，底部一键切换；只是画面收起来，设定值和功能一个都没动（电脑和手机都是；专业模式照旧）",
-    "新增：交易者小卡。代币详情里点成交、持有者或 K 线标记上的钱包，同一画面跳出小卡：地址（可复制）、AVE 标签／KOL 名字、这个币他的买入／卖出／持有与盈亏、近期整体盈亏与胜率、最近几笔交易，以及「在 AVE 看」。资料来自 AVE，读不到会写原因和「重试」，同一个钱包短时间内不重复查（电脑和手机都是）",
-    "修好：专业模式持仓「全卖／卖 %」现在也先跳确认（「买卖都先跳确认」开关，预设开，关掉就跟以前一样直接送）；电脑睡眠唤醒后不会误判画面卡死；转接站连不上时点币不用再等很久，会直接写「连不上转接站」；恢复出厂设置保留 TG 通知类别、确认框写明会关闭手机改设定与手机买卖权限，连按两次后「复原」也能拿回原本的设定"
+    "修好：AI专属铸造看盘里已经开池的项目被标成「已铸满等开盘」。现在铸满的项目会优先确认代币地址并直接查有没有开池，开池了就放进「已开盘」；还在确认时写「查开盘中」，读不到代币地址会照实写，不再一律写等开盘（只改画面显示，不影响买卖）"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -42,14 +40,14 @@
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
     "radar/main.cjs": "a1fce2dddf1878b043403c59e32e02bc3c82a54305e3109865e5177903b66ce7",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
-    "radar/next.cjs": "b909d133223e1cb51cfbb30aa10eb310dc2db5a1a0a239a0648e5cd9d1b80e12",
-    "radar/official.json": "ccd6576d9dc4fae676cd27af3a6bfe5608b801bd387e53886658ba3579737360",
-    "radar/official.sig": "c060a9ca2304809accb352c93cb4ba185ee18c936d85ad8076aa9c915fb6b59b",
+    "radar/next.cjs": "097bfbe9829a78194c1a49fdd81263e947550f63958e75a1ab4f5684b08bf274",
+    "radar/official.json": "67f9d10c40eefa84c8854aceca0bf4dc91d06c1fe32710b5537e212be132e497",
+    "radar/official.sig": "6abcb3181bca0d600591ca9ca5709e1b3dc055c5fa29469d65ab979cb42ae70e",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "62651e6260f7df2c9a714ebc4d6ed669db015ff9b3ded64b6e3c6cfa2560c8fb",
+    "radar/package.json": "fbab5db6158a896905215c910c10a0c56df33d689db91bb3abf350d406c8864a",
     "radar/preload.cjs": "bdd748e81a344b708ad7a40efe64727bf075e04512d0298a83c7528351a8338d",
     "radar/settings_schema.json": "21e086734cbc51a3fc3e3ae6a83d99d048d8a0c835e293747b5e07997c61b562",
-    "radar/ui/index.html": "76018d3610d6a1f2e9d19eafb6f591f674730742a6293047e0fc77872ccf6160",
+    "radar/ui/index.html": "a0a4511a0009b3d5fe9e527dce9b70944906a6e96aa8b5c20c25ead8317f1cb8",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -75,13 +73,13 @@
     "tg_login.bat": "1b358e1311fe5c0ef32580f47a150904f0028a4451b6409124f9eed46f81dbc9",
     "tools/guard_check.mjs": "da8b958b19bd1e436517e68b3371dc118a693480fa2724fc1044691f67a9964a",
     "tools/guard_rules.json": "e05a1d2df6a62609bf1f0a01c20ac26ca9cd04531efc8d57a36fd230adaa3091",
-    "tools/zero_allowlist.json": "68cf56a483a6703e79baf1a9f3601324d82332dd0fcd1f911cf205c98c3d5158",
+    "tools/zero_allowlist.json": "ab258e6dc4560ec777b08c85c64c7311da112edd7f568ce5f6226cbc937ebac6",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "1bec8ea5656b87debe6e907ad87f9432e619ed5379c3848444080ee27ec3ec93",
+    "watch.mjs": "8aee1b8d8e91f361f33a3499600be999a2e97a747ca852b1e65ed5ff4043d04e",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
     "一键安装.bat": "77e45841b87f533dcc53db561c07c2dbb47d7337b8734aaa8c213eb5822bbd50",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "1bec8ea5656b87debe6e907ad87f9432e619ed5379c3848444080ee27ec3ec93"
+  "sha256": "8aee1b8d8e91f361f33a3499600be999a2e97a747ca852b1e65ed5ff4043d04e"
 }

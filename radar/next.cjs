@@ -207,7 +207,7 @@ async function boardPage(o) {
 /* ───── ① ② 看盘快照补资料 ───── */
 function aug(v, S) {
   if (!v) return v; const set = readJSON(C.SET, {});
-  for (const x of v.board || []) { const P = S?.paid?.[x.c]; if (!P) continue; const m = P.mw; if (m) x.mw = { ai: m.ai, gen: m.gen, unk: m.unk, tot: m.tot, n1: m.new1h, n1lb: m.new1hLb ?? null /*V104-NEW1HLB*/, n1r: m.new1hRaw, n1ai: m.new1hAi, w5: m.w5, w15: m.w15, w60: m.w60, at: m.at, why: m.why1h || '', part: m.part || 0, since: m.since }; x.agP = P.agents ?? null; x.agN = P.agNow ?? null; x.agT = P.agTrunc ? 1 : 0; /* AGN-1103 */ x.agAt = P.agNowAt || null; x.agc = P.agc || null; /*ENG111-AGC：唯一的 AI 钱包数 { n 已确认, pendW 待查钱包, pendTx 待查交易批, min 最近几分钟, hi 最高, at }；画面显示「已确认 N，待查 M」用这个，跟买入判断一致*/ if (P.soldOut) x.soldOut = 1; if (/^0x[0-9a-fA-F]{40}$/.test(String(P.tok || ''))) x.tok = String(P.tok).toLowerCase(); /* AI-BOARD5：铸出来的代币地址（看开盘用） */ }
+  for (const x of v.board || []) { const P = S?.paid?.[x.c]; if (!P) continue; const m = P.mw; if (m) x.mw = { ai: m.ai, gen: m.gen, unk: m.unk, tot: m.tot, n1: m.new1h, n1lb: m.new1hLb ?? null /*V104-NEW1HLB*/, n1r: m.new1hRaw, n1ai: m.new1hAi, w5: m.w5, w15: m.w15, w60: m.w60, at: m.at, why: m.why1h || '', part: m.part || 0, since: m.since }; x.agP = P.agents ?? null; x.agN = P.agNow ?? null; x.agT = P.agTrunc ? 1 : 0; /* AGN-1103 */ x.agAt = P.agNowAt || null; x.agc = P.agc || null; /*ENG111-AGC：唯一的 AI 钱包数 { n 已确认, pendW 待查钱包, pendTx 待查交易批, min 最近几分钟, hi 最高, at }；画面显示「已确认 N，待查 M」用这个，跟买入判断一致*/ if (P.soldOut) x.soldOut = 1; if (P.tokV === 111 && /^0x[0-9a-fA-F]{40}$/.test(String(P.tok || ''))) x.tok = String(P.tok).toLowerCase(); x.tokS = x.tok ? 'v' : P.tokMiss && P.tokAt ? 'm' : 'p'; /* AI-BOARD5＋OPEN119：只给验证过的代币地址；tokS＝v 验证过／p 还在查／m 这一轮读不到（画面照这个写「查开盘中」） */ }
   { const F = readJSON(path.join(C.DATA, 'force_status.json'), null); v.forceStat = F && Array.isArray(F.list) ? F.list.slice(-8).reverse() : []; }
   try { const L = mineAll(v, set); v.mineL = { ai: L.filter((m) => m.scope === 'ai'), gen: L.filter((m) => m.scope === 'gen') }; } catch { v.mineL = { ai: [], gen: [] }; }
   try { const d = path.join(C.DATA, 'weekly'); if (fs.existsSync(d)) { const f = fs.readdirSync(d).filter((x) => /^\d{4}-\d{2}-\d{2}(-\d{2})?\.json$/.test(x)).sort().pop(); if (f) { const j = readJSON(path.join(d, f), null); if (j) v.weeklyLast = { at: j.at, auto: j.auto ? 1 : 0, f }; } } } catch {}
@@ -254,16 +254,27 @@ function mbCands(net, kind) { const S = readJSON(path.join(C.DATA, 'watch_state.
   if (net === 'rh') for (const [c, M] of Object.entries(S.rh?.mint || {})) if (!!M.nft === (kind === 'nft')) add(c, { name: String(M.name || M.sym || '').slice(0, 40), at: +M.first || 0, done: dn(M.done) });
   const pre = net === 'rh' ? 'rh:' : kind === 'nft' ? 'nft:' : 'bsc:'; if (!(net === 'rh' && kind === 'nft')) for (const [k, a] of Object.entries(H)) if (k.startsWith(pre) && Array.isArray(a) && a.length) add(k.slice(pre.length), { name: '', at: +a[0]?.t || 0, hist: 1 });
   return [...out.values()].sort((a, b) => b.at - a.at); }
-async function mintPage(o) { const net = o.net === 'rh' ? 'rh' : 'bsc'; const kind = o.kind === 'nft' ? 'nft' : 'tok'; const L = mbCands(net, kind); const i0 = Number.isFinite(+o.cursor) && +o.cursor > 0 ? Math.floor(+o.cursor) : 0; const part = L.slice(i0, i0 + MB_PG); const nxt = i0 + part.length; const end = nxt >= L.length ? 1 : 0;
-  if (kind === 'tok') { const ch = net === 'rh' ? 'robinhood' : 'bsc'; const items = part.filter((x) => x.tok).map((x) => ({ ...x, q: x.tok })); /*ENG111-TOK：只用代币地址查池子；还没读到代币地址的先不查（不拿铸造合约冒充）*/ let ok = 0, er = '';
-    for (let i = 0; i < items.length; i += DS_N) { const Q = items.slice(i, i + DS_N); try { const r = await fetch('https://api.dexscreener.com/tokens/v1/' + ch + '/' + Q.map((x) => x.q).join(','), { signal: AbortSignal.timeout(12000) }); if (!r.ok) { er = 'DexScreener ' + r.status; continue; } const ps = await r.json(); ok++; const best = {};
+/* OPEN119：用验证过的代币地址向 DexScreener 查池子（一批 DS_N 个）；那一批有回应＝_chk（查过了），有交易对＝opened */
+async function mbDs(ch, items) { let ok = 0, er = '';
+    for (let i = 0; i < items.length; i += DS_N) { const Q = items.slice(i, i + DS_N); try { const r = await fetch('https://api.dexscreener.com/tokens/v1/' + ch + '/' + Q.map((x) => x.q).join(','), { signal: AbortSignal.timeout(12000) }); if (!r.ok) { er = 'DexScreener ' + r.status; continue; } const ps = await r.json(); ok++; const best = {}; for (const x of Q) x._chk = 1;
       for (const p of Array.isArray(ps) ? ps : []) { const a = String(p?.baseToken?.address || '').toLowerCase(); const lq = fin(p?.liquidity?.usd); if (!best[a] || (lq != null && (best[a].lq == null || lq > best[a].lq))) best[a] = { p, lq }; }
       for (const x of Q) { const b = best[x.q]; if (!b) continue; const p = b.p; x.opened = 1; x.pair = A40(p.pairAddress); x.dex = String(p.dexId || '').slice(0, 20); x.pairAt = fin(p.pairCreatedAt); x.price = fin(p.priceUsd); x.mc = fin(p.marketCap) ?? fin(p.fdv); x.liq = fin(p.liquidity?.usd); x.vol = { h1: fin(p.volume?.h1), h24: fin(p.volume?.h24) }; x.chg = { h1: fin(p.priceChange?.h1), h24: fin(p.priceChange?.h24) }; const t = p.txns?.h24; x.tx24 = t && fin(t.buys) != null && fin(t.sells) != null ? +t.buys + +t.sells : null; if (!x.name) x.name = String(p.baseToken?.symbol || p.baseToken?.name || '').slice(0, 40); if (/^https:\/\//.test(p.info?.imageUrl || '')) x.img = String(p.info.imageUrl).slice(0, 300); } } catch (e) { er = String(e?.message || e).slice(0, 80); } }
+  return { ok, er }; }
+async function mintPage(o) { const net = o.net === 'rh' ? 'rh' : 'bsc'; const kind = o.kind === 'nft' ? 'nft' : 'tok'; const L = mbCands(net, kind); const i0 = Number.isFinite(+o.cursor) && +o.cursor > 0 ? Math.floor(+o.cursor) : 0; const part = L.slice(i0, i0 + MB_PG); const nxt = i0 + part.length; const end = nxt >= L.length ? 1 : 0;
+  if (kind === 'tok') { const ch = net === 'rh' ? 'robinhood' : 'bsc'; const items = part.filter((x) => x.tok).map((x) => ({ ...x, q: x.tok })); /*ENG111-TOK：只用代币地址查池子；还没读到代币地址的先不查（不拿铸造合约冒充）*/ let ok = 0, er = '';
+    ({ ok, er } = await mbDs(ch, items)); /*OPEN119：查池子搬到 mbDs（跟 mintOpen 共用）*/
     if (items.length && !ok) return { err: '这一页读不到：' + (er || 'DexScreener 没回应') };
-    return { items: items.filter((x) => x.opened), cursor: nxt, end }; }
+    return { items: items.filter((x) => x.opened), cursor: nxt, end, pend: part.filter((x) => !x.tok && !x.hist).length /*OPEN119：这一页有几个还没验证代币地址（画面过一阵子会重查）*/ }; }
   const R = mbRpc(net); if (!R) return { err: '读链模组还没准备好，稍后再试' };
   const items = []; for (const x of part) { const p = await mbProgOne(R, x.c); if (p != null && p >= 100) items.push({ ...x, prog: p }); } /* 进度满＝已铸完 */
   return { items, cursor: nxt, end }; }
+
+/* OPEN119：看盘上「铸满」的项目直接查有没有开池（不靠往回捲的分页）。只读：代币地址只用引擎验证过的（tokV 111），读不到不猜 */
+const MBO = new Map(); const MB_OPEN_TTL = 60e3; /* 运作：同一个代币多久重查一次池子 */ const MB_OPEN_N = 60; /* 运作：一次最多查几个项目 */
+async function mintOpen(o) { const S = readJSON(path.join(C.DATA, 'watch_state.json'), {}) || {}; const cs = (Array.isArray(o.cs) ? o.cs : []).map(A40).filter(Boolean).slice(0, MB_OPEN_N); const out = {}; const need = []; const now = Date.now();
+  for (const c of cs) { const P = S.paid?.[c] || S.paidArc?.[c]; const tok = P && P.tokV === 111 ? A40(P.tok) : ''; if (!tok) { out[c] = { st: P && P.tokMiss && P.tokAt ? 'miss' : 'pend' }; continue; } const h = MBO.get(tok); if (h && now - h.at < MB_OPEN_TTL) { out[c] = h.r; continue; } need.push({ c, tok, q: tok, name: '' }); }
+  if (need.length) { await mbDs('bsc', need); for (const x of need) { const r = x.opened ? { st: 'open', tok: x.tok, pair: x.pair, dex: x.dex, pairAt: x.pairAt, price: x.price, mc: x.mc, liq: x.liq, vol: x.vol, chg: x.chg, tx24: x.tx24, img: x.img || '', name: x.name || '' } : x._chk ? { st: 'wait', tok: x.tok } : { st: 'err', tok: x.tok }; out[x.c] = r; if (r.st !== 'err') { MBO.set(x.tok, { at: now, r }); if (MBO.size > 3000) MBO.delete(MBO.keys().next().value); } } }
+  return { o: out }; }
 
 /* ───── ④ 每周检讨 ───── */
 async function weeklyMod() { const { pathToFileURL } = require('url'); return import(pathToFileURL(path.join(C.ROOT, 'weekly.mjs')).href); }
@@ -279,6 +290,7 @@ async function nx(a, o = {}) {
   if (a === 'engErr') return engErr(); /* UIFIX4 */
   if (a === 'mintPage') return mintPage(o && typeof o === 'object' ? o : {}); /* AI-BOARD5 */
   if (a === 'mintProg') return mintProg(o && typeof o === 'object' ? o : {}); /* AI-BOARD5 */
+  if (a === 'mintOpen') return mintOpen(o && typeof o === 'object' ? o : {}); /* OPEN119 */
   return null;
 }
 function install({ ipcMain, ROOT, DATA, SET }) { C = { ROOT, DATA, SET }; try { ipcMain.handle('nx', (e, a, o) => nx(String(a || ''), o).catch((er) => ({ err: String(er?.message || er).slice(0, 120) }))); } catch {} setTimeout(() => mineEnrich().catch(() => {}), 8e3); setInterval(() => mineEnrich().catch(() => {}), 60e3).unref?.(); }

@@ -16655,6 +16655,42 @@
     "100"
    ],
    "reason": "QA118（抓错员报告修正）：卖出比例小于 100%＝部分卖出，确认框文字不同（只影响确认框文字）"
+  },
+  {
+   "rule": "TIMEWIN|SLICE",
+   "file": "radar/next\\.cjs$",
+   "match": "MB_OPEN_TTL = 60e3|MB_OPEN_N = 60",
+   "values": [
+    "60e3",
+    60
+   ],
+   "reason": "OPEN119：铸造看盘查开池的快取时间（同一个代币 60 秒内不重查 DexScreener）与一次最多查几个项目；只读、只显示，不是买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN|SLICE|FALLBACK0",
+   "file": "radar/ui/index\\.html$",
+   "match": "MB_PG_REF_MS=180e3|MB_OP_MS=60e3,MB_OP_FAST=15e3|sort\\(\\(a,b\\)=>b\\.at-a\\.at\\)\\.slice\\(0,60\\)|\\(MB\\.opAt\\|\\|0\\)|\\(S\\.t0\\|\\|0\\)|const MB_PROG_MS=60e3",
+   "values": [
+    "180e3",
+    "60e3",
+    "15e3",
+    60,
+    0
+   ],
+   "reason": "OPEN119：画面多久问一次开池状态／分页多久从头重查、一次最多查几个铸满项目；没查过的时间当 0（＝马上查）。只影响画面刷新，不是买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN|FALLBACK0|COMMENT_NUM",
+   "file": "watch\\.mjs$",
+   "match": "TOK_FULL_RETRY_MS = 5 \\* 60e3|\\(P\\.progress \\|\\| P\\.prog \\|\\| 0\\) >= 1|OPEN119：铸满（进度 100% 或已售完）|不等 30 秒那一轮",
+   "values": [
+    5,
+    "60e3",
+    0,
+    "100%",
+    "30 秒"
+   ],
+   "reason": "OPEN119：背景补读代币地址的排程（铸满项目读不到隔 5 分钟再试）；进度读不到当 0＝不算铸满（只影响补读顺序）；注解里的 100%／30 秒是说明文字。代币地址仍要通过验证，读不到不猜，不影响买卖门槛"
   }
  ]
 }
