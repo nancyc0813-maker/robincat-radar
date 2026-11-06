@@ -15,6 +15,9 @@ const DAY_SOFT = 30000; // 一天超过这么多单位就放慢
 /* AVE 是看盘的主要资料。要加别的发射台清单（例如 AVE 文件里的其他 tag），写在 data/ave_lists.json：
    { "lists": [["platform", "tag=xxx_in_new&limit=100", 10], ...] }。每一轮花的单位不会超过原本的预算（ROUND_CU），清单多了就轮流抓（每个清单更新慢一点），不会多花额度。 */
 const ROUND_CU = LISTS.reduce((a, x) => a + x[2], 0);
+/*MC121 多链看盘：Solana（pump 发射台＋热门）、Ethereum、Base（热门）。每轮另外最多花 MC_ROUND_CU 单位、清单轮流抓（不加新的定时器；放慢模式时不抓） */
+const MC_LISTS = [['trending', 'chain=solana&page_size=100', 5], ['platform', 'tag=pump_in_new&limit=100', 10], ['platform', 'tag=pump_in_hot&limit=100', 10], ['platform', 'tag=pump_out_new&limit=100', 10], ['platform', 'tag=pump_out_hot&limit=100', 10], ['trending', 'chain=eth&page_size=100', 5], ['trending', 'chain=base&page_size=100', 5]];
+const MC_ROUND_CU = 20; /* 运作（AVE 额度）：多链清单每 5 分钟一轮最多花几个单位；全部轮完约 15 分钟 */
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 const okUrl = (u) => (/^https:\/\/[^\s"'<>]{4,300}$/.test(String(u || '')) ? String(u) : '');
 const today = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
@@ -42,7 +45,7 @@ export function startAve({ DIR, log, tg }) {
     addAveUsage(DIR, cu); const j = await r.json().catch(() => null); if (!r.ok || !j || j.status !== 1) throw new Error(`AVE ${r.status} ${String(j?.msg || '').slice(0, 60)}`); return j.data;
   }
   function pack(t) {
-    const [addr, chain] = String(t.token_id || '').split('-'); if (!/^0x[0-9a-fA-F]{40}$/.test(addr || '')) return null;
+    const tid = String(t.token_id || ''); const j0 = tid.lastIndexOf('-'); const addr = tid.slice(0, j0), chain = tid.slice(j0 + 1); const evm = /^0x[0-9a-fA-F]{40}$/.test(addr); if (!evm && !(chain === 'solana' && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr))) return null; /*MC121 Solana 合约是 base58（分大小写，不转小写）*/
     const v = {
       n: String(t.name || '').slice(0, 40), s: String(t.symbol || '').slice(0, 20), h: num(t.holders), bt: num(t.buy_tax), st: num(t.sell_tax),
       rs: num(t.risk_score), rl: num(t.ave_risk_level), hp: t.is_honeypot === true || t.is_honeypot === '1' || t.is_honeypot === 1 ? 1 : t.is_honeypot === false || t.is_honeypot === '0' || t.is_honeypot === 0 ? 0 : null, /* -1／没给＝不知道（不是「不是貔貅」） */ mint: t.is_mintable === '1' || t.has_mint_method === 1 || t.has_mint_method === '1' ? 1 : 0,
@@ -54,13 +57,13 @@ export function startAve({ DIR, log, tg }) {
       mk1: num(t.token_makers_1h), mk24: num(t.token_makers_24h), tx1: num(t.token_tx_count_1h), by24: num(t.token_buyers_24h), sl24: num(t.token_sellers_24h), v5: num(t.token_tx_volume_usd_5m), v1: num(t.token_tx_volume_usd_1h), c5: num(t.token_price_change_5m), c1: num(t.token_price_change_1h), c24: num(t.token_price_change_24h ?? t.price_change_24h),
     };
     for (const k of Object.keys(v)) if (v[k] === null || v[k] === '') delete v[k];
-    return [chain === 'robinhood' ? 'rh' : chain, addr.toLowerCase(), v];
+    return [chain === 'robinhood' ? 'rh' : chain, evm ? addr.toLowerCase() : addr, v];
   }
   const put = (p) => { if (!p) return; const M = (B.m[p[0]] = B.m[p[0]] || {}); M[p[1]] = { ...(M[p[1]] || {}), ...p[2] }; };
   /* 资料进来只走这两个入口（现在是定时抓，之后换 AVE WebSocket 推送也是呼叫这两个，看盘那边不用改） */
   const ingestList = (tag, arr) => { const out = []; for (const t of arr || []) { const p = pack(t); if (!p) continue; put(p); out.push(p[1]); } B.cols[tag] = out; B.colsAt = B.colsAt || {}; B.colsAt[tag] = Date.now(); return out.length; };
   const ingestTokens = (arr) => { let n = 0; for (const t of arr || []) { const p = pack(t); if (p) { put(p); n++; } } return n; };
-  let rot = 0; const lists = () => { try { const j = JSON.parse(readFileSync(join(DIR, 'data', 'ave_lists.json'), 'utf8')); const L = (Array.isArray(j?.lists) ? j.lists : []).filter((x) => Array.isArray(x) && (x[0] === 'platform' || x[0] === 'trending') && /^[a-z0-9_=&]{3,80}$/i.test(String(x[1])) && Number(x[2]) > 0 && Number(x[2]) <= 20).slice(0, 40); return L.length ? L : LISTS; } catch { return LISTS; } };
+  let rot = 0, mcRot = 0; const lists = () => { try { const j = JSON.parse(readFileSync(join(DIR, 'data', 'ave_lists.json'), 'utf8')); const L = (Array.isArray(j?.lists) ? j.lists : []).filter((x) => Array.isArray(x) && (x[0] === 'platform' || x[0] === 'trending') && /^[a-z0-9_=&]{3,80}$/i.test(String(x[1])) && Number(x[2]) > 0 && Number(x[2]) <= 20).slice(0, 40); return L.length ? L : LISTS; } catch { return LISTS; } };
   function prune() { const now = Date.now(); for (const M of Object.values(B.m)) for (const [a, v] of Object.entries(M)) if (now - (v.u || 0) > 3 * 3600e3) delete M[a]; }
   function slowCheck() { const cu = usedToday(); if (cu < DAY_SOFT) return false; if (warned !== today()) { warned = today(); log(`[AVE] 今天已用 ${cu} 单位，自动放慢`); tg?.(`📊 AVE 额度提醒：今天已用 ${cu} 单位（超过 ${DAY_SOFT}），雷达已自动放慢更新（清单改 15 分钟一次、新币不补查）。额度不够可以找 AVE 加。`).catch?.(() => {}); } return true; }
   async function listTick() {
@@ -72,6 +75,9 @@ export function startAve({ DIR, log, tg }) {
           const arr = Array.isArray(d) ? d : d?.tokens || []; const k = kind === 'platform' ? (q.match(/tag=([a-z0-9_]+)/i) || [, 'x'])[1] : 'trend_' + (q.match(/chain=([a-z]+)/) || [, 'x'])[1];
           n += ingestList(k, arr); } catch (e) { log('[AVE] ' + kind + ' ' + e.message); }
         await new Promise((r) => setTimeout(r, 400)); }
+      if (!slow) { let mcSpent = 0; for (let i = 0; i < MC_LISTS.length; i++) { const [kind, q, cu] = MC_LISTS[mcRot % MC_LISTS.length]; if (mcSpent + cu > MC_ROUND_CU) break; mcSpent += cu; mcRot = (mcRot + 1) % MC_LISTS.length; /*MC121*/
+        try { const d = await call(kind === 'platform' ? '/v2/tokens/platform?' + q : '/v2/tokens/trending?' + q, cu); const arr = Array.isArray(d) ? d : d?.tokens || []; const k = kind === 'platform' ? (q.match(/tag=([a-z0-9_]+)/i) || [, 'x'])[1] : 'trend_' + (q.match(/chain=([a-z]+)/) || [, 'x'])[1]; n += ingestList(k, arr); } catch (e) { log('[AVE] 多链 ' + kind + ' ' + e.message); }
+        await new Promise((r) => setTimeout(r, 400)); } }
       if (n) { prune(); save(); fails = 0; } else if (++fails === 3) log('[AVE] 连续 3 轮读不到资料（金钥过期或额度用完？）');
     } finally { busy = false; }
   }
@@ -92,7 +98,7 @@ export function startAve({ DIR, log, tg }) {
       if (Object.keys(SM).length) { B.sm = SM; B.sw = SW; B.smAt = Date.now(); save(); } } finally { busy3 = false; } }
   
   let busy4 = false; async function hotTick() { if (busy4 || slowCheck()) return; busy4 = true;
-    try { const all = []; for (const [ch, M] of Object.entries(B.m)) for (const [a, v] of Object.entries(M)) all.push([ch, a, +v.v24 || 0]); all.sort((x, y) => y[2] - x[2]);
+    try { const all = []; for (const [ch, M] of Object.entries(B.m)) { if (ch !== 'bsc' && ch !== 'rh') continue; /*MC121 热门补查照旧只补 BNB Chain／Robinhood*/ for (const [a, v] of Object.entries(M)) all.push([ch, a, +v.v24 || 0]); } all.sort((x, y) => y[2] - x[2]);
       const ids = all.slice(0, 50).map(([ch, a]) => a + '-' + (ch === 'rh' ? 'robinhood' : 'bsc')); if (!ids.length) return; const d = await call('/v2/tokens/search', 100, { token_ids: ids }); let n = 0; for (const t of Array.isArray(d) ? d : d?.tokens || []) { put(pack(t)); n++; } if (n) save(); } catch (e) { log('[AVE] 热门补查 ' + e.message); } finally { busy4 = false; } }
   const htParse = (L) => { /* KOL-AVE：AVE 持有人 new_tags → 各类人数／占比（%）。en 有写就照 en 判断（type 编号可能会变），en 空白才看 type；同一个持有人每类只算一次 */
   const C = { kol: [/^kol$/i, '31'], sm: [/^smart\s*money$/i, '30'], wh: [/^whale$/i, '39'], bu: [/^bundle/i, '36'], ca: [/^cabal$/i, '35'], ph: [/^phishing/i, '34'] };

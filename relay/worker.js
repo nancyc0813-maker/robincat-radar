@@ -130,6 +130,10 @@ async function sessionNew(req, env) { const t = await req.text(); if (t.length >
 /* ── 11/3 她选 3：用户点开币也看到 AVE 数据。金钥只在这里（Cloudflare 秘密变数 AVE_KEY），不给用户。
    只准查白名单里的「读取」接口；同样的查询大家共用快取；每天有总用量上限，超过就暂停到隔天，不会把额度用爆 ── */
 const AVE_OK = [[/^\/v2\/tokens\/0x[0-9a-f]{40}-(bsc|robinhood)$/, 3, 5], [/^\/v2\/contracts\/0x[0-9a-f]{40}-(bsc|robinhood)$/, 1800, 10], [/^\/v2\/tokens\/top100\/0x[0-9a-f]{40}-(bsc|robinhood)\?limit=100$/, 60, 10], [/^\/v2\/tokens\/holders\/0x[0-9a-f]{40}-(bsc|robinhood)\?limit=100$/, 60, 10] /* KOL-AVE：持有人标签，跟 top100 同样快取／计费 */, [/^\/v2\/klines\/(token|pair)\/0x[0-9a-f]{40}(_[a-z0-9]+)?-(bsc|robinhood)\?interval=(1|5|15|60|240|1440)&limit=(200|600|1000)$/, 5, 10], [/^\/v2\/address\/walletinfo\?chain=(bsc|robinhood)&wallet_address=0x[0-9a-f]{40}$/, 1800, 5], [/^\/v2\/address\/walletinfo\/tokens\?chain=(bsc|robinhood)&pageSize=100&wallet_address=0x[0-9a-f]{40}$/, 1800, 10], [/^\/v2\/address\/smart_wallet\/list\?chain=(bsc|robinhood)(&sort=(profit|win_rate|total_profit|pnl))?$/, 3600, 5]];
+/*MC121 多链看盘（只读）：Solana／Ethereum／Base 的代币详情、持有人、K 线、成交、交易者小卡。跟 BNB Chain 同一套计费、快取、限速 */
+const MC_ID = '(?:0x[0-9a-f]{40}-(?:eth|base)|[1-9A-HJ-NP-Za-km-z]{32,44}-solana)';
+AVE_OK.push([new RegExp('^/v2/tokens/' + MC_ID + '$'), 3, 5], [new RegExp('^/v2/tokens/holders/' + MC_ID + '\\?limit=100$'), 60, 10], [new RegExp('^/v2/klines/token/' + MC_ID + '\\?interval=(1|5|15|60|240|1440)&limit=200$'), 5, 10],
+  [new RegExp('^/v2/txs/swap/' + MC_ID + '\\?limit=50&sort=desc$'), 15, 50], [new RegExp('^/v2/address/walletinfo\\?chain=(?:solana&wallet_address=[1-9A-HJ-NP-Za-km-z]{32,44}|(?:eth|base)&wallet_address=0x[0-9a-f]{40})$'), 1800, 5]);
 const MC = new Map(), MC_MAX = 2000; /* H8-D5：这个执行个体自己的快取（*.workers.dev 上 caches.default 可能不生效） */
 const mcGet = (k) => { const v = MC.get(k); if (!v) return null; if (Date.now() > v.exp) { MC.delete(k); return null; } return v.body; };
 const mcPut = (k, body, ttlS) => { MC.set(k, { body, exp: Date.now() + ttlS * 1000 }); if (MC.size > MC_MAX) MC.delete(MC.keys().next().value); };

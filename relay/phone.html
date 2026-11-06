@@ -1402,6 +1402,65 @@ document.addEventListener('click', async (ev) => {
   try { await cp; toast('已复制合约'); } catch { toast('复制不了，请长按合约自己复制'); } }, true);
 setInterval(() => { if (PC_ON && TAB === 'board' && PCAT === 'ely' && !document.hidden) loadEly(); }, ELYP.tick);
 /*ELY107-PHONE-END*/</script>
+<script>/*MC121-PHONE-BEGIN*/
+/* 多链看盘（只看，11/6）：手机看盘多一个「🌍 多链（只看）」。资料经电脑（PHM.mc／PHM.mcd）读 AVE；手机这里没有任何下单指令。
+   「去 AVE 买」＝复制合约＋打开 AVE 网页（交易在你自己的 AVE 钱包完成，雷达不经手）。「在这条链交易」开关只在电脑上，这一步打开也只显示「此链交易即将开放」。 */
+let MCD = null, MCB = 0, MCS = null; const MCP = { tick: 15000, short: 6 }; /* 技术用：多久跟电脑要一次、合约显示前后几码 */
+const MC_PH = { chain: 'solana', tab: 'hot' }; const MC_NEW = ['solana', 'eth', 'base']; const MC_CH = { solana: '🟣 Solana', eth: '🔷 Ethereum', base: '🔵 Base' };
+const MC_B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/, MC_A40 = /^0x[0-9a-f]{40}$/; const mcOk = (ch, a) => (ch === 'solana' ? MC_B58.test(String(a || '')) : MC_A40.test(String(a || '').toLowerCase()));
+const mcAve = (ch, a) => (MC_NEW.includes(ch) && mcOk(ch, a) ? 'https://ave.ai/token/' + (ch === 'solana' ? String(a) : String(a).toLowerCase()) + '-' + ch : '');
+const mcU = (v) => { if (v == null || !isFinite(v)) return '—'; const a = Math.abs(v); return '$' + (a >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : a >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : a >= 1e3 ? (v / 1e3).toFixed(1) + 'K' : a >= 1 ? v.toFixed(2) : v.toPrecision(3)); };
+const mcC = (v) => (v == null || !isFinite(v) ? '—' : `<span style="color:${v >= 0 ? '#0ecb81' : '#f6465d'}">${v >= 0 ? '+' : ''}${(+v).toFixed(1)}%</span>`);
+const mcTag = (m) => (m === 'soon' ? '即将开放' : m === 'trade' ? '可在雷达买卖' : '只能看');
+async function loadMc() { if (!PC_ON || MCB) return; MCB = 1; try { if (!MCS) MCS = await req('mcChains', {}, 20000).catch(() => null); MCD = await req('mc', { chain: MC_PH.chain, tab: MC_PH.tab }, 20000); } catch (e) { if (!MCD || MCD.err) MCD = { err: e.message }; } MCB = 0; if (TAB === 'board' && PCAT === 'mc') render(); }
+{ const cp0 = catPaint; catPaint = function () { const r = cp0.apply(this, arguments); const el = document.querySelector('#bCat'); if (el && !el.querySelector('[data-k="mc"]')) el.insertAdjacentHTML('beforeend', `<button data-a="pcat" data-k="mc" class="${PCAT === 'mc' ? 'on' : ''}">🌍 多链</button>`); return r; }; }
+function fillMc() { const D = MCD; const sh = (c) => (c.length > 16 ? c.slice(0, MCP.short) + '…' + c.slice(-MCP.short + 2) : c);
+  const det = (() => { const K = MCS?.kinds || {}; const out = []; for (const k of Object.values(K)) { const nw = MC_NEW.filter((c) => (k.chains || []).includes(c)); out.push(esc(k.zh || '') + '：' + (nw.length ? '已侦测到可交易：' + nw.map((c) => esc((MC_CH[c] || c).replace(/^\S+\s/, ''))).join('、') + '（尚未开放）' : '没侦测到新链')); } return out.join(' · '); })();
+  setHTML('#bStrip', ''); setHTML('#bSort', '');
+  setHTML('#bNet', MC_NEW.map((c) => `<button data-mc-pch="${c}" class="${MC_PH.chain === c ? 'on' : ''}">${MC_CH[c]}</button>`).join(''));
+  const tabs = (D?.tabs?.length ? D.tabs : [{ k: 'fresh', zh: '🆕 新创建' }, { k: 'soon', zh: '🚀 即将发射' }, { k: 'hot', zh: '🔥 热门' }, { k: 'done', zh: '✅ 已发射' }]);
+  setHTML('#bCol', tabs.map((t) => `<button data-mc-ptab="${esc(t.k)}" class="${MC_PH.tab === t.k ? 'on' : ''}">${esc(t.zh)}${t.n != null ? ' ' + t.n : ''}</button>`).join(''));
+  const m = D?.mode || 'view';
+  const head = `<div style="margin:0 4px 8px;padding:9px 11px;border-radius:10px;background:#16202c;border:1px solid #2a3646;font-size:12.5px;line-height:1.6">${esc(MC_CH[MC_PH.chain] || '')} · <b>${mcTag(m)}</b>${det ? '<br>👛 ' + det : ''}<br><span class="mu">${m === 'soon' ? '此链交易即将开放：现在还不会下单。' : '按「去 AVE 买」会复制合约并打开 AVE，在你自己的 AVE 钱包交易。'}自动策略、⚡ 快速买、止盈止损、铸造、挖矿在这条链都不运作。</span></div>`;
+  if (!D) { setHTML('#bList', head + (PC_ON ? skRows(5) : '<div class="empty">电脑雷达没在线</div>')); return; }
+  if (D.err) { setHTML('#bList', head + `<div class="empty">暂时读不到（${esc(D.err)}）</div>`); return; }
+  const W = { bind: 'AVE 资料要先完成邀请绑定／转接站', board: 'AVE 看盘资料还没下来', nolist: 'AVE 这条链目前没有这一类清单', empty: '这个清单现在是空的' };
+  const rows = (D.items || []).filter((x) => mcOk(MC_PH.chain, x.c)).map((x) => `<div class="tr" data-mc-pd="${esc(x.c)}"><div class="nm"><div class="t"><b>${esc(x.sym || '?')}</b> <span class="mu" style="font-size:11px">${esc(String(x.name || '').slice(0, 20))}</span></div><small><span data-mc-pcp="${esc(x.c)}">${esc(sh(x.c))} 📋</span></small><small class="l2" style="white-space:normal">市值 ${mcU(x.mc)} · 流动性 ${mcU(x.liq)} · 24h ${mcU(x.v24)} ${mcC(x.c24)}${x.kol ? ' · 🎙×' + x.kol : ''}</small></div><div class="rt"><button class="btn g s" data-mc-pave="${esc(x.c)}">去 AVE 买<br><small>Buy on AVE</small></button></div></div>`).join('');
+  setHTML('#bList', head + (rows || `<div class="empty">没有资料：${esc(W[D.why] || D.why || '')}</div>`)); }
+/* 详情整页（跟 BNB Chain 详情同一种整页版面：上方名称＋价格、K 线、涨跌、大的「去 AVE 买」、持有者／KOL）。没有任何下单按钮 */
+let MCP_D = null; const MC_TF = [['1m', '1分'], ['5m', '5分'], ['15m', '15分'], ['1h', '1小时'], ['4h', '4小时'], ['1d', '1天']];
+function mcCandles(K) { if (!K || K.length < 2) return ''; const W = 360, H = 170; const hi = Math.max(...K.map((x) => x[1])), lo = Math.min(...K.map((x) => x[2])), rg = hi - lo || hi || 1; const bw = W / K.length; const y = (v) => 4 + (H - 8) * (1 - (v - lo) / rg);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:190px;display:block">${K.map((k, i) => { const up = k[3] >= k[0]; const col = up ? '#0ecb81' : '#f6465d'; const x = i * bw + bw / 2; const t = y(Math.max(k[0], k[3])), b = y(Math.min(k[0], k[3])); return `<line x1="${x}" x2="${x}" y1="${y(k[1])}" y2="${y(k[2])}" stroke="${col}" stroke-width="1"/><rect x="${x - bw * 0.35}" width="${Math.max(1, bw * 0.7)}" y="${t}" height="${Math.max(1, b - t)}" fill="${col}"/>`; }).join('')}</svg>`; }
+function mcPage() { let el = document.querySelector('#mcPd'); if (!el) { el = document.createElement('div'); el.id = 'mcPd'; el.className = 'dt'; document.body.appendChild(el); } return el; }
+function mcPaint() { const el = mcPage(); const D = MCP_D; if (!D) { el.classList.remove('on'); el.innerHTML = ''; return; } const d = D.d || {}; const T = d.tok || {}; const Hd = d.hold; const m = d.mode || 'view'; const ch = D.chain; const sym = T.sym || D.c.slice(0, 6);
+  const det = (() => { const K = MCS?.kinds || {}; const out = []; for (const k of Object.values(K)) { const nw = MC_NEW.filter((c) => (k.chains || []).includes(c)); out.push(esc(k.zh || '') + '：' + (nw.length ? '已侦测到可交易：' + nw.map((c) => esc((MC_CH[c] || c).replace(/^\S+\s/, ''))).join('、') + '（尚未开放）' : '没侦测到新链')); } return out.join(' · '); })();
+  const hold = Hd ? `<div style="margin:2px 0 8px;font-size:13px">🎙 KOL ×${Hd.k}${Hd.kn?.length ? '：' + esc(Hd.kn.join('、')) : ''} · 🧠 ×${Hd.sm} · 🐋 ×${Hd.wh}</div>` + (Hd.rows || []).map((r, i) => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line,#ffffff12)"><span>${i + 1}. ${esc(r.a.slice(0, 6) + '…' + r.a.slice(-4))} ${r.kol ? '<b style="font-size:10px;background:#f0b90b;color:#111;border-radius:4px;padding:1px 4px">KOL</b> ' + esc(r.nick || '') : ''}${r.sm ? ' 🧠' : ''}${r.wh ? ' 🐋' : ''}</span><span>${r.p == null ? '—' : (+r.p).toFixed(2) + '%'}</span></div>`).join('') : `<div class="mu" style="font-size:13px">${D.d ? '持有者读不到' : '读取中…'}</div>`;
+  el.innerHTML = `<div class="dth"><button class="bk" data-mc-pback="1" aria-label="返回">${IC.back}</button>${logo(sym, D.c, '', 'm')}<div class="nm"><b>${esc(sym)}<span class="tag">${ch === 'solana' ? 'SOL' : ch === 'eth' ? 'ETH' : 'BASE'}</span></b><small>${esc(T.name || (D.c.slice(0, 6) + '…' + D.c.slice(-4)))}</small></div><button class="ib" data-mc-pcp="${esc(D.c)}" aria-label="复制合约">${IC.copy}</button></div>
+  <div class="pxrow"><div style="min-width:0"><div class="px">${D.d ? pxf(T.price) : '…'}</div><div class="chg">${mcC(T.c24)} <i>24h</i></div></div><div class="mcR"><b>${mcU(T.mc)}</b><small>市值</small></div></div>
+  <div style="padding:0 14px">${d.k?.length ? mcCandles(d.k) : `<div class="mu" style="height:190px;display:flex;align-items:center;justify-content:center;font-size:13px">${D.d ? 'K 线读不到' + (d.kwhy ? '（' + esc(d.kwhy) + '）' : '') : 'K 线读取中…'}</div>`}</div>
+  <div class="tfs">${MC_TF.map(([k, n]) => `<button data-mc-ptf="${k}" class="${k === D.tf ? 'on' : ''}">${n}</button>`).join('')}</div>
+  <div class="chg4">${[['5M', T.c5], ['1H', T.c1], ['24H', T.c24], ['流动性', null]].map(([k, v], i) => `<div>${k}<b>${i === 3 ? mcU(T.liq) : mcC(v)}</b></div>`).join('')}</div>
+  <div style="padding:6px 14px 0"><button class="btn" data-mc-pave="${esc(D.c)}" style="width:100%;padding:14px;font-size:17px;font-weight:800;background:#f0b90b;color:#111;border:0;border-radius:12px">去 AVE 买 ↗</button>
+  <div style="margin:10px 0 0;padding:9px 11px;border-radius:10px;background:#16202c;border:1px solid #2a3646;font-size:12.5px;line-height:1.6"><b>${m === 'soon' ? '此链交易即将开放（现在还不会下单）' : '此链在雷达内交易尚未开放'}</b><br><span class="mu">会复制合约并打开 AVE，在你自己的 AVE 钱包交易。自动策略、⚡ 快速买、止盈止损、铸造、挖矿在这条链都不运作。</span>${det ? '<br>👛 ' + det : ''}<br><span class="mu">「在这条链交易」开关：${d.det ? (d.on ? '已打开（即将开放）' : '关（预设）') : '钱包没侦测到这条链'}，要改请在电脑雷达。</span></div></div>
+  <div style="padding:14px 18px 90px"><div style="font-weight:700;margin-bottom:6px">持有者</div>${hold}${d.why && !T.sym && D.d ? `<p class="note">部分资料读不到：${esc(d.why)}</p>` : ''}</div>`;
+  el.classList.add('on'); }
+async function mcOpen(c, tf) { const ch = MC_PH.chain; if (!mcOk(ch, c)) return; const first = !MCP_D || MCP_D.c !== c; MCP_D = { chain: ch, c, tf: tf || '5m', d: first ? null : MCP_D.d }; if (first) { try { history.pushState({ mc: 1 }, '', location.pathname + location.hash); } catch {} mcPage().scrollTop = 0; } mcPaint();
+  let d; try { d = await req('mcd', { chain: ch, c, tf: MCP_D.tf }, 25000); } catch (e) { d = { why: e.message }; } if (MCP_D?.c !== c) return; MCP_D.d = d; mcPaint(); }
+function mcClose() { if (!MCP_D) return; MCP_D = null; mcPaint(); }
+window.addEventListener('popstate', () => { if (MCP_D) mcClose(); });
+{ const fb0 = fillBoard; fillBoard = function () { if (typeof PCAT !== 'undefined' && PCAT === 'mc') { try { catPaint(); } catch {} return fillMc(); } return fb0.apply(this, arguments); }; }
+document.addEventListener('click', async (ev) => {
+  const p = ev.target.closest?.('[data-a="pcat"][data-k="mc"]'); if (p) { ev.stopImmediatePropagation(); PCAT = 'mc'; MCD = null; render(); loadMc(); return; }
+  const pc = ev.target.closest?.('[data-mc-pch]'); if (pc) { ev.stopImmediatePropagation(); MC_PH.chain = pc.dataset.mcPch; MCD = null; render(); loadMc(); return; }
+  const pt = ev.target.closest?.('[data-mc-ptab]'); if (pt) { ev.stopImmediatePropagation(); MC_PH.tab = pt.dataset.mcPtab; MCD = null; render(); loadMc(); return; }
+  const b = ev.target.closest?.('[data-mc-pcp],[data-mc-pave]');
+  if (!b) { const bk = ev.target.closest?.('[data-mc-pback]'); if (bk) { ev.stopImmediatePropagation(); try { history.back(); } catch {} mcClose(); return; } const tf = ev.target.closest?.('[data-mc-ptf]'); if (tf && MCP_D) { ev.stopImmediatePropagation(); mcOpen(MCP_D.c, tf.dataset.mcPtf); return; } const r = ev.target.closest?.('[data-mc-pd]'); if (r && PCAT === 'mc') { ev.stopImmediatePropagation(); mcOpen(r.dataset.mcPd); } return; }
+  ev.stopImmediatePropagation(); const ch = MCP_D?.chain || MC_PH.chain; const c = String(b.dataset.mcPcp ?? b.dataset.mcPave ?? ''); if (!mcOk(ch, c)) return;
+  let cp; try { cp = navigator.clipboard.writeText(c); } catch (e) { cp = Promise.reject(e); } /* 先送出复制，再同步打开网页（手机浏览器要在按下的当下开新页） */
+  if (b.dataset.mcPave != null) { const u = mcAve(ch, c); if (u) window.open(u, '_blank', 'noopener'); }
+  try { await cp; toast('已复制合约'); } catch { toast('复制不了，请长按合约自己复制'); } }, true);
+setInterval(() => { if (PC_ON && TAB === 'board' && PCAT === 'mc' && !document.hidden) loadMc(); }, MCP.tick);
+/*MC121-PHONE-END*/</script>
 <style id="smpPh">/* 简单／专业模式（手机） */
 #smpPhAdv{margin:6px 14px 0;padding:7px 10px;border-radius:10px;border:1px solid #f0b90b55;background:#f0b90b12;font-size:12.5px;line-height:1.45}#smpPhAdv b{color:#f0b90b}#smpPhAdv small{display:block;color:var(--mute)}
 .smpTp .smpRow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0;font-size:14.5px}.smpTp .smpRow input[type=number]{width:64px;text-align:center;background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 4px;font-size:15px;font-weight:700}

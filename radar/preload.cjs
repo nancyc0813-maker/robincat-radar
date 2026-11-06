@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('radar', {
   guardAsk: () => call('guardAsk'), /* WAL-GATE：再跳一次守护金钥确认视窗 */
   invCheck: (c) => call('invCheck', S(c, 80)),
   hotBoard: (n) => call('hotBoard', S(n, 20)),
+  mc: (a, o) => call('mc', S(a, 40), O(o)), /*MC121 多链看盘（只读：看盘／详情／K 线／成交／交易者小卡／「在这条链交易」开关）*/
   smartAuto: () => call('smartAuto'),
   airHot: (f) => call('airHot', B(f)),
   airCheck: (u) => call('airCheck', S(u, 2000)),

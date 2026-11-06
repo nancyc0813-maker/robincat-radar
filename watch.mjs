@@ -1951,7 +1951,7 @@ async function radarOrders() {
       } catch (e) { return { c, kind: 'other', why: '读取失败：' + e.message.slice(0, 60) }; } }));
       out.found.sort((a, b) => (b.self - a.self) || ((b.kind === 'mint') - (a.kind === 'mint')));
       W_(out); log(`雷达搜寻 ${q}：${out.found.length} 个合约`); })().catch((e) => log('雷达搜寻出错 ' + e.message)); continue; }
-    const c = String(o.c || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(c) || Date.now() - (o.at || 0) > 5 * 60e3) continue; /* 过期的旧单（例如重开前按的）不执行，只会挡、不会多买 */
+    const c = String(o.c || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(c) || Date.now() - (o.at || 0) > 5 * 60e3) continue; if (o.mc != null || o.mcChain != null || (o.chain != null && o.chain !== '' && !['56', '4663'].includes(String(o.chain)))) { log(`雷达单 ${o.type} ${o.name || c}：不是雷达现有买卖的链（${String(o.chain ?? o.mcChain ?? o.mc).slice(0, 20)}），不执行`); continue; } /*MC121-ORD 引擎也挡一次：只执行 BNB Chain／Robinhood 的单*/ /* 过期的旧单（例如重开前按的）不执行，只会挡、不会多买 */
     if (['buy', 'mint', 'nftmint', 'shareMint'].includes(o.type)) { const bb = buyBlock(); if (bb) { log(`雷达${o.type === 'buy' ? '手动买' : '铸造'} ${o.name || c}：${bb}`); try { writeFileSync(join(DIR, 'data', 'buy_block.json'), JSON.stringify({ at: Date.now(), c, name: o.name || '', msg: bb })); } catch {} continue; } } /* 全停／手动买关闭时，雷达、手机送来的买单一律不执行 */
     if (o.type === 'sentRevoke' || o.type === 'sentAck') { if (globalThis.SENTINEL) globalThis.SENTINEL.order(o).catch((e) => log('安全哨兵 ' + e.message)); else log('安全哨兵模组没载入'); continue; } /* 你按的「去取消授权」／「知道了」（取消授权只拿掉对方权限，不转钱） */
     if (o.type === 'mintpick') { if (globalThis.MINTPICK) globalThis.MINTPICK.order(o, c).catch((e) => log('选打法出错 ' + e.message)); else log('选打法模组没载入'); continue; } /* 列出／预演／存起来／送出（送出一样挡紧急全停、手动买卖关、两个雷达） */
@@ -3037,9 +3037,22 @@ async function paidLoop(mode = 'all', shard = null) {
   }
 }
 
+/*MC121-W 钱包种类 → 支援链（自动读取）：引擎启动、重新登入后各读一次 `baw wallet chains`（唯读，只列链，不签名、不送交易），结果写 data/wallet_chains.json 给画面判断。
+   读不到＝这个钱包没有支援任何新链（画面照旧只能看）；BNB Chain／Robinhood 的买卖不看这个档，行为不变。 */
+const MCW = { last: {}, st: {} }; const MCW_MS = 6 * 3600e3; /* 技术用：同一个钱包多久重读一次（重新登入会马上重读） */
+async function mcWalletScan(W, force) { const now = Date.now(); if (!force && now - (MCW.last[W.name] || 0) < MCW_MS) return; MCW.last[W.name] = now; let rec;
+  try { const r = await W.baw(['wallet', 'chains'], 60000); const L = r?.j?.success !== false && Array.isArray(r?.j?.data) ? r.j.data : null;
+    rec = L ? { at: now, ok: 1, ids: L.map((x) => String(x?.binanceChainId ?? '')).filter((x) => /^[A-Za-z0-9_]{1,20}$/.test(x)), names: L.map((x) => String(x?.simpleName || x?.name || '').replace(/[^\w .-]/g, '').slice(0, 30)) } : { at: now, ok: 0, err: String(r?.j?.error?.message || r?.t || '').replace(/[\u0000-\u001f]/g, ' ').slice(0, 120) }; }
+  catch (e) { rec = { at: now, ok: 0, err: String(e?.message || e).slice(0, 120) }; }
+  const f = join(DIR, 'data', 'wallet_chains.json'); let o = {}; try { o = JSON.parse(readFileSync(f, 'utf8')) || {}; } catch {} if (!o.kinds || typeof o.kinds !== 'object') o.kinds = {};
+  if (!o.kinds.binance || typeof o.kinds.binance !== 'object') o.kinds.binance = { wallets: {} }; if (!o.kinds.binance.wallets || typeof o.kinds.binance.wallets !== 'object') o.kinds.binance.wallets = {};
+  const keep = new Set(WALLETS.map((x) => x.name)); for (const k of Object.keys(o.kinds.binance.wallets)) if (!keep.has(k)) delete o.kinds.binance.wallets[k];
+  o.kinds.binance.wallets[W.name] = rec; o.at = now; try { const tmp = f + '.w' + process.pid; writeFileSync(tmp, JSON.stringify(o)); renameSync(tmp, f); } catch {} }
+/*MC121-W-END*/
 async function loginCheck() {
   for (const W of WALLETS) {
     const r = await W.baw(['wallet', 'status'], 60000);
+    { const on = r.j?.data?.status === 'CONNECTED'; const was = MCW.st[W.name]; MCW.st[W.name] = on ? 1 : 0; if (on) mcWalletScan(W, was !== 1).catch(() => {}); } /*MC121-W 启动／重新登入后读这个钱包支援哪些链（只读）*/
     if (r.j?.data?.status === 'CONNECTED') {
       // 开发者模式到期提醒（提前几小时＝你的 notify.devModeH）
       const st = await W.baw(['wallet', 'settings'], 60000); const exp = Date.parse(st.j?.data?.devMode?.expiresAt || '');
@@ -3095,7 +3108,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.0.20', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.0.21', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;

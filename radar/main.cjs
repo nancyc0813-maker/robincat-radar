@@ -261,7 +261,7 @@ const DEV_RETRY_MS = 10 * 60e3; /* 运作：跟卖单送出后多久没结果就
 const zNum = (z, k) => { const v = z[k]; if (v === '' || v == null) return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 async function aveAlertsTick() { if (ALS.busy || Date.now() < AVE_DENY) return; AVE_BG.enterWith({ bg: 1 }); /* H8-D1：背景、AVE 暂停中就跳过 */ ALS.busy = 1; try { const z = readJSON(path.join(DATA, 'radar_settings.json'), {}); const A = aveBoard(); const now = Date.now(); const rpH = zv(z, 'alert.repeatH'); const once = (k) => { if (ALS.sent[k] && (rpH == null || now - ALS.sent[k] < rpH * 3600e3)) return false; ALS.sent[k] = now; return true; }; /* 同一个币多久可以再提醒＝你设的 alert.repeatH 小时；没设＝这次开着雷达只提醒一次 */
     const skHp = zon(z, 'alert.skipHp'), skRisk = zv(z, 'alert.skipRisk'), skWash = zon(z, 'alert.skipWash'); /* 提醒要不要跳过貔貅／高风险／刷量：全部是你自己的开关，预设都不跳过 */
-    if (A) for (const [k, M] of Object.entries(A.m || {})) { const chn = k === 'rh' ? 'Robinhood' : 'BNB Chain';
+    if (A) for (const [k, M] of Object.entries(A.m || {}).filter(([k]) => k === 'bsc' || k === 'rh') /*MC121-ALERT 提醒照旧只看 BNB Chain／Robinhood（多链资料不混进来）*/) { const chn = k === 'rh' ? 'Robinhood' : 'BNB Chain';
       /* 异动：5 分钟成交 ≥ 平常（1 小时平均）的 X 倍，而且 ≥ Y 美金；要不要跳过刷量／貔貅／高风险看你的开关 */
       const sx = zNum(z, 'alert.spikeX'), su = zNum(z, 'alert.spikeUsd');
       if (+z['alert.spike'] === 1 && sx > 0 && su > 0) for (const [addr, v] of Object.entries(M)) { const v5 = +v.v5 || 0, v1 = +v.v1 || 0; if (v5 < su || !(v1 > 0) || (skHp && v.hp) || (skRisk != null && v.rs != null && +v.rs >= skRisk)) continue; if (skWash && washHit(z, +v.tx1 || 0, +v.mk1 || 0)) continue; if (v5 / (v1 / HOUR_IN_5MIN) < sx) continue; if (!once('sp' + addr)) continue; tgQ(`⚡ 异动（${chn}）：${v.s || v.n || addr.slice(0, 8)}\n5 分钟成交 $${Math.round(v5)}，是平常的 ${(v5 / (v1 / HOUR_IN_5MIN)).toFixed(1)} 倍${v.c5 != null ? `，5 分钟涨跌 ${v.c5 >= 0 ? '+' : ''}${(+v.c5).toFixed(1)}%` : ''}\n${addr}\n（只是提醒，不会自动买）`); }
@@ -925,6 +925,111 @@ ipcMain.handle('smartAuto', () => { const z = readJSON(path.join(DATA, 'smart_au
 ipcMain.handle('restartEngine', () => startEngine()); /* 引擎停了，按一下重新启动（11/3 起 Mac 也可以） */
 ipcMain.handle('pause', (e, on) => { const f = path.join(DATA, 'pause_buy.txt'); if (on) fs.writeFileSync(f, String(Date.now())); else try { fs.unlinkSync(f); } catch {} cache.at = 0; return on; });
 /* MAINJS-IPC：画面送来的单先检查格式（只收已知的单种、栏位数与长度有上限）；src:'phone' 只能走 phoneOrder（手机转来的单），桌面单一律拿掉 */
+/*MC121-BEGIN 多链看盘（第 1 步：只看）
+   · 看盘资料：作者雷达整理好、经转接站下来的 AVE 看盘档（ave_board.json），切链只是换 chain 键，不另外花 AVE 额度
+   · 详情：用户点开才问 AVE（跟 BNB Chain 详情同一条转接站／排队／快取），成交只在按「成交」才查
+   · 可不可以在雷达买卖：MC_WALLET_KINDS（钱包种类 → 支援链，资料来自引擎自动读的 data/wallet_chains.json）＋玩家自己开的「在这条链交易」开关（预设关）。
+     这一步新链一律不下单：开关打开也只显示「此链交易即将开放」；BNB Chain／Robinhood 照旧 */
+const MC_CHAINS = [ /* 看盘链选单（热门链在前）；ave＝AVE 的链代号；addr＝合约格式 */
+  { k: 'solana', ave: 'solana', zh: 'Solana', en: 'Solana', ic: '🟣', addr: 'b58', doc: 1 },
+  { k: 'bsc', ave: 'bsc', zh: 'BNB Chain', en: 'BNB Chain', ic: '🟡', addr: 'evm', doc: 1, own: 'bsc' },
+  { k: 'eth', ave: 'eth', zh: 'Ethereum', en: 'Ethereum', ic: '🔷', addr: 'evm', doc: 0 },
+  { k: 'base', ave: 'base', zh: 'Base', en: 'Base', ic: '🔵', addr: 'evm', doc: 0 },
+  { k: 'robinhood', ave: 'robinhood', zh: 'Robinhood', en: 'Robinhood', ic: '🟢', addr: 'evm', doc: 1, own: 'rh' },
+  { k: 'elysium', ave: 'elysium', zh: 'Elysium', en: 'Elysium', ic: '🌐', addr: 'evm', doc: 0, own: 'ely' },
+]; /* doc：AVE 文件有没有写到这个链代号（0＝沿用 ave.ai 网址的写法，AVE 不认就显示读不到） */
+const MC_WALLET_KINDS = { /* 钱包种类 → 怎么读它支援哪些链。之后加 OKX AI 钱包＝在这里加一种（引擎写进 wallet_chains.json 的 kinds.<种类>） */
+  binance: { zh: '币安 AI 钱包（baw）', en: 'Binance AI wallet', ids: { '56': 'bsc', '1': 'eth', '8453': 'base', 'CT_501': 'solana', '4663': 'robinhood' } },
+};
+const MC_RADAR_TRADE = new Set(['bsc', 'robinhood']); /* 雷达已经有下单程式的链（现有行为，不动）；新链要等第 2 步逐链测试 */
+const MC_NEW = new Set(MC_CHAINS.filter((c) => !c.own).map((c) => c.k)); /* 这次新加、走多链面板的链 */
+const MC_T = { boardMs: 20e3, detMs: 60e3, kMs: 30e3, trMs: 15e3, wiMs: 300e3, rows: 120, hold: 30, trades: 50, mem: 300 }; /* 技术用：看盘／详情／K 线／成交／交易者小卡在记忆体留几毫秒、看盘一个分页最多几列、持有者列几位、成交列几笔、快取最多几个（只影响画面，不是买卖门槛） */
+const MC_B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/, MC_EVM = /^0x[0-9a-f]{40}$/;
+const mcChain = (k) => MC_CHAINS.find((c) => c.k === String(k || '')) || null;
+const mcAddr = (ch, a) => { const C = mcChain(ch); if (!C) return ''; a = String(a || '').trim(); if (C.addr === 'b58') return MC_B58.test(a) ? a : ''; a = a.toLowerCase(); return MC_EVM.test(a) ? a : ''; };
+const mcAveUrl = (ch, a) => { const C = mcChain(ch), x = mcAddr(ch, a); return C && x ? 'https://ave.ai/token/' + x + '-' + C.ave : ''; };
+function mcDetected() { /* 钱包种类 → 侦测到的链（读不到＝这个种类没有支援任何新链） */
+  const W = readJSON(path.join(DATA, 'wallet_chains.json'), null); const out = {}; const kinds = W && typeof W.kinds === 'object' ? W.kinds : {};
+  for (const [kind, K] of Object.entries(MC_WALLET_KINDS)) { const s = new Set(); const ws = kinds[kind] && typeof kinds[kind].wallets === 'object' ? kinds[kind].wallets : {};
+    for (const w of Object.values(ws)) { if (!w || !w.ok || !Array.isArray(w.ids)) continue; for (const id of w.ids) { const c = K.ids[String(id)]; if (c) s.add(c); } }
+    out[kind] = [...s]; }
+  return out; }
+const mcTradeSet0 = () => { const o = readJSON(path.join(DATA, 'mc_trade.json'), {}); return o && typeof o === 'object' ? o : {}; };
+function mcMode(ch, det) { /* trade＝雷达现有买卖（BNB Chain／Robinhood）；soon＝玩家打开了开关，但这一步还没接下单；view＝只能看（去 AVE 买） */
+  if (MC_RADAR_TRADE.has(ch)) return 'trade'; if (!MC_NEW.has(ch)) return 'view';
+  const D = det || mcDetected(); const sup = Object.values(D).some((L) => L.includes(ch)); if (!sup) return 'view';
+  return mcTradeSet0()[ch] === true ? 'soon' : 'view'; }
+function mcChains() { const det = mcDetected(); const on = mcTradeSet0(); const W = readJSON(path.join(DATA, 'wallet_chains.json'), null);
+  return { at: +W?.at || 0, kinds: Object.fromEntries(Object.entries(MC_WALLET_KINDS).map(([k, K]) => [k, { zh: K.zh, en: K.en, chains: det[k] || [] }])),
+    chains: MC_CHAINS.map((c) => ({ k: c.k, zh: c.zh, en: c.en, ic: c.ic, ave: c.ave, own: c.own || '', doc: c.doc, radar: MC_RADAR_TRADE.has(c.k) ? 1 : 0, det: Object.values(det).some((L) => L.includes(c.k)) ? 1 : 0, on: on[c.k] === true ? 1 : 0, mode: mcMode(c.k, det) })) }; }
+const MC_TABS = [['fresh', '🆕 新创建', '🆕 New'], ['soon', '🚀 即将发射', '🚀 About to launch'], ['hot', '🔥 热门', '🔥 Hot'], ['done', '✅ 已发射', '✅ Launched']];
+const mcTagTab = (tag, ave) => (tag === 'trend_' + ave ? 'hot' : /_in_new$/.test(tag) ? 'fresh' : /_in_almost$/.test(tag) ? 'soon' : /_in_hot$/.test(tag) ? 'inhot' : /_out_(new|hot)$/.test(tag) ? 'done' : '');
+const MCC = new Map(); const mcGet = (k, ms) => { const v = MCC.get(k); return v && Date.now() - v.at < ms ? v.v : null; }; const mcPut = (k, v) => { MCC.set(k, { at: Date.now(), v }); if (MCC.size > MC_T.mem) MCC.delete(MCC.keys().next().value); return v; };
+const mcNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+function mcBoard(ch, tab) { const C = mcChain(ch); if (!C || !MC_NEW.has(C.k)) return { err: 'chain' }; tab = MC_TABS.some((t) => t[0] === tab) ? tab : 'hot';
+  const ck = 'b|' + C.k + '|' + tab; const hit = mcGet(ck, MC_T.boardMs); if (hit) return hit;
+  const A = aveBoard(); const det = mcDetected(); const base = { chain: C.k, tab, mode: mcMode(C.k, det), at: +A?.at || 0, tabs: MC_TABS.map((t) => ({ k: t[0], zh: t[1], en: t[2], n: 0 })) };
+  if (!A) return { ...base, items: [], why: aveOK() ? 'board' : 'bind' }; /* 读不到＝空白＋原因，不猜 */
+  const M = A.m?.[C.ave] || {}; const H = A.ht?.[C.ave] || {}; const sp = zv(zSet(), 'board.hotPct'); /* 「即将发射」＝AVE 的 *_in_almost 清单；或是内盘币进度 ≥ 你填的 board.hotPct（跟 BNB Chain 同一个设定；没填就不分） */
+  const by = { fresh: new Set(), soon: new Set(), hot: new Set(), done: new Set() }; const tags = { fresh: [], soon: [], hot: [], done: [] };
+  for (const [tag, L] of Object.entries(A.cols || {})) { const t = mcTagTab(tag, C.ave); if (!t || !Array.isArray(L)) continue;
+    let mine = 0; for (const a0 of L) { const a = String(a0); if (!M[a]) continue; mine = 1; if (t === 'inhot') { const pg = mcNum(M[a].pg); if (sp != null && pg != null && pg >= sp) by.soon.add(a); continue; } by[t].add(a); }
+    const tt = t === 'inhot' ? 'soon' : t; if (mine && !tags[tt].includes(tag)) tags[tt].push(tag); } /* 清单不分链：里面有这条链的币才算这条链的清单 */
+  for (const a of by.fresh) { const pg = mcNum(M[a].pg); if (sp != null && pg != null && pg >= sp) { by.soon.add(a); by.fresh.delete(a); } }
+  base.tabs.forEach((t) => { t.n = by[t.k].size; t.src = tags[t.k]; });
+  const row = (a) => { const v = M[a] || {}; const h = H[a]; const mk = MCC.get('k|' + C.k + '|' + a)?.v; /* KOL：作者雷达查过的（ht）或你点开过详情的 */
+    return { c: a, sym: String(v.s || ''), name: String(v.n || ''), lg: String(v.lg || ''), price: mcNum(v.cp), mc: mcNum(v.mc), liq: mcNum(v.tvl), v24: mcNum(v.v24), v1: mcNum(v.v1), h: mcNum(v.h), tx24: mcNum(v.tx), c5: mcNum(v.c5), c1: mcNum(v.c1), c24: mcNum(v.c24), ca: mcNum(v.ca), pg: mcNum(v.pg), plat: String(v.pl || ''), hp: v.hp ?? null,
+      kol: h ? mcNum(h.k) : mk ? mk.k : null, kn: (h ? h.kn : mk ? mk.kn : null) || [] }; };
+  let items = [...by[tab]].map(row); items.sort(tab === 'fresh' ? (x, y) => (y.ca ?? -Infinity) - (x.ca ?? -Infinity) : (x, y) => (y.v24 ?? -Infinity) - (x.v24 ?? -Infinity));
+  const total = items.length; items = items.slice(0, MC_T.rows);
+  return mcPut(ck, { ...base, items, total, why: total ? '' : (tags[tab].length ? 'empty' : 'nolist') }); }
+const mcKol = (L) => { const C = { kol: [/^kol$/i, '31'], sm: [/^smart\s*money$/i, '30'], wh: [/^whale$/i, '39'] }; const rs = L.map((x) => Number(x?.balance_ratio) || 0); const pct = rs.reduce((a, b) => a + b, 0) > 1.0001; /* 跟 ave.mjs 的 htParse 同一套判断 */
+  const o = { k: 0, kn: [], sm: 0, wh: 0, rows: [] };
+  L.forEach((x, i) => { let G = x?.new_tags; if (typeof G === 'string') { try { G = JSON.parse(G); } catch { G = []; } } const a = String(x?.holder || x?.address || x?.wallet_address || '').trim(); const hit = new Set(); let nick = '';
+    for (const t of Array.isArray(G) ? G : []) { if (!t || typeof t !== 'object') continue; const en = String(t.en ?? '').trim(), ty = String(t.type ?? '').trim(); for (const [k, [re, code]] of Object.entries(C)) if (en ? re.test(en) : ty === code) { hit.add(k); if (k === 'kol' && !nick) nick = String(t.nick_name || '').replace(/[\u0000-\u001f<>]/g, '').trim(); } }
+    if (hit.has('kol') && !nick) nick = String(x?.addr_alias || '').replace(/[\u0000-\u001f<>]/g, '').trim();
+    if (hit.has('kol')) { o.k++; if (nick && o.kn.length < MC_T.hold) o.kn.push(nick.slice(0, MC_T.hold)); } if (hit.has('sm')) o.sm++; if (hit.has('wh')) o.wh++;
+    if (o.rows.length < MC_T.hold) o.rows.push({ a, p: pct ? rs[i] : rs[i] * 100, kol: hit.has('kol') ? 1 : 0, sm: hit.has('sm') ? 1 : 0, wh: hit.has('wh') ? 1 : 0, nick: nick.slice(0, MC_T.hold) }); });
+  return o; };
+async function mcDetail(ch, a0) { const C = mcChain(ch), a = mcAddr(ch, a0); if (!C || !a || !MC_NEW.has(C.k)) return { err: 'bad' }; const id = a + '-' + C.ave;
+  const ck = 'd|' + C.k + '|' + a; const hit = mcGet(ck, MC_T.detMs); if (hit) return { ...hit, mode: mcMode(C.k) };
+  const out = { chain: C.k, c: a, ave: mcAveUrl(C.k, a), mode: mcMode(C.k) };
+  if (!aveOK()) return { ...out, why: 'bind' };
+  const [jt, jh] = await Promise.all([aveGet(`/v2/tokens/${id}`, 5).catch(() => null), aveGet(`/v2/tokens/holders/${id}?limit=100`, 10).catch(() => null)]);
+  const T = jt?.data?.token || null; const P = Array.isArray(jt?.data?.pairs) ? jt.data.pairs : [];
+  if (T) out.tok = { sym: String(T.symbol || ''), name: String(T.name || ''), lg: /^https:\/\//.test(String(T.logo_url || '')) ? String(T.logo_url) : '', price: mcNum(T.current_price_usd), mc: mcNum(T.market_cap), liq: mcNum(T.main_pair_tvl ?? T.tvl), h: mcNum(T.holders), v24: mcNum(T.tx_volume_u_24h), c24: mcNum(T.token_price_change_24h ?? T.price_change_24h), ca: mcNum(T.created_at), c5: mcNum(T.token_price_change_5m), c1: mcNum(T.token_price_change_1h), bv24: mcNum(T.token_buy_tx_volume_usd_24h), sv24: mcNum(T.token_sell_tx_volume_usd_24h), bv1: mcNum(T.token_buy_tx_volume_usd_1h), sv1: mcNum(T.token_sell_tx_volume_usd_1h), by24: mcNum(T.token_buyers_24h), sl24: mcNum(T.token_sellers_24h), bt: mcNum(T.buy_tax), st: mcNum(T.sell_tax), hp: T.is_honeypot === true || T.is_honeypot === '1' || T.is_honeypot === 1 ? 1 : T.is_honeypot === false || T.is_honeypot === '0' || T.is_honeypot === 0 ? 0 : null };
+  const pair = P.map((p) => String(p?.pair || '').trim()).find((p) => (C.addr === 'b58' ? MC_B58.test(p) : MC_EVM.test(p.toLowerCase()))) || ''; out.pair = C.addr === 'b58' ? pair : pair.toLowerCase();
+  const LH = Array.isArray(jh?.data) ? jh.data : []; if (LH.length) { const k = mcKol(LH); out.hold = k; mcPut('k|' + C.k + '|' + a, { k: k.k, kn: k.kn }); }
+  if (!T && !LH.length) out.why = aveWhy() || 'ave'; /* 两个都读不到才写原因；只读到一个就照有的显示 */
+  return out.why ? out : mcPut(ck, out); }
+const MC_IV = { '1m': 1, '5m': 5, '15m': 15, '1h': 60, '4h': 240, '1d': 1440 }; /* 技术用：K 线周期按钮 → AVE 的 interval（分钟） */
+async function mcKline(ch, a0, tf) { const C = mcChain(ch), a = mcAddr(ch, a0); if (!C || !a || !MC_NEW.has(C.k)) return { err: 'bad' }; const iv = MC_IV[tf] || MC_IV['5m'];
+  const ck = 'k2|' + C.k + '|' + a + '|' + iv; const hit = mcGet(ck, MC_T.kMs); if (hit) return hit; if (!aveOK()) return { why: 'bind', pts: [] };
+  const j = await aveGet(`/v2/klines/token/${a}-${C.ave}?interval=${iv}&limit=200`, 10).catch(() => null); const pts = (j?.data?.points || []).map((r) => ({ t: (+r.time) * 1000, o: +r.open, h: +r.high, l: +r.low, c: +r.close, v: +r.volume || 0 })).filter((x) => x.t > 0 && x.h > 0).sort((x, y) => x.t - y.t);
+  if (!pts.length) return { why: j ? 'empty' : (aveWhy() || 'ave'), pts: [] }; return mcPut(ck, { pts, iv }); }
+async function mcTrades(ch, a0, p0) { const C = mcChain(ch), a = mcAddr(ch, a0), p = mcAddr(ch, p0); if (!C || !a || !p || !MC_NEW.has(C.k)) return { err: 'bad' };
+  const ck = 't|' + C.k + '|' + p; const hit = mcGet(ck, MC_T.trMs); if (hit) return hit; if (!aveOK()) return { why: 'bind', rows: [] };
+  const j = await aveGet(`/v2/txs/swap/${p}-${C.ave}?limit=${MC_T.trades}&sort=desc`, 50).catch(() => null); const L = Array.isArray(j?.data?.txs) ? j.data.txs : null; if (!L) return { why: aveWhy() || 'ave', rows: [] };
+  const same = (x) => (C.addr === 'b58' ? String(x || '') === a : String(x || '').toLowerCase() === a);
+  const rows = L.map((t) => { const buy = same(t.to_address); const usd = buy ? (+t.from_amount) * (+t.from_price_usd) : (+t.to_amount) * (+t.to_price_usd); return { t: (+t.time) * 1000, side: buy ? 'b' : same(t.from_address) ? 's' : '', usd: Number.isFinite(usd) ? usd : null, amt: mcNum(buy ? t.to_amount : t.from_amount), px: mcNum(t.price_usd), w: String(t.sender || t.wallet_address || '').trim(), tx: String(t.tx_id || '') }; }).filter((r) => r.side && r.t > 0);
+  return mcPut(ck, { rows }); }
+async function mcWallet(ch, w0) { const C = mcChain(ch), w = mcAddr(ch, w0); if (!C || !w || !MC_NEW.has(C.k)) return { err: 'bad' };
+  const ck = 'w|' + C.k + '|' + w; const hit = mcGet(ck, MC_T.wiMs); if (hit) return hit; if (!aveOK()) return { why: 'bind' };
+  const j = await aveGet(`/v2/address/walletinfo?chain=${C.ave}&wallet_address=${w}`, 5).catch(() => null); const d = j?.data; if (!d || typeof d !== 'object') return { why: aveWhy() || 'ave' };
+  return mcPut(ck, { w, bal: mcNum(d.total_balance ?? d.balance_usd), pnl: mcNum(d.total_profit), pr: mcNum(d.total_profit_ratio ?? d.total_profit_rate), win: mcNum(d.total_win_ratio ?? d.win_ratio), buys: mcNum(d.total_purchase ?? d.buy_count), sells: mcNum(d.total_sold ?? d.sell_count), first: mcNum(d.wallet_age ?? d.first_tx_time) }); }
+function mcTradeSet(ch, on) { const C = mcChain(ch); if (!C || !MC_NEW.has(C.k)) return { err: 'chain' }; /* 只有侦测到钱包支援才能打开；打开也只显示「即将开放」，不会下单 */
+  if (on === true && !Object.values(mcDetected()).some((L) => L.includes(C.k))) return { err: 'nodet' };
+  const f = path.join(DATA, 'mc_trade.json'); const o = mcTradeSet0(); o[C.k] = on === true; const tmp = f + '.w' + process.pid; try { fs.writeFileSync(tmp, JSON.stringify(o)); fs.renameSync(tmp, f); } catch (e) { return { err: 'write' }; } MCC.clear(); return { ok: 1, mode: mcMode(C.k) }; }
+ipcMain.handle('mc', async (e, act, o) => { o = o && typeof o === 'object' ? o : {}; try {
+  if (act === 'chains') return mcChains(); if (act === 'board') return mcBoard(String(o.chain || ''), String(o.tab || ''));
+  if (act === 'detail') return await mcDetail(String(o.chain || ''), o.c); if (act === 'kline') return await mcKline(String(o.chain || ''), o.c, String(o.tf || ''));
+  if (act === 'trades') return await mcTrades(String(o.chain || ''), o.c, o.pair); if (act === 'wallet') return await mcWallet(String(o.chain || ''), o.w);
+  if (act === 'tradeSet') return mcTradeSet(String(o.chain || ''), o.on === true); if (act === 'aveUrl') return { u: mcAveUrl(String(o.chain || ''), o.c) };
+  return { err: 'act' }; } catch (err) { return { err: String(err?.message || err).slice(0, 120) }; } });
+const mcOrderBad = (o) => { if (!o || typeof o !== 'object') return ''; if (o.mc != null || o.mcChain != null) return 'mc'; /* 多链面板不送单；有这个栏位的一律不收 */
+  for (const k of ['chain', 'net', 'ch']) if (o[k] != null && o[k] !== '') { const v = String(o[k]).toLowerCase(); if (!['56', '4663', 'bsc', 'robinhood', 'rh'].includes(v)) return 'chain'; } return ''; }; /* 只收雷达现有买卖的链（BNB Chain／Robinhood） */
+globalThis.MC121 = { MC_CHAINS, MC_WALLET_KINDS, MC_RADAR_TRADE, mcMode, mcDetected, mcAveUrl, mcOrderBad }; /* 测试用 */
+/*MC121-END*/
 const ORD_TYPES = new Set(['addWallet', 'analyze', 'buy', 'health', 'lookup', 'mint', 'mintHist', 'mintpick', 'nftmint', 'previewMint', 'removeWallet', 'rescan', 'sell', 'sentAck', 'sentRevoke', 'shareInfo', 'shareMint', 'tpsl', 'track', 'update']), ORD_PHONE = new Set(['buy', 'sell']);
 function ordClean(o, types) { if (!o || typeof o !== 'object' || Array.isArray(o) || !types.has(o.type)) return null; let j; try { j = JSON.stringify(o); } catch { return null; } if (j.length > 20000) return null; const x = JSON.parse(j); if (Object.keys(x).length > 60) return null; delete x.id; delete x.at; if (x.src === 'phone') delete x.src; return x; }
 ipcMain.handle('phoneOrder', (e, o) => { const x = ordClean(o, ORD_PHONE); if (!x) return { err: 'bad' }; x.src = 'phone'; return ordPush(x); }); /* 手机经转接站送来、桌面画面转送的单：一定带 src:'phone'（引擎会再用手机规则挡一次） */
@@ -932,6 +1037,7 @@ ipcMain.handle('order', (e, o) => { const x = ordClean(o, ORD_TYPES); if (!x) re
 const ENG_LOCK_FRESH_MS = 90e3; /*V102-ENGLOCK 技术用：引擎每 30 秒更新一次 data/watch.lock；这么久内有更新＝引擎行程还活着（不是交易数字）*/
 function engLockFresh() { try { const o = JSON.parse(fs.readFileSync(path.join(DATA, 'watch.lock'), 'utf8')); return !!o && +o.at > 0 && Date.now() - o.at < ENG_LOCK_FRESH_MS; } catch { return false; } } /*V102-ENGLOCK：主回圈一轮跑很久（节点慢、开机补扫）心跳会变旧，但收单是另一个计时器在做 → 锁档新＝引擎活着，照常收单；读不到／旧格式＝照旧判断 */
 function ordPush(o) { // 交给引擎执行（它会照安全检查、每日额度处理）
+  { const bad = mcOrderBad(o); if (bad) return { err: 'chain' }; } /*MC121-ORD 只收雷达现有买卖的链（BNB Chain／Robinhood）；多链面板的链一律不收单*/
   if (hbAgeSec() > 120 && !engLockFresh() && !fs.existsSync(path.join(ROOT, 'WATCH_STOP'))) { try { startEngine(); } catch {} return { err: 'engine' }; } /* 11/3 审查：引擎没在跑时以前照样回「已送出」，单子 5 分钟后就作废、用户不知道 → 直接告诉他，并帮他启动引擎 */
   if (['buy', 'mint', 'nftmint', 'shareMint'].includes(String(o?.type || ''))) { const z = readJSON(SET, {}) || {}; if (z.estop || fs.existsSync(path.join(DATA, 'estop.flag'))) return { err: 'estop' }; } /*CONFLICT116-1：紧急全停中不收买单（卖单照收）*/
   const q = path.join(DATA, 'radar_orders.json'); const arr = readJSON(q, []); const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8); arr.push(ordSign({ ...o, at: Date.now(), id })); /* GATE-2：签章 */ const tmp = q + '.w' + process.pid; fs.writeFileSync(tmp, JSON.stringify(arr)); fs.renameSync(tmp, q); /* 先写暂存档再换名：引擎不会读到写一半的档；ZR-UI-1103：排队的单全部保留，不丢 */ return { ok: true, id }; }
