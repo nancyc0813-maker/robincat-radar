@@ -6,7 +6,10 @@ const qrCache = { url: '', img: '' };
 const path = require('path'), fs = require('fs');
 const KL = require('./kline.cjs'); /* KQ-1104：K 线共用格子（周线＝周一、月线＝日历月） */
 const ROOT = path.join(__dirname, '..');               // 罗宾猫雷达资料夹
-const DATA = path.join(ROOT, 'data'); try { fs.mkdirSync(DATA, { recursive: true }); } catch {} /* UI2-1104：第一次开雷达时 data/ 还不存在 → 先建好 */
+const DATA = path.join(ROOT, 'data'); try { fs.mkdirSync(DATA, { recursive: true }); } catch {}
+/*BLACKFIX117-GPU*/ try { if (fs.existsSync(path.join(DATA, 'gpu_off.flag'))) app.disableHardwareAcceleration(); } catch {} /* GPU 进程之前连续崩溃过（会黑屏）→ 改用软体绘图；删掉 data/gpu_off.flag 就恢复 */
+function bfLog(s) { try { fs.appendFileSync(path.join(DATA, 'radar_crash.log'), new Date().toISOString() + ' ' + s + '\n'); } catch {} } /*BLACKFIX117-LOG 视窗崩溃／卡住／重载都记在 data/radar_crash.log*/
+let BF_SNAP_AT = 0; /*BLACKFIX117-HB 画面最后一次来拿资料的时间（画面每 5 秒拿一次＝心跳）*/ /* UI2-1104：第一次开雷达时 data/ 还不存在 → 先建好 */
 const SET = path.join(DATA, 'radar_settings.json');
 /* UI2-1104 H4-H8：设定档写入＝先写暂存档再换名（不会写一半）；换之前把上一份好的存成 .bak；开雷达时设定档坏了 → 用 .bak 还原 */
 function setOk(f) { try { const o = JSON.parse(fs.readFileSync(f, 'utf8')); return o && typeof o === 'object' && !Array.isArray(o); } catch { return false; } }
@@ -101,7 +104,7 @@ function snapshot() {
   try { v.aveStatus = aveStatus(); } catch {} /* H8-D3 */ try { v.guardStatus = readJSON(path.join(DATA, 'guard_status.json'), null); v.guardAlert = readJSON(path.join(DATA, 'guard_alert.json'), null); const gi = guardInfo(); v.guardMode = gi.mode; v.guardWeak = gi.weak; v.guardLost = gi.lost; v.guardPending = gi.pending; v.guardNotice = readJSON(path.join(DATA, 'guard_notice.json'), null); guardConfirmAsk(); /* 引擎还没认这把金钥 → 跳系统视窗问一次 */ } catch {} /* GATE-2：画面显示「核心档已被修改」「设定不是在画面改的已当作关闭」 */ try { NX?.aug(v, S); } catch {} cache = { at: Date.now(), v }; return v;
 }
 
-ipcMain.handle('snapshot', async () => { const v = snapshot(); const L = v.login; if (L?.state === 'qr' && L.url && /^https:\/\/app\.binance\.com\//.test(L.url) && qrCache.url !== L.url && QR) { qrCache.url = L.url; qrCache.img = await QR.toDataURL(L.url, { margin: 1, width: 220 }).catch(() => ''); L.img = qrCache.img; } return v; });
+ipcMain.handle('snapshot', async () => { BF_SNAP_AT = Date.now(); /*BLACKFIX117-HB*/ const v = snapshot(); const L = v.login; if (L?.state === 'qr' && L.url && /^https:\/\/app\.binance\.com\//.test(L.url) && qrCache.url !== L.url && QR) { qrCache.url = L.url; qrCache.img = await QR.toDataURL(L.url, { margin: 1, width: 220 }).catch(() => ''); L.img = qrCache.img; } return v; });
 ipcMain.handle('login', (e, i) => { try { fs.unlinkSync(path.join(DATA, 'radar_login.json')); } catch {} fs.writeFileSync(path.join(DATA, 'radar_login_req.json'), JSON.stringify({ i: Number(i) || 0, at: Date.now() })); cache.at = 0; return true; });
 ipcMain.handle('copyGuide', (e, extra) => { try { const g = fs.readFileSync(path.join(ROOT, 'AI说明书.md'), 'utf8'); const q = String(extra || '').trim().slice(0, 500); clipboard.writeText(q ? g + '\n\n---\n\n【我的需求】' + q + '\n（请照上面的说明书做：先用白话告诉我会改什么、有什么影响和风险，我说好你再做。如果你不能直接改我电脑里的档案，请照说明书第「零」节，回我一段 ###RADAR 开头的文字，我贴回雷达安装。罗宾猫雷达资料夹在：' + ROOT + '）' : g + '\n\n---\n\n（罗宾猫雷达资料夹在：' + ROOT + '。请先读完说明书，再问我想加什么功能。如果你不能直接改我电脑里的档案，就照说明书第「零」节回我 ###RADAR 格式。）'); return true; } catch { return false; } });
 const DS_PER_CALL = 30; /* DexScreener tokens/v1 一次最多查 30 个地址（接口规定），分批查完全部 */
@@ -801,11 +804,11 @@ function guardAfterSave(fin, s, cur) { try { const j = guardRead(); if (!j) retu
     for (const k of Object.keys(fin)) { if (!GUARD_KEY(k)) continue; if (!guardOn(fin[k])) { delete j.set[k]; continue; } if (Object.hasOwn(s, k)) guardPut(j, 'set', k, fin[k]); /* 这次从画面送来、过了视窗（或本来就签过同一个值） */ else if (!guardHas('set', k, fin[k], j)) delete j.set[k]; /* 不是画面送来的：不帮它补签 */ }
     guardSave(j); } catch (e) { console.error('guard', e); } }
 const SET_GUARD = (k) => GUARD_KEY(k); /* GATE-2：手机全部设定、外挂开关、自动允许授权、预演不安全也照送 */
-ipcMain.handle('saveSettings', async (e, s) => { s = s && typeof s === 'object' && !Array.isArray(s) ? { ...s } : {}; const cur = readJSON(SET, {}) || {}; const denied = [];
+const SAVE_SET = async (e, s, opt) => { /*RESET117：原本的 saveSettings 抽成函式，恢复出厂／复原也走同一条（opt.del＝要删掉的键）*/ s = s && typeof s === 'object' && !Array.isArray(s) ? { ...s } : {}; const cur = readJSON(SET, {}) || {}; const denied = [];
   const turnOn = Object.keys(s).filter((k) => SET_GUARD(k) && s[k] !== '' && s[k] != null && +s[k] !== 0 && (String(s[k]) !== String(cur[k] ?? '') || !guardHas('set', k, s[k]))); /* GATE-2：值一样但没签过（例如被直接写进档案）也要再问 */
   if (turnOn.length) { const nm = (k) => UL() ? (k === 'auto.allowApproval' ? 'Auto-trading may send token approvals (the other side can move that token later)' : k === 'auto.sendOnPreviewFail' ? 'Auto-trading: send even when the simulation says unsafe' : k === 'phone.buy' ? 'Phone can buy / sell' : k === 'phone.edit' ? 'Phone can change settings' : k === 'phone.dayUsd' ? `Phone daily buy limit (${s[k]})` : /^plug\./.test(k) ? 'Turn on add-on ' + k.slice(5, -3) : 'Phone setting ' + k) : (k === 'auto.allowApproval' ? '自动交易允许「授权」（对方之后能转走那个代币）' : k === 'auto.sendOnPreviewFail' ? '自动交易：预演判断不安全也照送' : k === 'phone.buy' ? '手机可以买卖' : k === 'phone.edit' ? '手机可以改设定' : k === 'phone.dayUsd' ? `手机每天可以买的金额（${s[k]}）` : /^plug\./.test(k) ? '开启外挂 ' + k.slice(5, -3) : '手机设定 ' + k); const r = await dialog.showMessageBox(win || undefined, { type: 'warning', buttons: UL() ? ['Turn on', 'Cancel'] : ['确定打开', '取消'], defaultId: 1, cancelId: 1, title: APP_T(), message: UL() ? 'Turn these on?' : '确定要打开这些吗？', detail: turnOn.map(nm).join('\n') + (UL() ? '\n\nOnce on, the phone / add-ons / auto-trading can move your wallet by these settings. If you did not press this yourself, press Cancel.' : '\n\n打开后手机／外挂／自动交易就能照这个设定动你的钱包。不是你自己按的就按「取消」。') }); if (r.response !== 0) for (const k of turnOn) { delete s[k]; denied.push(k); } }
-  const cur2 = readJSON(SET, null); const fin = { ...(cur2 && typeof cur2 === 'object' && !Array.isArray(cur2) ? cur2 : cur), ...s, savedAt: Date.now() }; /*CONFLICT116-2：用写回当下最新的设定档＋这次改的键（不拿开对话框之前的旧副本整个盖回去，全停才不会被盖掉）*/ guardAfterSave(fin, s, cur); setWrite(fin); cache.at = 0;
-  try { const ef = path.join(DATA, 'estop.flag'); if (fin.estop) fs.writeFileSync(ef, String(Date.now())); else if (Object.hasOwn(s, 'estop') && !s.estop && fs.existsSync(ef)) fs.unlinkSync(ef); } catch {} /*CONFLICT116-1：全停旗标档（引擎买入闸门每次直接看）；只有画面「重新设定」会拿掉*/ return denied.length ? { ok: true, denied } : true; }); /* GATE-2：画面按的才签；先签再写设定档（引擎不会读到「已开但还没签」的瞬间） */
+  const cur2 = readJSON(SET, null); const fin = { ...(cur2 && typeof cur2 === 'object' && !Array.isArray(cur2) ? cur2 : cur), ...s, savedAt: Date.now() }; if (opt && Array.isArray(opt.del)) for (const k of opt.del) if (k !== 'estop' && !Object.hasOwn(s, k)) delete fin[k]; /*RESET117*/ /*CONFLICT116-2：用写回当下最新的设定档＋这次改的键（不拿开对话框之前的旧副本整个盖回去，全停才不会被盖掉）*/ guardAfterSave(fin, s, cur); setWrite(fin); cache.at = 0;
+  try { const ef = path.join(DATA, 'estop.flag'); if (fin.estop) fs.writeFileSync(ef, String(Date.now())); else if (Object.hasOwn(s, 'estop') && !s.estop && fs.existsSync(ef)) fs.unlinkSync(ef); } catch {} /*CONFLICT116-1：全停旗标档（引擎买入闸门每次直接看）；只有画面「重新设定」会拿掉*/ return denied.length ? { ok: true, denied } : true; }; ipcMain.handle('saveSettings', (e, s) => SAVE_SET(e, s)); /*RESET117*/ /* GATE-2：画面按的才签；先签再写设定档（引擎不会读到「已开但还没签」的瞬间） */
 /* SWFIX-M5（红队 #1）：手机改设定＝白名单，由主程式核对（画面被塞程式码也改不到）。
    手机可以改：策略条件数字（介于 ___ 到 ___、各条件门槛、条件怎么组合、读不到时）、止盈止损、卖出规则（分批卖等）、通知。
    一律只能在电脑改：auto.*、所有 *.auto／*.mintAuto／*.tokAuto 自动开关、risk.*（底线、revokeKeep）、plugins.*、plug.*、phone.*、manual.*、下单方式、各种金额上限、底线。 */
@@ -975,8 +978,29 @@ ipcMain.handle('phSetLog', (e, o) => { /* PSE-1103：手机改了设定 → 记�
     const q = path.join(DATA, 'radar_orders.json'); const arr = readJSON(q, []); arr.push(ordSign({ type: 'phoneSet', text, ...(prev && apply ? { prev, apply } : {}), at: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8) })); const tmp = q + '.w' + process.pid; fs.writeFileSync(tmp, JSON.stringify(arr)); fs.renameSync(tmp, q); /* BUG10：不丢掉排队中的单 */
     return true; } catch { return false; } });
 
+/*RESET117-BEGIN 恢复出厂设置／复原上一次设定 */
+const FR_KEEP = 5; /* 技术用：设定备份留最近几份（不是交易数字） */
+const FR_EXTRA = new Set(['stAdded', 'rules', 'phone.buy', 'phone.edit']); /* 不在 schema 里、但属于策略／开关的键 */
+function frScope() { const a = readJSON(path.join(__dirname, 'settings_schema.json'), { items: [] }); const K = new Set((Array.isArray(a.items) ? a.items : []).map((i) => String(i.k))); return (k) => k !== 'estop' && k !== 'setupDone' && k !== 'savedAt' && k !== 'ui.zoom' && !/^ref\./.test(k) && (K.has(k) || FR_EXTRA.has(k) || /^(plug|plugins)\./.test(k)); }
+function frList() { try { return fs.readdirSync(DATA).filter((f) => /^settings_backup_\d{14}\.json$/.test(f)).sort(); } catch { return []; } }
+function frLog(s) { try { fs.appendFileSync(path.join(DATA, 'settings_reset.log'), new Date().toISOString() + ' ' + s + '\n'); } catch {} }
+function frOrder(o) { try { const q = path.join(DATA, 'radar_orders.json'); const arr = readJSON(q, []); arr.push(ordSign({ ...o, at: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8) })); const tmp = q + '.w' + process.pid; fs.writeFileSync(tmp, JSON.stringify(arr)); fs.renameSync(tmp, q); return true; } catch { return false; } }
+ipcMain.handle('factoryInfo', () => { const L = frList(); const f = L[L.length - 1]; let at = 0; if (f) { try { at = +readJSON(path.join(DATA, f), {}).at || 0; } catch {} } return { n: L.length, last: f ? { name: f.replace(/\.json$/, ''), at } : null }; });
+ipcMain.handle('factoryReset', async (e, txt, by) => { if (String(txt || '').trim() !== '重置' && String(txt || '').trim().toUpperCase() !== 'RESET') return { err: 'confirm' }; /* 第二段确认：一定要输入「重置」 */
+  by = by === 'phone' ? 'phone' : 'radar'; const cur = readJSON(SET, null); if (!cur || typeof cur !== 'object' || Array.isArray(cur)) return { err: 'read' };
+  const ts = new Date(); const p2 = (n) => String(n).padStart(2, '0'); const name = `settings_backup_${ts.getFullYear()}${p2(ts.getMonth() + 1)}${p2(ts.getDate())}${p2(ts.getHours())}${p2(ts.getMinutes())}${p2(ts.getSeconds())}`;
+  try { const f = path.join(DATA, name + '.json'), tmp = f + '.w' + process.pid; fs.writeFileSync(tmp, JSON.stringify({ at: ts.getTime(), by, set: cur }, null, 1)); fs.renameSync(tmp, f); } catch (x) { return { err: 'backup', msg: String(x.message || x).slice(0, 120) }; } /* 备份写不进去就不重置 */
+  const L = frList(); for (const f of L.slice(0, Math.max(0, L.length - FR_KEEP))) { try { fs.unlinkSync(path.join(DATA, f)); fs.rmSync(path.join(DATA, f.replace(/\.json$/, '_hold.json')), { force: true }); } catch {} }
+  const inS = frScope(); const del = Object.keys(cur).filter((k) => inS(k) && k !== 'auto');
+  const r = await SAVE_SET(e, { auto: false }, { del }); frOrder({ type: 'tpslReset', bk: name, by });
+  frLog(`恢复出厂设置（${by === 'phone' ? '手机' : '电脑'}按的）：清掉 ${del.length} 个设定，备份 data/${name}.json${cur.estop ? '；紧急全停保持' : ''}`); return { ok: 1, bk: name, n: del.length, estop: !!cur.estop, r }; });
+ipcMain.handle('factoryRestore', async (e) => { const L = frList(); const f = L[L.length - 1]; if (!f) return { err: 'none' }; const B = readJSON(path.join(DATA, f), null); if (!B || !B.set || typeof B.set !== 'object') return { err: 'read' };
+  const inS = frScope(); const cur = readJSON(SET, {}) || {}; const s = {}; for (const [k, v] of Object.entries(B.set)) if (inS(k)) s[k] = v; if (Object.hasOwn(B.set, 'auto')) s.auto = B.set.auto; const del = Object.keys(cur).filter((k) => inS(k) && !Object.hasOwn(B.set, k));
+  const r = await SAVE_SET(e, s, { del }); frOrder({ type: 'tpslRestore', bk: f.replace(/\.json$/, '') }); const denied = r && Array.isArray(r.denied) ? r.denied : [];
+  frLog(`复原上一次设定：从 data/${f} 还原 ${Object.keys(s).length} 个设定${denied.length ? '；没复原（视窗按了取消）：' + denied.join('、') : ''}${cur.estop ? '；紧急全停保持' : ''}`); return { ok: 1, bk: f, n: Object.keys(s).length, denied, estop: !!cur.estop }; });
+/*RESET117-END*/
 /* 一键更新后：画面档案换了 → 重新整理；雷达外壳换了 → 自动重开一次 */
-setInterval(() => { try { const rl = path.join(DATA, 'relaunch.req'), rd = path.join(DATA, 'reload.req'); if (fs.existsSync(rl)) { fs.unlinkSync(rl); try { if (fs.existsSync(rd)) fs.unlinkSync(rd); } catch {} app.relaunch(); app.exit(0); return; } if (fs.existsSync(rd)) { fs.unlinkSync(rd); if (win && !win.isDestroyed()) win.webContents.reload(); } } catch {} }, 3000);
+setInterval(() => { try { const rl = path.join(DATA, 'relaunch.req'), rd = path.join(DATA, 'reload.req'); if (fs.existsSync(rl)) { fs.unlinkSync(rl); try { if (fs.existsSync(rd)) fs.unlinkSync(rd); } catch {} bfLog('一键更新完成 → 整个重开'); quitting = true; /*BLACKFIX117-RQ*/ app.relaunch(); app.exit(0); return; } if (fs.existsSync(rd)) { fs.unlinkSync(rd); if (win && !win.isDestroyed()) win.webContents.reload(); } } catch {} }, 3000);
 /* ZOOM110：画面大小（整体缩放）。几档＝ZOOM_STEPS；存在设定档 ui.zoom；读不到／不在几档里＝100% */
 const ZOOM_STEPS = [0.8, 0.9, 1, 1.1, 1.25, 1.5]; /* 画面可以选的几档（显示用，不是交易数字） */
 function zoomGet() { const v = Number((readJSON(SET, {}) || {})['ui.zoom']); return ZOOM_STEPS.includes(v) ? v : 1; }
@@ -985,10 +1009,22 @@ function zoomEff(f) { try { const w = win && !win.isDestroyed() ? win.getContent
 function zoomSet(f) { f = Number(f); if (!ZOOM_STEPS.includes(f)) f = 1; try { const z = readJSON(SET, {}) || {}; z['ui.zoom'] = f; fs.writeFileSync(SET, JSON.stringify(z, null, 1)); } catch {} try { if (win && !win.isDestroyed()) { win.webContents.setZoomFactor(zoomEff(f)); win.webContents.send('zoomChanged', f, zoomEff(f)); /*ZOOM112-SET*/ } } catch {} return f; }
 function zoomStep(d) { const cur = zoomGet(); const i = ZOOM_STEPS.indexOf(cur); return zoomSet(d === 0 ? 1 : ZOOM_STEPS[Math.max(0, Math.min(ZOOM_STEPS.length - 1, (i < 0 ? 2 : i) + d))]); }
 ipcMain.handle('zoomSet', (e, f) => zoomSet(f)); ipcMain.handle('zoomGet', () => ({ f: zoomGet(), eff: zoomEff(zoomGet()), steps: ZOOM_STEPS })); /*ZOOM112-GET*/
+/*BLACKFIX117-K 技术用（不是交易数字）：视窗最晚几毫秒一定显示、画面卡住多久强制重开、几秒没心跳就重载、几分钟内算同一轮*/
+const BF_SHOW_MAX_MS = 4000, BF_HANG_MS = 20e3, BF_HB_MS = 60e3, BF_WIN_MS = 10 * 60e3; const BF_HIDDEN = process.argv.includes('--hidden');
+app.on('child-process-gone', (e, d) => { try { if (!d || d.type !== 'GPU' || d.reason === 'clean-exit') return; bfLog(`GPU 进程结束：${d.reason} ${d.exitCode}`); const f = path.join(DATA, 'gpu_crash.json'); const o = readJSON(f, { at: [] }); o.at = (Array.isArray(o.at) ? o.at : []).filter((t) => Date.now() - t < BF_WIN_MS).concat(Date.now()); fs.writeFileSync(f, JSON.stringify(o)); if (o.at.length >= 2 && !fs.existsSync(path.join(DATA, 'gpu_off.flag'))) { fs.writeFileSync(path.join(DATA, 'gpu_off.flag'), String(Date.now())); bfLog('GPU 连续崩溃 → 下次启动改用软体绘图（data/gpu_off.flag）'); } setTimeout(() => { try { if (win && !win.isDestroyed()) win.webContents.reloadIgnoringCache(); } catch {} }, 2000); } catch {} }); /*BLACKFIX117-GPU2*/
 function createWindow() {
-  win = new BrowserWindow({ width: 1320, height: 840, minWidth: 1100, minHeight: 680, title: '罗宾猫雷达', icon: ICON, backgroundColor: '#0b0d11', autoHideMenuBar: true,
+  win = new BrowserWindow({ width: 1320, height: 840, minWidth: 1100, minHeight: 680, title: '罗宾猫雷达', icon: ICON, backgroundColor: '#0b0d11', autoHideMenuBar: true, show: false, /*BLACKFIX117-SHOW 画好第一帧才显示，不先给一片黑*/
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false } }); /* 11/3 手机版：视窗缩到右下角也要能回手机 */
   win.loadFile(path.join(__dirname, 'ui', 'index.html'));
+  /*BLACKFIX117-WD*/ { const w0 = win; let shown = 0; const show = () => { if (shown || w0.isDestroyed()) return; shown = 1; if (!BF_HIDDEN) w0.show(); }; w0.once('ready-to-show', show); setTimeout(show, BF_SHOW_MAX_MS);
+    const wc = w0.webContents; let unT = null; const R = { n: 0, t0: Date.now() };
+    const reload = (why) => { if (w0.isDestroyed()) return; if (Date.now() - R.t0 > BF_WIN_MS) { R.n = 0; R.t0 = Date.now(); } R.n++; bfLog(`视窗重载（${why}）第 ${R.n} 次`); const d = R.n <= 3 ? 1500 : 30e3; /* 一直坏就放慢，不要狂重载 */ setTimeout(() => { try { if (!w0.isDestroyed()) { BF_SNAP_AT = 0; wc.reloadIgnoringCache(); } } catch (e) { bfLog('重载失败 ' + e.message); } }, d); };
+    wc.on('render-process-gone', (e, d) => { bfLog(`画面进程结束：${d && d.reason} ${d && d.exitCode}`); if (!quitting && d && d.reason !== 'clean-exit') reload('画面进程 ' + d.reason); });
+    wc.on('unresponsive', () => { bfLog('画面没有回应'); clearTimeout(unT); unT = setTimeout(() => { bfLog('画面卡住太久 → 强制重开画面'); try { wc.forcefullyCrashRenderer(); } catch {} }, BF_HANG_MS); });
+    wc.on('responsive', () => { clearTimeout(unT); unT = null; });
+    wc.on('did-fail-load', (e, code, desc, u, main) => { if (main && code !== -3) { bfLog(`画面载入失败 ${code} ${desc}`); reload('载入失败'); } });
+    wc.on('did-finish-load', () => { BF_SNAP_AT = Date.now(); });
+    const hb = setInterval(() => { try { if (w0.isDestroyed()) return clearInterval(hb); if (!w0.isVisible() || w0.isMinimized() || wc.isLoading() || unT) return; if (BF_SNAP_AT && Date.now() - BF_SNAP_AT > BF_HB_MS) { BF_SNAP_AT = Date.now(); bfLog('画面 ' + Math.round(BF_HB_MS / 1000) + ' 秒没来拿资料（卡死）→ 强制重开画面'); try { wc.forcefullyCrashRenderer(); } catch { reload('没心跳'); } } /* 卡死的画面没办法直接重新整理 → 先结束画面进程，上面 render-process-gone 会重载 */ } catch {} }, 15e3); }
   win.webContents.on('did-finish-load', () => { try { win.webContents.setZoomFactor(zoomEff(zoomGet())); } catch {} }); win.on('resize', () => { try { win.webContents.setZoomFactor(zoomEff(zoomGet())); win.webContents.send('zoomChanged', zoomGet(), zoomEff(zoomGet())); } catch {} }); /*ZOOM112-LOAD*/ /* ZOOM110-LOAD 重开／重新整理都套用存好的画面大小 */
   win.webContents.on('before-input-event', (e, inp) => { if (inp.type !== 'keyDown' || !(inp.control || inp.meta) || inp.alt) return; const k = String(inp.key); const d = k === '=' || k === '+' || k === 'Add' ? 1 : k === '-' || k === '_' || k === 'Subtract' ? -1 : k === '0' ? 0 : null; if (d === null) return; e.preventDefault(); zoomStep(d); }); /* ZOOM110-KEY Ctrl／⌘ ＋ 加号／减号／0 */
   /* F5 要一定能重新整理（不管焦点在哪） */
@@ -1008,7 +1044,7 @@ app.whenReady().then(() => {
   tray.on('click', () => { win.show(); win.focus(); });
 });
 // 程式更新后自动套用：介面档改了就重新整理，主程式改了就自己重开（不用玩家手动重启）
-let rlT = null; const watchFile = (f, full) => { try { fs.watchFile(f, { interval: 3000 }, (cur, prev) => { if (cur.mtimeMs === prev.mtimeMs) return; clearTimeout(rlT); rlT = setTimeout(() => { if (full) { app.relaunch(); quitting = true; app.exit(0); } else if (win) win.webContents.reloadIgnoringCache(); }, 1500); }); } catch {} }; /* 用定时比对修改时间（fs.watch 在共享资料夹收不到通知，改了不会更新） */
+let rlT = null, rlFull = false; const watchFile = (f, full) => { try { fs.watchFile(f, { interval: 3000 }, (cur, prev) => { if (cur.mtimeMs === prev.mtimeMs) return; rlFull = rlFull || full; /*BLACKFIX117-RL 主程式／preload 换了＝一定整个重开；后面才看到的画面档不能把它降成只重新整理（不然新画面配旧主程式＝黑屏）*/ clearTimeout(rlT); rlT = setTimeout(() => { if (rlFull) { bfLog('程式档换了 → 整个重开'); quitting = true; app.relaunch(); app.exit(0); } else if (win && !win.isDestroyed()) win.webContents.reloadIgnoringCache(); }, 1500); }); } catch {} }; /* 用定时比对修改时间（fs.watch 在共享资料夹收不到通知，改了不会更新） */
 app.whenReady().then(() => { watchFile(path.join(__dirname, 'ui', 'index.html'), false); watchFile(path.join(__dirname, 'main.cjs'), true); watchFile(path.join(__dirname, 'preload.cjs'), true); watchFile(path.join(__dirname, 'settings_schema.json'), false); });
 app.on('window-all-closed', (e) => e.preventDefault?.());
 /*FBM-BEGIN*/

@@ -13702,7 +13702,7 @@
   {
    "rule": "STRING_NUM",
    "file": "radar/ui/index\\.html",
-   "match": "/\\*\\ 简单／进阶模式：只影响画面（body\\.smpOn＝简单）\\ \\*/\\\n\\#smpSw\\{display:",
+   "match": "/\\*\\ 简单／(?:进阶|专业)模式：只影响画面（body\\.smpOn＝简单）\\ \\*/\\\n\\#smpSw\\{display:",
    "value": "100%",
    "reason": "SIMPLE113（简单／进阶模式）：CSS 版面（宽度 100%＝整栏），不是数字规则"
   },
@@ -16258,6 +16258,162 @@
    "file": "^radar/ui/index\\.html$",
    "match": "SPEED113|\\.slice\\(0,n\\)\\)\\.catch\\(\\(\\)=>\\{\\}\\)\\}catch\\{\\}\\},5000\\)",
    "reason": "SPEED113 看盘预抓每 5 秒看一次画面上看得到的币（数量是玩家设定），技术用"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "BF_SHOW_MAX_MS = 4000",
+   "values": [
+    "4000"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：视窗最晚 4 秒一定显示（视窗运作，跟买卖无关）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "BF_HANG_MS = 20e3",
+   "values": [
+    "20e3"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：画面卡住 20 秒强制重开画面"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "BF_HB_MS = 60e3",
+   "values": [
+    "60e3"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：画面 60 秒没来拿资料＝卡死"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "BF_WIN_MS = 10 \\* 60e3",
+   "values": [
+    "10",
+    "60e3"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：10 分钟内的重载／GPU 崩溃算同一轮"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "o\\.at\\.length >= 2 && !fs\\.existsSync",
+   "values": [
+    "2"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：GPU 进程 10 分钟内崩溃第 2 次才改用软体绘图（视窗运作）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "\\}, 2000\\); \\} catch \\{\\} \\}\\); /\\*BLACKFIX117-GPU2",
+   "values": [
+    "2000"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：GPU 重启后等 2 秒再重载画面"
+  },
+  {
+   "rule": "CMP|TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const d = R\\.n <= 3 \\? 1500 : 30e3",
+   "values": [
+    "3",
+    "1500",
+    "30e3"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：前 3 次重载等 1.5 秒，一直坏就每 30 秒一次，避免狂重载"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "if \\(main && code !== -3\\) \\{ bfLog",
+   "values": [
+    "3"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：-3＝Chromium ERR_ABORTED（被新的载入取代，不算失败）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "Math\\.round\\(BF_HB_MS / 1000\\)",
+   "values": [
+    "1000"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：毫秒换成秒，只用在日志文字"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/main\\.cjs$",
+   "match": "BLACKFIX117-HB 画面最后一次来拿资料的时间",
+   "values": [
+    "5 秒"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：注解：画面本来就每 5 秒拿一次资料（说明心跳来源）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html",
+   "match": "\\}catch\\(e\\)\\{\\}\\},20000\\)</script>",
+   "values": [
+    "20000"
+   ],
+   "reason": "BLACKFIX117（更新后黑屏）：载入中画面 20 秒后出现「重新整理」按钮"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html",
+   "match": "window\\.m117Dot\\(\\)\\}catch\\{\\}\\},3000\\)",
+   "values": [
+    "3000"
+   ],
+   "reason": "MENU117：「更多」上的引擎状态小圆点每 3 秒更新（只显示）"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html",
+   "match": "/\\*MENU117 只在简单模式（body\\.smpOn）\\*/",
+   "values": [
+    "100%"
+   ],
+   "reason": "MENU117：CSS 版面（搜寻框宽度 100%），不是数字规则"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "msg: String\\(x\\.message \\|\\| x\\)\\.slice\\(0, 120\\)",
+   "values": [
+    "120"
+   ],
+   "reason": "RESET117：备份失败的错误讯息只取前 120 字显示"
+  },
+  {
+   "rule": "CONST|CMP|TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const FR_KEEP = 5",
+   "values": [
+    "5"
+   ],
+   "reason": "RESET117：设定备份留最近 5 份（技术用）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/phone\\.html",
+   "match": "'已恢复出厂设置',6000\\)",
+   "values": [
+    "6000"
+   ],
+   "reason": "RESET117：手机提示显示几毫秒"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/phone\\.html",
+   "match": "toast\\('❌ '\\+x\\.message,5000\\)\\}\\},true\\)",
+   "values": [
+    "5000"
+   ],
+   "reason": "RESET117：手机提示显示几毫秒"
   }
  ]
 }
