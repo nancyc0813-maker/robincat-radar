@@ -1,9 +1,9 @@
 {
-  "version": "1.0.22",
+  "version": "1.0.23",
   "date": "2026-11-06",
   "critical": false,
   "notes": [
-    "修好：新用户连接钱包显示「没拿到二维码 · getaddrinfo ENOENT www.binance.com」。原因是 VPN 只开「系统代理」时，浏览器能上币安，但雷达的币安钱包程式（baw）不会自动走系统代理。现在雷达会自动读电脑的系统代理（HTTP／SOCKS5），让币安钱包程式也经过它连币安（代理没开就跟以前一样直连）；真的连不到时画面会用白话写原因（网址解析失败／连线被拒绝、逾时），并教你把 VPN 改成 TUN／虚拟网卡／全局模式，原始错误改放小字，附「重试」。以前这个错误会被误判成「找不到 baw」，也一起修好（不影响买卖）"
+    "新增「先逛逛」：填好邀请码后，连钱包那一步右上角多了 ✕ 和「先逛逛」，按了直接进主画面先看盘（重开雷达也直接进去）。没连钱包时主画面上方会提示「还没连钱包：只能看、不能买卖 · 去连接」，所有买、卖、铸造、挖矿参与的按钮都改成「先连钱包」，按了会带你回连钱包那一步，不会下单；雷达主程式和引擎也会拒收没钱包时的买卖单。没连钱包时 AVE 专属资料（KOL／聪明钱标记、交易者小卡、AVE K 线）显示「连钱包后解锁」，价格、市值、DexScreener K 线和成交照常显示。连上钱包后提示自动消失、按钮恢复。一键更新照常可按。另外，电脑右下角（Mac 是上方选单列）的罗宾猫图示按右键，多了「检查更新／立即更新」：画面卡住或停在开始页面也能更新，没有新版会告诉你「已是最新版」"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -38,16 +38,16 @@
     "radar/desklink.cjs": "21b4593af23fabadbcbf12c2e1f61da75f03c074fc3ddd8da9982f0d750d15bc",
     "radar/ghmine.cjs": "085154c479db11c9f4347e14f508ab2744cd1951313990005e083b171c0fc415",
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
-    "radar/main.cjs": "54871b757006f4b026ec04dad1233ee6df392b25f1e883d6b1f3adec3f2329f7",
+    "radar/main.cjs": "0d191f38deb322e1533c6a58c1a9ebd06aa5dc2e2da96f6c01f7ee4f09599155",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
     "radar/next.cjs": "097bfbe9829a78194c1a49fdd81263e947550f63958e75a1ab4f5684b08bf274",
-    "radar/official.json": "d1ca6d2b487c1b196dca208bbb6cbf509462fe9ca2663697d0aa0c4fb42cdf07",
-    "radar/official.sig": "78a7cf3e8ba2dcd1de10d560b53a14b2c4485bf03a96db9ac63eb266910c994e",
+    "radar/official.json": "d981baeb33fa89f2b3fcf1c03a02b670ae3f7e5e2b08f9f7e063031b1dbc91ea",
+    "radar/official.sig": "19f4f8da69e4e968c523101ba2c0efbbeb09db26d39325b54fdfa382c3508c6f",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "63c1709dc240d06919ef4ce9d18b3c84d4998462ecc651befcdc98d1d6b6e645",
-    "radar/preload.cjs": "a19b4781b47c64706f169420e0ff5a1224a2cf8350f0d3a604d62d0db5301129",
+    "radar/package.json": "5e695ea2899d62175b0812c37bca8cbbe84f52863e9040b1ba0a36d71a5c03bd",
+    "radar/preload.cjs": "4946ab8867085fcbf54a0edd67c195c41c7c206cc43eb90616e01a74101cd278",
     "radar/settings_schema.json": "21e086734cbc51a3fc3e3ae6a83d99d048d8a0c835e293747b5e07997c61b562",
-    "radar/ui/index.html": "fbb8d6adb9bec0c4c4771089b9ed02770430735735abf4e824249d70d4e4c7cf",
+    "radar/ui/index.html": "76b727ade58c53402f1f2fd018dc2db9a6c876714e77b297be56a99e11908ee5",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -57,8 +57,8 @@
     "relay/icons.js": "84c4decb042b5f95ae44b637e4e2ff9d50135c95a34e473f057ce437f0924dc1",
     "relay/package-lock.json": "9e5ca69afb5a1fb949fa76f15fc0c5dba5dfd5f1ad1749d8a28d917b9306f9fb",
     "relay/package.json": "864796815252ad0b81d8fa80453fbc7b95ca20764f73e82d364bcbeff3df6f52",
-    "relay/phone.html": "b8476f5f8154bb600d0587e4a7241bfd1d3b9ae9854bcb25eb46671492582554",
-    "relay/worker.js": "66ce48f05584d3cc3be0aa2baff8c0024093536cebc539bf66a7ccb4d12d4a4b",
+    "relay/phone.html": "90e2f7b7f29a498da5642f51f851b385e3b92b818f78242f3f8f626eb2ebe377",
+    "relay/worker.js": "1dae2dfd370c562ed88592bc1ad7e8746198b7f81e80ff98631029aa33852bee",
     "relay/wrangler.toml": "57f8adcd8010e23f0160daafff4b1844301beeeb578c535020cd83005ef913ac",
     "repo.cjs": "dff6ac23ac9f445560e64b0bf83a47db82f7b5dd22d8c9acdcb9152c1210ff02",
     "rh.mjs": "4cf9c5d8da97e38e00c6e173e437d203473427d87c655cf4ca3c3c9e44480a26",
@@ -72,14 +72,14 @@
     "start_loop.sh": "ff614c71276696902cb0eed3a938265ec6e024e3d5951a93e5953cc3886d710c",
     "tg_login.bat": "1b358e1311fe5c0ef32580f47a150904f0028a4451b6409124f9eed46f81dbc9",
     "tools/guard_check.mjs": "da8b958b19bd1e436517e68b3371dc118a693480fa2724fc1044691f67a9964a",
-    "tools/guard_rules.json": "165c0214eac1046e7e65a6a32b2310618b6609cf9a5b4ef3ab3ce322659d9ff0",
-    "tools/zero_allowlist.json": "49a371dfcff8c0d0b1e61632cf0f5088fb6fb3bb869ac23a6492d594d427b92e",
+    "tools/guard_rules.json": "ac91171f9601ff71dcf752b6da699a0f1aba4e933b1cf6271994820372c6377f",
+    "tools/zero_allowlist.json": "dcc8b936502a014a1b562bb94f8d33d1271f888562c11225a9477ee057e2a28f",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "961807ab615efec4a3c6c72ec7380dc1d6c4266a51e70839a7187d2b37e8b63d",
+    "watch.mjs": "5056535837b32b835c420a5d5303d2fe5f1f8399fae3a77408fb2441b4539e52",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
     "一键安装.bat": "77e45841b87f533dcc53db561c07c2dbb47d7337b8734aaa8c213eb5822bbd50",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "961807ab615efec4a3c6c72ec7380dc1d6c4266a51e70839a7187d2b37e8b63d"
+  "sha256": "5056535837b32b835c420a5d5303d2fe5f1f8399fae3a77408fb2441b4539e52"
 }

@@ -1,6 +1,7 @@
 {
  "_说明": "guard_check 的白名单：domains＝能连的网站；allow＝已知合法的例外（rule＋档案＋那一行要符合的样子＋最多几处）。每一条都要写理由；新加的例外要维护者确认后重新签名发布。",
  "domains": {
+  "127.0.0.1": "PROXY123：币安钱包程式预载（px_shim）只对本机关着的埠打一次，让旧版 Node 内建 undici 建立连线池后再换成走系统代理；不出这台电脑、不送任何资料",
   "bsc-dataseed.bnbchain.org": "BNB Chain 公开节点（读链上资料，多节点轮替）",
   "bsc-dataseed1.binance.org": "BNB Chain 公开节点（读链上资料，多节点轮替）",
   "bsc-dataseed2.binance.org": "BNB Chain 公开节点（读链上资料，多节点轮替）",

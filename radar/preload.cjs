@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld('radar', {
   imgData: (u) => call('imgData', S(u, 2000)),
   candles: (n, p, tf) => call('candles', S(n, 20), S(p, 80), S(tf, 10)),
   login: (i) => call('login', N(i)),
+  netCheck: () => call('netCheck'), /*NET123 检查网路（只读）*/
   copyGuide: (x) => call('copyGuide', S(x, 600)),
   plugins: () => call('plugins'),
   approvePlugin: (f, h) => call('approvePlugin', S(f, 200), S(h, 128)),

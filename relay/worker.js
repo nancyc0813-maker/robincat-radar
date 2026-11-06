@@ -134,6 +134,8 @@ const AVE_OK = [[/^\/v2\/tokens\/0x[0-9a-f]{40}-(bsc|robinhood)$/, 3, 5], [/^\/v
 const MC_ID = '(?:0x[0-9a-f]{40}-(?:eth|base)|[1-9A-HJ-NP-Za-km-z]{32,44}-solana)';
 AVE_OK.push([new RegExp('^/v2/tokens/' + MC_ID + '$'), 3, 5], [new RegExp('^/v2/tokens/holders/' + MC_ID + '\\?limit=100$'), 60, 10], [new RegExp('^/v2/klines/token/' + MC_ID + '\\?interval=(1|5|15|60|240|1440)&limit=200$'), 5, 10],
   [new RegExp('^/v2/txs/swap/' + MC_ID + '\\?limit=50&sort=desc$'), 15, 50], [new RegExp('^/v2/address/walletinfo\\?chain=(?:solana&wallet_address=[1-9A-HJ-NP-Za-km-z]{32,44}|(?:eth|base)&wallet_address=0x[0-9a-f]{40})$'), 1800, 5]);
+/*MCFIX123 多链看盘排行（只读）：用户端看 Solana／Ethereum／Base 时直接查，转接站共用快取（AVE_OK 第二栏的秒数；记忆体＋caches.default，所有用户共用一份；快取命中不计额度）。部署：wrangler deploy */
+AVE_OK.push([/^\/v2\/tokens\/trending\?chain=(solana|eth|base)&page_size=100$/, 60, 5], [/^\/v2\/tokens\/platform\?tag=pump_(in_new|in_almost|in_hot|out_new|out_hot)&limit=100$/, 60, 10]);
 const MC = new Map(), MC_MAX = 2000; /* H8-D5：这个执行个体自己的快取（*.workers.dev 上 caches.default 可能不生效） */
 const mcGet = (k) => { const v = MC.get(k); if (!v) return null; if (Date.now() > v.exp) { MC.delete(k); return null; } return v.body; };
 const mcPut = (k, body, ttlS) => { MC.set(k, { body, exp: Date.now() + ttlS * 1000 }); if (MC.size > MC_MAX) MC.delete(MC.keys().next().value); };

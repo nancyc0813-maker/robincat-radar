@@ -17284,6 +17284,36 @@
    "file": "watch\\.mjs$",
    "match": "getaddrinfo\\|ENOTFOUND\\|EAI_AGAIN|ECONNREFUSED\\|ECONNRESET\\|ECONNABORTED|spawn \\\\S\\*baw|getaddrinfo\\|ENOTFOUND\\|EAI_AGAIN\\|ECONNREFUSED",
    "reason": "PROXY122：只用来把 baw 的系统错误分类成白话原因（网址解析失败／连线被拒绝逾时／找不到程式），只影响画面说明文字，不挡任何东西、不影响买卖"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "relay/worker\\.js$",
+   "match": "tokens\\\\/(trending|platform)",
+   "reason": "MCFIX123：转接站 AVE 白名单加多链排行网址格式（trending／platform 清单，只读）与共用快取秒数；不是买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "SQ_READ_MS=|SQ-2000\\)\\}|sqPaint\\(\\)\\}catch\\{\\}\\},1000",
+   "reason": "SEARCH123：搜寻的技术逾时（DexScreener／链上读取最多等多久、引擎多久没回就写原因、画面每秒补画一次、跟既有 renderSearch 一样容许 2 秒时间差）；不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const NC_MS = 6000",
+   "reason": "NET123：检查网路每一项最多等几毫秒（技术用逾时）；不是买卖数字"
+  },
+  {
+   "rule": "SLICE|TIMEWIN|KWLIST",
+   "file": "(watch\\.mjs|radar/main\\.cjs)$",
+   "match": "const \\[dns, direct\\]|请按重试扫码|本机程式问题|拒绝访问/i\\.test|连线逾时|网址解析失败|加密连线失败|const QR_NETLIKE|why: QR_BIZ\\[c\\]",
+   "reason": "NET123：连接钱包错误分类（baw 业务错误代码表、连线类错误字样、本机程式问题字样）与原文截短；只决定画面写哪一种白话，不是买卖数字"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "\\(n\\[0\\] > 22 \\|\\| \\(n\\[0\\] === 22 && n\\[1\\] >= 21\\)",
+   "reason": "PROXY123：Node 版本判断（22.21 起内建 NODE_USE_ENV_PROXY），技术用；不是买卖数字"
   }
  ]
 }
