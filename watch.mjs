@@ -249,7 +249,7 @@ const BAW_SEND = /^(market-order swap|contract-call execute|approvals revoke|sig
 /*BINDSH108*/const bawShNow = (fn) => !!fn?.sh || (!!fn?.maybeSh && !existsSync(BAW_BIN)); /* 这次呼叫会不会经过 shell（bawGuard 检查和 bindSign 包引号用同一个判断） */
 const bawGuard = (fn) => Object.assign((args, timeout) => { const bad = bawArgsBad(args || [], bawShNow(fn)); if (bad) { log('⛔ baw 参数检查没过，没执行：' + bad); return Promise.resolve({ t: '参数检查没过：' + bad, j: { success: false, error: { message: '参数检查没过：' + bad } } }); } return fn(args, timeout).then((r) => { if (r && !r.j && !r.timeout && r.ok0 && BAW_SEND.test(String((args || [])[0]) + ' ' + String((args || [])[1]))) return { ...r, t: 'TIMEOUT(结果不明：送出后读不懂回应) ' + r.t, timeout: 1 }; return r; }); /* 会花钱的指令正常结束却读不懂回应＝结果不明 */ }, fn.sh ? { sh: 1 } : fn.maybeSh ? { maybeSh: 1 } : {}); /*BINDSH108 把 maybeSh 带出去*/
 function makeBaw(wc) { return bawGuard(makeBaw0(wc)); }
-let _bawG; function bawGlobalEntry() { if (_bawG !== undefined) return _bawG; _bawG = ''; const rel = join('@binance', 'agentic-wallet', 'dist', 'index.js'); const roots = []; try { roots.push(String(execFileSync('npm', ['root', '-g'], { shell: true, windowsHide: true, timeout: 15000, encoding: 'utf8' })).trim()); } catch {} const nd = dirname(process.execPath); roots.push(join(nd, 'node_modules'), join(nd, '..', 'lib', 'node_modules')); if (process.env.APPDATA) roots.push(join(process.env.APPDATA, 'npm', 'node_modules')); for (const r of roots) { if (!r) continue; const f = join(r, rel); if (existsSync(f)) { _bawG = f; break; } } return _bawG; } /* 找全域安装的 baw 主程式（npm root -g 是固定指令、没有使用者输入）；找不到才用 shell 的 baw */
+let _bawG; function bawGlobalEntry() { if (_bawG !== undefined) return _bawG; _bawG = ''; const rel = join('@binance', 'agentic-wallet', 'dist', 'index.js'); const roots = []; try { roots.push(String(execFileSync('npm', ['root', '-g'], { shell: true, windowsHide: true, timeout: 15000, encoding: 'utf8' })).trim()); } catch {} const nd = dirname(process.execPath); roots.push(join(nd, 'node_modules'), join(nd, '..', 'lib', 'node_modules')); if (process.env.APPDATA) roots.push(join(process.env.APPDATA, 'npm', 'node_modules')); if (process.env.HOME) roots.push(join(process.env.HOME, '.npm-global', 'lib', 'node_modules')); /*QR120-NPMG*/ for (const r of roots) { if (!r) continue; const f = join(r, rel); if (existsSync(f)) { _bawG = f; break; } } return _bawG; } /* 找全域安装的 baw 主程式（npm root -g 是固定指令、没有使用者输入）；找不到才用 shell 的 baw */
 function makeBaw0(wc) {
   if (!wc.bawDir) { const g = bawGlobalEntry(); if (g) return (args, timeout = 180000) => new Promise((res) => execFile(process.execPath, [g, ...args, '--json'], { windowsHide: true, timeout, maxBuffer: 4 << 20 }, parseOut(res))); return Object.assign((args, timeout = 180000) => new Promise((res) => execFile('baw', [...args, '--json'], { shell: true, windowsHide: true, timeout, maxBuffer: 4 << 20 }, parseOut(res))), { sh: 1 }); }
   const env = { ...process.env, BINANCE_BAW_DIR: join(DIR, wc.bawDir), BINANCE_INSTANCE_ID: wc.instanceId || wc.name };
@@ -2122,16 +2122,30 @@ function walApply(type, a, cfg) { const rm = type === 'removeWallet';
   setTimeout(() => { radarWalletPoll(); }, 0);
   const W = WALLETS.find((w) => w.addr === a); return rm ? `✅ 已删除钱包 ${a.slice(0, 8)}…（立即生效：雷达不再用它买卖）` : W ? `✅ 已新增钱包 ${W.name}（立即生效）：请在雷达「设定 → 钱包」按它旁边的「连接（扫码）」` : `❌ 新增钱包失败：${a.slice(0, 8)}…`; }
 async function radarWalletPoll(force) { try { const out = []; for (const W of WALLETS) { guardBaw(W); const r = await W.baw(['wallet', 'status'], 60000); const st = r.j?.data?.status || 'UNKNOWN'; if (st !== 'UNKNOWN') { const off = st !== 'CONNECTED'; W.off = off; S.wOff = S.wOff || {}; const seen = W.addr in S.wOff; if (!seen) { S.wOff[W.addr] = off; save(); } /* 第一次看到只记下来，不通知 */ else if (off !== !!S.wOff[W.addr]) { S.wOff[W.addr] = off; save(); log(`[钱包] ${W.name} ${off ? '登出了，自动买卖先跳过这个钱包' : '重新连上了，恢复正常'}`); if (off) { if (!globalThis._loginNowBusy) { globalThis._loginNowBusy = 1; loginCheck().catch((e) => log('loginCheck ' + e.message)).finally(() => { globalThis._loginNowBusy = 0; }); } } /*V102-LOGOUT1：登出只发 loginCheck 那一则（有连结和配对码），这里不再另外发 */ else tg(`✅ ${W.name} 钱包重新连上了，恢复自动买卖`).catch(() => {}); } } out.push({ name: W.name, addr: W.addr, status: st === 'UNKNOWN' && S.wOff && W.addr in S.wOff ? (S.wOff[W.addr] ? 'UNCONNECTED' : 'CONNECTED') : st, ...(st === 'UNKNOWN' ? { stale: 1 } : {}) }); } writeFileSync(join(DIR, 'data', 'radar_wallets.json'), JSON.stringify({ at: Date.now(), list: out })); } catch (e) { log('radarWalletPoll ' + e.message); } }
+/*QR120-ENG*/ /* 连接钱包（扫码）：每一步失败都写真正原因（画面会显示＋重试）；等扫码时再按一次就拿新码（新的请求取代旧的，不会卡住）；没有钱包也回原因 */
+const QR120_SIGNIN_MS = 60000, QR120_VERIFY_MS = 330000; /* 技术用：baw 向币安要二维码／等手机扫码最多等多久（指令逾时，不是买卖数字） */
+function qr120Why(r) { const t = String(r?.j?.error?.message || r?.t || '').replace(/\s+/g, ' ').trim(); const raw = t ? '（' + t.slice(0, 100) + '）' : '';
+  if (r?.timeout) return { code: 'timeout', why: '币安没回应（逾时）：请确认网络正常、已开 VPN（中国大陆要开），再按重试' };
+  if (/ENOENT|not recognized|command not found|Cannot find module|MODULE_NOT_FOUND|不是内部或外部命令/i.test(t)) return { code: 'nobaw', why: '找不到币安钱包程式 baw：请重新执行「一键安装」后再按重试' + raw };
+  if (/EPERM|EACCES|operation not permitted|access is denied|拒绝访问/i.test(t)) return { code: 'blocked', why: 'baw 被系统或防毒软件挡住：请把雷达资料夹加入防毒白名单后再按重试' + raw };
+  if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|EAI_AGAIN|ETIMEDOUT|ENETUNREACH|socket hang up|fetch failed|network|getaddrinfo|certificate|proxy/i.test(t)) return { code: 'net', why: '连不到币安：请确认网络正常、已开 VPN（中国大陆要开），再按重试' + raw };
+  return { code: 'err', why: '币安钱包回了错误' + (raw || '（没有说明）') + '，请按重试' }; }
+let _loginGen = 0;
 setInterval(async () => { const q = join(DIR, 'data', 'radar_login_req.json'); if (_loginBusy || !existsSync(q)) return; let req = {}; try { req = JSON.parse(readFileSync(q, 'utf8')); } catch {} try { unlinkSync(q); } catch {} if (Date.now() - (req.at || 0) > 120e3) return;
-  const W = WALLETS[Math.max(0, Math.min(WALLETS.length - 1, Number(req.i) || 0))]; const out = join(DIR, 'data', 'radar_login.json'); _loginBusy = true;
-  try { writeFileSync(out, JSON.stringify({ state: 'wait', wallet: W.name, at: Date.now() }));
-    const si = await W.baw(['auth', 'signin'], 60000); const url = si.j?.data?.urlForWeb, code = si.j?.data?.pairingCode, id = si.j?.data?.qrCodeId;
-    if (!id && /ALREADY_CONNECTED/i.test(JSON.stringify(si.j || si.t || ''))) { W.off = false; S.wOff = S.wOff || {}; S.wOff[W.addr] = false; save(); writeFileSync(out, JSON.stringify({ state: 'ok', wallet: W.name, why: '', already: 1, at: Date.now() })); radarWalletPoll(true).catch(() => {}); return; } 
-    if (!id || !/^https:\/\/app\.binance\.com\//.test(String(url))) { writeFileSync(out, JSON.stringify({ state: 'fail', wallet: W.name, why: String(si.j?.error?.message || si.t).slice(0, 120), at: Date.now() })); return; } /* 只认币安官方网址 */
-    writeFileSync(out, JSON.stringify({ state: 'qr', wallet: W.name, url, code, expire: Number(si.j?.data?.expireAt) || null, at: Date.now() }));
-    const v = await W.baw(['auth', 'verify', '--qrCodeId', id], 330000); const ok = v.j?.data?.status === 'SUCCESS';
-    writeFileSync(out, JSON.stringify({ state: ok ? 'ok' : 'fail', wallet: W.name, why: ok ? '' : String(v.j?.data?.status || v.j?.error?.message || '').slice(0, 80), at: Date.now() })); if (ok) await tg(`✅ ${W.name} 在雷达连接成功`).catch(() => {});
-  } catch (e) { writeFileSync(out, JSON.stringify({ state: 'fail', wallet: W.name, why: e.message.slice(0, 80), at: Date.now() })); } finally { _loginBusy = false; radarWalletPoll(); } }, 3e3).unref();
+  const out = join(DIR, 'data', 'radar_login.json'); const gen = ++_loginGen; const put = (o, force) => { try { if (force || gen === _loginGen) writeFileSync(out, JSON.stringify({ ...o, at: Date.now() })); } catch {} };
+  if (!WALLETS.length) { put({ state: 'fail', wallet: '', code: 'nowallet', why: '还没有钱包：请先填钱包名称和地址、按「新增钱包」' }); return; }
+  const W = WALLETS[Math.max(0, Math.min(WALLETS.length - 1, Number(req.i) || 0))]; _loginBusy = true;
+  try { put({ state: 'wait', wallet: W.name });
+    const si = await W.baw(['auth', 'signin'], QR120_SIGNIN_MS); const url = String(si.j?.data?.urlForWeb || ''), code = si.j?.data?.pairingCode, id = si.j?.data?.qrCodeId;
+    if (!id && /ALREADY_CONNECTED/i.test(JSON.stringify(si.j || si.t || ''))) { W.off = false; S.wOff = S.wOff || {}; S.wOff[W.addr] = false; save(); put({ state: 'ok', wallet: W.name, why: '', already: 1 }); radarWalletPoll(true).catch(() => {}); return; }
+    if (!id || !url) { const w = si.j?.data && !si.j?.error ? { code: 'empty', why: '币安回的资料里没有二维码网址（baw 版本可能不对）：请重新执行「一键安装」后再按重试' } : qr120Why(si); log(`[登入] ${W.name} 要二维码没成功：${w.why}`); put({ state: 'fail', wallet: W.name, ...w }); return; }
+    if (!/^https:\/\/app\.binance\.com\//.test(url)) { put({ state: 'fail', wallet: W.name, code: 'badurl', why: '回来的网址不是币安官方网址，为了安全不显示：' + url.slice(0, 60) }); return; } /* 只认币安官方网址 */
+    put({ state: 'qr', wallet: W.name, url, code, expire: Number(si.j?.data?.expireAt) || null });
+    _loginBusy = false; /* 等扫码时可以再按一次重新产生（新的请求会取代这一个） */
+    const v = await W.baw(['auth', 'verify', '--qrCodeId', id], QR120_VERIFY_MS); const ok = v.j?.data?.status === 'SUCCESS';
+    if (ok) { put({ state: 'ok', wallet: W.name, why: '' }, 1); await tg(`✅ ${W.name} 在雷达连接成功`).catch(() => {}); }
+    else put({ state: 'fail', wallet: W.name, code: v.timeout ? 'expired' : 'verify', why: v.timeout ? '二维码过期了（太久没扫）：请按重试拿新的二维码' : '没有完成确认（' + String(v.j?.data?.status || v.j?.error?.message || v.t || '').slice(0, 80) + '）：请按重试' });
+  } catch (e) { put({ state: 'fail', wallet: W.name, code: 'err', why: String(e?.message || e).slice(0, 80) + '，请按重试' }); } finally { if (gen === _loginGen) _loginBusy = false; radarWalletPoll(); } }, 3e3).unref();
 const PAY_TOK = { BNB: NATIVE_BNB, USDT, USDC: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' };
 const PX_TOK = { BTC: '0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c', SOL: '0x570a5d26f7765ecb712c0924e4de545b89fd43df' }; /* UIFIX4：底部状态列的 BTC／SOL 价格＝BNB Chain 上的 BTCB／SOL 代币，跟 BNB 价格同一个来源（PancakeSwap 池子储备）；只显示，不拿来判断任何事 */
 async function pairPx(tok, quote) { try { const p = await call(FACTORY, '0xe6a43905' + wa(tok) + wa(quote)); const pair = '0x' + String(p || '').slice(26); if (!/^0x[0-9a-fA-F]{40}$/.test(pair) || /^0x0{40}$/.test(pair)) return null; const r = await call(pair, '0x0902f1ac'); const t0 = await call(pair, '0x0dfe1681'); if (!r || !t0 || r.length < 130) return null;
@@ -3081,7 +3095,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.0.19', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.0.20', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;

@@ -16691,6 +16691,50 @@
     "30 秒"
    ],
    "reason": "OPEN119：背景补读代币地址的排程（铸满项目读不到隔 5 分钟再试）；进度读不到当 0＝不算铸满（只影响补读顺序）；注解里的 100%／30 秒是说明文字。代币地址仍要通过验证，读不到不猜，不影响买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "index\\.html$",
+   "match": "QR120_UI_WAIT_MS=150000|\\(LGAT\\|\\|G\\.at\\|\\|Date\\.now\\(\\)\\)\\)/1e3",
+   "values": [
+    "150000",
+    "1e3"
+   ],
+   "reason": "QR120：按了「连接（扫码）」后画面最多等多久（含引擎启动＋向币安要码）才改显示原因＋重试；1e3＝毫秒换秒显示「已等 N 秒」。技术用，跟买卖无关"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "index\\.html$",
+   "match": "约 30～90 秒",
+   "values": [
+    "30～90 秒"
+   ],
+   "reason": "QR120：说明文字（引擎启动大约要多久，跟门槛页「引擎启动中（通常 30～90 秒）」同一句），不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "QR120_SIGNIN_MS = 60000, QR120_VERIFY_MS = 330000",
+   "values": [
+    "60000",
+    "330000"
+   ],
+   "reason": "QR120：baw 向币安要二维码／等手机扫码的指令逾时（沿用旧版 60000／330000），技术用，不是买卖数字"
+  },
+  {
+   "rule": "SLICE",
+   "file": "watch\\.mjs$",
+   "match": "const raw = t \\? '（' \\+ t\\.slice\\(0, 100\\)",
+   "values": [
+    "100"
+   ],
+   "reason": "QR120：错误讯息显示长度上限（防画面被撑爆），不是买卖数字"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "watch\\.mjs$",
+   "match": "ENOENT\\|not recognized|EPERM\\|EACCES|ENOTFOUND\\|ECONNREFUSED",
+   "reason": "QR120：只用来把 baw 的系统错误分类成白话原因（找不到程式／被防毒挡／连不到币安），只影响画面说明文字，不挡任何东西、不影响买卖"
   }
  ]
 }

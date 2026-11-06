@@ -1,9 +1,9 @@
 {
-  "version": "1.0.19",
+  "version": "1.0.20",
   "date": "2026-11-06",
   "critical": false,
   "notes": [
-    "修好：AI专属铸造看盘里已经开池的项目被标成「已铸满等开盘」。现在铸满的项目会优先确认代币地址并直接查有没有开池，开池了就放进「已开盘」；还在确认时写「查开盘中」，读不到代币地址会照实写，不再一律写等开盘（只改画面显示，不影响买卖）"
+    "修好：连接钱包时二维码出不来。现在二维码做不出来会改显示币安官方连结＋配对码（可复制、可打开）；向币安要码失败、逾时、没开 VPN、找不到 baw、引擎没在跑时，画面会写出真正原因并附「重试」；等扫码时可按「重新产生二维码」拿新码，不会再卡在「向币安要二维码中」（不影响买卖）"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -38,16 +38,16 @@
     "radar/desklink.cjs": "21b4593af23fabadbcbf12c2e1f61da75f03c074fc3ddd8da9982f0d750d15bc",
     "radar/ghmine.cjs": "085154c479db11c9f4347e14f508ab2744cd1951313990005e083b171c0fc415",
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
-    "radar/main.cjs": "a1fce2dddf1878b043403c59e32e02bc3c82a54305e3109865e5177903b66ce7",
+    "radar/main.cjs": "15a40116e5ef513ac6c7a174086a7e2d32ea9a3857f9ea3c83daccf5d73aedb6",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
     "radar/next.cjs": "097bfbe9829a78194c1a49fdd81263e947550f63958e75a1ab4f5684b08bf274",
-    "radar/official.json": "67f9d10c40eefa84c8854aceca0bf4dc91d06c1fe32710b5537e212be132e497",
-    "radar/official.sig": "6abcb3181bca0d600591ca9ca5709e1b3dc055c5fa29469d65ab979cb42ae70e",
+    "radar/official.json": "99c79e15914dd3d2a3354e7494ec36597090fe89ad4bfc74abc26663be31a07c",
+    "radar/official.sig": "12aa48ea7181330eedba9b3ad4d2afb70cbcdfa7111087919a3712c18df0d55b",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "fbab5db6158a896905215c910c10a0c56df33d689db91bb3abf350d406c8864a",
+    "radar/package.json": "39a99971b67f79b62f1fcc5b3f41b02053aab0524922bd307bf94d938c510852",
     "radar/preload.cjs": "bdd748e81a344b708ad7a40efe64727bf075e04512d0298a83c7528351a8338d",
     "radar/settings_schema.json": "21e086734cbc51a3fc3e3ae6a83d99d048d8a0c835e293747b5e07997c61b562",
-    "radar/ui/index.html": "a0a4511a0009b3d5fe9e527dce9b70944906a6e96aa8b5c20c25ead8317f1cb8",
+    "radar/ui/index.html": "1fab65663c0e8776a9661af1da48d2c9b625c6cb641f701542bd141a702d6ae0",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -69,17 +69,17 @@
     "smartfind.mjs": "355c73285478b143ea5f715bf7dc710958632dace833deffdd3ac3b3405440d9",
     "start_hidden.vbs": "116f459e8fa5b31bddfd2d91766fe7d680810eac65188e8b76460ae09c52acd6",
     "start_loop.bat": "a86b247ae70b1a638e8b7b543b45f755dfd48cdd69cb052970002e5c86f80192",
-    "start_loop.sh": "a2ad03f7f70c3fd58506716becb643cc4c2e9f220c43ef4abbde61b67b327415",
+    "start_loop.sh": "ff614c71276696902cb0eed3a938265ec6e024e3d5951a93e5953cc3886d710c",
     "tg_login.bat": "1b358e1311fe5c0ef32580f47a150904f0028a4451b6409124f9eed46f81dbc9",
     "tools/guard_check.mjs": "da8b958b19bd1e436517e68b3371dc118a693480fa2724fc1044691f67a9964a",
     "tools/guard_rules.json": "e05a1d2df6a62609bf1f0a01c20ac26ca9cd04531efc8d57a36fd230adaa3091",
-    "tools/zero_allowlist.json": "ab258e6dc4560ec777b08c85c64c7311da112edd7f568ce5f6226cbc937ebac6",
+    "tools/zero_allowlist.json": "5c45a3e571599a09193b98ab77c683bf4b2123f43d376918d9d3b1c24e43dd29",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "8aee1b8d8e91f361f33a3499600be999a2e97a747ca852b1e65ed5ff4043d04e",
+    "watch.mjs": "05447db2b2e99b5b38ca194b33bdb010e68b588da45c5118de83340471451eb0",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
     "一键安装.bat": "77e45841b87f533dcc53db561c07c2dbb47d7337b8734aaa8c213eb5822bbd50",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "8aee1b8d8e91f361f33a3499600be999a2e97a747ca852b1e65ed5ff4043d04e"
+  "sha256": "05447db2b2e99b5b38ca194b33bdb010e68b588da45c5118de83340471451eb0"
 }
