@@ -28,6 +28,8 @@ AVE_CODE_DAY_CU = ""
 AVE_BG_STOP_PCT = ""
 # OPS-RT15：转接站通行证（session token）有效几秒；没设＝不发通行证（雷达连不上 AVE／手机连结）。HMAC 金钥可另外用 `npx wrangler secret put SESSION_KEY` 设，不设就自动产生存在 Durable Object
 SESSION_TTL_S = "3600"
+# HOT126 访客通行证（不用钱包，只能拿看盘清单 /aveboard2 和 /avews 价格推送）：每个 IP 每分钟最多几次（发通行证＋取清单＋连推送合计）。空白＝不发访客通行证
+GUEST_IP_RPM = "600"
 # 线上金钥的公钥（Ed25519 SPKI DER base64）：AVE 看盘资料上传（POST /aveboard）和作者手机通行证只认这把，不用 repo.cjs 的发布金钥 PUBKEY。
 # 值由 `node sign_radar.mjs onlinekey <树>` 产生（私钥存在 <树>/.sign_radar/online.pem），把印出来的那串贴在下面引号里。
 # 留空＝转接站拒绝所有看盘上传（回 503 并说明原因）、作者手机通行证也不能用；其他功能照常。

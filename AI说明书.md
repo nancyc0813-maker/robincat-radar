@@ -228,6 +228,7 @@ Agent 钱包数：引擎一轮最多看 4000 笔铸造交易／4000 个钱包（
 | 每周检讨（本地算、不用 AI、建议只用问句） | `weekly.on` + `weekly.day`（1–7）+ `weekly.hour`（0–23）、`weekly.tg` | `data/weekly/*.json`、`data/backtest_last.json` |
 | 看盘：AVE 资料优先，链上读到的先标「链上即时」；发射台按钮照实际有币的平台自动产生 | 无 | AVE 清单可以在 `data/ave_lists.json` 加（每轮花的额度不会超过原本） |
 | 看盘新版（CARDS125）：分页「新币｜热门｜自选」；新币＝三栏卡片（新创建＝AVE `*_in_new`＋`new`、即将发射＝`*_in_almost`、刚发射＝`*_out_new`），每栏自己的 ⏸ 暂停／发射台（照 AVE `issue_platform`）／筛选，都只影响画面；卡片标签颜色照「🏷 标签与颜色」，没填＝灰色；⚡ 金额＝`manual.defUsd`（顶栏「⚡ 快买」），送单走原本的 ⚡ 流程和引擎底线；雷达没有下单路线的发射台内盘显示「去 AVE 买」 | `manual.defUsd.on` + `manual.defUsd`（没填＝⚡ 先叫你设金额，不会自己补数字） |
+| 看盘资料来源（HOT126）：看盘清单（转接站 `/aveboard2`）和价格推送（`/avews` 的价格）不用钱包也拿得到（访客通行证，只能读这两样）；详情、持有人、K 线、成交照旧要绑定。热门分页＝AVE 热门榜原本的顺序（点表头才改排序）。AVE 连不上时看盘顶端红字写原因，先显示本机链上资料（同样的分栏和排序） | 无 | 转接站变数 `GUEST_IP_RPM`（每个 IP 每分钟几次，营运设定） |
 | ⛏ 其他链／自有网络（GitHub 观察，GHM-1104）：贴 GitHub 项目网址，雷达轮流看最新提交、最新版本／标签，有新动态标红点；只读公开资料、只提醒 | `mine.ghMy`（你加的项目）、`mine.ghNotify`（新版本／标签通知）、`mine.ghNotifyCommit`（新提交通知），通知都预设关 | `data/gh_mine.json`；官方推荐清单＝签名过的 remote `mineGh[]`（`repo`／`url`、`name`、`note`） |
 | ⭐ 自选、🔔 价格提醒、🔔 通知中心、用名字找币、设定搜寻、⌨️ 快捷键（PL-1104）：只显示和提醒，不买、不卖、不挡单 | `px.watch`（自选＋你自己填的提醒数字，空着＝不提醒）、`px.sysNote`（电脑系统通知，预设关） | `data/radar_settings.json` |
 

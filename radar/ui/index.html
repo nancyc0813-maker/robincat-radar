@@ -990,7 +990,7 @@ const AVW_TTL=8e3/*技术用：need() 几秒没再呼叫就退订*/,AVW_RETRY=[1
 const AVW_IV={'1m':'1','5m':'5','15m':'15','1h':'60','3h':'60','6h':'240','12h':'240','1d':'1440','3d':'1440','1w':'1440','1M':'1440'};/* 画面周期 → AVE 推送周期（AVE 没有的用能整除的小周期，合并进同一根；周线／月线用日线合并，格子跟 kbStart 一致） */
 function awId(net,a){return String(a||'').toLowerCase().replace(/_[a-z0-9]+$/,'')+'-'+(net==='robinhood'?'robinhood':'bsc')}
 function awKey(t,net,a,iv){const id=awId(net,a);if(!/^0x[0-9a-f]{40}-(bsc|robinhood)$/.test(id))return '';return t==='k'?(iv?'k|'+id+'|'+iv:''):t+'|'+id}
-AVW.need=function(t,net,a,tf,pr){if(!SNAP?.aveOn)return '';const k=awKey(t,net,a,t==='k'?AVW_IV[tf]:'');if(!k)return '';const o=AVW.want.get(k);AVW.want.set(k,{at:Date.now(),pr:pr?1:(o&&Date.now()-o.at<AVW_TTL?o.pr:0)});awSoon();return k};
+AVW.need=function(t,net,a,tf,pr){if(!(SNAP?.aveOn||(t==='p'&&SNAP?.aveWsOn)))return '';/*HOT126 价格推送访客也可以*/const k=awKey(t,net,a,t==='k'?AVW_IV[tf]:'');if(!k)return '';const o=AVW.want.get(k);AVW.want.set(k,{at:Date.now(),pr:pr?1:(o&&Date.now()-o.at<AVW_TTL?o.pr:0)});awSoon();return k};
 AVW.live=function(k){return !!k&&AVW.st==='on'&&AVW.acc.has(k)};
 AVW.src=function(net,a){if(!SNAP?.aveOn)return 'dex';return AVW.live(awKey('p',net,a))||AVW.live(awKey('x',net,a))?'wss':'rest'};
 AVW.vsum=function(kk,bt,sec){const M=AVW.kv.get(kk);if(!M)return 0;let s=0;for(const [t,v] of M)if(kbStart(t,sec)*1000===bt)s+=v;return s};
@@ -1014,7 +1014,7 @@ function awSync(){awNote();/*V101-1*/const L=awList();if(!L.length){if(AVW.ws&&!
  if(L.length&&!AVW.ws){awConn();return}if(!AVW.ws||!AVW.auth||AVW.ws.readyState!==1)return;
  if(AVW.renew&&Date.now()>AVW.renew)awReauth();const sig=L.join(',');if(sig===AVW.sig)return;AVW.sig=sig;try{AVW.ws.send(JSON.stringify({set:L.map(k=>k.split('|'))}))}catch{}}
 async function awReauth(){if(AVW.busy)return;AVW.busy=1;try{const s=await window.radar.aveWsSess?.();if(s&&s.t&&AVW.ws&&AVW.ws.readyState===1){AVW.renew=+s.renew||0;AVW.ws.send(JSON.stringify({auth:s.t}))}else AVW.renew=Date.now()+AVW_RETRY[1]}catch{}finally{AVW.busy=0}}
-async function awConn(){if(AVW.ws||AVW.busy||Date.now()<AVW.deny||!SNAP?.aveOn||!window.radar?.aveWsSess)return;AVW.busy=1;AVW.st='conn';awState();let s=null;try{s=await window.radar.aveWsSess()}catch{}AVW.busy=0;
+async function awConn(){if(AVW.ws||AVW.busy||Date.now()<AVW.deny||!(SNAP?.aveOn||SNAP?.aveWsOn)||!window.radar?.aveWsSess)return;AVW.busy=1;AVW.st='conn';awState();let s=null;try{s=await window.radar.aveWsSess()}catch{}AVW.busy=0;
  if(!s||s.err||!s.url||!s.t){AVW.why=String(s?.err||'');AVW.st='off';AVW.deny=Date.now()+(AVW.why==='net'?AVW_RETRY[1]:AVW_DENY);awState();return}
  let ws;try{ws=new WebSocket(s.url,['rcave1',s.t])/*RISK-FIX 8：通行证放在子协定，转接站升级前就先验*/}catch{AVW.st='off';AVW.deny=Date.now()+AVW_RETRY[1];awState();return}AVW.ws=ws;AVW.auth=0;AVW.sig='';AVW.renew=+s.renew||0;
  ws.onopen=()=>{try{ws.send(JSON.stringify({auth:s.t}))}catch{}};
@@ -1041,7 +1041,7 @@ function awTape(net,a,r){const k=awKey('x',net,a);if(!AVW.live(k))return null;co
  const W=A.map(x=>{const tg=[...(tgW.get(x.w)||[])].filter(t=>t!=='whale');if(wh!=null&&x.usd!=null&&x.usd>=wh)tg.push('whale');return {t:x.tm>0?x.tm*1000:x.at,blk:x.blk,b:x.b,usd:x.usd==null?0:Math.round(x.usd*100)/100,p:x.p,w:x.w,tg}});
  const mt=Math.min(...W.map(x=>x.t)),mb=Math.min(...W.map(x=>x.blk>0?x.blk:Infinity));const old=(r?.rows||[]).filter(x=>x.t?x.t<mt:x.blk?x.blk<mb:false);return {...(r||{}),src:'wss',at:Date.now(),rows:W.concat(old).slice(0,AVW_TX_KEEP)}}
 /* 看盘：只订阅画面上看得到的币的价格（详情优先，名额由转接站给的上限决定） */
-function awBoard(){if(!SNAP?.aveOn||document.hidden||!HBD||(CH!=='bsc'&&CH!=='robinhood'))return;const ids=[];for(const sel of ['#fmTL','#fmRL']){const box=$(sel);if(!box||!box.offsetParent)continue;const R=box.getBoundingClientRect();for(const el of box.children){const r=el.getBoundingClientRect();if(r.bottom<R.top||r.top>R.bottom||!r.height)continue;const m=String(el.dataset.fk||'').match(/0x[0-9a-fA-F]{40}/);if(m)ids.push(m[0])}}for(const a of new Set(ids))AVW.need('p',CH,a);if(awBoardPx())try{if(typeof fmRender==='function'&&$('#fmT'))fmRender()}catch{}}
+function awBoard(){if(!(SNAP?.aveOn||SNAP?.aveWsOn)||document.hidden||!HBD||(CH!=='bsc'&&CH!=='robinhood'))return;const ids=[];for(const sel of ['#fmTL','#fmRL']){const box=$(sel);if(!box||!box.offsetParent)continue;const R=box.getBoundingClientRect();for(const el of box.children){const r=el.getBoundingClientRect();if(r.bottom<R.top||r.top>R.bottom||!r.height)continue;const m=String(el.dataset.fk||'').match(/0x[0-9a-fA-F]{40}/);if(m)ids.push(m[0])}}for(const a of new Set(ids))AVW.need('p',CH,a);if(awBoardPx())try{if(typeof fmRender==='function'&&$('#fmT'))fmRender()}catch{}}
 setInterval(()=>{try{awBoard()}catch{}try{awSync()}catch{}},2000);
 setTimeout(()=>{
  if(typeof openToken==='function'&&!openToken._aw){const o=openToken;openToken=function(net,addr,ex){try{AVW.need('p',net,addr,'',1);AVW.need('x',net,addr,'',1);if(ex&&ex.pool)AVW.need('k',net,ex.pool,'5m',1)}catch{}return o.apply(this,arguments)};openToken._aw=1}/* 一点开就先订阅（连线跟详情一起暖机） */
@@ -4481,11 +4481,11 @@ function paint(){if(!on5()){document.body.classList.remove('c5on','c5new');retur
  if(HBS&&HBS.plat&&HBS.plat!=='all'){HBS.plat='all';try{hbSave()}catch{}}/* 上方的「发射台：全部」拿掉了 → 旧的全域发射台筛选归零（不然表格会被看不到的筛选藏起来） */
  narrow();tabs();if(S5.tab==='new')for(const [k] of COLS)col(k)}
 /* ── 热门／自选：沿用现有表格 ── */
-function hotItems(){const s=new Set(),o=[];for(const k of ['hot','hotdex'])for(const x of raw(k))if(!s.has(x.c)){s.add(x.c);o.push(x)}return o}/* *_in_hot＋*_out_hot＋热门榜 */
+function hotItems(){if(Array.isArray(HBD?.trend)&&HBD.trend.length)return HBD.trend.slice();/*HOT126 热门＝AVE 热门榜原本的顺序（老币也在）*/const s=new Set(),o=[];for(const k of ['hot','hotdex'])for(const x of raw(k))if(!s.has(x.c)){s.add(x.c);o.push(x)}return o}/* *_in_hot＋*_out_hot＋热门榜 */
 const R0=fmRender;fmRender=function(){if(!on5()){document.body.classList.remove('c5on','c5new');return R0.apply(this,arguments)}let saved=null;
  try{if(S5.tab==='hot'&&HBD&&Array.isArray(HBD.cols)){saved=HBD.cols;HBD.cols=saved.concat([{k:'c5hot',zh:'🔥 热门',en:'🔥 Trending',items:hotItems()}]);FM.tabC='c5hot';BV.wl=false}else if(S5.tab==='wl')BV.wl=true;else BV.wl=false}catch{}
  let r;try{r=R0.apply(this,arguments)}finally{if(saved)HBD.cols=saved}try{paint()}catch(e){console.error(e)}return r};fmRender.__c5=1;
-setTimeout(()=>{const s0=fmSort;fmSort=function(a,k){if(on5()&&S5.tab==='hot'&&FM.tabC==='c5hot'&&!(typeof FB!=='undefined'&&FB.sort)&&HBS.sort==='def'){const f=(x)=>{const v=v24(x);return v==null?-1:v};return a.slice().sort((p,q)=>f(q)-f(p))}return s0.apply(this,arguments)};fmSort._nx=1;fmSort.__fb=1;fmSort.__c5=1},300);/* 热门＝照 24h 成交额排（你点表头排序时照你点的） */
+setTimeout(()=>{const s0=fmSort;fmSort=function(a,k){if(on5()&&S5.tab==='hot'&&FM.tabC==='c5hot'&&!(typeof FB!=='undefined'&&FB.sort)&&HBS.sort==='def'){if(Array.isArray(HBD?.trend)&&HBD.trend.length){const I=new Map(HBD.trend.map((x,i)=>[x.c,i]));return a.slice().sort((p,q)=>(I.get(p.c)??1e9)-(I.get(q.c)??1e9))}/*HOT126 预设＝AVE 的顺序；点表头才照你点的*/const f=(x)=>{const v=v24(x);return v==null?-1:v};return a.slice().sort((p,q)=>f(q)-f(p))}return s0.apply(this,arguments)};fmSort._nx=1;fmSort.__fb=1;fmSort.__c5=1},300);/* 热门＝照 24h 成交额排（你点表头排序时照你点的） */
 /* 表格的快速买：每列一颗，跟卡片同一个「⚡ 快买 金额」（manual.defUsd） */
 if(typeof fbQbCell==='function'){fbQbCell=function(html){const m=String(html).match(/data-qb="([^"]+)"/);const x=m&&PL[m[1]];if(!x)return '';const d=document.createElement('div');d.innerHTML=String(html);d.querySelectorAll('.qbB,[data-pb]').forEach(el=>el.remove());const f=d.firstElementChild;if(f)f.insertAdjacentHTML('afterbegin',buyBtn(x,net()));else d.innerHTML=`<div>${buyBtn(x,net())}</div>`;return d.innerHTML}}/* 持仓的「卖 %」按钮照留 */
 /* ── 点击 ── */
@@ -4536,7 +4536,7 @@ function gateClip(){const b=$('#gateAlertBar');if(!b)return;const y=!/这些设�
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#gateAlertBar.c5clip');if(!b||e.target.closest('button,a'))return;b.classList.toggle('c5open')});
 /* ── AVE 推送／预抓：卡片上看得到的币也订阅价格（跟表格同一套 AVW、同一个名额） ── */
 function vis(){const o=[];if(S5.tab!=='new'||!on5())return o;for(const [k] of COLS){const r=S5.rng[k];const box=document.querySelector(`.c5L[data-k="${k}"]`);if(!r||!box||!box.offsetParent)continue;const a=Math.floor(box.scrollTop/K.rowH),b=Math.min(r.n,Math.ceil((box.scrollTop+box.clientHeight)/K.rowH));for(let i=a;i<b;i++){const x=r.L[i];if(x&&/^0x[0-9a-f]{40}$/.test(x.c))o.push(x.c)}}return o}
-if(typeof awBoard==='function'){const a0=awBoard;awBoard=function(){const r=a0.apply(this,arguments);try{if(SNAP?.aveOn&&!document.hidden&&typeof AVW!=='undefined')for(const a of new Set(vis()))AVW.need('p',CH,a)}catch{}return r}}
+if(typeof awBoard==='function'){const a0=awBoard;awBoard=function(){const r=a0.apply(this,arguments);try{if((SNAP?.aveOn||SNAP?.aveWsOn)&&!document.hidden&&typeof AVW!=='undefined')for(const a of new Set(vis()))AVW.need('p',CH,a)}catch{}return r}}
 setInterval(()=>{try{const n=+(SNAP?.set?.['board.preN']);if(!(n>0)||document.hidden||!window.radar.tokenPre)return;if(document.getElementById('dtl')?.style.display==='flex')return;const ids=vis().slice(0,n);if(ids.length)window.radar.tokenPre(net(),ids)}catch{}},K.pre);
 /* ── 其他 ── */
 addEventListener('resize',()=>{try{if(on5()&&S5.tab==='new')paint()}catch{}});
@@ -4544,5 +4544,29 @@ setInterval(()=>{try{qbTop()}catch{}try{gateClip()}catch{}},K.paint*10);
 try{fmInit()}catch{}try{paint();qbTop()}catch(e){console.error(e)}
 })();
 /*CARDS125-END*/</script>
+<script>/*HOT126-BEGIN 看盘顶端：AVE 资料来源／连不上的白话原因（红字）。只显示，不影响买卖*/
+(function(){if(window.__h126)return;window.__h126=1;
+function why(s){const e=L==='en';const w=String(s.why||'');const E=String(s.err||'');
+ if(E==='relay')return e?'no relay address yet (official display data not loaded)':'还没有转接站网址（官方显示资料还没读到）';
+ if(E==='session'&&/^net/.test(w))return e?'network unreachable (cannot reach the relay)':'网路不通（连不到转接站）';
+ if(E==='session')return (e?'pass failed':'通行证失败')+(w?(/GUEST_IP_RPM|old relay|404/.test(w)?(e?' — the relay has not been updated yet':'（转接站还没更新到新版）'):/guest rate|429/.test(w)?(e?' — too many requests from this network, retrying':'（这个网路请求太多，稍后自动再试）'):'（'+w+'）'):'');
+ if(E==='net')return (e?'network unreachable':'网路不通（连不到转接站）')+(w?' · '+w:'');
+ if(/^HTTP 429/.test(E))return e?'the relay is rate-limiting, retrying':'转接站限速中，稍后自动再试';
+ if(/^HTTP /.test(E))return (e?'relay error ':'转接站出错 ')+E.slice(5)+(w?'：'+w:'');
+ if(E==='stale')return e?'no update for over 10 minutes':'超过 10 分钟没更新';
+ if(E==='bad')return e?'the relay returned unreadable data':'转接站回的资料格式不对';return E||(e?'unknown':'原因不明')}
+function bar(){const b0=typeof HBD!=='undefined'?HBD?.b2st:null;let el=document.getElementById('b126');const T=document.getElementById('fmT');
+ const show=b0&&!b0.ok&&(b0.err||'')!==''&&(CH==='bsc'||CH==='robinhood');
+ if(!show){if(el)el.style.display='none';return}
+ if(!el){el=document.createElement('div');el.id='b126';el.style.cssText='color:#f6465d;font-size:13px;font-weight:600;padding:6px 10px;margin:0 0 6px;border:1px solid #f6465d66;border-radius:8px;background:#f6465d12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'}
+ const host=T||document.getElementById('hbBar');if(!host)return;if(el.parentElement!==host||host.firstChild!==el)host.insertBefore(el,host.firstChild);
+ const e=L==='en';const s=(e?'⚠ AVE data unavailable: ':'⚠ AVE 资料连不上：')+why(b0)+(e?'. Showing on-chain data for now (same columns and sorting); retrying automatically.':'。现在先显示本机链上资料（同样的分栏和排序），会自动重试。');
+ if(el.textContent!==s){el.textContent=s;el.title=s}el.style.display=''}
+if(typeof fmRender==='function'){const r0=fmRender;fmRender=function(){const r=r0.apply(this,arguments);try{bar()}catch{}return r};for(const k of ['__c5','_nx','__fb'])if(r0[k])fmRender[k]=r0[k]}
+/* 热门预设＝AVE 的顺序：每次切到「热门」先把表头排序清掉（你点表头才照你点的；切走再回来＝回到 AVE 顺序） */
+const clr=()=>{try{if(typeof FB!=='undefined'&&FB.sort){FB.sort='';fbSave()}}catch{}};document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-c5t="hot"]'))clr()},true);try{if(window.C5&&C5.tab==='hot')clr()}catch{}
+setInterval(()=>{try{bar()}catch{}},2000);
+})();
+/*HOT126-END*/</script>
 </body>
 </html>

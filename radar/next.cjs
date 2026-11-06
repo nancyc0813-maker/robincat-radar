@@ -129,16 +129,16 @@ const B2_FRESH_MS = 10 * 60e3; /* 技术用：转接站资料多久没更新就�
 function aveOnly(net, r, A, SRC) {
   const k = net === 'robinhood' ? 'rh' : 'bsc'; const M = A?.m?.[k] || {}; const AC = A?.cols || {}; const tr = 'trend_' + (net === 'robinhood' ? 'robinhood' : 'bsc');
   const has = Object.entries(AC).some(([t, L]) => t !== tr && !/^trend_/.test(t) && !/^seen_/.test(t) && Array.isArray(L) && L.some((a) => M[String(a).toLowerCase()])); if (!has) return null;
-  const C = { fresh: [], soon: [], hot: [], hotdex: [], done: [] }; const S = { fresh: new Set(), soon: new Set(), hot: new Set(), hotdex: new Set(), done: new Set() }; const X = new Map();
+  const C = { fresh: [], soon: [], hot: [], hotdex: [], done: [] }; const S = { fresh: new Set(), soon: new Set(), hot: new Set(), hotdex: new Set(), done: new Set() }; const X = new Map(); const TR = []; /*HOT126 AVE 热门榜原本的顺序*/
   for (const [tag, L] of Object.entries(AC)) { if (!Array.isArray(L)) continue; const isT = tag === tr; if (!isT && /^trend_/.test(tag)) continue;
     let to = A.kinds && A.kinds[tag] ? A.kinds[tag] : isT ? 'hotdex' : /_in_new$/.test(tag) ? 'fresh' : /_in_almost$/.test(tag) ? 'soon' : /_in_hot$/.test(tag) ? 'hot' : /_out_hot$/.test(tag) ? 'hotdex' : /_out_new$/.test(tag) ? 'done' : null; if (!to) continue;
     L.forEach((a0, i) => { const a = String(a0).toLowerCase(); const v = M[a]; if (!v) return; let t2 = to; if (isT && v.pg != null && v.pg < 100) t2 = 'hot'; const out = t2 === 'hotdex' || t2 === 'done';
-      let x = X.get(a); if (!x) { x = aveItem(a, v, out ? 'done' : 'fresh'); aveNums(x, v); X.set(a, x); } if (out) { x.grad = true; x.curve = false; x.gradAt = x.gradAt || x.at; } if (isT) x.trend = 1; x.aveRank = Math.min(x.aveRank ?? Infinity, i);
+      let x = X.get(a); if (!x) { x = aveItem(a, v, out ? 'done' : 'fresh'); aveNums(x, v); X.set(a, x); } if (out) { x.grad = true; x.curve = false; x.gradAt = x.gradAt || x.at; } if (isT) { x.trend = 1; if (!TR.includes(x)) TR.push(x); } x.aveRank = Math.min(x.aveRank ?? Infinity, i);
       if (!S[t2].has(a)) { S[t2].add(a); C[t2].push(x); } }); }
   const srcs = SRC ? (net === 'robinhood' ? [SRC.V4R] : [SRC.MK, SRC.V4B]) : []; const RAW = srcs.filter((S0) => S0?.raw).map((S0) => S0.raw());
   for (const x of X.values()) { let rw = null; for (const R0 of RAW) { const y = R0.tokens?.[x.c]; if (y) { let u = 0; try { u = R0.usd(y) || 0; } catch {} rw = { x: y, u }; break; } } try { winFill(x, rw); } catch {} try { allChg(x, rw, M[x.c]); } catch {} }
   const v24 = (x) => (x.vol?.h24 != null && isFinite(+x.vol.h24) ? +x.vol.h24 : -1); C.fresh.sort((a, b) => (b.at || 0) - (a.at || 0)); C.soon.sort((a, b) => (b.prog ?? -1) - (a.prog ?? -1) || a.aveRank - b.aveRank); for (const k2 of ['hot', 'hotdex']) C[k2].sort((a, b) => v24(b) - v24(a) || a.aveRank - b.aveRank); C.done.sort((a, b) => a.aveRank - b.aveRank || (b.at || 0) - (a.at || 0)); /* 热门＝照 AVE 清单本身的排序键（24h 成交额，AVE orderby 预设）；多个发射台合并后照同一个键排 */
-  const out = { ...r, src: 'ave', err: '', aveOnly: 1, total: X.size, cols: [{ k: 'fresh', zh: '🆕 新创建', en: '🆕 New', items: C.fresh }, { k: 'soon', zh: '🚀 即将发射', en: '🚀 About to launch', items: C.soon }, { k: 'hot', zh: '🔥 热门内盘', en: '🔥 Hot on curve', items: C.hot }, { k: 'hotdex', zh: '🔥 热门外盘', en: '🔥 Hot DEX', items: C.hotdex }, { k: 'done', zh: '✅ 已发射', en: '✅ Launched', items: C.done }],
+  const out = { ...r, src: 'ave', err: '', aveOnly: 1, total: X.size, trend: TR, /*HOT126*/ cols: [{ k: 'fresh', zh: '🆕 新创建', en: '🆕 New', items: C.fresh }, { k: 'soon', zh: '🚀 即将发射', en: '🚀 About to launch', items: C.soon }, { k: 'hot', zh: '🔥 热门内盘', en: '🔥 Hot on curve', items: C.hot }, { k: 'hotdex', zh: '🔥 热门外盘', en: '🔥 Hot DEX', items: C.hotdex }, { k: 'done', zh: '✅ 已发射', en: '✅ Launched', items: C.done }],
     aveSrc: { added: X.size, moved: 0, chainOnly: 0, at: A?.at || null, ageMin: A?.at ? Math.floor((Date.now() - A.at) / 60e3) : null, q: A?.b2?.q || null, b2: 1, only: 1 } };
   try { plats(net, out); } catch {} return out; }
 function board(net, r, A, SRC) { if (SRC) LSRC = SRC; if (A) LAVE = A; if (A?.b2 && Date.now() - (+A.b2.okAt || 0) < B2_FRESH_MS) { try { const o = aveOnly(net, r, A, SRC); if (o) return o; } catch {} } /*BOARD124*/ const soonPct = fin(readJSON(C.SET, {})?.['board.soonPct']); /* ZR-1103：进度几 % 以上放「即将发射」＝你的设定（没填＝只照 AVE 自己的分类） */
@@ -167,7 +167,8 @@ function board(net, r, A, SRC) { if (SRC) LSRC = SRC; if (A) LAVE = A; if (A?.b2
       /* BOARD-V2（11/4）：🔥 热门外盘＝已发射、在外盘交易的币，照近 1 小时成交热度排（笔数→成交量→最后成交）；只排序、不过滤、没有门槛数字；读不到（链上没记录、AVE 也没给）的排后面并标 heatUnk */
       const HW = 'h1'; const heat = (x) => { const tn = x.txN?.[HW]; const t = x.txUnk ? (tn != null && isFinite(+tn) ? +tn : null) : (x.tx?.[HW]?.b || 0) + (x.tx?.[HW]?.s || 0); const v0 = x.vol?.[HW]; const v = v0 != null && isFinite(+v0) ? +v0 : null; return { t, v, unk: t == null && v == null ? 1 : 0 }; };
       const dex = col.done.items.map((x) => { const h = heat(x); x.heatUnk = h.unk; return [x, h]; }).sort((p, q) => (p[1].unk - q[1].unk) || ((q[1].t || 0) - (p[1].t || 0)) || ((q[1].v || 0) - (p[1].v || 0)) || ((q[0].la || 0) - (p[0].la || 0))).map((p) => p[0]);
-      r.cols = [col.fresh, col.soon, { k: 'hot', zh: '🔥 热门内盘', en: '🔥 Hot on curve', items: curve }, { k: 'hotdex', zh: '🔥 热门外盘', en: '🔥 Hot DEX', items: dex }, col.done]; }
+      r.cols = [col.fresh, col.soon, { k: 'hot', zh: '🔥 热门内盘', en: '🔥 Hot on curve', items: curve }, { k: 'hotdex', zh: '🔥 热门外盘', en: '🔥 Hot DEX', items: dex }, col.done];
+      { const trl = AC['trend_' + (net === 'robinhood' ? 'robinhood' : 'bsc')]; if (Array.isArray(trl) && trl.length) { const by = new Map(); for (const c of r.cols) for (const x of c.items || []) by.set(String(x.c).toLowerCase(), x); r.trend = []; for (const a of trl) { const x = by.get(String(a).toLowerCase()); if (x && !r.trend.includes(x)) r.trend.push(x); } } } /*HOT126 AVE 资料旧了、退回合并看盘：热门一样照 AVE 热门榜的顺序*/ }
   } catch {}
   try { plats(net, r); } catch {}
   return r;

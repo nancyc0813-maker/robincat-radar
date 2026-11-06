@@ -117,12 +117,21 @@ let SKEY = null;
 async function sessKey(env) { if (SKEY) return SKEY; let raw = String(env?.SESSION_KEY || '').trim(); if (!raw) raw = await (await env.ROOM.get(env.ROOM.idFromName('sess-key')).fetch('https://do/_skey')).text(); if (!raw) throw new Error('no key'); SKEY = await crypto.subtle.importKey('raw', enc.encode(raw), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']); return SKEY; }
 async function sessMake(env, claims) { const ttl = envNum(env, 'SESSION_TTL_S'); if (ttl == null) return null; const exp = Date.now() + ttl * 1000; const p = b64u(enc.encode(JSON.stringify({ ...claims, exp }))); const sg = new Uint8Array(await crypto.subtle.sign('HMAC', await sessKey(env), enc.encode('rcsess1:' + p))); return { t: p + '.' + b64u(sg), exp }; }
 async function sessCheck(env, t) { try { t = String(t || ''); const m = t.match(/^([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/); if (!m) return null; if (!(await crypto.subtle.verify('HMAC', await sessKey(env), unb64u(m[2]), enc.encode('rcsess1:' + m[1])))) return null;
-  const C = JSON.parse(new TextDecoder().decode(unb64u(m[1]))); if (!C || typeof C.id !== 'string' || !(Date.now() < C.exp)) return null; if (C.id !== 'owner' && !(await inList(env, C.id))) return null; return C; } catch { return null; } }
-const sessOf = async (req, env) => { const C = await sessCheck(env, req.headers.get('x-rc-session')); return C && C.u !== 'avews' ? C : null; }; /*RISK-FIX 7：手机的推送通行证（u=avews）只能连 /avews，不能查 /ave、/aveboard */
+  const C = JSON.parse(new TextDecoder().decode(unb64u(m[1]))); if (!C || typeof C.id !== 'string' || !(Date.now() < C.exp)) return null; if (C.id !== 'owner' && !(C.u === 'board' && GUEST_ID_RE.test(C.id)) && !(await inList(env, C.id))) return null; return C; } /*HOT126 访客通行证（u=board）不用邀请名单*/ catch { return null; } }
+const sessOf = async (req, env) => { const C = await sessCheck(env, req.headers.get('x-rc-session')); return C && C.u !== 'avews' && C.u !== 'board' ? C : null; }; /*HOT126 访客通行证（u=board）也不能查 /ave、/aveboard、手机房间*/ /*RISK-FIX 7：手机的推送通行证（u=avews）只能连 /avews，不能查 /ave、/aveboard */
+/*HOT126 访客通行证：不用钱包，只能拿看盘清单（/aveboard2）和 /avews 的价格推送（p）；每个 IP 每分钟最多 GUEST_IP_RPM 次（wrangler 变数；没设＝不发访客通行证）。
+   限速记在这个执行个体的记忆体（技术上是近似值；真的被刷再加 Cloudflare 的 Rate Limiting 规则） */
+const GUEST_ID_RE = /^g:[0-9a-f]{24}$/; const GUEST_MEM = new Map(); const GUEST_MEM_MAX = 20000; /* 技术用：记 IP 的表上限（超过清空重记） */
+function guestHit(req, env) { const lim = envNum(env, 'GUEST_IP_RPM'); if (lim == null) return false; const ip = String(req.headers.get('cf-connecting-ip') || '?').slice(0, 64), now = Date.now();
+  let L = GUEST_MEM.get(ip); if (!L) { if (GUEST_MEM.size >= GUEST_MEM_MAX) GUEST_MEM.clear(); GUEST_MEM.set(ip, (L = [])); } while (L.length && now - L[0] >= 60e3) L.shift(); if (L.length >= lim) return false; L.push(now); return true; }
+const guestBusy = () => new Response(JSON.stringify({ err: 'guest rate' }), { status: 429, headers: { ...SEC, 'content-type': 'application/json', 'retry-after': '10' } });
+async function guestNew(req, env) { if (envNum(env, 'GUEST_IP_RPM') == null) return J({ err: 'GUEST_IP_RPM not set in wrangler.toml [vars]' }, 503); if (!guestHit(req, env)) return guestBusy();
+  const id = 'g:' + hex(crypto.getRandomValues(new Uint8Array(12))); let S = null; try { S = await sessMake(env, { id, c: '', u: 'board' }); } catch {} if (!S) return J({ err: 'SESSION_TTL_S not set in wrangler.toml [vars]' }, 503); return J(S); }
 const SESS_BODY_MAX = 4 * 1024; /* 运作：POST /session 内容上限（绑定签名约 300 字） */
 async function sessionNew(req, env) { const t = await req.text(); if (t.length > SESS_BODY_MAX) return J({ err: 'too big' }, 413); let o; try { o = JSON.parse(t); } catch { return J({ err: 'bad json' }, 400); } if (!o || typeof o !== 'object') return J({ err: 'bad json' }, 400);
+  if (o.g === 1) return guestNew(req, env); /*HOT126*/
   let claims;
-  if (o.from != null) { /*RISK-FIX 7：用电脑的通行证换一张给手机的「只能连 /avews」通行证（u=avews；不能再拿来换、不能当电脑端） */ const P = await sessCheck(env, String(o.from)); if (!P || P.u === 'avews' || o.u !== 'avews') return J({ err: 'session' }, 401);
+  if (o.from != null) { /*RISK-FIX 7：用电脑的通行证换一张给手机的「只能连 /avews」通行证（u=avews；不能再拿来换、不能当电脑端） */ const P = await sessCheck(env, String(o.from)); if (!P || P.u === 'avews' || P.u === 'board' || o.u !== 'avews') return J({ err: 'session' }, 401); /*HOT126 访客通行证不能换*/
     let S2 = null; try { S2 = await sessMake(env, { id: P.id, c: String(P.c || ''), ...(P.r ? { r: P.r } : {}), u: 'avews' }); } catch {} if (!S2) return J({ err: 'SESSION_TTL_S not set in wrangler.toml [vars]' }, 503); return J(S2); }
   if (o.o) { const room = String(o.room || ''); if (!ROOM_RE.test(room)) return J({ err: 'bad room' }, 400); /* 作者本人的雷达：线上金钥 online.pem 签「rcrelay1-owner:房间号」，用 ONLINE_PUBKEY 核对；通行证只能用在这个房间（和 AVE） */
     const ok = await onlineVerify(env, String(o.o).replace(/-/g, '+').replace(/_/g, '/'), 'rcrelay1-owner:' + room); if (ok === null) return J({ err: '转接站还没设 ONLINE_PUBKEY，作者通行证核对不了' }, 503); if (!ok) return J({ err: '官方通行证核对不过' }, 403); claims = { id: 'owner', c: '', r: room, u: o.u === 'ave' ? 'ave' : 'pc' }; } /*RISK-FIX 7：通行证带用途（pc＝手机连结的电脑端，绑这个房间；ave＝只查 AVE） */
@@ -167,7 +176,7 @@ async function aveProxy0(req, u, env) { /* AVE-WSS：外面包了一层 aveProxy
 }
 /*BOARD124 看盘新路线：转接站自己向 AVE 抓（Durable Object「ave-board2」共用一份），用户端带通行证来拿；since／boot＝只拿有变的币 */
 const B2_MEM = new Map(); const B2_MEM_MS = 1000; /* 技术用：同一瞬间的相同请求共用一份（价格本来就每 AVE_BOARD_PRICE_S 秒才变） */
-async function aveBoard2(req, u, env) { if (!(await sessOf(req, env))) return J({ err: 'session' }, 401); if (!env.AVE_KEY) return J({ err: 'not allowed' }, 503);
+async function aveBoard2(req, u, env) { { const C0 = await sessCheck(env, req.headers.get('x-rc-session')); if (!C0 || C0.u === 'avews') return J({ err: 'session' }, 401); if (C0.u === 'board' && !guestHit(req, env)) return guestBusy(); } /*HOT126 绑定钱包的通行证或访客通行证都可以拿看盘清单*/ if (!env.AVE_KEY) return J({ err: 'not allowed' }, 503);
   const since = String(Math.max(0, Math.floor(+u.searchParams.get('since') || 0))), boot = String(u.searchParams.get('boot') || '').replace(/[^a-z0-9]/gi, '').slice(0, 40); const k = since + '|' + boot + '|' + (u.searchParams.get('px') === '1' ? 1 : 0);
   const c = B2_MEM.get(k); if (c && Date.now() - c.at < B2_MEM_MS) return new Response(c.body, { headers: { ...SEC, 'content-type': 'application/json', 'x-cache': 'mem' } });
   const px = u.searchParams.get('px') === '1' ? '1' : '0'; const r = await env.ROOM.get(env.ROOM.idFromName('ave-board2')).fetch('https://do/_b2?' + new URLSearchParams({ since, boot, px })); const body = await r.text(); if (r.ok) { B2_MEM.set(k, { at: Date.now(), body }); if (B2_MEM.size > 200) B2_MEM.delete(B2_MEM.keys().next().value); }
@@ -228,7 +237,8 @@ async function aveWsRoute(req, env) { if (req.headers.get('Upgrade') !== 'websoc
   const pr = String(req.headers.get('Sec-WebSocket-Protocol') || '').split(',').map((x) => x.trim()); const t = pr[0] === AVEWS_PROTO ? String(pr[1] || '') : '';
   G.p++; let C = null; try { C = t ? await sessCheck(env, t) : null; } catch { C = null; } finally { G.p--; }
   if (!C) { G.f.push(now); return new Response('session', { status: 401, headers: SEC }); }
-  const fw = new Request('https://do/_avews', req); fw.headers.set('x-rc-aw', JSON.stringify({ id: C.id, exp: C.exp, ph: C.u === 'avews' ? 1 : 0 })); /* 这个标头只由转接站自己填（盖掉外面送来的） */
+  if (C.u === 'board' && !guestHit(req, env)) return new Response('too many', { status: 429, headers: SEC }); /*HOT126*/
+  const fw = new Request('https://do/_avews', req); fw.headers.set('x-rc-aw', JSON.stringify({ id: C.id, exp: C.exp, ph: C.u === 'avews' ? 1 : 0, g: C.u === 'board' ? 1 : 0 })); /* 这个标头只由转接站自己填（盖掉外面送来的） */
   return env.ROOM.get(env.ROOM.idFromName('ave-wss')).fetch(fw); }
 /* AVE-WSS（11/4）REST 速度＋额度：AVE L2 方案整个金钥每秒最多 20 次（超过会被 AVE 拒绝，反而更慢）。
    ① 同一个查询正在问 AVE 时，其他人直接等同一个结果（不再打一次 AVE、不算额度）；② 转接站的全体速度（wrangler.toml AVE_GLOBAL_RPS）满了就短暂排队再送，不直接回错误。
@@ -400,7 +410,7 @@ export class Room extends DurableObject {
   atSet(k, i) { const H = this.hub(); H.at.set(k, i); H.cnt[i]++; }
   atDel(k) { const H = this.hub(); const i = H.at.get(k); if (i == null) return; H.at.delete(k); H.cnt[i]--; if (!H.cnt[i] && H.up[i]) H.up[i].idle = Date.now(); }
   hubAccept(req) { if (req.headers.get('Upgrade') !== 'websocket') return new Response('expected websocket', { status: 426 }); this.hub(); const [client, server] = Object.values(new WebSocketPair()); let V = null; try { V = JSON.parse(req.headers.get('x-rc-aw') || 'null'); } catch {} if (!V || typeof V.id !== 'string' || !(Date.now() < +V.exp)) return new Response('session', { status: 401 }); /*RISK-FIX 8：只收转接站验过通行证的连线 */
-    this.ctx.acceptWebSocket(server, ['avews']); server.serializeAttachment({ ok: 1, ann: 0, id: V.id, exp: +V.exp, ph: V.ph ? 1 : 0, at: Date.now() }); this.hubTick(); return new Response(null, { status: 101, webSocket: client, headers: { 'Sec-WebSocket-Protocol': AVEWS_PROTO } }); }
+    this.ctx.acceptWebSocket(server, ['avews']); server.serializeAttachment({ ok: 1, ann: 0, id: V.id, exp: +V.exp, ph: V.ph ? 1 : 0, g: V.g ? 1 : 0, at: Date.now() }); this.hubTick(); return new Response(null, { status: 101, webSocket: client, headers: { 'Sec-WebSocket-Protocol': AVEWS_PROTO } }); }
   hubTick() { const H = this.hub(); if (!H.tick) H.tick = setInterval(() => this.hubPatrol(), AVEWS_TICK_MS); }
   hubPatrol() { const H = this.hub(), now = Date.now(); const socks = this.ctx.getWebSockets('avews');
     for (const w of socks) { const A = this.awA(w); if (!A.ok) { if (now - A.at > AVEWS_AUTH_MS) { try { w.close(4003, 'auth timeout'); } catch {} this.hubDrop(w); } } else if (!(now < A.exp)) { this.sys(w, { expired: 1 }); try { w.close(4001, 'session expired'); } catch {} this.hubDrop(w); } }
@@ -422,7 +432,7 @@ export class Room extends DurableObject {
     if (free >= 0 && (best < 0 || (bn >= AVEWS_UP_SPREAD && !(H.hold > Date.now()) && !H.up.some((U) => U && (U.wait || U.busy))))) best = free; /*WSS125 有连线在重连／整个集线器在退避时，不再多开新连线（先塞进现有的）*/ if (best < 0) return false; this.atSet(k, best); return true; }
   hubSend(k, m) { const H = this.hub(), S = H.ref.get(k); if (!S) { H.st.miss++; return; } /*AVEWS112-MISS*/ const s = JSON.stringify(m); for (const w of S) { try { w.send(s); H.st.push++; } catch {} } } /*RISK-FIX 10：记推送量 */
   hubDrop(ws) { const H = this.hub(); const s = H.cs.get(ws); if (!s) return; H.cs.delete(ws); for (const k of s) { const S = H.ref.get(k); if (S) { S.delete(ws); if (!S.size) H.ref.delete(k); } } this.hubFlush(); }
-  hubSet(ws, A, list) { const H = this.hub(), now = Date.now(); const want = []; for (const it of list.slice(0, AVEWS_USER_SUBS * 4)) { const k = awKey(it); if (k && !want.includes(k)) want.push(k); }
+  hubSet(ws, A, list) { const H = this.hub(), now = Date.now(); const want = []; for (const it of list.slice(0, AVEWS_USER_SUBS * 4)) { const k = awKey(it); if (k && !want.includes(k) && !(A.g && !k.startsWith('p|'))) want.push(k); } /*HOT126 访客只能订阅价格（K 线、成交要连钱包）*/
     let other = 0; for (const [w, s] of H.cs) if (w !== ws && this.awA(w).id === A.id) other += s.size;
     const room = Math.max(0, AVEWS_USER_SUBS - other); const ok = [], cut = [], full = [], bad = [];
     for (const k of want) { const bu = H.bad.get(k); if (ok.length >= room) cut.push(k); else if (bu && bu > now) bad.push(k); else if (this.hubPlace(k)) ok.push(k); else full.push(k); }
@@ -463,7 +473,7 @@ export class Room extends DurableObject {
     { const now = Date.now(); this.aq = this.aq || new WeakMap(); const q = (this.aq.get(ws) || []).filter((t) => now - t < AVEWS_CMD_WIN_MS); if (q.length >= AVEWS_CMD_MAX) { this.sys(ws, { slow: 1 }); return; } q.push(now); this.aq.set(ws, q); } /* 防滥用：每条连线每 10 秒最多 AVEWS_CMD_MAX 则指令 */
     let o = null; try { o = JSON.parse(msg); } catch {} if (!o || typeof o !== 'object') return; const A = this.awA(ws); this.hubTick();
     if (typeof o.auth === 'string') { const C = await sessCheck(this.env, o.auth); if (!C || (A.ok && A.id !== C.id)) { this.sys(ws, { deny: 'session' }); try { ws.close(4003, 'denied'); } catch {} this.hubDrop(ws); return; }
-      const ph = A.ok ? (A.ph ? 1 : 0) : C.u === 'avews' ? 1 : 0; ws.serializeAttachment({ ok: 1, ann: 1, id: C.id, exp: C.exp, ph, at: A.at }); if (A.ok && A.ann) { this.sys(ws, { reauth: 'ok' }); return; } /*RISK-FIX 8：升级时验过（ann 0）→ 第一则 auth 才算正式连上；之后的 auth＝换新通行证 */
+      const ph = A.ok ? (A.ph ? 1 : 0) : C.u === 'avews' ? 1 : 0; ws.serializeAttachment({ ok: 1, ann: 1, id: C.id, exp: C.exp, ph, g: C.u === 'board' ? 1 : 0, at: A.at }); /*HOT126*/ if (A.ok && A.ann) { this.sys(ws, { reauth: 'ok' }); return; } /*RISK-FIX 8：升级时验过（ann 0）→ 第一则 auth 才算正式连上；之后的 auth＝换新通行证 */
       const mine = this.ctx.getWebSockets('avews').filter((w) => w !== ws && this.awA(w).ok && this.awA(w).id === C.id && !!this.awA(w).ph === !!ph).sort((a, b) => this.awA(a).at - this.awA(b).at); /*RISK-FIX 12：电脑、手机分开算，只关同一种的最旧连线 */
       while (mine.length >= (ph ? AVEWS_USER_PH_CONN : AVEWS_USER_PC_CONN)) { const w = mine.shift(); try { w.close(4000, 'replaced'); } catch {} this.hubDrop(w); }
       this.sys(ws, { auth: 'ok', max: AVEWS_USER_SUBS, up: this.hubUpNow() }); return; }

@@ -17993,6 +17993,69 @@
    "match": "ldNamed，上面已经试过）；以前没认名字就拿\\ 6\\ 个编号去试、回什么都收\\ →\\ 拿掉：认不出＝已售读不到",
    "value": "6 个",
    "reason": "AUDIT125：技术用；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/board124\\.cjs",
+   "match": "const\\ B2_STALE_MS\\ =\\ 10\\ \\*\\ 60e3;",
+   "value": "10",
+   "reason": "HOT126：技术用：AVE 看盘资料多久没更新算「连不上」（跟 next.cjs 的 B2_FRESH_MS 同一个时间），只决定画面要不要写红字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/board124\\.cjs",
+   "match": "const\\ B2_STALE_MS\\ =\\ 10\\ \\*\\ 60e3;",
+   "value": "60e3",
+   "reason": "HOT126：技术用：分钟换算成毫秒"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs",
+   "match": "r\\.status\\)\\)\\.slice\\(0,\\ 120\\)\\ \\};\\ return",
+   "value": "120",
+   "reason": "HOT126：技术用：转接站错误原文截断长度（画面显示用）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs",
+   "match": "e\\?\\.message\\ \\|\\|\\ e\\)\\.slice\\(0,\\ 60\\)\\ \\};\\ return",
+   "value": "60",
+   "reason": "HOT126：技术用：连线错误原文截断长度（画面显示用）"
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/ui/index\\.html",
+   "match": "\\(I\\.get\\(p\\.c\\)\\?\\?1e9\\)\\-\\(I\\.get\\(q\\.c\\)\\?\\?1e9\\)",
+   "value": "1e9",
+   "reason": "HOT126：技术用：热门榜外的币排在最后（排序用的大数），不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/worker\\.js",
+   "match": "const\\ GUEST_MEM_MAX\\ =\\ 20000;",
+   "value": "20000",
+   "reason": "HOT126：技术用：记 IP 的表最多几笔（记忆体上限）"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/worker\\.js",
+   "match": "now\\ \\-\\ L\\[0\\]\\ >=\\ 60e3\\)\\ L\\.shift\\(\\)",
+   "value": "60e3",
+   "reason": "HOT126：技术用：「每分钟」的窗口（次数是 wrangler 变数 GUEST_IP_RPM）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/worker\\.js",
+   "match": "\\{\\ err:\\ 'guest\\ rate'\\ \\}\\),\\ \\{\\ status:\\ 429,",
+   "value": "429",
+   "reason": "HOT126：技术用：HTTP 状态码（太多请求）"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "relay/worker\\.js",
+   "match": "'retry\\-after':\\ '10'\\ \\}\\ \\}\\);\\ async\\ function\\ guestNew",
+   "value": "'10'",
+   "reason": "HOT126：技术用：告诉雷达几秒后再试（HTTP 标头），不是买卖数字"
   }
  ]
 }

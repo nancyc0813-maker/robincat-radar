@@ -12,11 +12,13 @@ const FALLBACK_POLL_MS = 2000; /* 技术用：转接站没说多久刷新时的�
 const pollMs = () => { const ws = (() => { try { return !!X?.wsOn?.(); } catch { return false; } })(); /* AVE 即时推送正常（画面看得到的币价格走 /avews）→ 只照清单的频率来拿；推送断线才照价格频率补 */ if (ws && S.poll && +S.poll.list > 0) return +S.poll.list * 1000; return S.poll && +S.poll.price > 0 ? +S.poll.price * 1000 : FALLBACK_POLL_MS; };
 async function pull() {
   if (!X || S.busy) return; const R = X.relay(); if (!R) { S.err = 'relay'; return; } S.busy = 1; S.tryAt = Date.now();
-  try { const H = await X.hdr(R); if (!H) { S.err = 'session'; return; }
+  try { const H = await X.hdr(R); if (!H) { S.err = 'session'; try { S.why = String(X.why?.() || '').slice(0, 120); } catch {} return; } S.why = ''; /*HOT126*/
     const r = await fetch(R + '/aveboard2?' + new URLSearchParams({ since: String(S.seq || 0), boot: S.boot || '', px: (() => { try { return X?.wsOn?.() ? '0' : '1'; } catch { return '1'; } })() }), { headers: H, signal: AbortSignal.timeout(20000) });
-    if (r.status === 401) { try { X.drop(); } catch {} S.err = 'session'; return; } if (!r.ok) { S.err = 'HTTP ' + r.status; return; }
+    if (r.status === 401) { try { X.drop(); } catch {} S.err = 'session'; S.why = 'relay 401'; return; } if (!r.ok) { S.err = 'HTTP ' + r.status; try { S.why = String((await r.json())?.err || '').slice(0, 120); } catch {} return; }
     const j = await r.json(); if (!j || j.v !== 2 || typeof j.m !== 'object') { S.err = 'bad'; return; } merge(j); S.err = j.err || ''; S.okAt = Date.now();
-  } catch (e) { S.err = String(e?.message || e).slice(0, 80); } finally { S.busy = 0; } }
+  } catch (e) { S.err = 'net'; S.why = String(e?.cause?.code || e?.name || e?.message || e).slice(0, 80); } finally { S.busy = 0; } } /*HOT126 连线失败＝net（原文放 why）*/
+const B2_STALE_MS = 10 * 60e3; /*HOT126 技术用：跟 next.cjs 的 B2_FRESH_MS 一样，超过就算连不上（画面写原因）*/
+function stat() { const fresh = !!S.okAt && Date.now() - S.okAt < B2_STALE_MS; return { ok: fresh ? 1 : 0, err: fresh ? '' : S.err || (S.okAt ? 'stale' : ''), why: fresh ? '' : S.why || '', okAt: S.okAt || 0, tryAt: S.tryAt || 0, busy: S.busy ? 1 : 0 }; }
 function merge(j) {
   if (j.full || j.boot !== S.boot) S.m = {}; S.boot = String(j.boot || ''); S.seq = +j.seq || 0;
   for (const [ch, M] of Object.entries(j.m || {})) { if (!/^[a-z]{2,20}$/.test(ch) || !M || typeof M !== 'object') continue; const D = (S.m[ch] = S.m[ch] || {}); for (const [a, v] of Object.entries(M)) if (v && typeof v === 'object') D[a] = v; }
@@ -58,4 +60,4 @@ async function tapeAve(net, addr, pool, tag) {
   return { src: 'ave', pair: p, at: Date.now(), rows: rows.slice(0, 60) }; }
 function install(o) { X = o; }
 const act = async (o) => { const a = String(o?.a || ''); if (a === 'search') return search(o); if (a === 'stat') return { okAt: S.okAt, at: S.at, err: S.err, q: S.q, tagErr: S.tagErr, n: Object.values(S.m).reduce((n, M) => n + Object.keys(M).length, 0) }; return null; };
-module.exports = { install, board, search, tapeAve, act, _S: S, _merge: merge, _guess: guess };
+module.exports = { install, board, search, tapeAve, act, stat, _S: S, _merge: merge, _guess: guess };
