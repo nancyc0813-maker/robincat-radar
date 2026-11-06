@@ -6203,15 +6203,16 @@
    "den": "Progress % (or % of your real-wallet minimum) to move a project into the Hot / About-to-launch column; empty = single column",
    "unit": "%",
    "min": 0,
-   "max": 100
+   "max": 100,
+   "hide": 1
   },
   {
    "k": "board.preN",
    "g": "label",
    "zh": "点开前先预抓前几个币",
    "en": "Pre-load the first tokens",
-   "dzh": "看盘画面上看得到的前几个币，先在背景查好行情和 K 线，第一次点开会比较快；会多用一点 AVE 额度（只用背景额度，你点开的优先）。空着＝不预抓",
-   "den": "Pre-load price and chart for the first visible tokens on the board so they open faster; uses a little more AVE quota (background only, your clicks come first). Empty = off",
+   "dzh": "看盘画面上看得到的前几个币，先在背景查好行情和 K 线，第一次点开会比较快；会多用一点 AVE 额度（只用背景额度，你点开的优先）。空着＝不预抓。新版卡片和表格都适用（只预抓看得到的）",
+   "den": "Pre-load price and chart for the first visible tokens on the board so they open faster; uses a little more AVE quota (background only, your clicks come first). Empty = off. Applies to the new cards and the tables (visible tokens only)",
    "unit": "个",
    "uen": "tokens",
    "min": 0,
@@ -6226,7 +6227,8 @@
    "den": "Pools opened within this many hours count as new; empty = all in one column",
    "unit": "小时",
    "min": 0,
-   "max": 100000
+   "max": 100000,
+   "hide": 1
   },
   {
    "k": "label.riskRed",
@@ -6567,8 +6569,8 @@
    "unit": "%",
    "zh": "看盘「即将发射」栏：进度至少",
    "en": "Board 'about to launch' column: progress at least",
-   "dzh": "只影响显示。空白＝照 AVE 自己的分类（Robinhood 热门内盘全部放进来）",
-   "den": "Display only. Empty = AVE's own grouping",
+   "dzh": "只影响显示，而且只在转接站的 AVE 看盘资料过旧、退回旧的合并看盘时才用（新版卡片「即将发射」照 AVE 的 *_in_almost）。空白＝照 AVE 自己的分类",
+   "den": "Display only, and only used when the relay's AVE board is stale and the radar falls back to the old merged board (the new cards use AVE's *_in_almost). Empty = AVE's own grouping",
    "uen": "%"
   },
   {

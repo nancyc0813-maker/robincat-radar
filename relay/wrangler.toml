@@ -10,14 +10,15 @@ compatibility_date = "2025-09-01"
 
 [vars]
 # H8-D2：每个钱包每天最多用多少 AVE 单位、每秒最多几次（主人 11/4 决定；拿掉＝不限，只有总上限）
-AVE_USER_DAY_CU = "15000"
-AVE_USER_RPS = "4"
+AVE_USER_DAY_CU = ""
+AVE_USER_RPS = ""
+# BOARD124（老板 11/6）：不设每天／每人上限，平常不限速；只看「当月累计」（下面 AVE_MONTH_*）。要恢复限制再填数字。
 # OPS-RT6：以下全部是营运设定（程式里没有写死的数字）；留空或拿掉＝那一项不限
 # 整个转接站每天的 AVE 总额度（单位跟上面一样）、送到 AVE 的总速度（每秒几次）
 # AVE-WSS（11/4）：AVE API Level 2 方案＝每月 3 亿 CU、整个金钥每秒最多 20 次 REST、WSS 最多 5 条连线（全部用户共用）。
 # 每天约 900 万（＝3 亿 ÷ 31 天，留一点给即时推送和作者自己的雷达）；全体每秒 16 次（留 4 次给作者电脑上 ave.mjs 直接打 AVE，加起来不超过 20）。
 # 即时推送（/avews）不用另外设定：转接站最多开 5 条 WSS（程式常数 AVEWS_UP_MAX）。不要设 AVE_WSS_TEST_URL（只给本机测试用）。
-AVE_DAY_CU = "9000000"
+AVE_DAY_CU = ""
 AVE_GLOBAL_RPS = "16"
 # 每个邀请码每天最多用多少 AVE 单位（同一个码绑很多钱包也只算一份；作者本人不算在任何码里）。
 # 主人 11/4 决定：额度不用管 → 预设留空＝不限。以后想限制再填数字（例："60000"），改完 wrangler deploy 就生效。
@@ -31,6 +32,42 @@ SESSION_TTL_S = "3600"
 # 值由 `node sign_radar.mjs onlinekey <树>` 产生（私钥存在 <树>/.sign_radar/online.pem），把印出来的那串贴在下面引号里。
 # 留空＝转接站拒绝所有看盘上传（回 503 并说明原因）、作者手机通行证也不能用；其他功能照常。
 ONLINE_PUBKEY = "MCowBQYDK2VwAyEA6yiFLuIICmiINfXUBFCf6/bUDGZK+Hx4ecwv9AiqtEM="
+
+# BOARD124 当月累计（Durable Object ave-meter 记，每月 1 号归零，台湾时间）：到 WARN 在 /avestat 和画面标「额度提醒」；到 STOP 才开始退避（拒绝新的 AVE 查询到下个月）。
+# AVE Level 2 方案＝每月 3 亿 CU。留空＝不提醒／不退避。
+AVE_MONTH_WARN_CU = "250000000"
+AVE_MONTH_STOP_CU = "290000000"
+# BOARD124 看盘由转接站自己抓（GET /aveboard2）。tag 来自 AVE 11/6 实测的有效 tag 清单（AVE 对无效 tag 会回完整清单；转接站也会自己问来做自动发现）。AVE 不认的 tag 自动跳过 AVE_BOARD_BAD_S 秒（/aveboard2 的 tagErr 看得到）。
+AVE_BOARD_TAGS = "new,hot,bsc_hot,fourmeme_in_new,fourmeme_in_almost,fourmeme_in_hot,fourmeme_out_new,fourmeme_out_hot,flap_in_new,flap_in_almost,flap_in_hot,flap_out_new,flap_out_hot,xflap_in_new,xflap_in_almost,xflap_in_hot,xflap_out_new,xflap_out_hot,bn_in_new,bn_in_almost,bn_in_hot,bn_out_new,bn_out_hot,grafun_in_new,grafun_in_almost,grafun_in_hot,grafun_out_new,grafun_out_hot,pump_in_new,pump_in_almost,pump_in_hot,pump_out_new,pump_out_hot"
+AVE_BOARD_TRENDING = "bsc,robinhood,solana,eth,base"
+AVE_BOARD_LIMIT = "300"
+AVE_BOARD_TREND_N = "100"
+AVE_BOARD_LIST_S = "30"
+AVE_BOARD_PRICE_S = "2"
+AVE_BOARD_PRICE_TOPN = "15"
+AVE_BOARD_PRICE_N = "200"
+AVE_BOARD_IDLE_S = "300"
+AVE_BOARD_BAD_S = "1800"
+AVE_BOARD_KEEP_S = "21600"
+AVE_BOARD_BACKOFF_S = "60"
+# 自动找发射台（不用把发射台写死）：清单／热门榜里出现的 issue_platform 名字＋下面字尾＝要抓的 tag；AVE 不认的自动跳过 AVE_BOARD_BAD_S 秒
+AVE_BOARD_AUTO_SUFFIX = "_in_new,_in_almost,_in_hot,_out_new,_out_hot"
+AVE_BOARD_AUTO_MAX = "12"
+# 不分平台的清单放哪个分页（AVE 有效 tag 里的 new／hot／bsc_hot）
+AVE_BOARD_KIND_NEW = "new"
+AVE_BOARD_KIND_HOT = "hot,bsc_hot"
+AVE_BOARD_TREND_PAGES = "3"
+AVE_BOARD_SEEN_MAX = "300"
+
+# CARDS125 详情（点开才查）的持有人资料：前 10 占比、开发持有、狙击数。转接站共用快取几秒（同一个币这段时间只打一次 AVE）
+AVE_DETAIL_CACHE_S = "60"
+# WSS125 AVE WSS：上游最多几条（AVE Level 2 一把金钥最多 5 条；同一把金钥还有别的程式在连就调小）；连线层被拒后整个集线器停几秒再连
+AVE_WSS_MAX_UP = "5"
+AVE_WSS_HOLD_S = "120"
+
+[triggers]
+# BOARD124：每分钟一次；最近 AVE_BOARD_IDLE_S 秒内有人看盘才会真的抓（没人看＝不花额度）
+crons = ["* * * * *"]
 
 [[rules]]
 type = "Text"

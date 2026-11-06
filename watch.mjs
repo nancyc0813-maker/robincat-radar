@@ -107,7 +107,7 @@ async function freeProgWatch() { // 免费项目也看铸造进度（已铸造�
   for (const [c, F] of Object.entries(S.freeTrack)) { if (F.nextAt && Date.now() < F.nextAt) continue;
     if (!trackOk(F) || F.done) { delete S.freeTrack[c]; continue; } /* 追踪多久＝你的 track.maxAgeH */
     const tsR = await call(c, '0x18160ddd'); if (!tsR || tsR.length < 66) { F.done = 1; continue; } const sup = Number(BigInt(tsR.slice(0, 66)));
-    let max = 0; for (const sel of ['0xd5abeb01', '0x32cb6b0c', '0x355274ea', '0xe985e367', '0xf1aee5a2']) { const r = await call(c, sel); if (r && r.length >= 66) { const x = Number(BigInt(r.slice(0, 66))); if (x > 0 && x >= sup && x < 1e15) { max = x; break; } } }
+    let max = 0; const fcode = ((await rpc('eth_getCode', [c, 'latest']).catch(() => '')) || '').toLowerCase(); for (const sel of ['0xd5abeb01', '0x32cb6b0c', '0x355274ea', '0xe985e367', '0xf1aee5a2']) { if (!fcode.includes(sel.slice(2)) || capTimeSels().has(capSelK(sel))) continue; /*AUDIT125-C 合约里真的有这个函式（不是 fallback 乱回）、也不是时间函式才读*/ const r = await call(c, sel); if (r && r.length >= 66) { const x = Number(BigInt(r.slice(0, 66))); if (x > 0 && x >= sup && x < 1e15) { max = x; break; } } }
     if (!max) { F.miss = (F.miss || 0) + 1; F.nextAt = Date.now() + Math.min(F.miss, 6) * 10 * 60e3; continue; } 
     const pct = sup / max, prev = F.p; F.p = pct;
     { const gp = nrOn('grp.on') ? nrNum('grp.progPct') : null; /* 群播报进度＝你的设定（没开＝不播） */ if (gp != null && pct >= gp / 100 && (prev == null || prev < gp / 100)) { const nm = tokStr(await call(c, '0x06fdde03')) || ''; await groupProgress(c, nm, pct, gp); } }
@@ -752,6 +752,7 @@ async function checkMinted(tok, m) {
   }
   if (INFRA.has(target) || INFRA.has(tok)) return; // Agent ID 登记合约本身不是项目
   S.seenMints[target] = ts(); S.seenMints[tok] = ts();
+  if (await isLpPair(tok)) return; /*LP125 被铸的是交易对（LP 代币）＝有人在加流动性，不是铸造项目 */
   const name = tokStr(await call(tok, '0x06fdde03')) || tokStr(await call(target, '0x06fdde03'));
   // 先试常见免费函式；不行就「照别人的呼叫内容重播」（不含别人地址的才重播）
   let minted = '';
@@ -797,6 +798,7 @@ async function hotScan() {
       const A = await agShare(h.from); if (!A.ok) { CLAIM.delete(c); continue; } /* 只有你开了 disc.agentShare 才用打它的钱包判断 */
       viaAgents = A.share;
     }
+    if (await isLpPair(c) || await isRouter125(c)) { log(`热门合约 ${c} 是交易对／DEX 路由，不是铸造项目，略过`); continue; } /*AUDIT125-D*/
     S.seenMints[c] = ts();
     const name = tokStr(await call(c, '0x06fdde03'));
     // 热门呼叫的函式也加入候选（不在 CANDS 里的铸造函式名）
@@ -992,7 +994,7 @@ async function freeProgress(c) { /* 免费项目的进度：已铸造／总量�
   let p = null; const decR = await call(c, '0x313ce567'); const isErc20 = !!(decR && decR.length >= 66 && BigInt(decR.slice(0, 66)) > 0n && BigInt(decR.slice(0, 66)) <= 36n); /* ERC20 常常一开始就全部发行，用「已发行÷总量」会误判成已铸完 */
   const tmR = isErc20 ? null : await call(c, '0xa2309ff8'); /* 先看「实际铸出数」totalMinted；totalSupply 会含项目方预留，只看它会把还没铸完的读成已铸完 */
   const tsR = isErc20 ? null : (tmR && tmR.length >= 66 ? tmR : await call(c, '0x18160ddd'));
-  if (tsR && tsR.length >= 66) { const sup = Number(BigInt(tsR.slice(0, 66))); for (const sel of ['0xd5abeb01', '0x32cb6b0c', '0x355274ea', '0xe985e367', '0xf1aee5a2', '0x0f2cdd6c', '0xa0e23ebd']) { const r = await call(c, sel); if (r && r.length >= 66) { const x = Number(BigInt(r.slice(0, 66))); if (x > 0 && x >= sup && x < 1e15) { p = sup / x; break; } } } }
+  if (tsR && tsR.length >= 66) { const sup = Number(BigInt(tsR.slice(0, 66))); const fcode = ((await rpc('eth_getCode', [c, 'latest']).catch(() => '')) || '').toLowerCase(); for (const sel of ['0xd5abeb01', '0x32cb6b0c', '0x355274ea', '0xe985e367', '0xf1aee5a2']) { if (!fcode.includes(sel.slice(2)) || capTimeSels().has(capSelK(sel))) continue; const r = await call(c, sel); if (r && r.length >= 66) { const x = Number(BigInt(r.slice(0, 66))); if (x > 0 && x >= sup && x < 1e15) { p = sup / x; break; } } } /*AUDIT125-C 拿掉 0xa0e23ebd（openAt＝开放时间）和 0x0f2cdd6c（也是「每个钱包上限」）；合约里有这个函式才读*/ }
   if (p == null) { const code = (await rpc('eth_getCode', [c, 'latest']).catch(() => '')) || ''; const pr = await progressOf(c, code.toLowerCase(), '').catch(() => ({})); if (pr.progress > 0) p = pr.progress; }
   fpCache.set(c, { t: Date.now(), p }); return p;
 }
@@ -1366,8 +1368,8 @@ async function capNamed(c, code, sold, P, rdc) { /* 回传 null＝合约没有�
 }
 async function progressOf(c, code, tokAddr) {
   let sold = null, cap = null;
-  for (const s of [...soldNamed(code).map((x) => x[0]), ...SOLD_SELS]) { if (!code.includes(s)) continue; /*ENG111：已售先认名字*/ const r = await call(c, '0x' + s); if (r && r.length >= 66) { sold = Number(BigInt(r.slice(0, 66))); break; } }
-  const capN0 = sold != null ? await capNamed(c, code, sold, null, call) : null; if (capN0?.cap) cap = capN0.cap; /*ENG111-CAPNAME*/ if (sold != null && !capN0) for (const s of CAP_SELS) { if (!code.includes(s) || capTimeSels().has(s)) continue; const r = await call(c, '0x' + s); if (r && r.length >= 66) { const x = Number(BigInt(r.slice(0, 66))); if (x > 10 && x >= sold && x < 1e12 && capOk(s, x, sold)) { cap = x; break; } /*V104-CAPSANE*/ } }
+  for (const s of soldNamed(code).map((x) => x[0])) { if (!code.includes(s)) continue; /*AUDIT125-C 只认名字*/ /*ENG111：已售先认名字*/ const r = await call(c, '0x' + s); if (r && r.length >= 66) { sold = Number(BigInt(r.slice(0, 66))); break; } }
+  const capN0 = sold != null ? await capNamed(c, code, sold, null, call) : null; if (capN0?.cap) cap = capN0.cap; /*ENG111-CAPNAME*/ /*AUDIT125-C 没有名字像总量的函式＝总量读不到（不猜 CAP_SELS）*/
   if (sold != null && cap) return { progress: sold / cap, sold, cap, how: '已售／上限' };
   S.prog = S.prog || {}; let pg = S.prog[c];
   const tok = tokAddr || c;
@@ -1383,7 +1385,7 @@ async function progressOf(c, code, tokAddr) {
   const now = big(await call(pg.tok, '0x70a08231' + wa(c)));
   const init = BigInt(pg.init);
   /* 一开始就全部发行、合约里还放了一大笔要加池子的币 → 用「剩余÷初始」会严重低估。有总份数时，改用「已发出 ÷ 每份数量 ÷ 总份数」 */
-  if (pg.cap != null && !pg.capChk) pg.cap = null; /*V104-CAPSANE：旧版存的总份数没检查过 → 重读*/ if (pg.cap == null) { pg.cap = 0; pg.capChk = 1; for (const s of capNamedList(code) || CAP_SELS) { if (capTimeSels().has(s)) continue; if (!code.includes(s)) continue; /*ENG111：有名字像总量的就只用它*/ const r = await call(c, '0x' + s); if (r && r.length >= 66) { const x = Number(BigInt(r.slice(0, 66))); if (x >= 100 && x <= 1e7 && capOk(s, x, null)) { pg.cap = x; pg.capSel = s; break; } } } }
+  if (pg.cap != null && !pg.capChk) pg.cap = null; /*V104-CAPSANE：旧版存的总份数没检查过 → 重读*/ if (pg.cap == null) { pg.cap = 0; pg.capChk = 1; for (const s of capNamedList(code) || [] /*AUDIT125-C 只认名字*/) { if (capTimeSels().has(s)) continue; if (!code.includes(s)) continue; /*ENG111：有名字像总量的就只用它*/ const r = await call(c, '0x' + s); if (r && r.length >= 66) { const x = Number(BigInt(r.slice(0, 66))); if (x >= 100 && x <= 1e7 && capOk(s, x, null)) { pg.cap = x; pg.capSel = s; break; } } } }
   if (pg.cap && !pg.unit) { try { const head = parseInt(await rpc('eth_blockNumber', []), 16); const L = await logsRpc([{ address: pg.tok, fromBlock: '0x' + (head - 3000).toString(16), toBlock: '0x' + head.toString(16), topics: ['0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef', '0x' + '0'.repeat(24) + c.slice(2)] }]).catch(() => []); const cnt = {}; for (const l of L || []) { const v = l.data; cnt[v] = (cnt[v] || 0) + 1; } const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]; const sn = nrNum('bsc.shareInferN'); if (top && sn != null && top[1] >= sn) pg.unit = BigInt(top[0]).toString(); } catch {} } /* 每份几颗：几笔一样的数量才算＝你的 bsc.shareInferN（空白＝不推算，进度读不到） */
   if (pg.cap && pg.unit && BigInt(pg.unit) > 0n) { const soldN = Number((init - now) / BigInt(pg.unit)); if (capOk(pg.capSel, pg.cap, soldN)) return { progress: soldN / pg.cap, sold: soldN, cap: pg.cap, how: '已发出份数／总份数' }; } /*V104-CAPSANE：已发出比总份数还多＝总份数不合理 → 不用它（不再夹成满格当售罄）*/
   return { progress: Number(init - now) / Number(init), sold, cap, how: '铸造池剩余' };
@@ -2473,6 +2475,15 @@ try { const { startElysium } = await import('./elysium.mjs?v=' + Date.now()); gl
 try { const { startJournal } = await import('./journal.mjs?v=' + Date.now()); startJournal({ DIR, S, save, WALLETS, log, tg }); } catch (e) { log('交易日记载入失败 ' + e.message); } /* 交易日记，全部本地跑 */
 try { const { startPlugins } = await import('./plugins.mjs?v=' + Date.now()); await startPlugins({ DIR, WALLETS, log, tg, S, save, radarOff, radarSet, rpc, walletBusy: () => INFLIGHT > 0, keepBnb: () => PAID.keepBnb /* 传读取函式，设定改了马上生效 */, bnbUsd }); } catch (e) { log('外挂载入器失败 ' + e.message); } /* 量化外挂（网格、定投…），要在雷达按允许才载入 */
 const AUTO_INFL = new Set(); /* 自动策略之间不重复买同一个币（一个在买时，另一个跳过） */
+/*QUOTE125 下单前先报价：报不出价＝这笔不送（手动、一键、手机、自动都一样）；结果快取 QUOTE_MS（技术用：防连点一直打币安钱包），报价失败的币记进 data/quote_fail.json（画面把那颗快买改成「去 AVE 买」）*/
+const QUOTE_MS = 20e3; /* 技术用：同一个币同一个钱包的报价结果留多久 */ const QFAIL_KEEP_MS = 10 * 60e3; /* 技术用：画面标「报不出价」留多久（只影响按钮显示，下单前每次照样重新报价） */ const QUOTE = new Map();
+function quoteWhy(r) { const m = String(r?.j?.error?.message ?? r?.j?.message ?? r?.j?.msg ?? r?.t ?? '').replace(/\s+/g, ' ').trim(); if (/route|path|pool|liquidity|not ?support|unsupport|no quote|insufficient liquidity/i.test(m)) return '币安钱包目前不支援这个池子（找不到交易路线）'; return '币安钱包报不出价' + (m ? '：' + m.slice(0, 80) : ''); }
+function quoteFailNote(chainId, ca, why) { try { const f = join(DIR, 'data', 'quote_fail.json'); let o = {}; try { o = JSON.parse(readFileSync(f, 'utf8')) || {}; } catch {} const ch = chainId === 4663 ? 'robinhood' : 'bsc'; const now = Date.now(); for (const k of Object.keys(o)) for (const [a, v] of Object.entries(o[k] || {})) if (!(now - (+v?.at || 0) < QFAIL_KEEP_MS)) delete o[k][a]; (o[ch] = o[ch] || {})[String(ca).toLowerCase()] = { at: now, why: String(why).slice(0, 120) }; writeFileSync(f, JSON.stringify(o)); } catch {} }
+async function bawQuote(W, chainId, qty, from, to) { const k = chainId + ':' + String(to).toLowerCase() + ':' + String(from).toLowerCase() + ':' + String(W?.addr || ''); const c = QUOTE.get(k); if (c && Date.now() - c.at < QUOTE_MS) return c.v;
+  let r = null; try { r = await W.baw(['market-order', 'quote', '--binanceChainId', String(chainId), '--fromTokenQty', String(qty), '--fromToken', from, '--toToken', to]); } catch (e) { r = { t: String(e?.message || e) }; }
+  if (!r?.j) { return { ok: 0, tmp: 1, why: '币安钱包没回应报价（' + String(r?.t || '').replace(/\s+/g, ' ').slice(0, 60) + '），这次不送单，稍后再试' }; } /* 逾时／没回应＝暂时的：不快取、不标「报不出价」 */
+  const v = r.j.success ? { ok: 1 } : { ok: 0, why: quoteWhy(r) }; QUOTE.set(k, { at: Date.now(), v }); if (QUOTE.size > QUOTE_MAX) QUOTE.delete(QUOTE.keys().next().value); if (!v.ok) { quoteFailNote(chainId, to, v.why); log(`报价失败 ${to}：${v.why}`); } return v; }
+const QUOTE_MAX = 500; /* 技术用：报价快取最多几笔 */ globalThis.BAW_QUOTE = bawQuote; /* rh.mjs 用同一个 */
 async function tgBuy(ca, usd, opt = {}) { if (!opt.auto) return tgBuy0(ca, usd, opt); const k = String(ca || '').toLowerCase(); if (AUTO_INFL.has(k) || S.agTok?.[k] === 'buy') return '⏳ 另一个自动策略正在买／已经买了这个币，这次不重复买'; AUTO_INFL.add(k); try { return await tgBuy0(ca, usd, opt); } finally { AUTO_INFL.delete(k); } }
 async function tgBuy0(ca, usd, opt = {}) { { const bb = opt.auto ? (ESTOP() ? '🛑 紧急全停中，自动买不执行' : '') : buyBlock(); if (bb) return bb; } /* 自动买不看「手动买卖」开关 */ if (LOCKED()) return '🔒 还没完成邀请码绑定：现在只能看，不能买卖'; /* TG 指令「/打 合约 金额U」：用第一个钱包透过币安钱包买（曲线盘、已上池子都一样） */
   ca = ca.toLowerCase(); usd = Number(usd) > 0 ? Number(usd) : Number(opt.bnb) > 0 ? 0 : NR.num('manual.defUsd') ?? 0; /* 没写金额＝用你设的预设金额，没设就不买 */ /* 金额由用户自己决定 */ const price = await bnbUsd().catch(() => 0); if (!(price > 0)) return '读不到 BNB 价格，稍后再试';
@@ -2488,8 +2499,9 @@ async function tgBuy0(ca, usd, opt = {}) { { const bb = opt.auto ? (ESTOP() ? '�
   if (pay !== 'BNB' && NR.num('risk.minGasBnb') != null && bnbHave < NR.num('risk.minGasBnb')) return `❌ [${W.name}] BNB 只剩 ${bnbHave.toFixed(4)}，付不起手续费（gas）。用 ${pay} 买也要一点 BNB 当手续费，而且之后卖出也要。\n👉 请先换一点 BNB 到这个钱包当手续费`; const need = pay === 'BNB' ? usd / price + PAID.keepBnb : usd; /* BNB 付的话留一点当之后卖出的手续费 */
   if (have < need) return `❌ 余额不够：[${W.name}] 只有 ${have.toFixed(pay === 'BNB' ? 4 : 2)} ${pay}（约 ${(pay === 'BNB' ? have * price : have).toFixed(1)}U），这次要 ${pay === 'BNB' ? (usd / price).toFixed(4) + ' BNB＋手续费' : usd + ' ' + pay}。\n👉 请叫你的 AI 把钱包里的其他币换成 ${pay}，或在雷达改用别的币付`;
   /* 防夹：用币安钱包自己的「自动滑点」＋防夹（MEV 保护）；自动滑点买不进去要不要改滑点重试＝你的 buy.retrySlip；拆几笔＝你的设定 */
-  let sandPx = 0, sandB0 = 0n, sandDec = 18; try { const dx = await (await fetch('https://api.dexscreener.com/latest/dex/tokens/' + ca, { signal: AbortSignal.timeout(8000) })).json(); sandPx = Number((dx?.pairs || []).filter((p) => p.chainId === 'bsc').sort((x, y) => (y.liquidity?.usd || 0) - (x.liquidity?.usd || 0))[0]?.priceUsd) || 0; sandB0 = big(await call(ca, '0x70a08231' + wa(W.addr))); sandDec = Number(big(await call(ca, '0x313ce567'))) || 18; } catch {}
-  const parts = splitParts(usd); /* 拆单＝你的设定 */ let okN = 0, unkN = 0, lastErr = '';
+  let sandPx = 0, sandB0 = 0n, sandDec = 18; try { const dx = await (await fetch('https://api.dexscreener.com/latest/dex/tokens/' + ca, { signal: AbortSignal.timeout(8000) })).json(); sandPx = Number((dx?.pairs || []).filter((p) => p.chainId === 'bsc').sort((x, y) => (y.liquidity?.usd || 0) - (x.liquidity?.usd || 0))[0]?.priceUsd) || 0; sandB0 = big(await call(ca, '0x70a08231' + wa(W.addr))); { const dq = await call(ca, '0x313ce567'); const dn = dq && dq.length >= 66 ? Number(big(dq)) : NaN; if (dn >= 0 && dn <= 36) sandDec = dn; else sandPx = 0; } /*AUDIT125-B decimals 读不到＝这笔不做防夹比价（不猜 18）*/ } catch {}
+  const parts = splitParts(usd); /* 拆单＝你的设定 */
+  { const Q = await bawQuote(W, 56, pay === 'BNB' ? (usd / parts / price).toFixed(6) : (usd / parts).toFixed(4), pay === 'BNB' ? NATIVE_BNB : PAY_TOK[pay], ca); if (!Q.ok) { if (opt.auto) nrDecSkip('gen', ca, String(opt.name || '').slice(0, 24) || ca.slice(0, 8), '币安钱包报不出价，不买（' + Q.why + '）'); return '❌ 没买：' + Q.why + (Q.tmp ? '' : '。这个币可以在雷达按「去 AVE 买」，用你自己的 AVE 钱包买'); } } /*QUOTE125 先报价，报不出价就不送*/ let okN = 0, unkN = 0, lastErr = '';
   for (let k = 0; k < parts; k++) { const part = usd / parts; const q = pay === 'BNB' ? (part / price).toFixed(6) : part.toFixed(4);
     const go = (sl) => W.baw(['market-order', 'swap', '--binanceChainId', '56', '--fromTokenQty', q, '--fromToken', pay === 'BNB' ? NATIVE_BNB : PAY_TOK[pay], '--toToken', ca, '--slippage', sl]);
     let sw = await go('auto'); if (!sw.j?.success && (!sw.j && TIMEOUT_RE.test(sw.t || ''))) { unkN++; lastErr = '结果不明：送出逾时，可能已经成交，为了不重复买没有再试（看 TG／钱包确认）'; break; } { const rs = NR.num('buy.retrySlip'); if (!sw.j?.success && rs != null) { log(`[${W.name}] 自动滑点没成交，改 ${rs}% 再试一次：` + String(sw.j?.error?.message || sw.t).slice(0, 80)); sw = await go(String(rs)); if (!sw.j && TIMEOUT_RE.test(sw.t || '')) { unkN++; lastErr = '结果不明：改滑点再试那笔送出逾时，可能已经成交，没有再试'; break; } } } 
@@ -2523,7 +2535,8 @@ async function genScan() {
     const no = (why, final) => { S.gen[c] = { at: now, why, final: !!final }; if (why !== '已买') nrDecSkip('gen', c, sym, why); }; /* 每一个「不买」都写判断日志 */
     if (x.curve && on('gen.skipCurve')) { no('还在发射平台曲线上（没毕业），自动买只买已上池子的币'); continue; }
     { const k = sym.toLowerCase(); S.genSym = S.genSym || {}; const f0 = S.genSym[k]; const fwH = n('risk.firstWinH'), fwMs = fwH != null ? fwH * 3600e3 : Infinity; if (!f0 || now - f0.t > fwMs) S.genSym[k] = { c, t: now }; else if (f0.c !== c && on('risk.firstOnly')) { no(`同名币${fwH != null ? ' ' + fwH + ' 小时内' : ''}只买第一个（防抄名钓鱼）`, 1); continue; } }
-    const o = { age: ageMin, liq: +x.liq > 0 ? +x.liq : null, mc: +x.mc > 0 ? +x.mc : null, /* 0／空＝读不到 */ buys: Number.isFinite(+x.b) ? +x.b : null, x: !!x.x, smart: !!(S.smartW?.seen?.['bsc' + c + '买'] && (n('gen.smartWinH') == null || now - S.smartW.seen['bsc' + c + '买'] < n('gen.smartWinH') * 3600e3)), call: !!S.callHits?.[c], ...kolO('gen', 'bsc', c) /* KOL-AVE */ }; const GJ = () => nrJudge('gen', genConds(o)); /* 条件照你的组合方式 */
+    let liqV = +x.liq > 0 ? +x.liq : null; if (liqV == null && !x.curve && on('gen.minLiqUsd.on')) { try { const d = await dexScreener(c); if (d && +d.liq > 0) liqV = +d.liq; } catch {} } /*LIQ125 Flap 已迁移／V4 新币：候选没带流动性时读池子（DexScreener→GeckoTerminal，有快取）；还在曲线上或读不到＝null（读不到），不当 0；只在你开了「流动性」条件时才查 */
+    const o = { age: ageMin, liq: liqV, mc: +x.mc > 0 ? +x.mc : null, /* 0／空＝读不到 */ buys: Number.isFinite(+x.b) ? +x.b : null, x: !!x.x, smart: !!(S.smartW?.seen?.['bsc' + c + '买'] && (n('gen.smartWinH') == null || now - S.smartW.seen['bsc' + c + '买'] < n('gen.smartWinH') * 3600e3)), call: !!S.callHits?.[c], ...kolO('gen', 'bsc', c) /* KOL-AVE */ }; const GJ = () => nrJudge('gen', genConds(o)); /* 条件照你的组合方式 */
     { const J = GJ(); if (J.buy === false) { nrDecLog('gen', c, sym, J); no(J.why); continue; } }
     if (on('gen.antiWash') && n('gen.washBuys') != null && n('gen.washSells') != null && !(Number.isFinite(+x.b) && Number.isFinite(+x.s) && x.b != null && x.s != null)) { no('假热度检查读不到 1 小时买卖笔数（你开了「假热度」）'); continue; } 
     if (on('gen.antiWash') && n('gen.washBuys') != null && n('gen.washSells') != null && +x.b >= n('gen.washBuys') && +x.s <= n('gen.washSells')) { no('假热度（只有买没有卖）', 1); continue; }
@@ -2683,6 +2696,11 @@ const nmStr = (r) => { try { const h = String(r || '').slice(2); if (h.length < 
 const TOK_FULL_RETRY_MS = 5 * 60e3; /* 技术用：铸满的项目读不到代币地址，隔多久再试 */
 const tokFull = (P) => !!P && ((P.progress || P.prog || 0) >= 1 || !!P.soldOut); /*OPEN119：铸满（进度 100% 或已售完）的项目先验证代币地址（画面要靠它查开盘）*/
 const tokUrgent = (c, P) => tokFull(P) && P.tokV !== 111 && !INFRA.has(c) && Date.now() - (P.tokAt || 0) > TOK_FULL_RETRY_MS;
+const LP_NAME_RE = /(^|\s)(LPs?|V2|Cake-LP)$|^Pancake LPs$|^Uniswap V2$/i; /*LP125 交易对代币的名字样式（只用来认出被记错的旧名字）*/
+async function isLpPair(a) { try { const t0 = await call(a, '0x0dfe1681'), t1 = await call(a, '0xd21220a7'); const ok = (r) => r && r.length >= 66 && /^0x0{24}[0-9a-f]{40}$/i.test(r.slice(0, 66)) && !/^0x0+$/i.test(r.slice(0, 66)); return !!(ok(t0) && ok(t1)); } catch { return false; } } /*LP125 有 token0()、token1() 两个地址＝V2 类交易对*/
+async function isRouter125(a) { try { const f = await call(a, '0xc45a0155'), w = await call(a, '0xad5c4648'); const ok = (r) => r && r.length >= 66 && /^0x0{24}[0-9a-f]{40}$/i.test(r.slice(0, 66)) && !/^0x0+$/i.test(r.slice(0, 66)); return !!(ok(f) && ok(w)); } catch { return false; } } /*AUDIT125-D factory()＋WETH() 都有＝DEX 路由*/
+async function lpNameFix() { for (const [c, P] of Object.entries(S.paid || {})) { if (!P || !LP_NAME_RE.test(String(P.name || '').trim())) continue; try { let nm = ''; for (const a of [P.tok, c].filter(Boolean)) { if (await isLpPair(a)) continue; const v = tokStr(await call(a, '0x06fdde03')); if (v && !LP_NAME_RE.test(v.trim())) { nm = v; break; } } if (nm) { log(`项目名字修正：${c} 「${P.name}」→「${nm}」（之前误记成交易对的名字）`); P.name = nm; } } catch {} } } /*LP125 开机后跑一次（只读链）*/
+setTimeout(() => { lpNameFix().catch(() => {}); }, 60e3);
 async function tokFill() { if (INFLIGHT > 0) return; const urg = Object.entries(S.paid || {}).some(([c, P]) => tokUrgent(c, P)) || Object.entries(S.paidArc || {}).some(([c, P]) => !S.paid?.[c] && tokUrgent(c, P)); if (Date.now() < (globalThis._tokNext || 0) && !urg) return; globalThis._tokNext = Date.now() + TOK_EVERY_MS; /*OPEN119：有铸满还没验证的 → 不等 30 秒那一轮，马上补读*/
   if (!S.eng111so) { S.eng111so = 1; let n = 0; for (const P of Object.values(S.paid || {})) if (P && P.soldOut && !P.soldOk) { delete P.soldOut; if ((P.progress || 0) >= 1) P.progress = 0; if (/已经铸完/.test(P.lastReason || '')) P.lastReason = ''; n++; } if (n) log(`重新检查 ${n} 个之前标成「已铸完」的项目（之前的版本可能把总量当已售），下一轮照新的读法重算`); save(); } /*ENG111-P0A：之前版本误判的已铸完重算一次*/
   if (!S.eng111lp) { S.eng111lp = 1; for (const [c, P] of Object.entries(S.paid || {})) if (P && /^Pancake LPs$/i.test(String(P.name || '').trim()) && !FORCE.has(c)) { delete S.paid[c]; log(`${c}：名称是 Pancake LPs（交易池），不是铸造项目 → 从铸造清单拿掉`); } } /*ENG111-P11*/
@@ -2824,9 +2842,9 @@ async function paidLoop(mode = 'all', shard = null) {
     if (P.unmintable && !FORCE.has(c)) continue;
     let soldR = await call(c, kind === 'bnb' ? '0xa2309ff8' : kind === 'gen' ? '0x18160ddd' : '0x192fc516');
     let soldNmOk = 0; { const sn = kind === 'replay' || kind === 'recv' || kind === 'gen' ? soldNamed(code) : []; /*ENG111-P0A：gen 也先认 totalMinted*/ if (sn.length) { const o = [...sn.filter((x) => '0x' + x[0] === P.soldSel), ...sn.filter((x) => '0x' + x[0] !== P.soldSel)]; for (const [s, nm] of o) { const r = await call(c, '0x' + s); if (r && r.length >= 66) { soldR = r; soldNmOk = 1; if (P.soldSel !== '0x' + s) log(`${P.name || c}：已售用 ${nm}()（0x${s}）`); P.soldSel = '0x' + s; break; } } } } /*ENG111-CAPNAME：认不出打法的合约，已售先认名字（totalShares、totalMinted…）*/
-    if (!(soldR && soldR.length >= 66) && (kind === 'replay' || kind === 'recv')) { if (P.soldSel) soldR = await call(c, P.soldSel); else for (const sel of ['0x02c7e7af', '0xa2309ff8', '0x9106d7ba', '0xf4514d2e', '0x505e05fd', '0x3a98ef39']) { const r = await cc(c, sel, 60e3); if (r && r.length >= 66) { soldR = r; P.soldSel = sel; break; } } }
+    /*AUDIT125-C 已售只认名字对得上的函式（soldNamed，上面已经试过）；以前没认名字就拿 6 个编号去试、回什么都收 → 拿掉：认不出＝已售读不到（照你的「读不到进度时」规则）*/
     const sold = soldR && soldR.length >= 66 ? Number(BigInt(soldR.slice(0, 66))) : null; if (sold != null) P._sold = sold;
-    let cap = null; const capN = sold != null ? await capNamed(c, code, sold, P, cc) : null; if (capN) cap = capN.cap; /*ENG111-CAPNAME：有名字像总量的函式就只用它（读不到合理值＝读不到）*/ /*V104-CAPSANE：以前先读 0xa0e23ebd 当总量，它其实是 openAt()（开放时间）→ 拿掉*/ if (!cap && !capN) for (const sel of ['0xd8f93498', '0xcef6feda', '0x29b80536', '0xd5abeb01', '0x32cb6b0c', '0x355274ea', '0x3a1d8d3a', '0xf1aee5a2', '0x85e3f997']) { if (capTimeSels().has(capSelK(sel))) continue; const r = await cc(c, sel); if (r && r.length >= 66) { const x = Number(BigInt(r.slice(0, 66))); if (x > 0 && sold != null && x >= sold && x < 1e12 && capOk(sel, x, sold, P, c)) { cap = x; break; } } }
+    let cap = null; const capN = sold != null ? await capNamed(c, code, sold, P, cc) : null; if (capN) cap = capN.cap; /*ENG111-CAPNAME：有名字像总量的函式就只用它（读不到合理值＝读不到）*/ /*V104-CAPSANE：以前先读 0xa0e23ebd 当总量，它其实是 openAt()（开放时间）→ 拿掉*/ /*AUDIT125-C 总量只认名字对得上的函式（capNamed）；合约里没有名字像总量的函式＝总量读不到，不再拿编号清单去猜（PAUSE_DURATION 那类就是这样被当成总量）*/
     if (!cap && !capN && sold != null && sold > 0) { /* 总量函式不在常见清单时，自动从合约里找「总量」函式并记住 */
       if (P.capSel && capTimeSels().has(capSelK(P.capSel))) P.capSel = undefined; /*V104-CAPSANE：旧版记住的时间函式（PAUSE_DURATION() 这类）重找*/
       if (P.capSel === undefined) P.capSel = await findCapSel(c, code, sold).catch(() => '') || '';
@@ -3126,7 +3144,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.0.24', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.0.25', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;

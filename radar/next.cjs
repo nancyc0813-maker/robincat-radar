@@ -94,7 +94,7 @@ function padOf(x, av) { /* 发射台：雷达自己链上认得的优先，其�
   if (x.plat === 'other') return ['otherpad', '']; return ['new', ''];
 }
 const BORN_TOL = 120; const TFK = ['m1', 'm5', 'm15', 'h1', 'h6', 'h24']; const TFS = { m1: 60, m5: 300, m15: 900, h1: 3600, h6: 21600, h24: 86400 };
-function aveItem(a, v, col) { const ca = +v.ca > 0 ? (+v.ca > 1e12 ? +v.ca : +v.ca * 1000) : null; /* CHAIN-1104 D12：AVE 的 created_at 可能是秒也可能是毫秒 */ const at = ca ?? (v.u || Date.now()); const o = { c: a, plat: '', sym: v.s || a.slice(0, 8), nm: v.n || '', at, dev: '', prog: v.pg ?? null, grad: col === 'done', gradAt: col === 'done' ? at : 0, pool: '', q: '', chg: {}, vol: {}, tx: {}, price: v.cp > 0 ? v.cp : null, mc: v.mc > 0 ? v.mc : null, liq: v.tvl > 0 ? v.tvl : null, /* CHAIN-1104 D8：读不到＝null（「—」），不是 $0 */ n: 0, curve: col !== 'done', src: 'ave', platAve: v.pl || '' }; return o; } /* 各时间段的数字：先用雷达自己的成交算（winFill），AVE 有的再盖过去 */
+function aveItem(a, v, col) { const ca = +v.ca > 0 ? (+v.ca > 1e12 ? +v.ca : +v.ca * 1000) : null; /* CHAIN-1104 D12：AVE 的 created_at 可能是秒也可能是毫秒 */ const at = ca ?? 0; /*BOARD124 AVE 没给建立时间＝币龄空白（不拿第一次看到的时间冒充）*/ const o = { c: a, plat: '', sym: v.s || a.slice(0, 8), nm: v.n || '', at, dev: '', prog: v.pg ?? null, grad: col === 'done', gradAt: col === 'done' ? at : 0, pool: '', q: '', chg: {}, vol: {}, tx: {}, price: v.cp > 0 ? v.cp : null, mc: v.mc > 0 ? v.mc : null, liq: v.tvl > 0 ? v.tvl : null, /* CHAIN-1104 D8：读不到＝null（「—」），不是 $0 */ n: 0, curve: col !== 'done', src: 'ave', platAve: v.pl || '' }; return o; } /* 各时间段的数字：先用雷达自己的成交算（winFill），AVE 有的再盖过去 */
 const KLN = require('./kline.cjs');
 function winFill(x, raw) { /* NX-1103（Nancy 21:47）：AVE 没给的时间段，用雷达自己存的链上成交补算（不多花 AVE 额度） */
   if (raw && Array.isArray(raw.x?.tr) && raw.x.tr.length) { const tr = raw.x.tr, u = raw.u || 0, now = Date.now() / 1000, px = tr[tr.length - 1][3]; let lt = tr[0]; for (const q of tr) if (q[0] >= lt[0]) lt = q; const pxL = lt[3]; /* KQ-1104：最新一笔（照时间，不照顺序） */ x.la = x.la || tr[tr.length - 1][0] * 1000;
@@ -122,25 +122,45 @@ function aveNums(x, v) { /* 显示的数字以 AVE 为准（有才盖过去） *
   const nn0 = (n) => (n != null && +n >= 0 ? +n : null); x.txN = { h1: nn0(v.tx1), h24: nn0(v.tx) }; /* CHAIN-1104 D12：笔数不会是负的，怪数字＝读不到 */ if (!x.nm && v.n) x.nm = v.n; if ((!x.sym || /^0x/.test(x.sym)) && v.s) x.sym = v.s; if (!x.img && /^https:\/\//.test(v.lg || '')) x.img = v.lg; x.platAve = v.pl || ''; x.src = 'ave';
 }
 let LSRC = null, LAVE = null; /* BOARD-V3：最近一次看盘用的读链模组和 AVE 资料（boardPage 往回读用） */
-function board(net, r, A, SRC) { if (SRC) LSRC = SRC; if (A) LAVE = A; const soonPct = fin(readJSON(C.SET, {})?.['board.soonPct']); /* ZR-1103：进度几 % 以上放「即将发射」＝你的设定（没填＝只照 AVE 自己的分类） */
+/*BOARD124 看盘跟 AVE 同步：转接站的 AVE 清单在（而且这条链有发射台清单）→ 分页、币、数字全部照 AVE，不再用本机扫链决定出现哪些币。
+   分页对应（照 AVE 的 tag 字尾，不认发射台名字）：*_in_new＝新创建、*_in_almost＝即将发射、*_in_hot＝热门内盘、*_out_hot＋热门榜＝热门外盘、*_out_new＝已发射。
+   顺序：新创建照建立时间、即将发射照进度、其他照 AVE 给的顺序。本机扫链的成交只拿来补 AVE 没给的时间段数字。 */
+const B2_FRESH_MS = 10 * 60e3; /* 技术用：转接站资料多久没更新就退回旧的合并方式（画面标「X 分钟前」） */
+function aveOnly(net, r, A, SRC) {
+  const k = net === 'robinhood' ? 'rh' : 'bsc'; const M = A?.m?.[k] || {}; const AC = A?.cols || {}; const tr = 'trend_' + (net === 'robinhood' ? 'robinhood' : 'bsc');
+  const has = Object.entries(AC).some(([t, L]) => t !== tr && !/^trend_/.test(t) && !/^seen_/.test(t) && Array.isArray(L) && L.some((a) => M[String(a).toLowerCase()])); if (!has) return null;
+  const C = { fresh: [], soon: [], hot: [], hotdex: [], done: [] }; const S = { fresh: new Set(), soon: new Set(), hot: new Set(), hotdex: new Set(), done: new Set() }; const X = new Map();
+  for (const [tag, L] of Object.entries(AC)) { if (!Array.isArray(L)) continue; const isT = tag === tr; if (!isT && /^trend_/.test(tag)) continue;
+    let to = A.kinds && A.kinds[tag] ? A.kinds[tag] : isT ? 'hotdex' : /_in_new$/.test(tag) ? 'fresh' : /_in_almost$/.test(tag) ? 'soon' : /_in_hot$/.test(tag) ? 'hot' : /_out_hot$/.test(tag) ? 'hotdex' : /_out_new$/.test(tag) ? 'done' : null; if (!to) continue;
+    L.forEach((a0, i) => { const a = String(a0).toLowerCase(); const v = M[a]; if (!v) return; let t2 = to; if (isT && v.pg != null && v.pg < 100) t2 = 'hot'; const out = t2 === 'hotdex' || t2 === 'done';
+      let x = X.get(a); if (!x) { x = aveItem(a, v, out ? 'done' : 'fresh'); aveNums(x, v); X.set(a, x); } if (out) { x.grad = true; x.curve = false; x.gradAt = x.gradAt || x.at; } if (isT) x.trend = 1; x.aveRank = Math.min(x.aveRank ?? Infinity, i);
+      if (!S[t2].has(a)) { S[t2].add(a); C[t2].push(x); } }); }
+  const srcs = SRC ? (net === 'robinhood' ? [SRC.V4R] : [SRC.MK, SRC.V4B]) : []; const RAW = srcs.filter((S0) => S0?.raw).map((S0) => S0.raw());
+  for (const x of X.values()) { let rw = null; for (const R0 of RAW) { const y = R0.tokens?.[x.c]; if (y) { let u = 0; try { u = R0.usd(y) || 0; } catch {} rw = { x: y, u }; break; } } try { winFill(x, rw); } catch {} try { allChg(x, rw, M[x.c]); } catch {} }
+  const v24 = (x) => (x.vol?.h24 != null && isFinite(+x.vol.h24) ? +x.vol.h24 : -1); C.fresh.sort((a, b) => (b.at || 0) - (a.at || 0)); C.soon.sort((a, b) => (b.prog ?? -1) - (a.prog ?? -1) || a.aveRank - b.aveRank); for (const k2 of ['hot', 'hotdex']) C[k2].sort((a, b) => v24(b) - v24(a) || a.aveRank - b.aveRank); C.done.sort((a, b) => a.aveRank - b.aveRank || (b.at || 0) - (a.at || 0)); /* 热门＝照 AVE 清单本身的排序键（24h 成交额，AVE orderby 预设）；多个发射台合并后照同一个键排 */
+  const out = { ...r, src: 'ave', err: '', aveOnly: 1, total: X.size, cols: [{ k: 'fresh', zh: '🆕 新创建', en: '🆕 New', items: C.fresh }, { k: 'soon', zh: '🚀 即将发射', en: '🚀 About to launch', items: C.soon }, { k: 'hot', zh: '🔥 热门内盘', en: '🔥 Hot on curve', items: C.hot }, { k: 'hotdex', zh: '🔥 热门外盘', en: '🔥 Hot DEX', items: C.hotdex }, { k: 'done', zh: '✅ 已发射', en: '✅ Launched', items: C.done }],
+    aveSrc: { added: X.size, moved: 0, chainOnly: 0, at: A?.at || null, ageMin: A?.at ? Math.floor((Date.now() - A.at) / 60e3) : null, q: A?.b2?.q || null, b2: 1, only: 1 } };
+  try { plats(net, out); } catch {} return out; }
+function board(net, r, A, SRC) { if (SRC) LSRC = SRC; if (A) LAVE = A; if (A?.b2 && Date.now() - (+A.b2.okAt || 0) < B2_FRESH_MS) { try { const o = aveOnly(net, r, A, SRC); if (o) return o; } catch {} } /*BOARD124*/ const soonPct = fin(readJSON(C.SET, {})?.['board.soonPct']); /* ZR-1103：进度几 % 以上放「即将发射」＝你的设定（没填＝只照 AVE 自己的分类） */
   try { if (!r || !Array.isArray(r.cols) || !r.cols.length) return r; const k = net === 'robinhood' ? 'rh' : 'bsc'; const M = A?.m?.[k] || {}; const AC = A?.cols || {}; const CA = A?.colsAt || {};
     const col = {}; for (const c of r.cols) col[c.k] = c; if (!col.fresh || !col.soon || !col.done) return r;
     const where = new Map(); for (const c of r.cols) for (const x of c.items || []) where.set(String(x.c).toLowerCase(), c.k);
     /* AVE 发射台清单：新创建／即将发射（快满）／已迁移 */
-    const want = new Map(); const rank = { fresh: 1, soon: 2, done: 3 };
-    for (const [tag, list] of Object.entries(AC)) { if (/^trend_/.test(tag) || !Array.isArray(list)) continue; if (CA[tag] && Date.now() - CA[tag] > 30 * 60e3) continue;
-      for (const a0 of list) { const a = String(a0).toLowerCase(); const v = M[a]; if (!v) continue; const to = /_out_/.test(tag) ? 'done' : /_in_almost/.test(tag) ? 'soon' : /_in_hot/.test(tag) ? ((soonPct != null && v.pg != null && v.pg >= soonPct) || net === 'robinhood' ? 'soon' : 'fresh') : /_in_/.test(tag) ? 'fresh' : null; if (to && (!want.has(a) || rank[to] > rank[want.get(a)])) want.set(a, to); } }
+    const want = new Map(); const rank = { fresh: 1, soon: 2, done: 3 }; const TRS = new Set(); /*BOARD124 在 AVE 热门榜上的币*/
+    for (const [tag, list] of Object.entries(AC).sort((p, q) => (/^trend_/.test(p[0]) ? 1 : 0) - (/^trend_/.test(q[0]) ? 1 : 0))) { /*BOARD124 热门榜最后看（发射台清单的分类优先）*/ if (!Array.isArray(list)) continue; const isTr = /^trend_/.test(tag); if (isTr && tag !== 'trend_' + (net === 'robinhood' ? 'robinhood' : 'bsc')) continue; /*BOARD124 热门榜并进看盘；清单过旧也照用（画面标「X 分钟前」）*/
+      for (const a0 of list) { const a = String(a0).toLowerCase(); const v = M[a]; if (!v) continue; if (isTr) TRS.add(a); const to = isTr ? (want.has(a) ? null : v.pg != null && v.pg < 100 ? 'fresh' : 'done') : /_out_/.test(tag) ? 'done' : /_in_almost/.test(tag) ? 'soon' : /_in_hot/.test(tag) ? ((soonPct != null && v.pg != null && v.pg >= soonPct) || net === 'robinhood' ? 'soon' : 'fresh') : /_in_/.test(tag) ? 'fresh' : null; if (to && (!want.has(a) || rank[to] > rank[want.get(a)])) want.set(a, to); } }
     const aveSoon = [...want.values()].includes('soon'); /* UIFIX4：AVE 这次有没有给「快满」分类 */ let added = 0, moved = 0;
     for (const [a, to] of want) { const cur = where.get(a); if (cur === to) continue; if (cur) { const it = col[cur].items.find((x) => String(x.c).toLowerCase() === a); if (!it || (cur === 'done' && to !== 'done')) continue; col[cur].items = col[cur].items.filter((x) => x !== it); if (to === 'done') { it.grad = true; it.gradAt = it.gradAt || Date.now(); } col[to].items.push(it); moved++; } else { col[to].items.push(aveItem(a, M[a], to)); added++; } where.set(a, to); }
     const srcs = SRC ? (net === 'robinhood' ? [SRC.V4R] : [SRC.MK, SRC.V4B]) : []; const RAW = srcs.filter((S0) => S0?.raw).map((S0) => S0.raw()); const rawOf = (c) => { for (const R of RAW) { const x = R.tokens?.[c]; if (x) { let u = 0; try { u = R.usd(x) || 0; } catch {} return { x, u }; } } return null; };
-    let chainOnly = 0; const seen = new Set(); for (const c of r.cols) for (const x of c.items) { if (seen.has(x)) continue; seen.add(x); x.chg = x.chg || {}; x.vol = x.vol || {}; x.tx = x.tx || {}; const a0 = String(x.c).toLowerCase(); const v = M[a0]; const rw = rawOf(a0); if (v || !x.tx.h1) winFill(x, rw); if (v) aveNums(x, v); else { x.src = x.src === 'ave' ? 'ave' : 'chain'; chainOnly++; } try { allChg(x, rw, v); } catch {} }
+    let chainOnly = 0; const seen = new Set(); for (const c of r.cols) for (const x of c.items) { if (seen.has(x)) continue; seen.add(x); x.chg = x.chg || {}; x.vol = x.vol || {}; x.tx = x.tx || {}; const a0 = String(x.c).toLowerCase(); const v = M[a0]; const rw = rawOf(a0); if (TRS.has(a0)) x.trend = 1; /*BOARD124*/ if (v || !x.tx.h1) winFill(x, rw); if (v) aveNums(x, v); else { x.src = x.src === 'ave' ? 'ave' : 'chain'; chainOnly++; } try { allChg(x, rw, v); } catch {} }
     col.fresh.items.sort((a, b) => (b.at || 0) - (a.at || 0)); col.soon.items.sort(net === 'robinhood' ? (a, b) => (b.vol?.h1 || 0) - (a.vol?.h1 || 0) : (a, b) => (b.prog || 0) - (a.prog || 0)); col.done.items.sort((a, b) => (b.gradAt || b.at || 0) - (a.gradAt || a.at || 0));
     /* ZR-1103：每一栏全部列出，不截 */
-    r.aveSrc = { added, moved, chainOnly, at: A?.at || null };
+    r.aveSrc = { added, moved, chainOnly, at: A?.at || null, ageMin: A?.at ? Math.floor((Date.now() - A.at) / 60e3) : null, q: A?.b2?.q || null, b2: A?.b2 ? 1 : 0 }; /*BOARD124 资料几分钟前＋AVE 当月额度提醒*/
     { /* NX-1103（Nancy 21:46）：栏位＝新创建｜即将发射｜🔥 热门内盘｜已发射（新外盘／热门外盘在画面切）；顺序由画面照你选的排序和时间段排 */
       const curve = []; const s2 = new Set(); for (const x of col.fresh.items.concat(col.soon.items)) if (!s2.has(x.c)) { s2.add(x.c); curve.push(x); }
       /* UIFIX4（老板 11/4）：即将发射 ① 你填了 board.soonPct → 进度 ≥ 你的门槛；② 没填、AVE 有给「快满」分类 → 照 AVE；③ 都没有 → 内盘（曲线）上有进度的全部放进来、进度最高的排前面（只是排名，不需要门槛数字；画面每栏取 BOARD_SHOW 个）。排序：有进度资料就照进度（Robinhood 也是），都没有才照近 1 小时成交量 */
       if (soonPct != null) col.soon.items = curve.filter((x) => x.prog != null && x.prog >= soonPct); else if (!aveSoon) col.soon.items = curve.filter((x) => x.prog != null && !x.grad);
+      else { const ps = col.soon.items.map((x) => x.prog).filter((p) => p != null && isFinite(p)); const lo = ps.length ? Math.min(...ps) : null; const inS = new Set(col.soon.items); if (lo != null) for (const x of curve) if (!inS.has(x) && !x.grad && x.src !== 'ave' && x.prog != null && x.prog >= lo) col.soon.items.push(x); } /*BOARD124 AVE 没收录的内盘币（例如 Genius）照进度：进度不低于 AVE「快满」清单里最低的那个，也放进即将发射*/
       { const vh = (a, b) => (b.vol?.h1 || 0) - (a.vol?.h1 || 0); col.soon.items.sort(col.soon.items.some((x) => x.prog != null) ? (a, b) => ((b.prog ?? -1) - (a.prog ?? -1)) || vh(a, b) : vh); }
       col.soon.rank = soonPct != null || !aveSoon ? 1 : 0; /* UIFIX5：即将发射是从内盘算的（不是 AVE 分类）→ 画面让「即将发射」显示的币不再出现在「新创建」 */
       col.soon.zh = '🚀 即将发射'; col.soon.en = '🚀 About to launch'; col.done.zh = '✅ 已发射'; col.done.en = '✅ Launched'; col.fresh.zh = '🆕 新创建'; col.fresh.en = '🆕 New';
@@ -286,6 +306,7 @@ async function nx(a, o = {}) {
   if (a === 'sentHist') { /* SEN-1103：全部提醒记录，一页一页读（只读） */ const f = path.join(C.DATA, 'sentinel.jsonl'); if (!fs.existsSync(f)) return { list: [], total: 0 }; const L = fs.readFileSync(f, 'utf8').split('\n').filter(Boolean); const sk = Number.isFinite(+o?.skip) && +o.skip > 0 ? Math.floor(+o.skip) : 0; const end = Math.max(L.length - sk, 0); const part = L.slice(Math.max(end - SEN_PAGE, 0), end).reverse().map((x) => { try { return JSON.parse(x); } catch { return null; } }).filter(Boolean); return { list: part, total: L.length }; }
   if (a === 'sentNote') { if (o?.k === 'phone') { try { fs.appendFileSync(path.join(C.DATA, 'sentinel_in.jsonl'), JSON.stringify({ k: 'phone', n: Number(o.n) || 0, at: Date.now() }) + '\n'); } catch {} } return true; } /* SEN-1103：画面看到手机在线数变多 → 交给引擎（你开了才提醒） */
   if (a === 'mineEnrich') { await mineEnrich(); return true; }
+  if (a === 'b124') return B124F ? B124F(o && typeof o === 'object' ? o : {}) : { err: 'not ready' }; /*BOARD124 多链搜寻等（radar/board124.cjs）*/
   if (a === 'boardPage') return boardPage(o && typeof o === 'object' ? o : {}); /* BOARD-V3 */
   if (a === 'engErr') return engErr(); /* UIFIX4 */
   if (a === 'mintPage') return mintPage(o && typeof o === 'object' ? o : {}); /* AI-BOARD5 */
@@ -294,4 +315,5 @@ async function nx(a, o = {}) {
   return null;
 }
 function install({ ipcMain, ROOT, DATA, SET }) { C = { ROOT, DATA, SET }; try { ipcMain.handle('nx', (e, a, o) => nx(String(a || ''), o).catch((er) => ({ err: String(er?.message || er).slice(0, 120) }))); } catch {} setTimeout(() => mineEnrich().catch(() => {}), 8e3); setInterval(() => mineEnrich().catch(() => {}), 60e3).unref?.(); }
-module.exports = { install, aug, board, plats, mineFields, riskFields, mineNorm, padOf, _setC: (c) => { C = c; MI = null; } };
+module.exports = { install, aug, board, plats, mineFields, riskFields, mineNorm, padOf, _setC: (c) => { C = c; MI = null; }, _b124: (f) => { B124F = f; } };
+let B124F = null; /*BOARD124*/

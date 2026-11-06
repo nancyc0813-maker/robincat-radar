@@ -17314,6 +17314,685 @@
    "file": "watch\\.mjs$",
    "match": "\\(n\\[0\\] > 22 \\|\\| \\(n\\[0\\] === 22 && n\\[1\\] >= 21\\)",
    "reason": "PROXY123：Node 版本判断（22.21 起内建 NODE_USE_ENV_PROXY），技术用；不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "ave\\.mjs",
+   "match": ";\\ const\\ AVE_BACKOFF_MS\\ =\\ 60e3;\\ /\\*\\ 运作：AVE\\ 回\\ 429／额度用尽时停多",
+   "value": "60e3",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/board124\\.cjs",
+   "match": "const\\ FALLBACK_POLL_MS\\ =\\ 2000;\\ /\\*\\ 技术用：转接站没说多久刷新时的预设（转接",
+   "value": "2000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/board124\\.cjs",
+   "match": "0\\)\\ return\\ \\+S\\.poll\\.list\\ \\*\\ 1000;\\ return\\ S\\.poll\\ \\&\\&\\ \\+S\\.pol",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/board124\\.cjs",
+   "match": "ce\\ >\\ 0\\ \\?\\ \\+S\\.poll\\.price\\ \\*\\ 1000\\ :\\ FALLBACK_POLL_MS;\\ \\};\\ a",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/board124\\.cjs",
+   "match": "00\\)\\ \\}\\);\\ if\\ \\(r\\.status\\ ===\\ 401\\)\\ \\{\\ try\\ \\{\\ X\\.drop\\(\\);\\ \\}\\ cat",
+   "value": "401",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/board124\\.cjs",
+   "match": "son\\(\\);\\ if\\ \\(!j\\ \\|\\|\\ j\\.v\\ !==\\ 2\\ \\|\\|\\ typeof\\ j\\.m\\ !==\\ 'objec",
+   "value": "2",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/board124\\.cjs",
+   "match": "\\?\\.message\\ \\|\\|\\ e\\)\\.slice\\(0,\\ 80\\);\\ \\}\\ finally\\ \\{\\ S\\.busy\\ =\\ 0",
+   "value": "80",
+   "reason": "BOARD124（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/board124\\.cjs",
+   "match": "Date\\.now\\(\\)\\ \\-\\ \\(\\+M\\[a\\]\\.u\\ \\|\\|\\ 0\\)\\ >\\ 6\\ \\*\\ 3600e3\\ /\\*\\ 技术用：记忆体",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/board124\\.cjs",
+   "match": "now\\(\\)\\ \\-\\ \\(\\+M\\[a\\]\\.u\\ \\|\\|\\ 0\\)\\ >\\ 6\\ \\*\\ 3600e3\\ /\\*\\ 技术用：记忆体里多久没更",
+   "value": "6",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/board124\\.cjs",
+   "match": "\\)\\ \\-\\ \\(\\+M\\[a\\]\\.u\\ \\|\\|\\ 0\\)\\ >\\ 6\\ \\*\\ 3600e3\\ /\\*\\ 技术用：记忆体里多久没更新的币拿掉\\ \\*/\\)",
+   "value": "3600e3",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/board124\\.cjs",
+   "match": "\\ Date\\.now\\(\\)\\ \\-\\ S\\.tryAt\\ >=\\ 15e3\\ /\\*\\ 技术用：转接站还没有这个功能（旧版转接站）",
+   "value": "15e3",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/board124\\.cjs",
+   "match": "',\\ items:\\ items\\.slice\\(0,\\ 30\\)\\ \\};\\ \\}\\ /\\*\\ ③\\ 已上外盘的成交（AVE）\\ ",
+   "value": "30",
+   "reason": "BOARD124（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/board124\\.cjs",
+   "match": "\\|\\|\\ \\(\\+p\\.liquidity\\?\\.usd\\ \\|\\|\\ 0\\)\\ >\\ \\(\\+best\\.liquidity\\?\\.usd",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/board124\\.cjs",
+   "match": "uidity\\?\\.usd\\ \\|\\|\\ 0\\)\\ >\\ \\(\\+best\\.liquidity\\?\\.usd",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/board124\\.cjs",
+   "match": "ws\\.push\\(\\{\\ t:\\ \\(\\+t\\.time\\)\\ \\*\\ 1000\\ \\|\\|\\ 0,\\ b:\\ buy\\ \\?\\ 1\\ :\\ 0,\\ us",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/board124\\.cjs",
+   "match": "w\\(\\),\\ rows:\\ rows\\.slice\\(0,\\ 60\\)\\ \\};\\ \\}\\ function\\ install\\(o",
+   "value": "60",
+   "reason": "BOARD124（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs",
+   "match": "v\\ \\}\\);\\ if\\ \\(TAPE124\\.size\\ >\\ 50\\)\\ TAPE124\\.delete\\(TAPE124\\.",
+   "value": "50",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/main\\.cjs",
+   "match": "OARD124\\ V4／Infinity\\ 池（不是\\ 40\\ 位地址）→\\ AVE\\ 成交\\*/",
+   "value": "40 位",
+   "reason": "BOARD124（看盘改造）：注解里的说明，不是规则"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/market\\.cjs",
+   "match": "/\\*BOARD124\\ 报价币不设上限：每\\ 30\\ 个一批（DexScreener\\ 一次的上限）\\*/",
+   "value": "30 个",
+   "reason": "BOARD124（看盘改造）：注解里的说明，不是规则"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/next\\.cjs",
+   "match": "能是毫秒\\ \\*/\\ const\\ at\\ =\\ ca\\ \\?\\?\\ 0;\\ /\\*BOARD124\\ AVE\\ 没给建立时间＝币",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/next\\.cjs",
+   "match": "。\\ \\*/\\ const\\ B2_FRESH_MS\\ =\\ 10\\ \\*\\ 60e3;\\ /\\*\\ 技术用：转接站资料多久没更",
+   "value": "10",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/next\\.cjs",
+   "match": "const\\ B2_FRESH_MS\\ =\\ 10\\ \\*\\ 60e3;\\ /\\*\\ 技术用：转接站资料多久没更新就退回旧的合",
+   "value": "60e3",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/next\\.cjs",
+   "match": "\\&\\ v\\.pg\\ !=\\ null\\ \\&\\&\\ v\\.pg\\ <\\ 100\\)\\ t2\\ =\\ 'hot';\\ const\\ out\\ =",
+   "value": "100",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/next\\.cjs",
+   "match": "e\\.now\\(\\)\\ \\-\\ \\(\\+A\\.b2\\.okAt\\ \\|\\|\\ 0\\)\\ <\\ B2_FRESH_MS\\)\\ \\{\\ try\\ \\{\\ ",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/next\\.cjs",
+   "match": ":\\ v\\.pg\\ !=\\ null\\ \\&\\&\\ v\\.pg\\ <\\ 100\\ \\?\\ 'fresh'\\ :\\ 'done'\\)\\ :\\ /_",
+   "value": "100",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/next\\.cjs",
+   "match": "/\\*\\ 热门＝照\\ AVE\\ 清单本身的排序键（24h\\ 成交额，AVE\\ orderby\\ 预设）；多个发射",
+   "value": "24h",
+   "reason": "BOARD124（看盘改造）：注解里的说明，不是规则"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/ui/index\\.html",
+   "match": "\\ if\\(It\\.length<\\(\\+R\\.total\\|\\|0\\)\\)h\\+=`<div\\ class=\"bvMore\"",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/ui/index\\.html",
+   "match": "has=t\\&\\&!x\\.txUnk\\&\\&\\(\\(\\+t\\.b\\|\\|0\\)\\+\\(\\+t\\.s\\|\\|0\\)>0\\);\\ C\\[8\\]=`<di",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html",
+   "match": "/\\*BOARD124\\-UI\\ 看盘列表照\\ AVE／GMGN\\ 紧凑样式（Nancy\\ 11/6：有够丑）\\*",
+   "value": "100%",
+   "reason": "BOARD124（看盘改造）：技术用"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/v4\\.cjs",
+   "match": "const\\ now\\ =\\ Date\\.now\\(\\)\\ /\\ 1000,\\ u\\ =\\ x\\.qUnk\\ \\?\\ 0\\ :\\ qUsd\\(x",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/v4\\.cjs",
+   "match": "/\\*BOARD124\\ 报价币不设上限：每\\ 30\\ 个一批（DexScreener\\ 一次的上限）\\*/",
+   "value": "30 个",
+   "reason": "BOARD124（看盘改造）：注解里的说明，不是规则"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/board\\.js",
+   "match": "ull;\\ for\\ \\(let\\ i\\ =\\ 0;\\ i\\ <\\ 20;\\ i\\+\\+\\)\\ \\{\\ m\\ =\\ await\\ \\(await",
+   "value": "20",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/board\\.js",
+   "match": "OARD_BACKOFF_S'\\)\\ \\?\\?\\ 0\\)\\ \\*\\ 1000;\\ throw\\ new\\ Error\\('month\\ ",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/board\\.js",
+   "match": "OARD_BACKOFF_S'\\)\\ \\?\\?\\ 0\\)\\ \\*\\ 1000;\\ S\\.boErr\\ =\\ 'AVE\\ '\\ \\+\\ r\\.st",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/board\\.js",
+   "match": "g\\(j\\?\\.msg\\ \\|\\|\\ ''\\)\\.slice\\(0,\\ 4000\\)\\ \\}\\);\\ \\}\\ return\\ j\\.data;\\ \\}\\ ",
+   "value": "4000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "relay/board\\.js",
+   "match": "\\-\\ S\\.validAt\\ >\\ \\(C\\.badS\\ \\|\\|\\ 0\\)\\ \\*\\ 1000\\)\\)\\ \\{\\ S\\.validAt\\ =\\ ",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/board\\.js",
+   "match": "alidAt\\ >\\ \\(C\\.badS\\ \\|\\|\\ 0\\)\\ \\*\\ 1000\\)\\)\\ \\{\\ S\\.validAt\\ =\\ now;\\ try",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/board\\.js",
+   "match": "/\\)\\[0\\]\\]\\)\\)\\ if\\ \\(n\\.length\\ >=\\ 2\\)\\ seen\\.set\\(n,\\ \\(seen\\.get\\(n",
+   "value": "2",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "relay/board\\.js",
+   "match": "gs\\)\\ \\{\\ if\\ \\(\\(S\\.bad\\[tag\\]\\ \\|\\|\\ 0\\)\\ >\\ now\\)\\ continue;\\ jobs\\.p",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/board\\.js",
+   "match": "tagErr\\[tag\\]\\ =\\ m\\.slice\\(0,\\ 80\\);\\ if\\ \\(/\\^AVE\\ \\(200\\|400\\|404",
+   "value": "80",
+   "reason": "BOARD124（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/board\\.js",
+   "match": "ad\\[tag\\]\\ =\\ now\\ \\+\\ C\\.badS\\ \\*\\ 1000;\\ const\\ vt\\ =\\ \\(e\\.full\\ \\|\\|\\ '",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "relay/board\\.js",
+   "match": "ry\\ \\{\\ for\\ \\(let\\ pg\\ =\\ 1;\\ pg\\ <=\\ \\(C\\.trendPages\\ \\|\\|\\ ",
+   "value": "1",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/board\\.js",
+   "match": "e\\.message\\ \\|\\|\\ e\\)\\.slice\\(0,\\ 80\\);\\ \\}\\ if\\ \\(L\\.length\\)\\ \\{\\ S\\.co",
+   "value": "80",
+   "reason": "BOARD124（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "relay/board\\.js",
+   "match": "\\.has\\(a\\)\\ \\&\\&\\ now\\ \\-\\ \\(v\\.u\\ \\|\\|\\ 0\\)\\ >\\ C\\.keepS\\ \\*\\ 1000\\)\\ delet",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/board\\.js",
+   "match": "\\-\\ \\(v\\.u\\ \\|\\|\\ 0\\)\\ >\\ C\\.keepS\\ \\*\\ 1000\\)\\ delete\\ M\\[a\\];\\ \\}\\ \\}\\ export",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/board\\.js",
+   "match": "e\\.message\\ \\|\\|\\ e\\)\\.slice\\(0,\\ 80\\);\\ \\}\\ \\}\\ /\\*\\ 搜寻／详情查到的币（用户查\\ A",
+   "value": "80",
+   "reason": "BOARD124（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/board\\.js",
+   "match": "\\(\\)\\.toString\\(36\\)\\.slice\\(2,\\ 8\\)\\ \\}\\);\\ export\\ async\\ functi",
+   "value": "8",
+   "reason": "BOARD124（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/board\\.js",
+   "match": "\\.pg\\ !=\\ null\\ \\?\\ p\\[2\\]\\.pg\\ >=\\ 100\\ :\\ !p\\[2\\]\\.pl;\\ const\\ k\\ =\\ do",
+   "value": "100",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/board\\.js",
+   "match": "w\\ \\-\\ S\\.seenAt\\ >\\ C\\.idleS\\ \\*\\ 1000;\\ if\\ \\(cron\\ \\&\\&\\ \\(idle\\ \\|\\|\\ !S",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/board\\.js",
+   "match": "w\\ \\-\\ S\\.listAt\\ >\\ C\\.listS\\ \\*\\ 1000\\)\\ o\\.ctx\\.waitUntil\\(runL\\(\\)\\)",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/board\\.js",
+   "match": "\\-\\ S\\.priceAt\\ >\\ C\\.priceS\\ \\*\\ 1000\\)\\ o\\.ctx\\.waitUntil\\(runP\\(\\)\\)",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "relay/board\\.js",
+   "match": "oot'\\)\\ ===\\ S\\.boot\\ \\&\\&\\ since0\\ <=\\ \\(S\\.seq\\ \\|\\|\\ 0\\)\\ \\?\\ since0",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "relay/board\\.js",
+   "match": "\\)\\ if\\ \\(!since\\ \\|\\|\\ \\(v\\.ch\\ \\|\\|\\ 0\\)\\ >\\ since\\)\\ o2\\[a\\]\\ =\\ v;\\ m\\[c",
+   "value": "0",
+   "reason": "BOARD124（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/board\\.js",
+   "match": "onse\\(JSON\\.stringify\\(\\{\\ v:\\ 2,\\ at,\\ seq:\\ S\\.seq\\ \\|\\|\\ 0,\\ bo",
+   "value": "2",
+   "reason": "BOARD124（看盘改造）：资料格式版本号（v: 2）"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "relay/worker\\.js",
+   "match": "\\-z0\\-9_\\]\\{2,40\\}\\&limit=\\(100\\|300\\)\\$/,\\ 30,\\ 10\\],\\ \\[/\\^\\\\/v2\\\\",
+   "value": "^\\/v2\\/tokens\\?keyword=[A-Za-z0-9_.%-]{1,90}(&chain=(bsc|rob",
+   "reason": "BOARD124（看盘改造）：转接站只读白名单的格式（AVE 查询网址的规则）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/worker\\.js",
+   "match": "SON\\.stringify\\(L\\.slice\\(0,\\ 20\\)\\)\\ \\}\\)\\.catch\\(\\(\\)\\ =>\\ \\{\\}\\);\\ \\}\\ ",
+   "value": "20",
+   "reason": "BOARD124（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/worker\\.js",
+   "match": "Map\\(\\);\\ const\\ B2_MEM_MS\\ =\\ 1000;\\ /\\*\\ 技术用：同一瞬间的相同请求共用一份（价格",
+   "value": "1000",
+   "reason": "BOARD124（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/worker\\.js",
+   "match": "dy\\ \\}\\);\\ if\\ \\(B2_MEM\\.size\\ >\\ 200\\)\\ B2_MEM\\.delete\\(B2_MEM\\.ke",
+   "value": "200",
+   "reason": "BOARD124（看盘改造）：技术用：快取最多几笔、批次大小、进度满格＝100%（合约事实）；不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/worker\\.js",
+   "match": "\\*/\\ const\\ mo\\ =\\ d\\.slice\\(0,\\ 7\\);\\ let\\ mm\\ =\\ \\(await\\ this\\.c",
+   "value": "7",
+   "reason": "BOARD124（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/worker\\.js",
+   "match": "\\ \\&\\&\\ mm\\.mo\\ ===\\ d\\.slice\\(0,\\ 7\\)\\)\\ \\{\\ mm\\.cu\\ =\\ Math\\.max\\(0,\\ ",
+   "value": "7",
+   "reason": "BOARD124（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html",
+   "match": "，不影响买卖）\\ \\*/\\ const\\ K=\\{rowH:82,over:6,narrow:1200,paint",
+   "value": "82",
+   "reason": "CARDS125（看盘改造）：资料格式版本号（v: 2）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html",
+   "match": "\\*/\\ const\\ K=\\{rowH:82,over:6,narrow:1200,paint:120,pr",
+   "value": "6",
+   "reason": "CARDS125（看盘改造）：资料格式版本号（v: 2）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html",
+   "match": "K=\\{rowH:82,over:6,narrow:1200,paint:120,pre:1500,qtick",
+   "value": "1200",
+   "reason": "CARDS125（看盘改造）：资料格式版本号（v: 2）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html",
+   "match": "K=\\{rowH:82,over:6,narrow:1200,paint:120,pre:1500,qtic",
+   "value": "120",
+   "reason": "CARDS125（看盘改造）：资料格式版本号（v: 2）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html",
+   "match": "arrow:1200,paint:120,pre:1500,qtick:1000,qwait:20,qske",
+   "value": "1500",
+   "reason": "CARDS125（看盘改造）：资料格式版本号（v: 2）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html",
+   "match": "paint:120,pre:1500,qtick:1000,qwait:20,qskew:2000\\};/\\*\\ ",
+   "value": "1000",
+   "reason": "CARDS125（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html",
+   "match": "row:1200,paint:120,pre:1500,qtic",
+   "value": "20",
+   "reason": "CARDS125（看盘改造）：资料格式版本号（v: 2）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html",
+   "match": "tick:1000,qwait:20,qskew:2000\\};/\\*\\ qtick／qwait：送出后每秒看一次",
+   "value": "2000",
+   "reason": "CARDS125（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html",
+   "match": "mcMin','mcMax'\\)\\}\\$\\{row\\(e\\?'24h\\ volume\\ \\(\\$\\)':'24h\\ 成交额（美金）",
+   "value": "24h",
+   "reason": "CARDS125（看盘改造）：画面文字：24h 是栏位名称、100% 是「全部卖出」（卖出 100%，跟原本「全卖」同一个）；不是门槛"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html",
+   "match": ",'hMin','hMax'\\)\\}\\$\\{row\\(e\\?'24h\\ trades':'24h\\ 笔数','tMin',",
+   "value": "24h",
+   "reason": "CARDS125（看盘改造）：画面文字：24h 是栏位名称、100% 是「全部卖出」（卖出 100%，跟原本「全卖」同一个）；不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html",
+   "match": "se;btn\\.style\\.opacity=''\\},4000\\)\\}\\ try\\{for\\(const\\ w\\ of\\ ws\\)",
+   "value": "4000",
+   "reason": "CARDS125（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html",
+   "match": "t\\(String\\(r2\\.err\\)\\.slice\\(0,80\\)\\);return\\}\\}catch\\(er\\)\\{t\\(St",
+   "value": "80",
+   "reason": "CARDS125（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html",
+   "match": "/\\*\\ 热门＝照\\ 24h\\ 成交额排（你点表头排序时照你点的）\\ \\*/",
+   "value": "24h",
+   "reason": "CARDS125（看盘改造）：注解里的说明，不是规则"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html",
+   "match": "/\\*CARDS125\\ 看盘新版（老板\\ 11/6\\ 同意的示意图\\ /tmp/mock125）：分页\\ 新币",
+   "value": "100%",
+   "reason": "CARDS125（看盘改造）：画面文字：24h 是栏位名称、100% 是「全部卖出」（卖出 100%，跟原本「全卖」同一个）；不是门槛"
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/worker\\.js",
+   "match": "ringify\\(params\\)\\.slice\\(0,\\ 120\\)\\);\\ if\\ \\(U\\.req\\.size\\ >\\ AVEW",
+   "value": "120",
+   "reason": "CARDS125（看盘改造）：技术用：字串截断长度、月份字串（YYYY-MM）、批次切分；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/worker\\.js",
+   "match": "openAt\\ \\|\\|\\ Date\\.now\\(\\)\\)\\)\\ /\\ 1000\\)\\ \\+\\ 's\\ ·\\ rx\\ '\\ \\+\\ \\(U\\.rxN\\ \\|\\|",
+   "value": "1000",
+   "reason": "CARDS125（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs",
+   "match": "E\\ 买」）\\*/\\ const\\ QUOTE_MS\\ =\\ 20e3;\\ /\\*\\ 技术用：同一个币同一个钱包的报价结果留多",
+   "value": "20e3",
+   "reason": "CARDS125（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs",
+   "match": "\\*/\\ const\\ QFAIL_KEEP_MS\\ =\\ 10\\ \\*\\ 60e3;\\ /\\*\\ 技术用：画面标「报不出价」",
+   "value": "10",
+   "reason": "CARDS125（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs",
+   "match": "nst\\ QFAIL_KEEP_MS\\ =\\ 10\\ \\*\\ 60e3;\\ /\\*\\ 技术用：画面标「报不出价」留多久（只影响",
+   "value": "60e3",
+   "reason": "CARDS125（看盘改造）：技术用：秒／分钟换算成毫秒、快取与重试间隔（营运数字都在 wrangler.toml [vars] 或转接站回传的 poll）；不影响买卖"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "watch\\.mjs",
+   "match": "r\\?\\.t\\ \\?\\?\\ ''\\)\\.replace\\(/\\\\s\\+/g,\\ '\\ '\\)\\.trim\\(\\);\\ if\\ \\(/rout",
+   "value": "route|path|pool|liquidity|not ?support|unsupport|no quote|in",
+   "reason": "CARDS125（看盘改造）：转接站只读白名单的格式（AVE 查询网址的规则）"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "watch\\.mjs",
+   "match": "\\)\\ if\\ \\(!\\(now\\ \\-\\ \\(\\+v\\?\\.at\\ \\|\\|\\ 0\\)\\ <\\ QFAIL_KEEP_MS\\)\\)\\ delet",
+   "value": "0",
+   "reason": "CARDS125（看盘改造）：技术用：读不到时间／序号当 0（＝从头给全部资料），不是价格或买卖数字"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "watch\\.mjs",
+   "match": "const\\ LP_NAME_RE\\ =\\ /\\(\\^\\|\\\\s\\)\\(LPs\\?\\|V2\\|Cake\\-LP\\)\\$\\|\\^Pancake\\ LPs\\$\\|\\^Unis",
+   "value": "(^|\\s)(LPs?|V2|Cake-LP)$|^Pancake LPs$|^Uniswap V2$",
+   "reason": "LP125：交易对代币的名字样式，只用来把误记成「Pancake LPs」的旧项目名字改回真名字；不决定买不买"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs",
+   "match": ";\\ if\\ \\(!\\(d0\\ >=\\ 0\\ \\&\\&\\ d0\\ <=\\ 36\\)\\ \\|\\|\\ !\\(d1\\ >=\\ 0\\ \\&\\&\\ d1\\ <=\\ 3",
+   "value": "36",
+   "reason": "AUDIT125：ERC20 decimals 的合理上限（规格事实），超过＝读不到；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs",
+   "match": "!\\(d0\\ >=\\ 0\\ \\&\\&\\ d0\\ <=\\ 36\\)\\ \\|\\|\\ !\\(d1\\ >=\\ 0\\ \\&\\&\\ d1\\ <=\\ 3",
+   "value": "36",
+   "reason": "AUDIT125：ERC20 decimals 的合理上限（规格事实），超过＝读不到；不影响买卖"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/market\\.cjs",
+   "match": "1:\\ 3600,\\ h6:\\ 21600,\\ h24:\\ 86400\\ \\};\\ /\\*AUDIT125\\-B\\ 供应量读链上\\ t",
+   "value": "86400",
+   "reason": "AUDIT125：原本就有的时间段秒数表（m1～h24），本补丁只是在旁边插入程式让比对位置变了；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/market\\.cjs",
+   "match": "度）\\ \\*/\\ const\\ SUP_BATCH\\ =\\ 10,\\ SUP_RETRY_MS\\ =\\ 10\\ \\*\\ 60e",
+   "value": "10",
+   "reason": "AUDIT125：技术用：供应量多久补一次／读不到多久再试（节点额度）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/market\\.cjs",
+   "match": "\\ 10,\\ SUP_RETRY_MS\\ =\\ 10\\ \\*\\ 60e3;\\ let\\ supBusy\\ =\\ 0;\\ async\\ ",
+   "value": "60e3",
+   "reason": "AUDIT125：技术用：供应量多久补一次／读不到多久再试（节点额度）；不影响买卖"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/market\\.cjs",
+   "match": "r\\(\\(x\\)\\ =>\\ !\\(x\\.sup\\ >\\ 0\\)\\ \\&\\&\\ !\\(now\\ \\-\\ \\(x\\.supAt\\ \\|\\|\\ ",
+   "value": "0",
+   "reason": "AUDIT125：技术用：还没试过＝时间 0（马上试），不是资料；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/market\\.cjs",
+   "match": "\\);\\ if\\ \\(ts\\ >\\ 0n\\ \\&\\&\\ dec\\ <=\\ 36\\)\\ x\\.sup\\ =\\ Number\\(ts\\)\\ /\\ 10",
+   "value": "36",
+   "reason": "AUDIT125：ERC20 decimals 的合理上限（规格事实），超过＝读不到；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/v4\\.cjs",
+   "match": "ll\\(\\)\\.catch\\(\\(\\)\\ =>\\ \\{\\}\\);\\ \\},\\ 3000\\);\\ /\\*AUDIT125\\-B\\*/\\ const\\ T",
+   "value": "3000",
+   "reason": "AUDIT125：技术用：供应量多久补一次／读不到多久再试（节点额度）；不影响买卖"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/v4\\.cjs",
+   "match": "1:\\ 3600,\\ h6:\\ 21600,\\ h24:\\ 86400\\ \\};\\ /\\*AUDIT125\\-B\\ 供应量读链上\\ t",
+   "value": "86400",
+   "reason": "AUDIT125：原本就有的时间段秒数表（m1～h24），本补丁只是在旁边插入程式让比对位置变了；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/v4\\.cjs",
+   "match": "度）\\ \\*/\\ const\\ SUP_BATCH\\ =\\ 10,\\ SUP_RETRY_MS\\ =\\ 10\\ \\*\\ 60e",
+   "value": "10",
+   "reason": "AUDIT125：技术用：供应量多久补一次／读不到多久再试（节点额度）；不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/v4\\.cjs",
+   "match": "\\ 10,\\ SUP_RETRY_MS\\ =\\ 10\\ \\*\\ 60e3;\\ let\\ supBusy\\ =\\ 0;\\ async\\ ",
+   "value": "60e3",
+   "reason": "AUDIT125：技术用：供应量多久补一次／读不到多久再试（节点额度）；不影响买卖"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/v4\\.cjs",
+   "match": "r\\(\\(x\\)\\ =>\\ !\\(x\\.sup\\ >\\ 0\\)\\ \\&\\&\\ !\\(now\\ \\-\\ \\(x\\.supAt\\ \\|\\|\\ ",
+   "value": "0",
+   "reason": "AUDIT125：技术用：还没试过＝时间 0（马上试），不是资料；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/v4\\.cjs",
+   "match": "\\);\\ if\\ \\(ts\\ >\\ 0n\\ \\&\\&\\ dec\\ <=\\ 36\\)\\ x\\.sup\\ =\\ Number\\(ts\\)\\ /\\ 10",
+   "value": "36",
+   "reason": "AUDIT125：ERC20 decimals 的合理上限（规格事实），超过＝读不到；不影响买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs",
+   "match": "aN;\\ if\\ \\(dn\\ >=\\ 0\\ \\&\\&\\ dn\\ <=\\ 36\\)\\ sandDec\\ =\\ dn;\\ else\\ sand",
+   "value": "36",
+   "reason": "AUDIT125：ERC20 decimals 的合理上限（规格事实），超过＝读不到；不影响买卖"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "watch\\.mjs",
+   "match": "ldNamed，上面已经试过）；以前没认名字就拿\\ 6\\ 个编号去试、回什么都收\\ →\\ 拿掉：认不出＝已售读不到",
+   "value": "6 个",
+   "reason": "AUDIT125：技术用；不影响买卖"
   }
  ]
 }

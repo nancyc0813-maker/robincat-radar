@@ -24,7 +24,7 @@ const CFG = {
     init: '0x426cc62fe6a33a40ba2788c2c87a9c34ee4582b95bc9fa5a7bb7ae70b750b99c', hookWord: 0, // Initialize(id, c0, c1, hooks, fee, parameters, sqrtPriceX96, tick)
     swap: '0x04206ad2b7c0f463bff3dd4f33c5735b0f2957a351e4f79763a4fa9e775dd237',
     hooks: { '0x8e6f8ebbd62b60085b703c40b460dae802edc51b': 'genius', '0xff17f41c5efd6cce944af0912f300097d62df5c9': 'genius' },
-    anyHook: false, plainPools: false, suffix: {}, ds: 'bsc',
+    anyHook: true, plainPools: true, /*BOARD124 其他 Infinity 新池也收（标「其他新池」，画面可筛掉）*/ suffix: {}, ds: 'bsc',
     /* Genius 曲线阶段不在交易池上：盯工厂的 TokenLaunched，再盯每个曲线合约的 Buy／Sell／CurveCompleted（她 11/2：Genius 要接） */
     gfac: '0x37ee8aee29c5efd3c1a7eda6df3f510779928a37', gLaunch: '0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607', gBuy: '0xec36bf571f136799e8dc0b0b8bea4b04d8bd3d43de838aab0d5fc21d4cbfc455', gSell: '0x8113d738abdcb6b38357e9d53a54a7157861a09031b453651f0fe7fe151f59df', gDone: '0xc65a4c73cfd820dccb7079db9e52bb2c09dfd56f9221e7d815e201b726b5c39d', gSellable: 714.3e6,
     quotes: { [ZERO]: ['BNB', 18, 'bnb'], '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c': ['WBNB', 18, 'bnb'], '0x55d398326f99059ff775485246999027b3197955': ['USDT', 18, 'usd'], '0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d': ['USD1', 18, 'usd'], '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d': ['USDC', 18, 'usd'] },
@@ -67,14 +67,15 @@ function startV4(chain, { DATA }) {
       let q = C.quotes[c0] ? c0 : C.quotes[c1] ? c1 : '';
       /* 她 11/2：Long 的币是跟「股票代币」配对（NVDA、TSLA…），不是 ETH → 用官方规则（Long 的币地址结尾是 1e18）分出哪个是新币；
          其他发射台遇到不认识的报价币：被很多池子用过的那个才是报价币（新币只会出现一次） */
-      if (!q && C.hooks[hook]) { const sf = C.suffix[plat]; if (sf) q = c0.endsWith(sf) && !c1.endsWith(sf) ? c1 : c1.endsWith(sf) && !c0.endsWith(sf) ? c0 : ''; if (!q && D.seen[c0] !== D.seen[c1]) q = D.seen[c0] > D.seen[c1] ? c0 : c1; if (q) D.xq[q] = D.xq[q] || { d: 0, usd: 0 }; }
-      if (!q) return; const tok = q === c0 ? c1 : c0; if (C.quotes[tok] || D.xq[tok]) return;
+      if (!q && (C.hooks[hook] || C.anyHook)) { const sf = C.suffix[plat]; if (sf) q = c0.endsWith(sf) && !c1.endsWith(sf) ? c1 : c1.endsWith(sf) && !c0.endsWith(sf) ? c0 : ''; if (!q && D.seen[c0] !== D.seen[c1]) q = D.seen[c0] > D.seen[c1] ? c0 : c1; if (q) D.xq[q] = D.xq[q] || { d: 0, usd: 0 }; }
+      let qUnk = 0; if (!q && plat) { q = c0; qUnk = 1; } /*BOARD124 报价币认不出：先收、标「报价币不明」（美金读不到＝null），不丢*/
+      if (!q) return; const tok = q === c0 ? c1 : c0; if (C.quotes[tok] || (D.xq[tok] && !qUnk)) return;
       const known = D.tokens[tok];
       if (!plat && !known) return;
       if (hook === ZERO && known && known.plat !== 'dex') { known.grad = 1; known.gradAt = t; known.pool = id; D.pools[id] = { tok, q, t0: q === c0 }; return; }
       if (hook === ZERO && !C.plainPools && !known) return;
       D.pools[id] = { tok, q, t0: q === c0 };
-      if (!known) D.tokens[tok] = { c: tok, plat: plat === 'long' && !tok.endsWith('1e18') ? 'bankr' : plat || 'dex', /* 她 11/2：Bankr（Muse 生态）跟 Long 用同一套 Doppler 合约；Long 的币地址结尾是 1e18，其他的标 Bankr 等 */ at: t, pool: id, q, tr: [], grad: plat === 'dex' ? 1 : 0, gradAt: plat === 'dex' ? t : 0 };
+      if (!known) D.tokens[tok] = { c: tok, plat: plat === 'long' && !tok.endsWith('1e18') ? 'bankr' : plat || 'dex', /* 她 11/2：Bankr（Muse 生态）跟 Long 用同一套 Doppler 合约；Long 的币地址结尾是 1e18，其他的标 Bankr 等 */ at: t, pool: id, q, tr: [], grad: plat === 'dex' ? 1 : 0, gradAt: plat === 'dex' ? t : 0, ...(qUnk ? { qUnk: 1 } : {}) };
     } else if (t0 === C.swap) {
       const P = D.pools[l.topics[1]]; if (!P) return; const x = D.tokens[P.tok]; if (!x) return;
       const a0 = I128(W(d, 0)), a1 = I128(W(d, 1)); const qa = P.t0 ? a0 : a1, ta = P.t0 ? a1 : a0; if (!qa || !ta) return;
@@ -87,8 +88,8 @@ function startV4(chain, { DATA }) {
   async function names() { const L = Object.values(D.tokens).filter((x) => !x.nmTried).slice(0, 12); for (const x of L) { x.nmTried = 1; try { x.sym = x.sym || S(await rpc('eth_call', [{ to: x.c, data: '0x95d89b41' }, 'latest'])); } catch {} try { const r = await rpc('eth_call', [{ to: x.c, data: '0x18160ddd' }, 'latest']); const v = Number(BigInt(r)) / 1e18; if (v > 0) x.sup = v; } catch {} }
     for (const [a, o] of Object.entries(D.xq)) if (o.dOk !== 1) { try { const r = await rpc('eth_call', [{ to: a, data: '0x313ce567' }, 'latest']); const n = r && r.length >= 66 ? Number(BigInt(r)) : NaN; if (Number.isInteger(n) && n >= 0 && n <= 77) { o.d = n; o.dOk = 1; } } catch {} } /* CHAIN-1104 D9：读失败不记住，下一轮再读 */ }
   let xqAt = 0;
-  async function xqPrices() { /* 股票代币等报价币的美金价：DexScreener 公开接口，2 分钟一次 */ if (Date.now() - xqAt < 120e3) return; xqAt = Date.now(); const L = Object.keys(D.xq).slice(0, 30); if (!L.length) return;
-    try { const ps = await (await fetch(`https://api.dexscreener.com/tokens/v1/${C.ds}/${L.join(',')}`, { signal: AbortSignal.timeout(10000) })).json(); const best = {}; for (const p of Array.isArray(ps) ? ps : []) { const a = String(p.baseToken?.address || '').toLowerCase(); const lq = +p.liquidity?.usd || 0; if (+p.priceUsd > 0 && (!best[a] || lq > best[a].lq)) best[a] = { v: +p.priceUsd, lq }; } for (const [a, b] of Object.entries(best)) if (D.xq[a]) D.xq[a].usd = b.v; } catch {} }
+  async function xqPrices() { /* 股票代币等报价币的美金价：DexScreener 公开接口，2 分钟一次 */ if (Date.now() - xqAt < 120e3) return; xqAt = Date.now(); const L = Object.keys(D.xq); if (!L.length) return; /*BOARD124 报价币不设上限：每 30 个一批（DexScreener 一次的上限）*/
+    for (let i = 0; i < L.length; i += 30) try { const ps = await (await fetch(`https://api.dexscreener.com/tokens/v1/${C.ds}/${L.slice(i, i + 30).join(',')}`, { signal: AbortSignal.timeout(10000) })).json(); const best = {}; for (const p of Array.isArray(ps) ? ps : []) { const a = String(p.baseToken?.address || '').toLowerCase(); const lq = +p.liquidity?.usd || 0; if (+p.priceUsd > 0 && (!best[a] || lq > best[a].lq)) best[a] = { v: +p.priceUsd, lq }; } for (const [a, b] of Object.entries(best)) if (D.xq[a]) D.xq[a].usd = b.v; } catch {} }
   async function head() { const b = await rpc('eth_getBlockByNumber', ['latest', false]); const n = parseInt(b.number, 16), ts = parseInt(b.timestamp, 16) * 1000; if (st.head && n > st.head && ts > st.headTs) st.blockMs = Math.max(50, Math.min(3000, (ts - st.headTs) / (n - st.head))); st.head = n; st.headTs = ts; return n; }
   let busy = false, SP = C.span; const GADR_N = 10; /* 技术用：公开节点 getLogs 一次最多 10 个地址 */
   async function tick() {
@@ -101,11 +102,15 @@ function startV4(chain, { DATA }) {
   }
   function prune() { /* BOARD-V3：不照时间删；超过储存上限才从最久没动静的开始清 */ const act = (x) => Math.max(+x.at > 0 ? +x.at : 0, +x.lt > 0 ? +x.lt : 0); const LL = Object.values(D.tokens).sort((a, b) => act(b) - act(a)); for (const x of LL.slice(MAX_TOKENS)) delete D.tokens[x.c]; for (const x of LL.slice(TR_TOKENS, MAX_TOKENS)) if (x.tr.length) x.tr = []; const live = new Set(Object.keys(D.tokens)); for (const [id, P] of Object.entries(D.pools)) if (!live.has(P.tok)) delete D.pools[id]; for (const [cv, G] of Object.entries(D.curves)) if (!live.has(G.tok)) delete D.curves[cv]; const sk = Object.keys(D.seen); if (sk.length > 20000) for (const k of sk) if (D.seen[k] < 2) delete D.seen[k]; }
   function save() { try { prune(); fs.writeFileSync(FILE, JSON.stringify(D)); } catch {} }
-  setInterval(tick, 3000); setTimeout(tick, 800); setInterval(save, 60e3);
+  setInterval(tick, 3000); setTimeout(tick, 800); setInterval(save, 60e3); setInterval(() => { supFill().catch(() => {}); }, 3000); /*AUDIT125-B*/
 
   const TF = { m1: 60, m5: 300, m15: 900, h1: 3600, h6: 21600, h24: 86400 };
-  function view(x) { const now = Date.now() / 1000, u = qUsd(x.q); const o = { c: x.c, plat: x.plat, curve: !x.grad && x.plat !== 'dex' && x.plat !== 'other', sym: x.sym || x.c.slice(0, 8), at: x.at || 0, prog: x.prog ?? null, dev: x.dev || '', grad: !!x.grad, gradAt: x.gradAt || 0, pool: x.c, q: x.q || '', chg: {}, vol: {}, tx: {} };
-    const p = x.p || 0; const ok = p > 0 && u > 0; o.price = ok ? p * u : null; o.mc = ok ? p * (x.sup || C.sup) * u : null; o.liq = null; /*AMT-11 读不到价格／报价币美元价＝null（画面显示「—」），不显示 $0（跟 market.cjs 一样）*/
+/*AUDIT125-B 供应量读链上 totalSupply（÷10^decimals，存在 x.sup，跟着本机资料存档）；读不到＝市值读不到（null），不拿 10 亿冒充。每轮只补几个（技术用，节点额度） */
+  const SUP_BATCH = 10, SUP_RETRY_MS = 10 * 60e3; let supBusy = 0;
+  async function supFill() { if (supBusy) return; supBusy = 1; try { const now = Date.now(); const L = Object.values(D.tokens).filter((x) => !(x.sup > 0) && !(now - (x.supAt || 0) < SUP_RETRY_MS)).sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, SUP_BATCH);
+    for (const x of L) { x.supAt = now; try { const [t, d] = await Promise.all([rpc('eth_call', [{ to: x.c, data: '0x18160ddd' }, 'latest']), rpc('eth_call', [{ to: x.c, data: '0x313ce567' }, 'latest'])]); if (!/^0x[0-9a-f]{1,64}$/i.test(String(t || '')) || !/^0x[0-9a-f]{1,64}$/i.test(String(d || ''))) continue; const ts = BigInt(t), dec = Number(BigInt(d)); if (ts > 0n && dec <= 36) x.sup = Number(ts) / 10 ** dec; } catch {} } } finally { supBusy = 0; } }
+  function view(x) { const now = Date.now() / 1000, u = x.qUnk ? 0 : qUsd(x.q); /*BOARD124 报价币不明＝美金读不到*/ const o = { ...(x.qUnk ? { qUnk: 1 } : {}), c: x.c, plat: x.plat, curve: !x.grad && x.plat !== 'dex' && x.plat !== 'other', sym: x.sym || x.c.slice(0, 8), at: x.at || 0, prog: x.prog ?? null, dev: x.dev || '', grad: !!x.grad, gradAt: x.gradAt || 0, pool: x.c, q: x.q || '', chg: {}, vol: {}, tx: {} };
+    const p = x.p || 0; const ok = p > 0 && u > 0; o.price = ok ? p * u : null; o.mc = ok && x.sup > 0 ? p * x.sup * u : null; /*AUDIT125-B 供应量读链上（supFill）；读不到＝null，不用设定档的 C.sup 冒充*/ o.liq = null; /*AMT-11 读不到价格／报价币美元价＝null（画面显示「—」），不显示 $0（跟 market.cjs 一样）*/
     for (const [k, s] of Object.entries(TF)) { const R = x.tr.filter((r) => r[0] >= now - s); let b = 0, se = 0, v = 0; const w = new Set(); for (const r of R) { r[1] ? b++ : se++; v += r[2]; w.add(r[4]); } o.vol[k] = u > 0 ? Math.round(v * u) : null; o.tx[k] = { b, s: se, u: w.size }; o.chg[k] = KL.winChg(x.tr, now - s, p); /* KQ-1104 */ }
     o.n = x.tr.length; o.la = x.tr.length ? x.tr[x.tr.length - 1][0] * 1000 : +x.lt > 0 ? +x.lt : 0; /* BOARD-V3 */ /* NX-1103：最后成交时间 */ return o; }
   function items() { return Object.values(D.tokens).filter((x) => x.at || x.tr.length || x.lt).map(view); }
@@ -125,6 +130,6 @@ function startV4(chain, { DATA }) {
   const CD_CAP = 160; /* 运作：一次画几根 */
   /* 远端设定：新的发射台 Hook、备用节点，不用发新版（只接受格式正确的地址和 https 节点） */
   function extra(hooks = {}, rpcs = []) { for (const [h, p] of Object.entries(hooks || {})) if (/^0x[0-9a-f]{40}$/.test(String(h).toLowerCase()) && /^[a-z0-9]{2,16}$/.test(String(p))) C.hooks[String(h).toLowerCase()] = String(p); for (const u of rpcs || []) if (/^https:\/\/[a-z0-9.\-\/]+$/i.test(u) && !C.rpcs.includes(u) && C.rpcs.length < 8) C.rpcs.push(u); }
-  return { older, rpc, board, items, candles, extra, qUsd, info: (c) => { const x = D.tokens[String(c || '').toLowerCase()]; return x ? { grad: !!x.grad, pool: '' } : null; }, raw: () => ({ tokens: D.tokens, usd: (x) => qUsd(x.q), sup: C.sup }), plat: (c) => D.tokens[String(c || '').toLowerCase()]?.plat || '', has: (c) => !!D.tokens[String(c || '').toLowerCase()], status: () => ({ ...st, total: Object.keys(D.tokens).length, pools: Object.keys(D.pools).length }) };
+  return { older, rpc, board, items, candles, extra, qUsd, info: (c) => { const x = D.tokens[String(c || '').toLowerCase()]; return x ? { grad: !!x.grad, pool: '' } : null; }, raw: () => ({ tokens: D.tokens, usd: (x) => qUsd(x.q) }), /*AUDIT125-B 不再给预设供应量*/ plat: (c) => D.tokens[String(c || '').toLowerCase()]?.plat || '', has: (c) => !!D.tokens[String(c || '').toLowerCase()], status: () => ({ ...st, total: Object.keys(D.tokens).length, pools: Object.keys(D.pools).length }) };
 }
 module.exports = { startV4 };

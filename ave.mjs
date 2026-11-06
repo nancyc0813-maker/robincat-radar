@@ -11,7 +11,9 @@ const LISTS = [
   ['platform', 'tag=flap_out_new&limit=100', 10], ['platform', 'tag=flap_out_hot&limit=100', 10],
   ['trending', 'chain=bsc&page_size=100', 5], ['trending', 'chain=robinhood&page_size=100', 5],
 ];
-const DAY_SOFT = 30000; // 一天超过这么多单位就放慢
+/*BOARD124 放慢门槛改成作者设定档 data/ave_cfg.json 的 daySoftCU（没填＝不放慢）；AVE 真的回 429／额度用尽才退避 */
+const daySoft = (DIR) => { try { const v = JSON.parse(readFileSync(join(DIR, 'data', 'ave_cfg.json'), 'utf8'))?.daySoftCU; const n = Number(v); return v != null && v !== '' && Number.isFinite(n) && n > 0 ? n : null; } catch { return null; } };
+let AVE_BACKOFF = 0; const AVE_BACKOFF_MS = 60e3; /* 运作：AVE 回 429／额度用尽时停多久 */
 /* AVE 是看盘的主要资料。要加别的发射台清单（例如 AVE 文件里的其他 tag），写在 data/ave_lists.json：
    { "lists": [["platform", "tag=xxx_in_new&limit=100", 10], ...] }。每一轮花的单位不会超过原本的预算（ROUND_CU），清单多了就轮流抓（每个清单更新慢一点），不会多花额度。 */
 const ROUND_CU = LISTS.reduce((a, x) => a + x[2], 0);
@@ -42,7 +44,7 @@ export function startAve({ DIR, log, tg }) {
   const save = () => { B.at = Date.now(); const tmp = OUT + '.w'; let txt = ''; try { txt = JSON.stringify(B); writeFileSync(tmp, txt); renameSync(tmp, OUT); } catch {} if (txt) upload(txt).catch(() => {}); };
   async function call(path, cu, body) {
     const r = await fetch(BASE + path, { method: body ? 'POST' : 'GET', headers: { 'X-API-KEY': key(), ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(20000) });
-    addAveUsage(DIR, cu); const j = await r.json().catch(() => null); if (!r.ok || !j || j.status !== 1) throw new Error(`AVE ${r.status} ${String(j?.msg || '').slice(0, 60)}`); return j.data;
+    addAveUsage(DIR, cu); const j = await r.json().catch(() => null); if (r.status === 429 || /quota|exceed|credit/i.test(String(j?.msg || ''))) AVE_BACKOFF = Date.now() + AVE_BACKOFF_MS; /*BOARD124*/ if (!r.ok || !j || j.status !== 1) throw new Error(`AVE ${r.status} ${String(j?.msg || '').slice(0, 60)}`); return j.data;
   }
   function pack(t) {
     const tid = String(t.token_id || ''); const j0 = tid.lastIndexOf('-'); const addr = tid.slice(0, j0), chain = tid.slice(j0 + 1); const evm = /^0x[0-9a-fA-F]{40}$/.test(addr); if (!evm && !(chain === 'solana' && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr))) return null; /*MC121 Solana 合约是 base58（分大小写，不转小写）*/
@@ -65,7 +67,7 @@ export function startAve({ DIR, log, tg }) {
   const ingestTokens = (arr) => { let n = 0; for (const t of arr || []) { const p = pack(t); if (p) { put(p); n++; } } return n; };
   let rot = 0, mcRot = 0; const lists = () => { try { const j = JSON.parse(readFileSync(join(DIR, 'data', 'ave_lists.json'), 'utf8')); const L = (Array.isArray(j?.lists) ? j.lists : []).filter((x) => Array.isArray(x) && (x[0] === 'platform' || x[0] === 'trending') && /^[a-z0-9_=&]{3,80}$/i.test(String(x[1])) && Number(x[2]) > 0 && Number(x[2]) <= 20).slice(0, 40); return L.length ? L : LISTS; } catch { return LISTS; } };
   function prune() { const now = Date.now(); for (const M of Object.values(B.m)) for (const [a, v] of Object.entries(M)) if (now - (v.u || 0) > 3 * 3600e3) delete M[a]; }
-  function slowCheck() { const cu = usedToday(); if (cu < DAY_SOFT) return false; if (warned !== today()) { warned = today(); log(`[AVE] 今天已用 ${cu} 单位，自动放慢`); tg?.(`📊 AVE 额度提醒：今天已用 ${cu} 单位（超过 ${DAY_SOFT}），雷达已自动放慢更新（清单改 15 分钟一次、新币不补查）。额度不够可以找 AVE 加。`).catch?.(() => {}); } return true; }
+  function slowCheck() { if (Date.now() < AVE_BACKOFF) return true; const DAY_SOFT = daySoft(DIR); if (DAY_SOFT == null) return false; const cu = usedToday(); if (cu < DAY_SOFT) return false; if (warned !== today()) { warned = today(); log(`[AVE] 今天已用 ${cu} 单位，自动放慢`); tg?.(`📊 AVE 额度提醒：今天已用 ${cu} 单位（超过 ${DAY_SOFT}），雷达已自动放慢更新（清单改 15 分钟一次、新币不补查）。额度不够可以找 AVE 加。`).catch?.(() => {}); } return true; }
   async function listTick() {
     if (busy) return; const slow = slowCheck(); if (slow && Date.now() - lastList < 15 * 60e3) return; busy = true; lastList = Date.now();
     try { let n = 0;

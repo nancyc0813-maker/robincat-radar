@@ -90,10 +90,10 @@ function startMarket({ DATA, log = () => {} }) {
     let res = []; try { const r = await fetch(RPCS[0], { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(L.map((x, k) => ({ jsonrpc: '2.0', id: k, method: 'eth_call', params: [{ to: x.c, data: '0x95d89b41' }, 'latest'] }))), signal: AbortSignal.timeout(12000) }); const j = await r.json(); if (Array.isArray(j)) for (const x of j) res[x.id] = x.result || ''; } catch {}
     L.forEach((x, k) => { const r = res[k] || ''; if (r.length >= 130) x.sym = S(r, 0); }); }
   let qAt = 0;
-  async function qPrices() { if (Date.now() - qAt < 120e3) return; qAt = Date.now(); const L = [...new Set(Object.values(D.tokens).map((x) => x.q).filter((q) => q && q !== WBNB && !STABLE.has(q)))].slice(0, 30); if (!L.length) return;
-    try { const ps = await (await fetch('https://api.dexscreener.com/tokens/v1/bsc/' + L.join(','), { signal: AbortSignal.timeout(10000) })).json(); const best = {}; for (const p of Array.isArray(ps) ? ps : []) { const a = String(p.baseToken?.address || '').toLowerCase(); const lq = +p.liquidity?.usd || 0; if (+p.priceUsd > 0 && (!best[a] || lq > best[a].lq)) best[a] = { v: +p.priceUsd, lq }; } for (const [a, b] of Object.entries(best)) quoteUsd[a] = b.v; } catch {} }
+  async function qPrices() { if (Date.now() - qAt < 120e3) return; qAt = Date.now(); const L = [...new Set(Object.values(D.tokens).map((x) => x.q).filter((q) => q && q !== WBNB && !STABLE.has(q)))]; if (!L.length) return; /*BOARD124 报价币不设上限：每 30 个一批（DexScreener 一次的上限）*/
+    for (let i = 0; i < L.length; i += 30) try { const ps = await (await fetch('https://api.dexscreener.com/tokens/v1/bsc/' + L.slice(i, i + 30).join(','), { signal: AbortSignal.timeout(10000) })).json(); const best = {}; for (const p of Array.isArray(ps) ? ps : []) { const a = String(p.baseToken?.address || '').toLowerCase(); const lq = +p.liquidity?.usd || 0; if (+p.priceUsd > 0 && (!best[a] || lq > best[a].lq)) best[a] = { v: +p.priceUsd, lq }; } for (const [a, b] of Object.entries(best)) quoteUsd[a] = b.v; } catch {} }
   async function head() { const b = await rpc('eth_getBlockByNumber', ['latest', false]); const n = parseInt(b.number, 16), ts = parseInt(b.timestamp, 16) * 1000; if (st.head && n > st.head && st.headTs) st.blockMs = Math.max(200, Math.min(3000, (ts - st.headTs) / (n - st.head) || st.blockMs)); st.head = n; st.headTs = ts; st.headAt = Math.min(Date.now(), ts + 300); return n; }
-  async function pull(from, to) { const L = await rpc('eth_getLogs', [{ address: [FLAP], /* 她 11/2 17:59：Four.meme 已经没人玩，拿掉 */ topics: [TOPICS], fromBlock: '0x' + from.toString(16), toBlock: '0x' + to.toString(16) }]); for (const l of L) { try { onLog(l); } catch {} } return L.length; }
+  async function pull(from, to) { const L = await rpc('eth_getLogs', [{ address: [FLAP, FOUR], /*BOARD124 老板 11/6：所有发射台都收（Four.meme 回来）；要不要看由画面「平台」筛选决定 */ topics: [TOPICS], fromBlock: '0x' + from.toString(16), toBlock: '0x' + to.toString(16) }]); for (const l of L) { try { onLog(l); } catch {} } return L.length; }
   let busy = false, SPAN = 1500;
   async function tick() {
     if (busy) return; busy = true;
@@ -105,20 +105,25 @@ function startMarket({ DATA, log = () => {} }) {
   }
   function prune() { /* BOARD-V3：不照时间删；快取超过储存上限才从最久没动静的开始清 */ const act = (x) => Math.max(+x.at > 0 ? +x.at : 0, +x.lt > 0 ? +x.lt : 0); const L = Object.values(D.tokens).sort((a, b) => act(b) - act(a)); for (const x of L.slice(MAX_TOKENS)) delete D.tokens[x.c]; for (const x of L.slice(TR_TOKENS, MAX_TOKENS)) if (x.tr.length) x.tr = []; }
   async function older(kind, lo, hi) { /* BOARD-V3：往回读某段区块里 Flap 的「建立」或「上外盘」事件（只读；画面往下滑才会叫） */
-    const L = await rpc('eth_getLogs', [{ address: [FLAP], topics: [[kind === 'grad' ? T.pDex : T.pCreate]], fromBlock: '0x' + lo.toString(16), toBlock: '0x' + hi.toString(16) }]);
-    return (Array.isArray(L) ? L : []).map((l) => { const d = l.data, blk = parseInt(l.blockNumber, 16), ts = l.blockTimestamp ? (typeof l.blockTimestamp === 'string' ? parseInt(l.blockTimestamp, 16) : +l.blockTimestamp) * 1000 : null;
+    const L = await rpc('eth_getLogs', [{ address: [FLAP, FOUR], topics: [kind === 'grad' ? [T.pDex, T.fLiq] : [T.pCreate, T.fCreate]], fromBlock: '0x' + lo.toString(16), toBlock: '0x' + hi.toString(16) }]); /*BOARD124 Four.meme 也往回读*/
+    return (Array.isArray(L) ? L : []).map((l) => { const d = l.data, t0 = l.topics[0], blk = parseInt(l.blockNumber, 16), ts = l.blockTimestamp ? (typeof l.blockTimestamp === 'string' ? parseInt(l.blockTimestamp, 16) : +l.blockTimestamp) * 1000 : null;
+      if (t0 === T.fLiq) return { c: A(W(d, 0)), pool: '', blk, ts, plat: 'four' }; if (t0 === T.fCreate) return { c: A(W(d, 1)), dev: A(W(d, 0)), nm: S(d, 3), sym: S(d, 4), blk, ts, plat: 'four' };
       return kind === 'grad' ? { c: A(W(d, 0)), pool: A(W(d, 1)), blk, ts, plat: 'flap' } : { c: A(W(d, 3)), dev: A(W(d, 1)), nm: S(d, 4), sym: S(d, 5), blk, ts, plat: 'flap' }; }); }
   function save() { try { prune(); fs.writeFileSync(FILE, JSON.stringify(D)); } catch {} }
-  setInterval(tick, 2500); setTimeout(tick, 500); setInterval(save, 60e3);
+  setInterval(tick, 2500); setTimeout(tick, 500); setInterval(save, 60e3); setInterval(() => { supFill().catch(() => {}); }, 2500); /*AUDIT125-B*/
 
   /* 给画面用：每个币算好各时间段的成交、涨跌、买卖笔数 */
   const TF = { m1: 60, m5: 300, m15: 900, h1: 3600, h6: 21600, h24: 86400 };
+/*AUDIT125-B 供应量读链上 totalSupply（÷10^decimals，存在 x.sup，跟着本机资料存档）；读不到＝市值读不到（null），不拿 10 亿冒充。每轮只补几个（技术用，节点额度） */
+  const SUP_BATCH = 10, SUP_RETRY_MS = 10 * 60e3; let supBusy = 0;
+  async function supFill() { if (supBusy) return; supBusy = 1; try { const now = Date.now(); const L = Object.values(D.tokens).filter((x) => !(x.sup > 0) && !(now - (x.supAt || 0) < SUP_RETRY_MS)).sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, SUP_BATCH);
+    for (const x of L) { x.supAt = now; try { const [t, d] = await Promise.all([rpc('eth_call', [{ to: x.c, data: '0x18160ddd' }, 'latest']), rpc('eth_call', [{ to: x.c, data: '0x313ce567' }, 'latest'])]); if (!/^0x[0-9a-f]{1,64}$/i.test(String(t || '')) || !/^0x[0-9a-f]{1,64}$/i.test(String(d || ''))) continue; const ts = BigInt(t), dec = Number(BigInt(d)); if (ts > 0n && dec <= 36) x.sup = Number(ts) / 10 ** dec; } catch {} } } finally { supBusy = 0; } }
   function view(x) { const now = Date.now() / 1000, u = xUsd(x); const out = { c: x.c, plat: x.plat, sym: x.sym || x.nm || x.c.slice(0, 8), nm: x.nm || '', at: x.at || (x.tr[0] ? x.tr[0][0] * 1000 : 0), dev: x.dev || '', prog: x.prog ?? (x.plat === 'flap' ? null : null), grad: !!x.grad, gradAt: x.gradAt || 0, pool: x.pool || (x.plat === 'four' ? x.c : ''), q: x.q || '', chg: {}, vol: {}, tx: {} };
-    const px = x.p || 0; const ok = px > 0 && u > 0; out.price = ok ? px * u : null; out.mc = ok ? px * (x.sup || 1e9) * u : null; out.liq = x.plat === 'four' && x.funds && u > 0 ? x.funds * u : null; /* CHAIN-1104 D8：读不到价格／报价币美金价＝null（画面显示「—」），不显示 $0 */
+    const px = x.p || 0; const ok = px > 0 && u > 0; out.price = ok ? px * u : null; out.mc = ok && x.sup > 0 ? px * x.sup * u : null; /*AUDIT125-B 供应量读链上（supFill）；读不到＝null，不用 10 亿*/ out.liq = x.plat === 'four' && x.funds && u > 0 ? x.funds * u : null; /* CHAIN-1104 D8：读不到价格／报价币美金价＝null（画面显示「—」），不显示 $0 */
     for (const [k, s] of Object.entries(TF)) { const R = x.tr.filter((r) => r[0] >= now - s); let b = 0, se = 0, v = 0; const w = new Set(); for (const r of R) { r[1] ? b++ : se++; v += r[2]; w.add(r[4]); } out.vol[k] = u > 0 ? Math.round(v * u) : null; out.tx[k] = { b, s: se, u: w.size }; out.chg[k] = KL.winChg(x.tr, now - s, px); /* KQ-1104：基准＝窗口开始前最后一笔；读不到＝null */ }
     out.n = x.tr.length; out.la = x.tr.length ? x.tr[x.tr.length - 1][0] * 1000 : +x.lt > 0 ? +x.lt : 0; /* NX-1103：最后成交时间（BOARD-V3：明细清掉的用最后成交时间） */ return out; }
   function board() {
-    const all = Object.values(D.tokens).filter((x) => x.plat && x.plat !== 'four' && (x.at || x.tr.length || x.lt)); const V = all.map(view);
+    const all = Object.values(D.tokens).filter((x) => x.plat && (x.at || x.tr.length || x.lt)); /*BOARD124 不挡 Four.meme*/ const V = all.map(view);
     const sp = soonPctOf(); const isSoon = (x) => sp != null && x.prog != null && x.prog >= sp; /* ZR-INT：「即将发射」栏＝你的 board.soonPct（空白＝不分栏，全部放「新创建」）；读不到进度的放「新创建」 */
     const fresh = V.filter((x) => !x.grad && !isSoon(x)).sort((a, b) => b.at - a.at); /* ZR-INT：清单不截断，全部列出 */
     const soon = V.filter((x) => !x.grad && isSoon(x)).sort((a, b) => (b.prog || 0) - (a.prog || 0));
@@ -129,7 +134,7 @@ function startMarket({ DATA, log = () => {} }) {
   function candles(c, sec) { const x = D.tokens[String(c || '').toLowerCase()]; if (!x || !x.tr.length) return []; const r = KL.fromTrades(x.tr, sec, xUsd(x), CD_CAP); return r.err ? { err: r.err } : r; } /* KQ-1104：照时间合并＋排序＋去重＋补空格；报价币美金价还没读到就不画（不把 BNB 当美金） */
   const CD_CAP = 160; /* 运作：一次画几根 */
   function setQuoteUsd(q, v) { if (v > 0) quoteUsd[q] = v; }
-  function quotes() { return [...new Set(Object.values(D.tokens).map((x) => x.q).filter((q) => q && q !== WBNB && !STABLE.has(q)))].slice(0, 30); }
+  function quotes() { return [...new Set(Object.values(D.tokens).map((x) => x.q).filter((q) => q && q !== WBNB && !STABLE.has(q)))]; } /*BOARD124*/
   return { older, rpc, board, candles, raw: () => ({ tokens: D.tokens, usd: (x) => xUsd(x) }), plat: (c) => D.tokens[String(c || '').toLowerCase()]?.plat || '', has: (c) => !!D.tokens[String(c || '').toLowerCase()], setQuoteUsd, quotes, qUsd, info: (c) => { const x = D.tokens[String(c || '').toLowerCase()]; return x ? { grad: !!x.grad, pool: x.pool || '' } : null; }, status: () => ({ ...st, total: Object.keys(D.tokens).length }) };
 }
 module.exports = { startMarket };
