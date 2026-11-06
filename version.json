@@ -1,14 +1,11 @@
 {
-  "version": "1.0.17",
+  "version": "1.0.18",
   "date": "2026-11-06",
   "critical": false,
   "notes": [
-    "修好：更新后容易黑屏卡死。画面进程崩溃或卡住时，雷达会自己重新载入画面（以前会一直黑着）；一键更新换了主程式时一定整个重开，不会出现「新画面配旧主程式」；更新换档改成先写好再替换，不会读到写一半的档案",
-    "改进：开雷达时先显示「载入中」画面，不再先黑一下；载入太久会出现「重新整理」按钮。GPU 连续出错的电脑，下次启动自动改用软体绘图（删掉 data/gpu_off.flag 可恢复）。视窗崩溃／重载都记在 data/radar_crash.log",
-    "模式改名：「简单模式」和「专业模式」（原本的「进阶」）。你之前选的模式照旧保留",
-    "简单模式：第一排只留「看盘、持仓、设定」，其他分页（热门社群、信号、AI 加功能、空投、新闻）和打赏、白天／黑夜、语言、引擎状态都收进「更多 ▾」，功能一个都没少；搜寻框搬到第一排中间；引擎状态变成「更多」上的小圆点。专业模式版面完全不变",
-    "新增：专业模式设定页最下方「恢复出厂设置」：所有策略、开关、条件、止盈止损、卖出规则、铸造、挖矿、外挂开关回到预设（全关）；持仓已存的卖出规则一并清掉（之后只通知不卖）；钱包、邀请绑定、持仓与交易记录、画面大小、语言、模式不动，紧急全停中保持全停。要输入「重置」才执行，执行前自动备份，按「复原上一次设定」可改回来。手机也能按（要开「手机可以改设定」），复原只在电脑",
-    "简单模式：持仓页没有任何挖矿部位时，不再显示空的「⛏ 挖矿部位」卡片（电脑和手机都是；专业模式照旧）"
+    "简单模式：设定页只留「钱包、⚡ 快速买金额、自动卖、通知（TG）、画面大小、资料健康、语言」，其他设定都在专业模式，底部一键切换；只是画面收起来，设定值和功能一个都没动（电脑和手机都是；专业模式照旧）",
+    "新增：交易者小卡。代币详情里点成交、持有者或 K 线标记上的钱包，同一画面跳出小卡：地址（可复制）、AVE 标签／KOL 名字、这个币他的买入／卖出／持有与盈亏、近期整体盈亏与胜率、最近几笔交易，以及「在 AVE 看」。资料来自 AVE，读不到会写原因和「重试」，同一个钱包短时间内不重复查（电脑和手机都是）",
+    "修好：专业模式持仓「全卖／卖 %」现在也先跳确认（「买卖都先跳确认」开关，预设开，关掉就跟以前一样直接送）；电脑睡眠唤醒后不会误判画面卡死；转接站连不上时点币不用再等很久，会直接写「连不上转接站」；恢复出厂设置保留 TG 通知类别、确认框写明会关闭手机改设定与手机买卖权限，连按两次后「复原」也能拿回原本的设定"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -43,16 +40,16 @@
     "radar/desklink.cjs": "21b4593af23fabadbcbf12c2e1f61da75f03c074fc3ddd8da9982f0d750d15bc",
     "radar/ghmine.cjs": "085154c479db11c9f4347e14f508ab2744cd1951313990005e083b171c0fc415",
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
-    "radar/main.cjs": "2976e76d2c5e7cbd4d47bb1ff8e7574ccc492d0f88a10b909a2d4cf27479d59d",
+    "radar/main.cjs": "a1fce2dddf1878b043403c59e32e02bc3c82a54305e3109865e5177903b66ce7",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
     "radar/next.cjs": "b909d133223e1cb51cfbb30aa10eb310dc2db5a1a0a239a0648e5cd9d1b80e12",
-    "radar/official.json": "27692effc349ad0ec3b96c6f84da76d590a3fee62339ea930ed6e1f6d2b255b5",
-    "radar/official.sig": "4de640ba3d191d1993ac00460d32e5c04459c83483ebbcf75cbd976edab5ed8e",
+    "radar/official.json": "ccd6576d9dc4fae676cd27af3a6bfe5608b801bd387e53886658ba3579737360",
+    "radar/official.sig": "c060a9ca2304809accb352c93cb4ba185ee18c936d85ad8076aa9c915fb6b59b",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "448dbf8c393c63c96e3bc453adcd8d07335da4df355d1cad1a86eb318c7d76d8",
+    "radar/package.json": "62651e6260f7df2c9a714ebc4d6ed669db015ff9b3ded64b6e3c6cfa2560c8fb",
     "radar/preload.cjs": "bdd748e81a344b708ad7a40efe64727bf075e04512d0298a83c7528351a8338d",
     "radar/settings_schema.json": "21e086734cbc51a3fc3e3ae6a83d99d048d8a0c835e293747b5e07997c61b562",
-    "radar/ui/index.html": "1851ebfd6b3e44bf298199d7b7f53e6a4f9dacc900a2ad39bc562f7c09a5b302",
+    "radar/ui/index.html": "76018d3610d6a1f2e9d19eafb6f591f674730742a6293047e0fc77872ccf6160",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -62,7 +59,7 @@
     "relay/icons.js": "84c4decb042b5f95ae44b637e4e2ff9d50135c95a34e473f057ce437f0924dc1",
     "relay/package-lock.json": "9e5ca69afb5a1fb949fa76f15fc0c5dba5dfd5f1ad1749d8a28d917b9306f9fb",
     "relay/package.json": "864796815252ad0b81d8fa80453fbc7b95ca20764f73e82d364bcbeff3df6f52",
-    "relay/phone.html": "4a5954ec548ec0791e43f4e4b3ff91446f6cd037ef51468720487bc8e834aec6",
+    "relay/phone.html": "9729c2aa2d6a02cd549a81e2ddfc547a8bc9cab3c3e29df52c99f684db48f1d1",
     "relay/worker.js": "c71216ecb86489d83a113a1ef90c857a0438d9dd51094c34b0057d54437cce88",
     "relay/wrangler.toml": "57f8adcd8010e23f0160daafff4b1844301beeeb578c535020cd83005ef913ac",
     "repo.cjs": "dff6ac23ac9f445560e64b0bf83a47db82f7b5dd22d8c9acdcb9152c1210ff02",
@@ -78,13 +75,13 @@
     "tg_login.bat": "1b358e1311fe5c0ef32580f47a150904f0028a4451b6409124f9eed46f81dbc9",
     "tools/guard_check.mjs": "da8b958b19bd1e436517e68b3371dc118a693480fa2724fc1044691f67a9964a",
     "tools/guard_rules.json": "e05a1d2df6a62609bf1f0a01c20ac26ca9cd04531efc8d57a36fd230adaa3091",
-    "tools/zero_allowlist.json": "2f3895f49c803210aeab5b4cc8e80c54610f7d736ca894a3707d9bcbb615c3c9",
+    "tools/zero_allowlist.json": "68cf56a483a6703e79baf1a9f3601324d82332dd0fcd1f911cf205c98c3d5158",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "f6f9542e6b0f8b684a15a4730a75806f6a22caa6af1f0858941890d7aefb0823",
+    "watch.mjs": "1bec8ea5656b87debe6e907ad87f9432e619ed5379c3848444080ee27ec3ec93",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
     "一键安装.bat": "77e45841b87f533dcc53db561c07c2dbb47d7337b8734aaa8c213eb5822bbd50",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "f6f9542e6b0f8b684a15a4730a75806f6a22caa6af1f0858941890d7aefb0823"
+  "sha256": "1bec8ea5656b87debe6e907ad87f9432e619ed5379c3848444080ee27ec3ec93"
 }

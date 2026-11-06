@@ -13702,7 +13702,7 @@
   {
    "rule": "STRING_NUM",
    "file": "radar/ui/index\\.html",
-   "match": "/\\*\\ 简单／(?:进阶|专业)模式：只影响画面（body\\.smpOn＝简单）\\ \\*/\\\n\\#smpSw\\{display:",
+   "match": "/\\*\\ 简单／进阶模式：只影响画面（body\\.smpOn＝简单）\\ \\*/\\\n\\#smpSw\\{display:",
    "value": "100%",
    "reason": "SIMPLE113（简单／进阶模式）：CSS 版面（宽度 100%＝整栏），不是数字规则"
   },
@@ -16260,6 +16260,13 @@
    "reason": "SPEED113 看盘预抓每 5 秒看一次画面上看得到的币（数量是玩家设定），技术用"
   },
   {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html",
+   "match": "/\\*\\ 简单／(?:进阶|专业)模式：只影响画面（body\\.smpOn＝简单）\\ \\*/\\\n\\#smpSw\\{display:",
+   "value": "100%",
+   "reason": "SIMPLE113（简单／进阶模式）：CSS 版面（宽度 100%＝整栏），不是数字规则"
+  },
+  {
    "rule": "TIMEWIN",
    "file": "radar/main\\.cjs$",
    "match": "BF_SHOW_MAX_MS = 4000",
@@ -16414,6 +16421,240 @@
     "5000"
    ],
    "reason": "RESET117：手机提示显示几毫秒"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "replace\\(/\\[\\\\u0000\\-\\\\u001f<>\\]/g,\\ ''\\)\\.slice\\(0,\\ 120\\)\\ :\\ r\\ ==\\ null",
+   "values": [
+    "120"
+   ],
+   "reason": "TRADER118（交易者小卡）：读不到的原因文字最多 120 字（只给画面显示）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "''\\)\\.slice\\(0,\\ 100\\)\\ :\\ '';\\ \\};",
+   "values": [
+    "100"
+   ],
+   "reason": "TRADER118（交易者小卡）：AVE 回的错误讯息最多 100 字（只给画面显示）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "join\\('；'\\)\\.slice\\(0,\\ 200\\)\\ \\};\\ const\\ TM",
+   "values": [
+    "200"
+   ],
+   "reason": "TRADER118（交易者小卡）：原因合起来最多 200 字（只给画面显示）"
+  },
+  {
+   "rule": "CMP|TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "return\\ v\\ <\\ 1e12\\ \\?\\ v\\ \\*\\ 1000\\ :\\ v;",
+   "values": [
+    "1e12",
+    "1000"
+   ],
+   "reason": "TRADER118（交易者小卡）：AVE 时间是秒还是毫秒的判断（单位换算，只给画面显示交易时间）"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/main\\.cjs$",
+   "match": "TRADER118\\*/\\ \\}\\)\\)\\.filter\\(\\(t\\)\\ =>\\ !/\\^\\(wbnb",
+   "values": [
+    "^(wbnb|weth|usdt|usdc|bnb|eth|busd|fdusd)$"
+   ],
+   "reason": "TRADER118（交易者小卡）：钱包页原本就有的：主币／稳定币不算「交易过的币」（只影响显示清单，跟买卖无关；本次只在前面多带时间栏位）"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "walks\\ you\\ through\\ \\(about\\ 3\\ minutes\\)",
+   "values": [
+    "3 分钟"
+   ],
+   "reason": "SIMPLESET118（简单模式设定页）：说明设定 TG 大约要花的时间（照抄原本 TG 卡的说明文字），不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "was!==on\\(\\)\\)sync\\(\\)\\},1000\\)",
+   "values": [
+    "1000"
+   ],
+   "reason": "SIMPLESET118（简单模式设定页）：设定页开着时每秒同步一次画面（画面运作）"
+  },
+  {
+   "rule": "TIMEWIN|COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "const\\ TTL=10\\*60e3;/\\*\\ 技术用：同一个钱包\\ 10\\ 分钟内不重复问",
+   "values": [
+    "10",
+    "60e3",
+    "10 分钟"
+   ],
+   "reason": "TRADER118（交易者小卡）：同一个钱包 10 分钟内不重复问 AVE（省 AVE 额度的快取时间，运作常数）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "if\\(C\\.size>200\\)C\\.delete\\(C\\.keys\\(\\)\\.next\\(\\)\\.value\\)",
+   "values": [
+    "200"
+   ],
+   "reason": "TRADER118（交易者小卡）：快取最多记 200 个钱包（记忆体上限，运作常数）"
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/ui/index\\.html$",
+   "match": "const\\ W=el\\.offsetWidth\\|\\|380,H=el\\.offsetHeight\\|\\|300;",
+   "values": [
+    "380",
+    "300"
+   ],
+   "reason": "TRADER118（交易者小卡）：小卡还没量到大小时用 CSS 宽高估位置（版面）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\.sort\\(\\(a,b\\)=>b\\.t\\-a\\.t\\)\\.slice\\(0,6\\)\\.map\\(x=>\\(\\{s:x\\.s,t:x\\.t",
+   "values": [
+    "6"
+   ],
+   "reason": "TRADER118（交易者小卡）：手机小卡最近交易最多列 6 笔（显示几笔，跟买卖无关）"
+  },
+  {
+   "rule": "TIMEWIN|COMMENT_NUM",
+   "file": "relay/phone\\.html$",
+   "match": "const\\ TTL=10\\*60e3;/\\*\\ 技术用：同一个钱包\\ 10\\ 分钟内不重复问\\ \\*/",
+   "values": [
+    "10",
+    "60e3",
+    "10 分钟"
+   ],
+   "reason": "TRADER118（交易者小卡）：手机同一个钱包 10 分钟内不重复问电脑（快取时间，运作常数）"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "maximumFractionDigits:\\+Math\\.abs\\(\\+v\\)>=100\\?0:2",
+   "values": [
+    "100"
+   ],
+   "reason": "TRADER118（交易者小卡）：金额 100 以上不显示小数（数字格式）"
+  },
+  {
+   "rule": "TIMEWIN|CMP",
+   "file": "relay/phone\\.html$",
+   "match": "m<60\\?m\\+'\\ 分钟前':m<2880",
+   "values": [
+    "60e3",
+    "60",
+    "2880"
+   ],
+   "reason": "TRADER118（交易者小卡）：「几分钟前／几小时前／几天前」的显示换算"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/phone\\.html$",
+   "match": "req\\('trader',\\{net:DT\\?\\.net,w,c:DT\\?\\.c\\},25000\\)",
+   "values": [
+    "25000"
+   ],
+   "reason": "TRADER118（交易者小卡）：手机问电脑等最多 25 秒（连线逾时，运作常数）"
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/ui/index\\.html$",
+   "match": "H=el\\.offsetHeight\\|\\|300;let\\ l",
+   "values": [
+    "300"
+   ],
+   "reason": "TRADER118（交易者小卡）：小卡还没量到高度时用 300 估位置（版面）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/phone\\.html$",
+   "match": "Math\\.round\\(\\(Date\\.now\\(\\)\\-t\\)/60e3\\)\\);return\\ m<1",
+   "values": [
+    "60e3"
+   ],
+   "reason": "TRADER118（交易者小卡）：毫秒换分钟（「几分钟前」的显示）"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "(radar/ui/index\\.html|relay/phone\\.html)$",
+   "match": "同一个钱包\\ 10\\ 分钟内不重复问",
+   "values": [
+    "10 分钟"
+   ],
+   "reason": "TRADER118（交易者小卡）：注解：说明快取时间（10 分钟内同一个钱包不重复问）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const\\ RSESS_FALLBACK_MS\\ =\\ 10\\ \\*\\ 60e3;",
+   "values": [
+    "10",
+    "60e3"
+   ],
+   "reason": "QA118（抓错员报告修正）：转接站通行证到期时间看不准（本机时间不准）时先用 10 分钟再换（运作常数，跟买卖无关）"
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/main\\.cjs$",
+   "match": "AbortSignal\\.timeout\\(ms\\ \\|\\|\\ 20000\\)\\ \\}\\);\\ /\\*QA118\\-3\\*/",
+   "values": [
+    "20000"
+   ],
+   "reason": "QA118（抓错员报告修正）：背景要通行证照旧等 20 秒（网路逾时，运作常数）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const\\ AVE_FG_TO_MS\\ =\\ 8e3;",
+   "values": [
+    "8e3"
+   ],
+   "reason": "QA118（抓错员报告修正）：你点的（前景）等转接站最多 8 秒，连不上就马上写原因（网路逾时，运作常数）"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/main\\.cjs$",
+   "match": "背景照旧\\ 20\\ 秒\\*/",
+   "values": [
+    "20 秒"
+   ],
+   "reason": "QA118（抓错员报告修正）：注解：说明背景逾时维持 20 秒"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "replace\\(/\\[\\\\u0000\\-\\\\u001f<>\\]/g,\\ ''\\)\\.slice\\(0,\\ 120\\),\\ until:\\ ms",
+   "values": [
+    "120"
+   ],
+   "reason": "QA118（抓错员报告修正）：转接站错误原因最多 120 字（只给画面显示）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "BF_MISS\\+\\+;\\ if\\ \\(BF_MISS\\ <\\ 2\\)\\ return\\ 'miss';",
+   "values": [
+    "2"
+   ],
+   "reason": "QA118（抓错员报告修正）：连续 2 次检查都没心跳才重开画面（视窗运作，跟买卖无关）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "if\\(pct!=null\\&\\&\\+pct<100\\)return\\ ask\\(",
+   "values": [
+    "100"
+   ],
+   "reason": "QA118（抓错员报告修正）：卖出比例小于 100%＝部分卖出，确认框文字不同（只影响确认框文字）"
   }
  ]
 }

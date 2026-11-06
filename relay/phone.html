@@ -858,7 +858,7 @@ function polPh(a) { if (!a || typeof a !== 'object') return ''; const b = (x) =>
   if (a.nextAt > 0) P.push('下一笔 ' + new Date(+a.nextAt).toLocaleString('zh-CN', { hour12: false, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' 到期'); return P.join(' · '); }
 function mineHold() { if (!ST) return ''; const M = ST.mine; const L = M && Array.isArray(M.items) ? M.items.filter(Boolean) : null;
   const head = `<div class="sech">⛏ 挖矿部位${L ? ` <span class="cnt">${L.length}</span>` : ''}${L && +M.at > 0 ? `<small>${esc(agoMs(+M.at))}更新</small>` : ''}</div>`;
-  if (!L) return head + '<div class="empty">读不到</div>';
+  if (!L) return (!M && typeof window.rcSimple === 'function' && window.rcSimple()) ? '' : head + '<div class="empty">读不到</div>'; /*QA118-8 简单模式电脑没带挖矿资料就不显示*/
   if (!L.length) return (typeof window.rcSimple === 'function' && window.rcSimple()) ? '' : head + '<div class="empty">目前没有挖矿部位</div>'; /*MINE117 简单模式没有部位就不显示*/
   return head + L.map((m) => { const ws = Array.isArray(m.wallets) ? m.wallets.map((w) => String(w && typeof w === 'object' ? (w.name || w.addr || '') : w)).filter(Boolean) : []; const ok = typeof m.url === 'string' && /^https:\/\//.test(m.url);
     return `<div class="hr"><div class="tr"><div class="nm"><div class="t"><b>${esc(m.name || '读不到名称')}</b>${m.chain ? `<span class="tag">${esc(/*PH3-MH*/m.chain === 'rh' ? 'Robinhood' : m.chain === 'bsc' ? 'BNB Chain' : String(m.chain))}</span>` : ''}${m.status ? `<span class="tag"${m.status === 'live' ? ' style="color:#2ebd85"' : ''}>${esc({ live: '进行中', soon: '还没开始', ended: '已结束' }[m.status] || String(m.status))}</span>` : ''}</div><small style="white-space:normal">数量 ${m.qty != null && m.qty !== '' ? esc(String(m.qty)) : '读不到'}${m.token ? ' <span title="' + esc(String(m.token)) + '">' + esc(/^0x[0-9a-fA-F]{40}$/.test(String(m.token)) ? String(m.token).slice(0, 6) + '…' + String(m.token).slice(-4) : String(m.token)) + '</span>' : ''} · 成本 ${usdOr(m.costUsd)} · 单价 ${usdOr(m.priceUsd)} · 池子 ${usdOr(m.liqUsd)}${ws.length ? ' · ' + esc(ws.join('、')) : ''}${m.agc ? '<br>' + esc(agcPh(m.agc)) : ''}${m.pol ? '<br>' + esc(polPh(m.pol)) : ''}${m.why ? '<br>' + esc(String(m.why)) : ''}</small></div><div class="rt"><b>${usdOr(m.valueUsd)}</b>${ok ? `<small><a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">打开 ↗</a></small>` : ''}</div></div></div>`; }).join(''); }
@@ -1080,7 +1080,7 @@ function paintPane() {
     <div>持有人<b>${d.holders != null ? (+d.holders).toLocaleString('en-US') : '-'}</b></div><div>前 10 大持有<b class="${d.t10r ? 'dn' : ''}">${d.top10 != null ? d.top10 + '%' : '-'}</b></div>
     ${d.sm && d.sm.n ? `<div>🧠 聪明钱买进<b class="up">${d.sm.n} 个钱包</b></div>` : ''}${d.ht ? `<div>🎙 KOL 持有<b class="${d.ht.k ? 'up' : ''}">${d.ht.relay ? '需要转接站更新' : d.ht.k + ' 位'}</b></div>` : ''}${age ? `<div>创建<b>${age}前</b></div>` : ''}
     ${d.b1 != null || d.s1 != null ? `<div>1 小时 买／卖<b><span class="up">${money(d.b1)}</span> / <span class="dn">${money(d.s1)}</span></b></div>` : ''}${d.b24 != null || d.s24 != null ? `<div>24 小时 买／卖<b><span class="up">${money(d.b24)}</span> / <span class="dn">${money(d.s24)}</span></b></div>` : ''}</div>
-    ${d.ht && !d.ht.relay ? `<div class="desc"><div class="mu" style="font-size:12px">🏷 持有人标签（AVE 前 100 持有人，只是提醒、不挡买）</div>${(d.ht.w || []).length ? `<div style="margin-top:4px">🎙 ${d.ht.w.map((w) => esc(w.nm || (String(w.a || '').slice(0, 6) + '…' + String(w.a || '').slice(-4))) + (w.off ? '（官方名单）' : '')).join('、')}</div>` : ''}<div style="margin-top:4px">${[['bu', '捆绑地址'], ['ca', '阴谋集团'], ['ph', '钓鱼地址']].filter(([k]) => d.ht[k] && d.ht[k][0]).map(([k, t]) => `<span class="tag r">⚠️ ${t} ${d.ht[k][0]} 个 · 占 ${d.ht[k][1]}%</span>`).join(' ') || '<span class="mu">没有捆绑／阴谋集团／钓鱼标签</span>'}</div><div class="mu" style="margin-top:4px">🐋 巨鲸 ${d.ht.wh} · 🧠 聪明钱 ${d.ht.sm}</div></div>` : ''}
+    ${d.ht && !d.ht.relay ? `<div class="desc"><div class="mu" style="font-size:12px">🏷 持有人标签（AVE 前 100 持有人，只是提醒、不挡买）</div>${(d.ht.w || []).length ? `<div style="margin-top:4px">🎙 ${d.ht.w.map((w) => `<a class="trwL" data-trw="${esc(String(w.a || ''))}">` + esc(w.nm || (String(w.a || '').slice(0, 6) + '…' + String(w.a || '').slice(-4))) + '</a>' + (w.off ? '（官方名单）' : '')).join('、')}</div>` : ''}<div style="margin-top:4px">${[['bu', '捆绑地址'], ['ca', '阴谋集团'], ['ph', '钓鱼地址']].filter(([k]) => d.ht[k] && d.ht[k][0]).map(([k, t]) => `<span class="tag r">⚠️ ${t} ${d.ht[k][0]} 个 · 占 ${d.ht[k][1]}%</span>`).join(' ') || '<span class="mu">没有捆绑／阴谋集团／钓鱼标签</span>'}</div><div class="mu" style="margin-top:4px">🐋 巨鲸 ${d.ht.wh} · 🧠 聪明钱 ${d.ht.sm}</div></div>` : ''}
     <div class="desc"><div class="mu" style="font-size:12px">合约（${NET_N(DT.net)}）</div><div class="mono">${esc(DT.c)}</div>${d.pool ? `<div class="mu" style="font-size:12px;margin-top:6px">池子${d.dex ? ' · ' + esc(d.dex) : ''}</div><div class="mono">${esc(d.pool)}</div>` : ''}</div>`);
 }
 /* 底部固定：卖出（有持仓才有）＋ 大大的绿色买入 ＋ ⚡（这次选的那一组的第一个金额，还是会先确认） */
@@ -1223,7 +1223,7 @@ function tapeHTML0() {
   if (!DT?.tape) return skRows(4).replace(/class="tr sk"/g, 'class="tr sk" style="padding:10px 2px;min-height:44px"').replace(/<span class="lg skb"><\/span>/g, ''); const R = pawTape(DT);
   if (!R.length) return `<div class="note">${esc(DT.tape.err ? pdE(DT.tape.err) : '最近没有成交')}</div>`;
   const tg = { smart: '🧠', dev: '👤', whale: '🐋' };
-  return (pawLive(DT) && PAW.tx.get(pawId(DT.net, DT.c))?.length ? '<div class="note">AVE 即时推送</div>' : '') + R.slice(0, 25).map((x) => `<div class="tp"><span class="mu" style="width:62px">${(Date.now() - x.t) < 60e3 ? '刚刚' : ago(Math.round((Date.now() - x.t) / 60e3))}</span><b class="${x.b ? 'up' : 'dn'}" style="width:28px">${x.b ? '买' : '卖'}</b><span style="flex:1;text-align:right;font-weight:600">${money(x.usd)}</span><span class="w">${(x.tg || []).map((t) => tg[t] || '').join('')} ${x.w ? esc(x.w.slice(0, 6) + '…' + x.w.slice(-4)) : ''}</span></div>`).join('');
+  return (pawLive(DT) && PAW.tx.get(pawId(DT.net, DT.c))?.length ? '<div class="note">AVE 即时推送</div>' : '') + R.slice(0, 25).map((x) => `<div class="tp"${x.w ? ` data-trw="${esc(x.w)}"` : ''}><span class="mu" style="width:62px">${(Date.now() - x.t) < 60e3 ? '刚刚' : ago(Math.round((Date.now() - x.t) / 60e3))}</span><b class="${x.b ? 'up' : 'dn'}" style="width:28px">${x.b ? '买' : '卖'}</b><span style="flex:1;text-align:right;font-weight:600">${money(x.usd)}</span><span class="w">${(x.tg || []).map((t) => tg[t] || '').join('')} ${x.w ? esc(x.w.slice(0, 6) + '…' + x.w.slice(-4)) : ''}</span></div>`).join('');
 }
 function paintTape() { if (DT?.tab === 'tape') setHTML('#tape', tapeHTML()); }
 async function doSell(c, sym, p, net) {
@@ -1414,7 +1414,7 @@ setInterval(() => { if (PC_ON && TAB === 'board' && PCAT === 'ely' && !document.
 (function(){
 const MK='rcMode';let M=(()=>{try{const v=localStorage.getItem(MK);return v==='simple'||v==='adv'?v:''}catch{return ''}})();
 const mode=()=>{if(M)return M;const S=ST?.smp;if(!S||!Array.isArray(S.adv))return 'adv';M=S.adv.length||!S.tp?.simple?'adv':'simple';try{localStorage.setItem(MK,M)}catch{}return M};
-const simple=()=>mode()==='simple';window.rcSimple=simple;/*MINE117*/
+const simple=()=>mode()==='simple';window.rcSimple=simple;/*MINE117*/window.smpPhTp=()=>tpCard();/*SIMPLESET118*/
 function setMode(m){if(m!=='simple'&&m!=='adv')return;M=m;try{localStorage.setItem(MK,m)}catch{}const pg=$('#pg');if(pg)pg.dataset.t='';render()}
 const modeCard=()=>{const s=simple();return `<div class="card smpMode"><h4>🧭 画面模式</h4><div class="g2"><button class="btn ${s?'y':''}" data-smpm="simple">简单</button><button class="btn ${s?'':'y'}" data-smpm="adv">专业</button></div><p class="note">${s?'简单：看盘 ⚡、买、全部卖出、两个止盈止损勾选。':'专业：显示全部策略、条件、开关、铸造、挖矿。'}模式只影响这支手机的画面，不会关掉电脑上任何功能。</p></div>`};
 const advList=()=>(Array.isArray(ST?.smp?.adv)?ST.smp.adv:[]);
@@ -1441,8 +1441,8 @@ async function saveTp(){const r=readTp();if(r.err.length)return toast('⚠️ '+
  let s;try{s=await req('psetSave',{ch:r.ch,base,floorOk:[],dry:0},30000)}catch(e){return toast('❌ '+e.message,4000)}if(s?.err)return toast('❌ '+(Array.isArray(s.err)?s.err.join('；'):s.err),4000);toast(s?.msg||'已保存，电脑雷达已更新',3000)}
 /* 画面 */
 const ps0=pgSet;pgSet=function(){if(!simple())return modeCard()+ps0.apply(this,arguments);return `<div class="ptitle">🎯 自订策略</div><div class="psub">简单模式：只有止盈止损两个勾选；完整的策略、条件在「专业」</div><div style="height:8px"></div>`+tpCard()+advCard()+modeCard()};
-const frCard=()=>`<div class="card" style="border-color:#f6465d88"><h4 style="color:#f6465d">⚠️ 恢复出厂设置</h4><p class="note">所有策略、开关、条件、止盈止损、卖出规则、铸造、挖矿、外挂开关回到预设（全关）。<b style="color:#f0b90b">持仓已经存的卖出规则也会清掉，之后只通知、不会自动卖。</b>钱包、邀请绑定、持仓、交易记录、画面设定都不动；紧急全停中就保持全停。会先备份；要复原请在电脑雷达设定页按「复原上一次设定」。要电脑开了「手机可以改设定」才能按。</p><button class="btn" data-frs="1" style="width:100%;background:#f6465d;color:#fff;border-color:#f6465d">恢复出厂设置</button></div>`;/*RESET117*/
-document.addEventListener('click',async(e)=>{const b=e.target.closest&&e.target.closest('[data-frs]');if(!b)return;e.stopPropagation();if(!(await confirmBox('⚠️ 确定恢复出厂设置？','所有策略、开关、条件、止盈止损、卖出规则都回到预设（全关）。\n持仓已经存的卖出规则也会清掉：之后只通知、不会自动卖。\n会先备份，可以在电脑上复原。','继续','rr')))return;
+const frCard=()=>`<div class="card" style="border-color:#f6465d88"><h4 style="color:#f6465d">⚠️ 恢复出厂设置</h4><p class="note">所有策略、开关、条件、止盈止损、卖出规则、铸造、挖矿、外挂开关回到预设（全关）。<b style="color:#f0b90b">持仓已经存的卖出规则也会清掉，之后只通知、不会自动卖。</b><b style="color:#f0b90b">会关闭：手机改设定与手机买卖权限。</b>钱包、邀请绑定、持仓、交易记录、TG 通知类别、画面设定都不动；紧急全停中就保持全停。会先备份；要复原请在电脑雷达设定页按「复原上一次设定」。要电脑开了「手机可以改设定」才能按。</p><button class="btn" data-frs="1" style="width:100%;background:#f6465d;color:#fff;border-color:#f6465d">恢复出厂设置</button></div>`;/*RESET117*/
+document.addEventListener('click',async(e)=>{const b=e.target.closest&&e.target.closest('[data-frs]');if(!b)return;e.stopPropagation();if(!(await confirmBox('⚠️ 确定恢复出厂设置？','所有策略、开关、条件、止盈止损、卖出规则都回到预设（全关）。\n持仓已经存的卖出规则也会清掉：之后只通知、不会自动卖。\n会关闭：手机改设定与手机买卖权限（这支手机之后只能看，要在电脑上重新打开）。\n会先备份，可以在电脑上复原。','继续','rr')))return;
  const v=await new Promise((res)=>{openSheet('<h3>最后一步：请输入「重置」两个字</h3><input id="frT" autocomplete="off" style="width:100%;padding:12px;border-radius:10px;border:1px solid #f6465d;background:#0a0c10;color:#fff;font-size:16px;margin:10px 0"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn" id="frNo">取消</button><button class="btn rr" id="frOk">确定恢复出厂设置</button></div>');$('#frNo').onclick=()=>{closeSheet();res(null)};$('#frOk').onclick=()=>{const x=$('#frT').value;closeSheet();res(x)}});
  if(v==null)return;if(String(v).trim()!=='重置')return toast('没有执行：要输入「重置」两个字',3500);try{const r=await req('freset',{txt:String(v).trim()});toast(r?.msg||'已恢复出厂设置',6000)}catch(x){toast('❌ '+x.message,5000)}},true);
 const pm0=pgMore;pgMore=function(){let h=pm0.apply(this,arguments);if(simple()){const d=document.createElement('div');d.innerHTML=h;for(const c of [...d.children])if(/挖矿提醒|铸造方式/.test(c.querySelector?.('h4')?.textContent||''))c.remove();h=d.innerHTML}return modeCard()+h+(simple()?'':frCard())/*RESET117 专业模式才显示*/};
@@ -1455,6 +1455,19 @@ document.addEventListener('click',(e)=>{const m=e.target.closest?.('[data-smpm]'
  const ss=e.target.closest?.('[data-a="smpsell"]');if(ss){e.preventDefault();e.stopPropagation();if(DT)doSell(DT.c,DT.d?.sym||DT.sym,100,DT.net);return}},true); /* 100＝全部卖出（这颗按钮的意思），走原本的 doSell 确认框 */
 })();
 </script><!--/smpPhJs-->
+<script id="s118PhJs">/*SIMPLESET118 手机「更多」简单模式精简（只改画面；专业模式不动）*/
+(function(){const pm=pgMore;const sh=(a)=>{a=String(a||'');return /^0x[0-9a-fA-F]{40}$/.test(a)?a.slice(0,6)+'…'+a.slice(-4):a};
+function walC(){const W=ST?.wallets;const body=!Array.isArray(W)?'<p class="note">读不到电脑的钱包清单</p>':!W.length?'<p class="note">电脑上还没有钱包（在电脑雷达「⚙️ 设定 → 👛 钱包」加）</p>':W.map(w=>`<div class="qrow"><span>${esc(String(w?.name||'钱包'))}</span><b>${esc(sh(w?.addr))}</b></div>`).join('');return `<div class="card"><h4>👛 钱包</h4>${body}<p class="note">钱包只在电脑上加、改。</p></div>`}
+const tgC=()=>`<div class="card"><h4>🔔 通知（TG）</h4><p class="note">雷达的通知（买卖结果、提醒）发到你在电脑设定的 TG 机器人。要设定 TG、或改要通知哪些事，请到电脑雷达「⚙️ 设定 → 🔔 通知（TG）」。</p></div>`;
+const footC=()=>`<div class="card"><p class="note"><b>更多设定在专业模式</b>：积分、叫 AI 加功能、加到主画面、这支手机（取消配对）、恢复出厂设置。</p><button class="btn y" data-smpm="adv" style="width:100%;margin-top:6px">切到专业模式</button></div>`;
+pgMore=function(){const h=pm.apply(this,arguments);if(!(typeof window.rcSimple==='function'&&window.rcSimple()))return h;
+ const d=document.createElement('div');d.innerHTML=h;let mode='',head='',health='';
+ for(const c of [...d.children]){const t=c.querySelector?.('h4')?.textContent||'';if(c.classList.contains('smpMode'))mode+=c.outerHTML;else if(!c.classList.contains('card'))head+=c.outerHTML;else if(/资料健康/.test(t))health+=c.outerHTML}
+ let qb='';try{qb=(uxMeCards().find(c=>/快速买卖设定/.test(c.querySelector?.('h4')?.textContent||''))||{}).outerHTML||''}catch{}
+ let tp='';try{tp=typeof window.smpPhTp==='function'?window.smpPhTp():''}catch{}
+ return mode+head+walC()+qb+tp+tgC()+health+footC()};
+})();
+</script><!--/s118PhJs-->
 <style id="fbPh">/*FB-PHONE CSS*/
 #fbPhOv{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:4px 18px 2px;font-size:12px;color:var(--mute)}#fbPhOv .fbPhT{color:var(--ink);font-weight:600}
 #fbPhOv label{display:inline-flex;align-items:center;gap:5px}#fbPhOv input[type=checkbox]{position:absolute;opacity:0;width:0;height:0}#fbPhOv i{width:13px;height:13px;border-radius:3px;border:1.5px solid var(--c);display:inline-block}#fbPhOv input:checked+i{background:var(--c)}
@@ -1480,12 +1493,51 @@ function marks(){const cv=document.getElementById('kc');if(!cv||!DT)return;const
  const y=v=>top+ph*(1-(v-lo)/rg);const bw=(W-R-6)/Math.max(K.length,30),ox=(W-R-6)-K.length*bw;const T=t=>typeof tms==='function'?tms(t):t;
  const iv=K.length>1?T(K[1][0])-T(K[0][0]):300e3;const me=mine();const mn=+OV.min>0?+OV.min:0;const G=new Map();
  for(const x of R0){const tg=new Set(x.tg||[]);if(x.w&&me.has(String(x.w).toLowerCase()))tg.add('me');const k=['me','kol','smart','whale','dev'].find(z=>OV[z]&&tg.has(z));if(!k)continue;if(mn&&!(+x.usd>=mn))continue;
-  const t=+x.t;let i=-1;for(let j=K.length-1;j>=0;j--)if(T(K[j][0])<=t){i=j;break}if(i<0||t>T(K[K.length-1][0])+iv)continue;const key=i+':'+(x.b?1:0);const g=G.get(key);if(g)g.n++;else G.set(key,{i,b:x.b,k,n:1})}
- const g=cv.getContext('2d');const dpr=window.devicePixelRatio||1;g.setTransform(dpr,0,0,dpr,0,0);
- for(const v of G.values()){const k=K[v.i];const x=4+ox+v.i*bw+bw/2;const yy=v.b?Math.min(top+ph-6,y(k[3])+12):Math.max(8,y(k[2])-12);g.beginPath();g.arc(x,yy,7,0,Math.PI*2);g.fillStyle='#0a0c10';g.fill();g.lineWidth=2;g.strokeStyle=COL[v.k];g.stroke();
+  const t=+x.t;let i=-1;for(let j=K.length-1;j>=0;j--)if(T(K[j][0])<=t){i=j;break}if(i<0||t>T(K[K.length-1][0])+iv)continue;const key=i+':'+(x.b?1:0);const g=G.get(key);if(g)g.n++;else G.set(key,{i,b:x.b,k,n:1,w:x.w})/*TRADER118*/}
+ const g=cv.getContext('2d');window.__trMk=[];/*TRADER118 标记位置给小卡点击*/const dpr=window.devicePixelRatio||1;g.setTransform(dpr,0,0,dpr,0,0);
+ for(const v of G.values()){const k=K[v.i];const x=4+ox+v.i*bw+bw/2;const yy=v.b?Math.min(top+ph-6,y(k[3])+12):Math.max(8,y(k[2])-12);window.__trMk.push({x,y:yy,w:v.w});g.beginPath();g.arc(x,yy,7,0,Math.PI*2);g.fillStyle='#0a0c10';g.fill();g.lineWidth=2;g.strokeStyle=COL[v.k];g.stroke();
   g.fillStyle=COL[v.k];g.font='700 8px -apple-system,sans-serif';g.textAlign='center';g.fillText(v.k==='me'?'我':v.k==='kol'?'K':v.k==='smart'?'聪':v.k==='whale'?'鲸':'D',x,yy+3);g.beginPath();g.arc(x+5,yy+(v.b?6:-6),2.5,0,Math.PI*2);g.fillStyle=v.b?'#2ebd85':'#f6465d';g.fill();
   if(v.n>1){g.fillStyle=COL[v.k];g.font='700 9px -apple-system,sans-serif';g.textAlign='left';g.fillText(String(v.n),x+8,yy-5)}}}
 })();
 </script><!--/fbPhJs-->
+<style id="tr118Ph">/*TRADER118 手机交易者小卡*/
+.trwL{color:#f0b90b;text-decoration:underline dotted;cursor:pointer}.tp[data-trw]{cursor:pointer}
+.trC .trG{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.trC .trG>div{background:#ffffff08;border-radius:10px;padding:7px 10px}.trC .trG small{display:block;color:var(--mute);font-size:12px}.trC .trG b{font-size:15px}
+.trC code{font-size:12px;color:var(--mute);word-break:break-all}.trC h5{margin:12px 0 4px;font-size:13px;color:var(--mute)}.trC .trE{color:#f0b90b;font-size:13px}
+</style>
+<script id="tr118PhJs">/*TRADER118 手机：点成交／KOL 持有人／K 线标记的钱包 → 同一画面底部小卡（不开新页）。资料问电脑（trader，只读）；读不到写原因＋重试；连结只允许 ave.ai */
+(function(){const A40=/^0x[0-9a-f]{40}$/;const okU=(u)=>{try{const x=new URL(u);return x.protocol==='https:'&&x.hostname==='ave.ai'&&!x.username&&!x.password&&!x.port}catch{return false}};window.tr118OkU=okU;
+const C=new Map();const TTL=10*60e3;/* 技术用：同一个钱包 10 分钟内不重复问 */
+const sh=(a)=>a.slice(0,6)+'…'+a.slice(-4);const $u=(v)=>v==null||!isFinite(+v)?'—':(+v<0?'-':'')+'$'+Math.abs(+v).toLocaleString('en-US',{maximumFractionDigits:+Math.abs(+v)>=100?0:2});const $p=(v)=>v==null||!isFinite(+v)?'—':`<span class="${+v>=0?'up':'dn'}">${+v>=0?'+':'-'}$${Math.abs(+v).toLocaleString('en-US',{maximumFractionDigits:+Math.abs(+v)>=100?0:2})}</span>`;
+const ag=(t)=>{const m=Math.max(0,Math.round((Date.now()-t)/60e3));return m<1?'刚刚':m<60?m+' 分钟前':m<2880?Math.round(m/60)+' 小时前':Math.round(m/1440)+' 天前'};
+function who(w){const o={nm:'',tg:new Set()};try{for(const k of (DT?.d?.ht?.w||[]))if(String(k.a||'').toLowerCase()===w){o.nm=String(k.nm||'');o.tg.add('kol')}}catch{}try{const R=typeof pawTape==='function'?pawTape(DT):(DT?.tape?.rows||[]);for(const x of R)if(String(x.w||'').toLowerCase()===w)for(const t of x.tg||[])o.tg.add(t)}catch{}try{for(const x of (ST?.wallets||[]))if(String(x?.addr||'').toLowerCase()===w)o.tg.add('me')}catch{}return o}
+const TGL={me:'我的钱包',kol:'KOL',smart:'聪明钱',whale:'巨鲸',dev:'DEV'};
+let CUR='';
+function card(w,r){const O=who(w);const sym=String(DT?.sym||DT?.d?.sym||'这个币').slice(0,16);let rows=[];try{rows=(typeof pawTape==='function'?pawTape(DT):(DT?.tape?.rows||[])).filter(x=>String(x.w||'').toLowerCase()===w)}catch{}
+ const nb=rows.filter(x=>x.b),ns=rows.filter(x=>!x.b);const ok=r&&!r.err&&!r.ld;const tk=ok?r.tok:null;
+ let h=`<div class="trC" data-trc="${esc(w)}"><h3 style="margin:0 0 4px">${esc(O.nm||sh(w))}</h3><div>${[...O.tg].map(t=>`<span class="tag">${esc(TGL[t]||t)}</span>`).join(' ')}</div><div style="display:flex;gap:8px;align-items:center;margin-top:6px"><code style="flex:1">${esc(w)}</code><button class="btn" data-trcp="1">复制</button></div>`;
+ h+=`<h5>这个币 · ${esc(sym)}</h5>`;
+ if(tk)h+=`<div class="trG"><div><small>买入</small><b>${$u(tk.buy)}</b></div><div><small>卖出</small><b>${$u(tk.sold)}</b></div><div><small>持有</small><b>${$u(tk.b)}</b></div><div><small>盈亏</small><b>${$p(tk.p)}</b></div></div>`;
+ else if(r&&r.ld)h+='<p class="note">向电脑读取中…</p>';else if(ok)h+='<p class="note">AVE 钱包资料里没有这个币的买卖记录。</p>';
+ if(rows.length)h+=`<p class="note">最近成交：买 ${nb.length} 笔 ${$u(nb.reduce((a,x)=>a+(+x.usd||0),0))} · 卖 ${ns.length} 笔 ${$u(ns.reduce((a,x)=>a+(+x.usd||0),0))}</p>`;
+ h+='<h5>近期整体（AVE 钱包资料）</h5>';
+ if(r&&r.ld)h+='<p class="note">向电脑读取中…</p>';else if(!ok||r.ew)h+=`<p class="trE">⚠️ ${esc(ok?r.ew:String(r?.err||'读不到'))} <button class="btn" data-trre="1">重试</button></p>`;
+ else{const win=r.win!=null?(+r.win*(+r.win<=1?100:1)):null;h+=`<div class="trG"><div><small>总盈亏</small><b>${$p(r.pnl)}</b></div><div><small>胜率</small><b>${win==null?'—':win.toFixed(1)+'%'}</b></div><div><small>交易笔数</small><b>${r.tx==null?'—':esc(String(r.tx))}</b></div><div><small>交易过的币</small><b>${esc(String(r.n??'—'))}</b></div></div>`}
+ const L2=rows.map(x=>({s:sym,t:+x.t,k:x.b?'买入':'卖出',c:x.b?'up':'dn',v:$u(x.usd)}));if(ok)for(const x of r.rec||[])L2.push({s:x.s||'',t:+x.t,k:'交易过',c:'',v:$p(x.p)});L2.sort((a,b)=>b.t-a.t);
+ h+='<h5>最近交易</h5>'+(L2.length?L2.slice(0,6).map(x=>`<div class="qrow"><span>${esc(x.s)} <small class="${x.c}">${esc(x.k)}</small></span><b>${x.v} <small class="mu">${x.t>0?esc(ag(x.t)):'—'}</small></b></div>`).join(''):'');
+ if(ok&&r.et)h+=`<p class="trE">⚠️ 其他币：${esc(r.et)} <button class="btn" data-trre="1">重试</button></p>`;else if(ok&&!(r.rec||[]).length)h+=`<p class="note">${L2.length?'其他币：AVE 没有给交易时间，只列这个币的成交。':'最近成交里没有他的交易，AVE 也没有给交易时间。'}</p>`;
+ const u=ok&&okU(r.ave||'')?r.ave:'';h+=`<div style="display:grid;grid-template-columns:${u?'1fr 1fr':'1fr'};gap:10px;margin-top:12px">${u?`<button class="btn y" data-trave="${esc(u)}">在 AVE 看 ↗</button>`:''}<button class="btn" data-a="close">关闭</button></div></div>`;return h}
+async function open(w,force){w=String(w||'').toLowerCase();if(!A40.test(w))return;CUR=w;const c=C.get(w+'|'+(DT?.c||''));if(!force&&c&&Date.now()-c.at<TTL){openSheet(card(w,c.v));return}
+ openSheet(card(w,{ld:1}));let r;try{r=await req('trader',{net:DT?.net,w,c:DT?.c},25000)}catch(e){r={err:String(e?.message||e||'读不到').slice(0,160)}}if(!r||typeof r!=='object')r={err:'电脑没有回（电脑雷达要更新到新版）'};
+ if(!r.err)C.set(w+'|'+(DT?.c||''),{at:Date.now(),v:r});if(CUR===w&&document.querySelector(`#shb [data-trc="${w}"]`))openSheet(card(w,r))}
+window.tr118Open=open;
+document.addEventListener('click',(e)=>{const t=e.target;
+ if(t&&t.id==='kc'&&Array.isArray(window.__trMk)&&window.__trMk.length){const b=t.getBoundingClientRect();const x=e.clientX-b.left,y=e.clientY-b.top;let best=null,bd=14;for(const m of window.__trMk){const d=Math.hypot(m.x-x,m.y-y);if(d<bd&&m.w){bd=d;best=m}}if(best){e.preventDefault();e.stopPropagation();open(best.w);return}}
+ const a=t.closest?.('[data-trw]');if(a&&A40.test(String(a.dataset.trw||'').toLowerCase())){e.preventDefault();e.stopPropagation();open(a.dataset.trw);return}
+ const cp=t.closest?.('#shb [data-trcp]');if(cp){e.stopPropagation();const w=cp.closest('[data-trc]')?.dataset.trc||'';try{navigator.clipboard.writeText(w).then(()=>toast('已复制地址'),()=>toast('复制不了，请长按地址自己复制'))}catch{toast('复制不了，请长按地址自己复制')}return}
+ const re=t.closest?.('#shb [data-trre]');if(re){e.stopPropagation();const w=re.closest('[data-trc]')?.dataset.trc||'';C.delete(w+'|'+(DT?.c||''));open(w,1);return}
+ const av=t.closest?.('#shb [data-trave]');if(av){e.stopPropagation();const u=av.dataset.trave;if(okU(u))window.open(u,'_blank','noopener');return}},true);
+})();
+</script><!--/tr118PhJs-->
 </body>
 </html>
