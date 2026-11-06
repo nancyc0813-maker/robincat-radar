@@ -368,6 +368,18 @@ const PNL_MS_RELAY = 2 * 3600e3; /* 运作：转接站模式钱包盈亏 2 小�
 const SPC = new Map(); function boardSpark(net, r) { try { const src = net === 'robinhood' ? [V4R] : [MK, V4B]; const now = Date.now(); for (const c of r?.cols || []) for (const x of (c.items || [])) { const a = String(x.c || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(a)) continue; const ck = net + a; let v = SPC.get(ck);
     if (!v || now - v.at > 30e3) { let sp = null; const m = src.find((s2) => s2 && s2.has && s2.has(a)); if (m) { const ar = (v) => (Array.isArray(v) ? v : []); let K = ar(m.candles(a, 300)); if (K.length < 6) K = ar(m.candles(a, 60)); const cl = K.slice(-20).map((k) => +k.c).filter((q) => q > 0 && Number.isFinite(q)); if (cl.length >= 3) sp = cl.map((q) => +q.toPrecision(4)); } v = { at: now, sp }; SPC.set(ck, v); if (SPC.size > 600) SPC.delete(SPC.keys().next().value); }
     if (v.sp) x.sp = v.sp; else delete x.sp; } } catch {} return r; }
+/* B3-1107 新看板资料（Nancy 11/7 打掉重练）：直接拿转接站清单（board124 状态），按链分栏，只带画面要的栏位；只读、不碰钱包 */
+const B3_DEF = (() => { const sol = { new: ['pump_in_new', 'pump_all_in_new'], soon: ['pump_in_almost', 'pump_all_in_almost'], out: ['pump_out_new', 'pump_all_out_new'], hot: ['pump_in_hot', 'pump_out_hot', 'pump_all_in_hot', 'pump_all_out_hot'] };
+  const bsc = { new: ['fourmeme_in_new', 'flap_in_new', 'xflap_in_new', 'bn_in_new', 'grafun_in_new', 'bankr_in_new'], soon: ['fourmeme_in_almost', 'flap_in_almost', 'xflap_in_almost', 'bn_in_almost', 'grafun_in_almost', 'bankr_in_almost'], out: ['fourmeme_out_new', 'flap_out_new', 'xflap_out_new', 'bn_out_new', 'grafun_out_new', 'bankr_out_new'], hot: ['fourmeme_in_hot', 'fourmeme_out_hot', 'flap_in_hot', 'flap_out_hot', 'xflap_in_hot', 'xflap_out_hot', 'bn_in_hot', 'bn_out_hot', 'grafun_in_hot', 'grafun_out_hot'] };
+  return { bsc: { ch: 'bsc', cols: bsc }, solana: { ch: 'solana', cols: sol }, robinhood: { ch: 'rh', cols: { hot: ['trend_robinhood'] } }, eth: { ch: 'eth', cols: { hot: ['trend_eth'] } }, base: { ch: 'base', cols: { hot: ['trend_base'] } } }; })();
+const B3_SORT = { new: 'ca', out: 'ca', soon: 'mc', hot: 'v24' };
+ipcMain.handle('b3', (e, net) => { net = String(net || 'bsc'); const D = B3_DEF[net] || B3_DEF.bsc; let st = null; try { aveBoard(); st = B124 ? B124._S : null; } catch {}
+  if (!st || !st.okAt) return { ok: 0, err: B124 ? (st?.err || 'wait') : 'nomod', why: st?.why || '' };
+  const M = st.m[D.ch] || {}, out = { ok: 1, net, at: st.at, okAt: st.okAt, err: st.err || '', cols: {} };
+  for (const [k, tags] of Object.entries(D.cols)) { const seen = new Set(), arr = [];
+    for (const t of tags) for (const a of st.cols[t] || []) { if (seen.has(a)) continue; seen.add(a); const v = M[a]; if (!v) continue; arr.push({ c: a, s: v.s, n: v.n, lg: typeof v.lg === 'string' && /^https:\/\//.test(v.lg) ? v.lg : '', mc: v.mc, v24: v.v24, c24: v.c24, h: v.h, tx: v.tx, rs: v.rs, pl: v.pl, ca: v.ca, u: v.u, tvl: v.tvl }); }
+    const sk = B3_SORT[k] || 'v24'; arr.sort((a, b) => (+b[sk] || 0) - (+a[sk] || 0)); out.cols[k] = arr.slice(0, 120); }
+  return out; });
 ipcMain.handle('hotBoard', (e, net) => hotBoard(net).then((r) => aveMerge(net, NX ? NX.board(net, r, aveBoard(), { MK, V4B, V4R }) : r)).then((r) => boardSpark(net, r)).then((r) => { /* 看盘也要有价格（AVE 现价；发射台曲线币用市值÷10 亿枚） */ try { const M = aveBoard()?.m?.[net === 'robinhood' ? 'rh' : 'bsc'] || {}; for (const c of r?.cols || []) for (const x of c.items || []) { const a = M[String(x.c || '').toLowerCase()]; if (a && +a.cp > 0) x.price = +a.cp; else if (!x.price && x.mc > 0 && (x.curve || x.plat === 'four' || x.plat === 'flap')) x.price = x.mc / 1e9; } } catch {} try { if (r && B124?.stat) r.b2st = B124.stat(); } catch {} /*HOT126 看盘顶端写 AVE 资料来源／连不上的原因*/ return r; }).catch((er) => ({ cols: [], err: String(er.message || er).slice(0, 80) })));
 /* K 线：1 分～月线。资料源没有的（3 小时、6 小时、3 天、周、月）用小的 K 线合并 */
 const CDL = new Map();
@@ -567,7 +579,7 @@ async function codeScan0(net, addr) {
   CSC.set(k, { at: Date.now(), v }); if (CSC.size > 400) CSC.delete(CSC.keys().next().value); return v; }
 /* 用户点开币也要看到 AVE 数据（选 3）。有金钥（她的电脑）→ 直接查；一般用户 → 透过转接站代查（金钥在 Cloudflare，不给用户；只有绑了邀请码的雷达能查） */
 const AVE_KF = path.join(ROOT, '.sign', 'ave_key.txt');
-function aveRelay() { const r = String(RMT?.relay || ''); return /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.workers\.dev$/.test(r) ? r : ''; }
+function aveRelay() { const r = String(RMT?.relay || ''); if (/^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.workers\.dev$/.test(r)) return r; try { return relayAny(); } catch { return ''; } } /*AVEFIX1107：开机那次读不到官方设定（RMT 空）时，改用上次验过签存下的 data/remote.json 的转接站网址（跟 relayAny 同一套，只认 *.workers.dev），不要整个 AVE 断 10 分钟*/
 function aveProof() { const B = readJSON(path.join(DATA, 'bind.json'), {}); const k = B.join?.sig ? 'join' : B.code?.sig ? 'code' : ''; if (!k) return null; const x = B[k]; return { w: String(x.wallet || ''), k, c: String(x.code || ''), s: String(x.sig || ''), v: x.v ?? '' }; } /* OPS-RT15：邀请绑定签名只放在 POST /session 的内容里换短时效通行证，不再放进网址 */
 /* OPS-RT15：转接站通行证（session token）。绑定签名 → POST /session → 拿到 { t, exp }；之后 /ave、/aveboard 用 header x-rc-session 带 t（网址里没有签名，不会留在任何网址记录）。过了一半有效时间就换新的；转接站回 401 就丢掉重拿 */
 let RSESS = { t: '', renew: 0, R: '', key: '', deny: '' }; const RSESS_FALLBACK_MS = 10 * 60e3; /*QA118-4 技术用：通行证到期时间看不准时先用多久*/ let RSESS_P = null;

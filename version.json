@@ -1,9 +1,9 @@
 {
-  "version": "1.0.26",
+  "version": "1.0.27",
   "date": "2026-11-06",
   "critical": false,
   "notes": [
-    "急修看盘：不连钱包（按「先逛逛」）、或钱包绑定还没生效的用户，以前拿不到 AVE 看盘资料，会默默退回只有本机扫到的币（热门几乎都是 Flap 小币）。现在看盘清单和即时价格不用钱包也拿得到；「热门」改成跟 AVE 网站一样的顺序（老币也在），点表头才改排序；AVE 连不上时看盘最上面会用红字写原因。币的详情、持有人、K 线、成交还是要连钱包"
+    "看盘整个重做：参考 AVE／GMGN／Pump／FOMO 的看法，分成「新开盘（内盘）／即将打满／新外盘／热门」四栏，BSC 可以用发射台筛选（four.meme、Flap、币安、Gra.fun…），Solana 看 Pump，其他链先看趋势；列表刷新更快（重点栏位约 5 秒）、头像直接显示。⚡快买用你在设定里填的每条链付款币三档金额（BNB／ETH），买前照旧做安全检查。白天／黑夜、自订策略搬进右上角齿轮设定，里面也有配置 1/2/3、语言、中文数字、匯入匯出、重置快取。"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -39,16 +39,16 @@
     "radar/desklink.cjs": "21b4593af23fabadbcbf12c2e1f61da75f03c074fc3ddd8da9982f0d750d15bc",
     "radar/ghmine.cjs": "085154c479db11c9f4347e14f508ab2744cd1951313990005e083b171c0fc415",
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
-    "radar/main.cjs": "a074fa915cf6c465df33843b0ad58d1e0dfa031011c4956ae2c6dec354491fb6",
+    "radar/main.cjs": "e2f47398a572d883f29e4540fdbbecfba50053c3c357e8f7912db40d1316b7fd",
     "radar/market.cjs": "95a3c532c84ac91d5b924549d02994c231d84099c77431de0f681398d368d28a",
     "radar/next.cjs": "31798271b9ca320ee2155c906383722d0dd5e99ec7a13ac618eac7d7e5fa524c",
-    "radar/official.json": "c42dfee2bc999f77fe4fa9ffd5980bc3201f52a4bd27f53f7342b6080e822750",
-    "radar/official.sig": "4f991a6b425b0446bb29aaed3296aae43b85261cf739bf1314742219533c2608",
+    "radar/official.json": "ce9e7d341f070c4ae980e7de0cd079bfc744fc419eb44fad43bc46a32e1e4584",
+    "radar/official.sig": "68d30458ccee96a789eac5c6887e45f3cf65a2bd670c72715bf1ec1d38877d81",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "541d97e51dc37b9f734fbebb0811cd0846643f84980c2311ebdd79ddb063004a",
-    "radar/preload.cjs": "4946ab8867085fcbf54a0edd67c195c41c7c206cc43eb90616e01a74101cd278",
+    "radar/package.json": "cb54bcafae70d5898975ca59846f92777ebce10a86ba6e6e2a7304828795fbb4",
+    "radar/preload.cjs": "aede6b59054b4ae719d0b104e5133a5a75b35e97e7b06aa2afcaad18dc74b385",
     "radar/settings_schema.json": "af9d36f7318b6c21931b8c2762bde99b9a832e08a799a993d4499afa9c943572",
-    "radar/ui/index.html": "1e2cdb3cbb370593f1eef7b626dd7e2d58da4d4b6a9a92f7729bc5213b73ff1e",
+    "radar/ui/index.html": "93cdf1e08525a785942daa47edcd54fe913da4c9cd8eb96ac7dcb20867410fbc",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -77,11 +77,11 @@
     "tools/guard_rules.json": "ac91171f9601ff71dcf752b6da699a0f1aba4e933b1cf6271994820372c6377f",
     "tools/zero_allowlist.json": "d0cb703db3d2af37724eb92569abcb273627eb427675b1ef58561850281e4ac6",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "d87ee261a66d43cb76b05e062a9d4fc13870b2cec7bff1eb6b2e2cfc61b7a18b",
+    "watch.mjs": "b498ebc8f30800f15e9ae3cbc3d43faebeff0952d4666e6bd69954c054e929fb",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "1e141a57ef3b95a3bcd7d2c254b16329fe434b2a8b6a1c7b61b2fb1663fecf65",
     "一键安装.bat": "c81665cfabc0cff65c64999c43d4a3e14c6909dcfd247107c355c3b9d23c7e21",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "d87ee261a66d43cb76b05e062a9d4fc13870b2cec7bff1eb6b2e2cfc61b7a18b"
+  "sha256": "b498ebc8f30800f15e9ae3cbc3d43faebeff0952d4666e6bd69954c054e929fb"
 }

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; frame-src https://dexscreener.com https://www.geckoterminal.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' wss://*.workers.dev">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; frame-src https://dexscreener.com https://www.geckoterminal.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' wss://*.workers.dev">
 <title>罗宾猫雷达</title>
 <style>
 :root{--bg:#0b0d11;--card:#151922;--card2:#1c212c;--line:#262c38;--ink:#eceff4;--mute:#8a93a5;--gold:#f0b90b;--red:#ff6161;--green:#2ecc8f;--purple:#a78bfa;--blue:#60a5fa}
@@ -323,6 +323,7 @@ Object.defineProperty(Element.prototype,'innerHTML',{configurable:true,enumerabl
   <div id="hgRow" style="display:none;max-width:820px;margin:0 auto"></div></div><div id="sres" style="display:none;margin-bottom:12px" class="box"></div>
   <div id="todo" style="display:none;max-width:1100px;margin:0 auto 14px"></div><div id="rnRow" style="display:flex;gap:10px;margin-bottom:10px"><div id="recent" style="display:none;flex:1;min-width:0;display:flex;gap:10px;align-items:center;overflow:hidden;white-space:nowrap;font-size:13px;color:var(--mute);margin-bottom:0;padding:8px 12px;background:#0a0c10;border:1px solid var(--line);border-radius:10px"></div><div id="news" style="flex:1;min-width:0;display:none;align-items:center;gap:10px;margin-bottom:0;padding:7px 12px;background:#0a0c10;border:1px solid var(--line);border-radius:10px;font-size:13px;overflow:hidden"><b style="flex:none;color:var(--ink)" id="newsL">📰 新闻</b><div id="newsW" style="flex:1;overflow:hidden;white-space:nowrap;position:relative;mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)"><div id="newsT" style="display:inline-block;padding-left:100%"></div></div><span style="flex:none;cursor:pointer;color:var(--mute)" title="关掉跑马灯（在上面「📰 新闻」可以再打开）" onclick="newsOn(0)">✕</span></div></div>
   <div id="segs" style="display:flex;flex-direction:row;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-start;margin:4px 0 14px"> <!-- 三组选择排成一行、靠左对齐 --><div class="seg segK" id="segK"><a data-sk="gen">🪙 一般代币</a><a data-sk="ai" class="on">🤖 AI专属</a></div><div class="seg2"><!--AI-BOARD5 顺序：类别 → 链 → 分页 → 发射台--><div class="seg" id="segC"><!--MCFIX123-D 可在雷达买卖的链在前 → 只能看 → Elysium；读到实际状态后照状态重排--><a data-sc="bsc" class="on">🟡 BNB Chain<i class="mcB t">可在雷达买卖</i></a><a data-sc="rh">🟢 Robinhood<i class="mcB t">可在雷达买卖</i></a><a data-sc="solana">🟣 Solana<i class="mcB">只能看</i></a><a data-sc="eth">🔷 Ethereum<i class="mcB">只能看</i></a><a data-sc="base">🔵 Base<i class="mcB">只能看</i></a><a data-sc="ely" title="只看，不提供买卖">🌐 Elysium（只看）</a></div><div class="seg" id="segG" style="display:none"><a data-sg2="hot" class="on">🔥 热门代币</a><a data-sg2="gmine">⛏ 挖矿</a></div><div class="seg" id="segT"><a data-st="mint" class="on">铸造代币</a><a data-st="nft">铸造 NFT</a><a data-st="hot" style="display:none">热门代币</a><a data-st="mine">⛏ AI挖矿</a></div><div class="seg" id="segP"></div></div><button class="btn g s" id="uxAiBtn" onclick="uxGoAi('col')" title="想在看盘多看一栏资料？写下你要的，复制给你的 AI，把回答贴回来安装" style="align-self:center">✨ 叫 AI 加一栏</button><div id="adSlot" data-x="ad" style="display:none!important;flex:1;min-width:220px;display:flex;align-items:center;justify-content:center;height:40px;border-radius:10px;border:1px dashed #f0b90b55;background:linear-gradient(90deg,#f0b90b10,#8b7cf610);font-weight:700;font-size:15px;letter-spacing:1px;color:#f0b90b">✨ 你的 AI 工具由你做主</div></div>
+  <div id="b3root" style="display:none"></div>
   <div class="filters" id="chips" style="display:none"><span class="ch on" data-ch="mint" title="Agent ID 专属的铸造项目">🟡 BNB Chain 铸造代币</span><span class="ch" data-ch="bscnft">🟡 BNB Chain 铸造 NFT</span><span class="ch" data-ch="bsc">🟡 BNB Chain 热门代币</span><span class="ch" data-ch="rhmint">🟢 Robinhood 铸造代币</span><span class="ch" data-ch="rhnft">🟢 Robinhood 铸造 NFT</span><span class="ch" data-ch="robinhood">🟢 Robinhood 热门代币</span><span class="ch" data-ch="panels">🧩 我的面板</span><span class="ch" data-ch="mine">⛏ AI挖矿</span><span class="ch" data-ch="gmine">⛏ 挖矿</span><span class="ch" data-ch="ely">🌐 Elysium（只看）</span><span class="ch" data-ch="mc">🌍 多链</span></div>
   <div class="aiSlot" data-slot="board" style="display:none;max-width:1240px;margin:0 auto 12px"></div><div id="mintV"><div class="filters" style="display:none"><span class="f on">全部</span><span class="f">✅ 符合条件</span><span class="f">✔ 已铸造</span></div>
   <div class="cols">
@@ -4481,11 +4482,11 @@ function paint(){if(!on5()){document.body.classList.remove('c5on','c5new');retur
  if(HBS&&HBS.plat&&HBS.plat!=='all'){HBS.plat='all';try{hbSave()}catch{}}/* 上方的「发射台：全部」拿掉了 → 旧的全域发射台筛选归零（不然表格会被看不到的筛选藏起来） */
  narrow();tabs();if(S5.tab==='new')for(const [k] of COLS)col(k)}
 /* ── 热门／自选：沿用现有表格 ── */
-function hotItems(){if(Array.isArray(HBD?.trend)&&HBD.trend.length)return HBD.trend.slice();/*HOT126 热门＝AVE 热门榜原本的顺序（老币也在）*/const s=new Set(),o=[];for(const k of ['hot','hotdex'])for(const x of raw(k))if(!s.has(x.c)){s.add(x.c);o.push(x)}return o}/* *_in_hot＋*_out_hot＋热门榜 */
+function hotItems(){/*HOTFIX1107 热门＝AVE 的「热外盘＋热内盘」（照成交额排）再补上趋势榜；GM 这种成交额大但不在趋势榜的币才看得到*/const s=new Set(),o=[];for(const k of ['hotdex','hot'])for(const x of raw(k))if(x&&!s.has(x.c)){s.add(x.c);o.push(x)}if(Array.isArray(HBD?.trend))for(const x of HBD.trend)if(x&&!s.has(x.c)){s.add(x.c);o.push(x)}return o}/* *_in_hot＋*_out_hot＋热门榜 */
 const R0=fmRender;fmRender=function(){if(!on5()){document.body.classList.remove('c5on','c5new');return R0.apply(this,arguments)}let saved=null;
  try{if(S5.tab==='hot'&&HBD&&Array.isArray(HBD.cols)){saved=HBD.cols;HBD.cols=saved.concat([{k:'c5hot',zh:'🔥 热门',en:'🔥 Trending',items:hotItems()}]);FM.tabC='c5hot';BV.wl=false}else if(S5.tab==='wl')BV.wl=true;else BV.wl=false}catch{}
  let r;try{r=R0.apply(this,arguments)}finally{if(saved)HBD.cols=saved}try{paint()}catch(e){console.error(e)}return r};fmRender.__c5=1;
-setTimeout(()=>{const s0=fmSort;fmSort=function(a,k){if(on5()&&S5.tab==='hot'&&FM.tabC==='c5hot'&&!(typeof FB!=='undefined'&&FB.sort)&&HBS.sort==='def'){if(Array.isArray(HBD?.trend)&&HBD.trend.length){const I=new Map(HBD.trend.map((x,i)=>[x.c,i]));return a.slice().sort((p,q)=>(I.get(p.c)??1e9)-(I.get(q.c)??1e9))}/*HOT126 预设＝AVE 的顺序；点表头才照你点的*/const f=(x)=>{const v=v24(x);return v==null?-1:v};return a.slice().sort((p,q)=>f(q)-f(p))}return s0.apply(this,arguments)};fmSort._nx=1;fmSort.__fb=1;fmSort.__c5=1},300);/* 热门＝照 24h 成交额排（你点表头排序时照你点的） */
+setTimeout(()=>{const s0=fmSort;fmSort=function(a,k){if(on5()&&S5.tab==='hot'&&FM.tabC==='c5hot'&&!(typeof FB!=='undefined'&&FB.sort)&&HBS.sort==='def'){/*HOTFIX1107：预设照 24h 成交额排（跟 AVE 热外盘一样）*//*HOT126 预设＝AVE 的顺序；点表头才照你点的*/const f=(x)=>{const v=v24(x);return v==null?-1:v};return a.slice().sort((p,q)=>f(q)-f(p))}return s0.apply(this,arguments)};fmSort._nx=1;fmSort.__fb=1;fmSort.__c5=1},300);/* 热门＝照 24h 成交额排（你点表头排序时照你点的） */
 /* 表格的快速买：每列一颗，跟卡片同一个「⚡ 快买 金额」（manual.defUsd） */
 if(typeof fbQbCell==='function'){fbQbCell=function(html){const m=String(html).match(/data-qb="([^"]+)"/);const x=m&&PL[m[1]];if(!x)return '';const d=document.createElement('div');d.innerHTML=String(html);d.querySelectorAll('.qbB,[data-pb]').forEach(el=>el.remove());const f=d.firstElementChild;if(f)f.insertAdjacentHTML('afterbegin',buyBtn(x,net()));else d.innerHTML=`<div>${buyBtn(x,net())}</div>`;return d.innerHTML}}/* 持仓的「卖 %」按钮照留 */
 /* ── 点击 ── */
@@ -4568,5 +4569,145 @@ const clr=()=>{try{if(typeof FB!=='undefined'&&FB.sort){FB.sort='';fbSave()}}cat
 setInterval(()=>{try{bar()}catch{}},2000);
 })();
 /*HOT126-END*/</script>
+<style>/*B3-1107*/
+#board #mbV,#board #poolV,#board #rhmV{display:none!important}
+#b3root{max-width:1700px;margin:0 auto}
+.b3bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:2px 0 10px}
+.b3ch,.b3pl{display:flex;gap:6px;flex-wrap:wrap}
+.b3ch a,.b3pl a{cursor:pointer;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--mute);font-size:13px;user-select:none}
+.b3ch a.on{background:#f0b90b22;border-color:#f0b90b;color:var(--gold);font-weight:600}
+.b3pl a{padding:3px 10px;font-size:12px}.b3pl a.on{background:var(--card2);color:var(--ink);border-color:var(--mute)}
+.b3st{margin-left:auto;font-size:12px;color:var(--mute);display:flex;gap:8px;align-items:center}
+.b3st i{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}.b3st i.off{background:var(--red)}
+.b3er{background:#ff616118;border:1px solid #ff616155;color:var(--red);padding:8px 12px;border-radius:8px;margin:0 0 10px;font-size:13px}
+.b3g{display:grid;gap:10px;grid-template-columns:repeat(4,minmax(0,1fr));align-items:start}
+.b3g.one{grid-template-columns:minmax(0,1fr);max-width:900px}
+.b3col{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.b3h{display:flex;align-items:baseline;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:1}
+.b3h b{font-size:14px}.b3h small{color:var(--mute);font-size:11.5px}.b3h span{margin-left:auto;color:var(--mute);font-size:12px}
+.b3l{max-height:calc(100vh - 290px);overflow-y:auto}
+.b3c{display:flex;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.b3c:hover{background:var(--card2)}
+.b3a{position:relative;width:38px;height:38px;border-radius:50%;background:var(--card2);flex:none;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--mute);overflow:hidden}
+.b3a img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.b3m{min-width:0;flex:1}
+.b3r1{display:flex;gap:6px;align-items:baseline;white-space:nowrap;overflow:hidden}
+.b3r1 b{font-size:14px}.b3r1 small{color:var(--mute);font-size:11.5px;overflow:hidden;text-overflow:ellipsis}
+.b3r1 i{font-style:normal;font-size:10.5px;padding:0 6px;border-radius:4px;background:#f0b90b22;color:var(--gold);flex:none}
+.b3r1 em{font-style:normal;margin-left:auto;color:var(--mute);font-size:11.5px;flex:none}
+.b3r2{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-top:2px}
+.b3r2 b{color:var(--ink);font-weight:600}.b3r2 b.up{color:var(--green)}.b3r2 b.dn{color:var(--red)}
+.b3b{flex:none;cursor:pointer;border:1px solid #f0b90b66;background:#f0b90b18;color:var(--gold);border-radius:8px;padding:5px 9px;font-size:12.5px;font-weight:600}
+.b3b:hover{background:#f0b90b33}
+.b3e{color:var(--mute);text-align:center;padding:28px 10px;font-size:13px}
+@media(max-width:1250px){.b3g{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<script>/*B3-1107 新看板（综合 AVE／GMGN／Pump／FOMO 的看盘做法＋我们自己的发射台筛选、即时状态）。只读列表＋⚡走原本的 radarOrder，安全检查／拆单／底线照旧*/
+(function(){
+if(window.__b3)return;window.__b3=1;
+const Q=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const en=()=>{try{return L==='en'}catch{return false}};
+const LSg=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch{return d}},LSs=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
+const NETS=[['bsc','BNB Chain'],['solana','Solana'],['robinhood','Robinhood'],['eth','Ethereum'],['base','Base']];
+const BUYABLE={bsc:1,robinhood:1};
+const COLS={new:['🆕 新开盘','内盘新币','🆕 New pairs','bonding'],soon:['🔥 即将打满','快毕业','🔥 Almost full','about to graduate'],out:['🚀 新外盘','刚毕业','🚀 New on DEX','just graduated'],hot:['🌡 热门','按成交额','🌡 Hot','by volume']};
+let net=LSg('b3net','bsc');if(!NETS.some(n=>n[0]===net))net='bsc';
+let plf=LSg('b3pl','all'),D=null,busy=0,sig={},lastErr='';
+const root=()=>Q('#b3root');
+function fmt(n){n=+n;if(!isFinite(n))return '—';const a=Math.abs(n);if((()=>{try{return localStorage.getItem('cfgZh')==='1'}catch{return false}})()){if(a>=1e8)return (n/1e8).toFixed(2)+'亿';if(a>=1e4)return (n/1e4).toFixed(a>=1e6?0:1)+'万'}if(a>=1e9)return (n/1e9).toFixed(2)+'B';if(a>=1e6)return (n/1e6).toFixed(2)+'M';if(a>=1e3)return (n/1e3).toFixed(a>=1e5?0:1)+'K';return a>=100?n.toFixed(0):a>=1?n.toFixed(2):n.toFixed(3)}
+function age(ca){ca=+ca;if(!(ca>0))return '';let s=Math.max(0,Math.floor(Date.now()/1000-ca));if(s<60)return s+'s';if(s<3600)return Math.floor(s/60)+'m';if(s<86400)return Math.floor(s/3600)+'h';if(s<86400*60)return Math.floor(s/86400)+'d';return Math.floor(s/86400/30)+'mo'}
+function plName(p){p=String(p||'').toLowerCase();if(!p)return '';if(p.includes('four'))return 'four.meme';if(p.includes('flap'))return 'Flap';if(p.includes('binance'))return en()?'Binance':'币安';if(p.includes('gra'))return 'Gra.fun';if(p.includes('bankr'))return 'Bankr';if(p.includes('pump'))return 'Pump';if(p.includes('tapeout'))return 'Tapeout';return p.replace(/\.(com|ai|finance|network|sh|fun|id)$/,'').slice(0,12)}
+function amtTxt(){try{const q=(typeof QB!=='undefined')&&QB[net];if(q&&+q.v?.[0]>0)return q.v[0]+(typeof qbS==='function'?qbS(q.u):'U');return en()?'Set':'设金额'}catch{return '⚡'}}
+function card(x){const c24=+x.c24,cc=isFinite(c24)&&x.c24!=null?`<b class="${c24>=0?'up':'dn'}">${c24>=0?'▲':'▼'}${Math.abs(c24).toFixed(1)}%</b>`:'';const p=plName(x.pl);
+return `<div class="b3c" data-c="${esc(x.c)}"><div class="b3a"><span>${esc(String(x.s||'?')[0]||'?').toUpperCase()}</span>${x.lg?`<img src="${esc(x.lg)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</div><div class="b3m"><div class="b3r1"><b>${esc(x.s||'?')}</b><small>${esc(x.n&&x.n!==x.s?x.n:'')}</small>${p?`<i>${esc(p)}</i>`:''}<em>${age(x.ca)}</em></div><div class="b3r2"><span>MC <b>$${fmt(x.mc)}</b></span><span>V <b>$${fmt(x.v24)}</b></span><span>TX <b>${fmt(x.tx)}</b></span><span>👥 <b>${fmt(x.h)}</b></span>${cc}</div></div><button class="b3b" data-b="${esc(x.c)}">⚡ ${amtTxt()}</button></div>`}
+function pass(x){return plf==='all'||plName(x.pl)===plf}
+function frame(){const r=root();if(!r||r.dataset.b3)return;r.dataset.b3=1;r.innerHTML=`<div class="b3bar"><div class="b3ch" id="b3ch"></div><div class="b3pl" id="b3pl"></div><div class="b3st" id="b3st"></div></div><div id="b3er"></div><div class="b3g" id="b3g"></div>`;
+r.addEventListener('click',ev=>{const a=ev.target.closest('[data-n],[data-p],[data-b],[data-c]');if(!a)return;
+ if(a.dataset.n){net=a.dataset.n;LSs('b3net',net);plf='all';LSs('b3pl','all');sig={};D=null;paintBar();tick();return}
+ if(a.dataset.p){plf=a.dataset.p;LSs('b3pl',plf);sig={};paint();return}
+ const addr=a.dataset.b||a.dataset.c;const x=find(addr);if(!x)return;ev.stopPropagation();
+ if(a.dataset.b){buy(x,a);return}openDetail(x)})}
+function find(addr){for(const k of Object.keys(D?.cols||{}))for(const x of D.cols[k])if(x.c===addr)return x;return null}
+function aveUrl(x){const ch=net==='eth'?'eth':net;return 'https://ave.ai/token/'+x.c+'-'+ch}
+function openDetail(x){if(BUYABLE[net]&&typeof openToken==='function'){try{openToken(net,x.c,{board:1,name:x.s||''});return}catch{}}try{window.radar.open(aveUrl(x))}catch{}}
+async function buy(x,btn){const e=en();try{if(typeof buyStop==='function'&&buyStop())return;if(!BUYABLE[net]){try{await navigator.clipboard.writeText(x.c)}catch{}t(e?'This chain is view-only here — contract copied, opening AVE':'这条链在雷达里只能看，合约已复制，打开 AVE');try{window.radar.open(aveUrl(x))}catch{}return}
+ if(typeof qbBuy!=='function'){t(e?'Quick-buy not ready':'快买还没准备好');return}
+ await qbBuy(net,x.c,x.s||'',btn,0)}catch(er){if(!er?.silent)t((e?'Not sent: ':'没有送出：')+String(er?.message||er?.err||er).slice(0,80))}}
+function paintBar(){const c=Q('#b3ch');if(!c)return;c.innerHTML=NETS.map(([k,n])=>`<a data-n="${k}" class="${k===net?'on':''}">${n}${BUYABLE[k]?'':`<small style="opacity:.6"> ${en()?'view':'只能看'}</small>`}</a>`).join('')}
+function paintPl(){const e=Q('#b3pl');if(!e)return;const cnt={};for(const k of Object.keys(D?.cols||{}))for(const x of D.cols[k]){const n=plName(x.pl);if(n)cnt[n]=(cnt[n]||0)+1}
+ const L2=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,10);if(net==='bsc'||net==='solana'){e.innerHTML=`<a data-p="all" class="${plf==='all'?'on':''}">${en()?'All launchpads':'全部发射台'}</a>`+L2.map(([n,c])=>`<a data-p="${esc(n)}" class="${plf===n?'on':''}">${esc(n)} <small>${c}</small></a>`).join('')}else e.innerHTML=''}
+function paint(){const g=Q('#b3g');if(!g||!D)return;const keys=Object.keys(D.cols);g.className='b3g'+(keys.length===1?' one':'');
+ for(const k of keys){let col=g.querySelector(`[data-k="${k}"]`);if(!col){col=document.createElement('div');col.className='b3col';col.dataset.k=k;const T=COLS[k]||[k,'',k,''];const e=en();col.innerHTML=`<div class="b3h"><b>${esc(e?T[2]:T[0])}</b><small>${esc(e?T[3]:T[1])}</small><span></span></div><div class="b3l"></div>`;g.appendChild(col)}
+  const arr=D.cols[k].filter(pass).slice(0,80);const s=plf+'|'+arr.map(x=>[x.c,x.mc,x.v24,x.c24,x.tx,x.h,x.ca>0?1:0].join(',')).join('|');col.querySelector('.b3h span').textContent=arr.length;
+  if(sig[k]!==s){sig[k]=s;const L2=col.querySelector('.b3l');const top=L2.scrollTop;L2.innerHTML=arr.length?arr.map(card).join(''):`<div class="b3e">${en()?'Nothing yet':'暂时没有'}</div>`;L2.scrollTop=top}}
+ for(const el of [...g.children])if(!keys.includes(el.dataset.k))el.remove()}
+function status(){const s=Q('#b3st'),er=Q('#b3er');if(!s)return;const ok=D&&D.ok;const ago=ok?Math.max(0,Math.round((Date.now()-(+D.okAt||0))/1000)):null;
+ s.innerHTML=ok?`<i class="${ago>30?'off':''}"></i>${en()?'Live · updated ':'实时 · '}${ago}${en()?'s ago':' 秒前更新'}<span style="opacity:.7">· AVE</span>`:`<i class="off"></i>${en()?'Connecting…':'连接中…'}`;
+ let m='';if(D&&!D.ok)m=D.err==='nomod'?(en()?'Board module is missing — update the radar':'看盘模块缺失，请更新雷达'):(en()?'Waiting for the relay…':'正在连转接站拿资料…');else if(D&&ago>60)m=en()?'AVE data is stale — relay may be down':'AVE 资料超过 1 分钟没更新（转接站可能连不上）';
+ if(m!==lastErr){lastErr=m;if(er)er.innerHTML=m?`<div class="b3er">${esc(m)}</div>`:''}}
+async function tick(){const r=root();if(!r||!vis()||busy)return;busy=1;try{frame();if(!Q('#b3ch').children.length)paintBar();const d=await window.radar.b3(net);if(d&&d.net!==undefined&&d.net!==net)return;D=d;if(D&&D.ok){paintPl();paint()}status()}catch(e){D={ok:0,err:'net'};status()}finally{busy=0}}
+function vis(){const r=root();if(!r)return false;const b=Q('#board');if(!b||!b.classList.contains('on'))return false;const k=Q('#segK a.on');const gen=!k||k.dataset.sk==='gen';r.style.display=gen?'block':'none';return gen}
+setInterval(tick,1500);setInterval(()=>{if(D&&D.ok){status();}},1000);setTimeout(tick,600);
+window.__b3tick=tick;
+})();
+</script>
+
+<style>/*GEAR-1107*/
+#gearBtn{min-width:40px}
+#gearP{position:fixed;top:54px;right:14px;z-index:97;width:290px;background:var(--card,#14161a);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 40px #000a;padding:8px;display:none;font-size:14px}
+#gearP .gi{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:9px;cursor:pointer;color:var(--ink)}
+#gearP .gi:hover{background:#ffffff0d}
+#gearP .gi small{color:var(--mute)}
+#gearP hr{border:0;border-top:1px solid var(--line);margin:6px 0}
+#gearP .cf{display:flex;gap:6px;padding:4px 12px 8px}
+#gearP .cf button{flex:1;padding:6px 0;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;font-size:13px}
+#gearP .cf button.on{border-color:#f0b90b99;color:var(--gold,#f0b90b)}
+#gearP .cf button:hover{background:#ffffff0d}
+</style>
+<script>/*GEAR-1107 齿轮设定（参考 AVE 的齿轮：主题、策略、配置1/2/3、推送、钱包、语言、中文数字、涨跌时区、匯入匯出、重置缓存）。白天黑夜和自订策略从主选单搬进来*/
+(()=>{try{
+const en=()=>L==='en',LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch{}return null};
+const KEYS=['theme','lang','b3net','b3pl','qb','qs','qbCfm','cfgZh','cfgTz','amt'];
+const hdr=document.querySelector('.right');if(!hdr||document.getElementById('gearBtn'))return;
+const thm=document.getElementById('thm');if(thm)thm.style.display='none';
+const stab=document.querySelector('.tabs a[data-p="set"]');if(stab)stab.style.display='none';/* 仍留在 DOM：别处用 go('set') 会点它 */
+const b=document.createElement('button');b.className='btn g';b.id='gearBtn';b.title=en()?'Settings':'设定';b.textContent='⚙';b.style.fontSize='16px';
+(thm||hdr.firstChild).before(b);
+const P=document.createElement('div');P.id='gearP';document.body.appendChild(P);
+const slot=()=>+LS('cfgSlot')||1;
+function snap(){const o={};for(const k of KEYS){const v=LS(k);if(v!=null)o[k]=v}return o}
+function put(o){for(const k of KEYS){if(o&&o[k]!=null)LS(k,o[k]);else try{localStorage.removeItem(k)}catch{}}}
+function paint(){const e=en(),th=document.documentElement.dataset.theme==='light';
+P.innerHTML=`<div class="gi" data-a="theme"><span>${th?'☀️':'🌙'} ${e?'Theme':'主题设置'}</span><small>${th?(e?'Day':'白天'):(e?'Night':'黑夜')}</small></div>
+<div class="gi" data-a="strat"><span>🎯 ${e?'Strategies':'自订策略'}</span><small>›</small></div>
+<div class="gi" data-a="push"><span>🔔 ${e?'Push settings':'推送设置'}</span><small>›</small></div>
+<div class="gi" data-a="wallet"><span>👛 ${e?'Wallets & quick buy':'钱包／快买设置'}</span><small>›</small></div>
+<hr><div style="padding:4px 12px;color:var(--mute);font-size:12px">${e?'Layout / setting slot':'配置（存你的版面、快买金额、主题）'}</div>
+<div class="cf">${[1,2,3].map(i=>`<button data-s="${i}" class="${slot()===i?'on':''}">${e?'Slot ':'配置 '}${i}</button>`).join('')}</div>
+<div class="gi" data-a="save"><span>💾 ${e?'Save to this slot':'存到目前配置'}</span></div>
+<hr><div class="gi" data-a="lang"><span>🌐 ${e?'Language':'语言'}</span><small>${e?'English':'中文'}</small></div>
+<div class="gi" data-a="zh"><span>🔢 ${e?'CJK number units':'中文数字优化'}</span><small>${LS('cfgZh')==='1'?(e?'On':'开'):(e?'Off':'关')}</small></div>
+<div class="gi" data-a="tz"><span>🕐 ${e?'Time zone for %':'涨跌时区'}</span><small>${LS('cfgTz')==='utc'?'UTC':(e?'Local':'本地')}</small></div>
+<hr><div class="gi" data-a="exp"><span>📤 ${e?'Export settings':'自订设定匯出'}</span></div>
+<div class="gi" data-a="imp"><span>📥 ${e?'Import settings':'自订设定匯入'}</span></div>
+<div class="gi" data-a="rst"><span>🧹 ${e?'Reset local cache':'重置本地快取'}</span></div>`}
+const open=()=>{paint();P.style.display='block'},close=()=>P.style.display='none';
+b.onclick=e=>{e.stopPropagation();P.style.display==='block'?close():open()};
+document.addEventListener('mousedown',e=>{if(P.style.display==='block'&&!P.contains(e.target)&&e.target!==b)close()});
+P.addEventListener('click',async ev=>{const s=ev.target.closest('[data-s]');if(s){const i=+s.dataset.s;LS('cfgSlot',String(i));let o=null;try{o=JSON.parse(LS('cfgSlot'+i))}catch{}if(o){put(o);t(en()?'Slot '+i+' loaded — reloading':'已套用配置 '+i+'，重新载入');setTimeout(()=>location.reload(),500)}else{t(en()?'Slot '+i+' is empty — press “Save to this slot”':'配置 '+i+' 还是空的，按「存到目前配置」')}paint();return}
+const a=ev.target.closest('[data-a]')?.dataset.a;if(!a)return;
+if(a==='theme'){toggleTheme();paint();return}
+if(a==='strat'){close();try{go('set')}catch{}return}
+if(a==='push'||a==='wallet'){close();try{go('more')}catch{}return}
+if(a==='save'){LS('cfgSlot'+slot(),JSON.stringify(snap()));t(en()?'Saved to slot '+slot():'已存到配置 '+slot());return}
+if(a==='lang'){close();try{setLang()}catch{}return}
+if(a==='zh'){LS('cfgZh',LS('cfgZh')==='1'?'0':'1');paint();t(en()?'Takes effect on the next refresh':'下次刷新生效');return}
+if(a==='tz'){LS('cfgTz',LS('cfgTz')==='utc'?'local':'utc');paint();return}
+if(a==='exp'){const j=JSON.stringify(snap());try{await navigator.clipboard.writeText(j);t(en()?'Settings copied to clipboard':'设定已复制到剪贴簿（贴到记事本存起来）')}catch{prompt('copy',j)}return}
+if(a==='imp'){let j='';try{j=await navigator.clipboard.readText()}catch{}let o=null;try{o=JSON.parse(j)}catch{}if(!o||typeof o!=='object'){t(en()?'Copy exported settings first, then press Import':'剪贴簿里没有可用的设定：先复制匯出的内容再按匯入');return}const ok={};for(const k of KEYS)if(o[k]!=null)ok[k]=String(o[k]);put(ok);t(en()?'Imported — reloading':'已匯入，重新载入');setTimeout(()=>location.reload(),500);return}
+if(a==='rst'){if(!(await ask(en()?'Reset local cache?\nOnly screen caches are cleared (lists, avatars). Wallets, strategies and your amounts are kept.':'重置本地快取？\n只清画面快取（列表、头像暂存），钱包、策略、你填的金额都保留。',{ok:en()?'Reset':'重置'})))return;try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(/^(b3cache|cache|pl_|av_|tok_)/.test(k||''))localStorage.removeItem(k)}}catch{}try{if(window.caches){const ks=await caches.keys();for(const k of ks)await caches.delete(k)}}catch{}t(en()?'Cache cleared — reloading':'快取已清，重新载入');setTimeout(()=>location.reload(),500)}});
+}catch(e){console.error('GEAR',e)}})();
+</script>
 </body>
 </html>

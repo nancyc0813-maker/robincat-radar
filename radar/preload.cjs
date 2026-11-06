@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('radar', {
   pnlHist: (r) => call('pnlHist', S(r, 20)),
   updRepair: () => call('updRepair'), /* 更新后引擎起不来 →「重新下载这一版」 */
   logTail: (n) => call('logTail', N(n)),
+  b3: (n) => call('b3', S(n, 20)), /*B3-1107 新看板资料*/
   nx: (a, o) => call('nx', S(a, 40), O(o)), /* radar/next.cjs 的功能 */
   ghm: (a, o) => call('ghm', S(a, 40), O(o)), /* GHM-1104 GitHub 观察（只读） */
   invReload: () => call('invReload'),
