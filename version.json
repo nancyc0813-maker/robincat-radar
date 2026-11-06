@@ -1,9 +1,9 @@
 {
-  "version": "1.0.21",
+  "version": "1.0.22",
   "date": "2026-11-06",
   "critical": false,
   "notes": [
-    "看盘可以看多条链了：链选单多了 Solana、Ethereum、Base（热门链在前），新创建／即将发射／热门／已发射、详情、K 线、持有者（KOL 标记）、成交、交易者小卡都照选的链显示。这几条新链目前只能看：买入按钮会带你去 AVE（复制合约＋打开 AVE），雷达不会在这些链下单，自动策略、快速买、止盈止损、铸造、挖矿在新链都不运作；雷达会自动读你的币安 AI 钱包支援哪些链，显示「已侦测到可交易（尚未开放）」。BNB Chain、Robinhood 的买卖完全不变"
+    "修好：新用户连接钱包显示「没拿到二维码 · getaddrinfo ENOENT www.binance.com」。原因是 VPN 只开「系统代理」时，浏览器能上币安，但雷达的币安钱包程式（baw）不会自动走系统代理。现在雷达会自动读电脑的系统代理（HTTP／SOCKS5），让币安钱包程式也经过它连币安（代理没开就跟以前一样直连）；真的连不到时画面会用白话写原因（网址解析失败／连线被拒绝、逾时），并教你把 VPN 改成 TUN／虚拟网卡／全局模式，原始错误改放小字，附「重试」。以前这个错误会被误判成「找不到 baw」，也一起修好（不影响买卖）"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -38,16 +38,16 @@
     "radar/desklink.cjs": "21b4593af23fabadbcbf12c2e1f61da75f03c074fc3ddd8da9982f0d750d15bc",
     "radar/ghmine.cjs": "085154c479db11c9f4347e14f508ab2744cd1951313990005e083b171c0fc415",
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
-    "radar/main.cjs": "fb8ab3ce35ef348122a5148d8c79f5cf1393e534f80e35bd7eda0bf67bee00be",
+    "radar/main.cjs": "54871b757006f4b026ec04dad1233ee6df392b25f1e883d6b1f3adec3f2329f7",
     "radar/market.cjs": "abfc4f793e3bdbc31d0abbb33f822dbe886a6404353f7fe2fe8fcfa3745ba64b",
     "radar/next.cjs": "097bfbe9829a78194c1a49fdd81263e947550f63958e75a1ab4f5684b08bf274",
-    "radar/official.json": "e291ec6e2a26c16708a4d19a1adc52190f6f9583e6d6278fdc08a33d5206ad10",
-    "radar/official.sig": "8e46aa1ef06132594e8a6cb0b079340fbcef5cdffc098214fd52b684df4d14c6",
+    "radar/official.json": "d1ca6d2b487c1b196dca208bbb6cbf509462fe9ca2663697d0aa0c4fb42cdf07",
+    "radar/official.sig": "78a7cf3e8ba2dcd1de10d560b53a14b2c4485bf03a96db9ac63eb266910c994e",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "2d9b13016635dbd12563436df3ebe2ddd093bf94310fb4e661b730c4a4d92d51",
+    "radar/package.json": "63c1709dc240d06919ef4ce9d18b3c84d4998462ecc651befcdc98d1d6b6e645",
     "radar/preload.cjs": "a19b4781b47c64706f169420e0ff5a1224a2cf8350f0d3a604d62d0db5301129",
     "radar/settings_schema.json": "21e086734cbc51a3fc3e3ae6a83d99d048d8a0c835e293747b5e07997c61b562",
-    "radar/ui/index.html": "10a1d0d85daa86ca830a325d6fa2b5f400f0e625e51c174986d84733efcec451",
+    "radar/ui/index.html": "fbb8d6adb9bec0c4c4771089b9ed02770430735735abf4e824249d70d4e4c7cf",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -72,14 +72,14 @@
     "start_loop.sh": "ff614c71276696902cb0eed3a938265ec6e024e3d5951a93e5953cc3886d710c",
     "tg_login.bat": "1b358e1311fe5c0ef32580f47a150904f0028a4451b6409124f9eed46f81dbc9",
     "tools/guard_check.mjs": "da8b958b19bd1e436517e68b3371dc118a693480fa2724fc1044691f67a9964a",
-    "tools/guard_rules.json": "e05a1d2df6a62609bf1f0a01c20ac26ca9cd04531efc8d57a36fd230adaa3091",
-    "tools/zero_allowlist.json": "fe0f2e12895c8ffd4db573e554df181a5a9896b4454d2d54aa7bec7a9a164f5f",
+    "tools/guard_rules.json": "165c0214eac1046e7e65a6a32b2310618b6609cf9a5b4ef3ab3ce322659d9ff0",
+    "tools/zero_allowlist.json": "49a371dfcff8c0d0b1e61632cf0f5088fb6fb3bb869ac23a6492d594d427b92e",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "0b121429ec6586ccbd7fb464cce1b24977727dca8b50c0acc998aa212371386a",
+    "watch.mjs": "961807ab615efec4a3c6c72ec7380dc1d6c4266a51e70839a7187d2b37e8b63d",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "82aaf12286d6c17eb61eb3214116c928e637a6596be3b37c7bb3de1fe48cb7a8",
     "一键安装.bat": "77e45841b87f533dcc53db561c07c2dbb47d7337b8734aaa8c213eb5822bbd50",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "0b121429ec6586ccbd7fb464cce1b24977727dca8b50c0acc998aa212371386a"
+  "sha256": "961807ab615efec4a3c6c72ec7380dc1d6c4266a51e70839a7187d2b37e8b63d"
 }

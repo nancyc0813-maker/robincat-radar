@@ -17239,6 +17239,51 @@
    "file": "watch\\.mjs$",
    "match": "ENOENT\\|not recognized|EPERM\\|EACCES|ENOTFOUND\\|ECONNREFUSED",
    "reason": "QR120：只用来把 baw 的系统错误分类成白话原因（找不到程式／被防毒挡／连不到币安），只影响画面说明文字，不挡任何东西、不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "main\\.cjs$",
+   "match": "const PX122_EVERY_MS = 30000",
+   "values": [
+    "30000"
+   ],
+   "reason": "PROXY122：多久重读一次电脑的系统代理（切换 VPN 模式后最多这么久生效），技术用，不是买卖数字"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "const PX_CACHE_MS = 3000",
+   "values": [
+    "3000"
+   ],
+   "reason": "PROXY122：多久重读一次 data/sys_proxy.json，技术用，不是买卖数字"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "main\\.cjs$",
+   "match": "\\^\\(PROXY\\|HTTP\\|SOCKS5\\|SOCKS\\)",
+   "reason": "PROXY122：解析系统代理设定字串（PROXY／SOCKS5 host:port），只决定 baw 连线走不走代理，不挡任何东西、不影响买卖"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "watch\\.mjs$",
+   "match": "\\^\\(http\\|socks5\\):",
+   "reason": "PROXY122：检查 data/sys_proxy.json 的代理格式（http／socks5://host:port），格式不对就不用代理，不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "watch\\.mjs$",
+   "match": "const raw = t\\.slice\\(0, 160\\)",
+   "values": [
+    "160"
+   ],
+   "reason": "PROXY122：错误原文小字的显示长度上限（防画面被撑爆），不是买卖数字"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "watch\\.mjs$",
+   "match": "getaddrinfo\\|ENOTFOUND\\|EAI_AGAIN|ECONNREFUSED\\|ECONNRESET\\|ECONNABORTED|spawn \\\\S\\*baw|getaddrinfo\\|ENOTFOUND\\|EAI_AGAIN\\|ECONNREFUSED",
+   "reason": "PROXY122：只用来把 baw 的系统错误分类成白话原因（网址解析失败／连线被拒绝逾时／找不到程式），只影响画面说明文字，不挡任何东西、不影响买卖"
   }
  ]
 }
