@@ -4572,6 +4572,7 @@ setInterval(()=>{try{bar()}catch{}},2000);
 <style>/*B3-1107*/
 #board #mbV,#board #poolV,#board #rhmV{display:none!important}
 #b3root{max-width:1700px;margin:0 auto}
+.b3q{margin-left:auto;min-width:260px;flex:0 1 340px;background:#0a0c10;border:1px solid #f0b90b66;color:var(--ink);border-radius:8px;padding:7px 12px;font-size:13px}
 .b3bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:2px 0 10px}
 .b3ch,.b3pl{display:flex;gap:6px;flex-wrap:wrap}
 .b3ch a,.b3pl a{cursor:pointer;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--mute);font-size:13px;user-select:none}
@@ -4622,7 +4623,7 @@ function amtTxt(){try{if(typeof BUYABLE!=='undefined'&&!BUYABLE[net])return 'AVE
 function card(x){const c24=+x.c24,cc=isFinite(c24)&&x.c24!=null?`<b class="${c24>=0?'up':'dn'}">${c24>=0?'▲':'▼'}${Math.abs(c24).toFixed(1)}%</b>`:'';const p=plName(x.pl);
 return `<div class="b3c" data-b3c="${esc(x.c)}"><div class="b3a"><span>${esc(String(x.s||'?')[0]||'?').toUpperCase()}</span>${x.lg?`<img src="${esc(x.lg)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</div><div class="b3m"><div class="b3r1"><b>${esc(x.s||'?')}</b><small>${esc(x.n&&x.n!==x.s?x.n:'')}</small>${p?`<i>${esc(p)}</i>`:''}<em>${age(x.ca)}</em></div><div class="b3r2"><span>MC <b>$${fmt(x.mc)}</b></span><span>V <b>$${fmt(x.v24)}</b></span><span>TX <b>${fmt(x.tx)}</b></span><span>👥 <b>${fmt(x.h)}</b></span>${cc}</div></div><button class="b3b" data-b="${esc(x.c)}">⚡ ${amtTxt()}</button></div>`}
 function pass(x){return plf==='all'||plName(x.pl)===plf}
-function frame(){const r=root();if(!r||r.dataset.b3)return;r.dataset.b3=1;r.innerHTML=`<div class="b3bar"><div class="b3ch" id="b3ch"></div><div class="b3pl" id="b3pl"></div><div class="b3st" id="b3st"></div></div><div id="b3er"></div><div class="b3g" id="b3g"></div>`;
+function frame(){const r=root();if(!r||r.dataset.b3)return;r.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target&&ev.target.id==='b3q'){const x=ev.target.value;ev.target.value='';b3Search(x)}});r.dataset.b3=1;r.innerHTML=`<div class="b3bar"><div class="b3ch" id="b3ch"></div><div class="b3pl" id="b3pl"></div><div class="b3st" id="b3st"></div><input id="b3q" class="b3q" placeholder="🔍 贴合约地址或网址，按 Enter" autocomplete="off" spellcheck="false"></div><div id="b3er"></div><div class="b3g" id="b3g"></div>`;
 r.addEventListener('click',ev=>{const a=ev.target.closest('[data-n],[data-p],[data-b],[data-b3c]');if(!a)return;
  if(a.dataset.n){net=a.dataset.n;LSs('b3net',net);plf='all';LSs('b3pl','all');sig={};D=null;paintBar();tick();return}
  if(a.dataset.p){plf=a.dataset.p;LSs('b3pl',plf);sig={};paint();return}
@@ -4630,6 +4631,13 @@ r.addEventListener('click',ev=>{const a=ev.target.closest('[data-n],[data-p],[da
  if(a.dataset.b){buy(x,a);return}openDetail(x)})}
 function find(addr){for(const k of Object.keys(D?.cols||{}))for(const x of D.cols[k])if(x.c===addr)return x;return null}
 function aveUrl(x){const ch=net==='eth'?'eth':net;return 'https://ave.ai/token/'+x.c+'-'+ch}
+/*B3-SEARCH 搜寻：贴合约地址或网址（AVE／GMGN／four.meme／Flap／BscScan 都行）按 Enter → 直接开详情；能买的链开雷达详情，只能看的链开 AVE*/
+function b3Search(v){v=String(v||'').trim();if(!v)return;const m=v.match(/0x[0-9a-fA-F]{40}/);const sol=!m&&v.match(/[1-9A-HJ-NP-Za-km-z]{32,44}/);const lo=v.toLowerCase();
+ let n=/robinhood/.test(lo)?'robinhood':/(^|[-\/])(eth|ethereum)([-\/?]|$)/.test(lo)?'eth':/(^|[-\/])base([-\/?]|$)/.test(lo)?'base':/solana/.test(lo)?'solana':(typeof net!=='undefined'&&BUYABLE[net]?net:'bsc');
+ if(sol&&!m)n='solana';const a=m?m[0].toLowerCase():sol?sol[0]:'';
+ if(!a){try{t(L==='en'?'Paste a contract address or a token link':'请贴合约地址或币的网址')}catch{}return}
+ if(BUYABLE[n]&&m&&typeof openToken==='function'){try{openToken(n,a,{board:1});return}catch{}}
+ try{window.radar.open('https://ave.ai/token/'+a+'-'+n)}catch{}}
 function openDetail(x){if(BUYABLE[net]&&typeof openToken==='function'){try{openToken(net,x.c,{board:1,name:x.s||''});return}catch{}}try{window.radar.open(aveUrl(x))}catch{}}
 async function buy(x,btn){const e=en();try{if(typeof buyStop==='function'&&buyStop())return;if(!BUYABLE[net]){try{await navigator.clipboard.writeText(x.c)}catch{}t(e?'This chain is view-only here — contract copied, opening AVE':'这条链在雷达里只能看，合约已复制，打开 AVE');try{window.radar.open(aveUrl(x))}catch{}return}
  if(typeof qbBuy!=='function'){t(e?'Quick-buy not ready':'快买还没准备好');return}
