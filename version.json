@@ -1,12 +1,9 @@
 {
-  "version": "1.0.30",
+  "version": "1.0.31",
   "date": "2026-11-07",
   "critical": false,
   "notes": [
-    "修正：看盘上方的链按钮（BNB／Solana／Robinhood／Ethereum／Base）点了，下面的项目会跟着换成那条链",
-    "修正：「AI专属」的铸造代币／铸造 NFT 画面恢复显示",
-    "修正：搜寻框固定单独一行，不再重复或被挤出画面",
-    "主选单的「自订策略」页签恢复显示；代币详情页新增「池子锁定（AVE）」"
+    "修正：群里 Solana 币的 CA 贴进搜寻框没反应 → 现在会打开 AVE 上那个币（Solana 在雷达里暂时只能看）"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -45,13 +42,13 @@
     "radar/main.cjs": "3427b0645d20e1d3ed3ea267e3529bf1220d73c317e285a010f57d5d07c67ede",
     "radar/market.cjs": "95a3c532c84ac91d5b924549d02994c231d84099c77431de0f681398d368d28a",
     "radar/next.cjs": "31798271b9ca320ee2155c906383722d0dd5e99ec7a13ac618eac7d7e5fa524c",
-    "radar/official.json": "1eecff07670d287c69a25799891d544d5cbd81b383b0cce2d68ba40be6abc85b",
-    "radar/official.sig": "db35506a8a27b00789eece0c7c0c6ec8dbe2faa261d8ac27744c40b3a9f9107d",
+    "radar/official.json": "18e152136e08ce9274571336b6debd578ed64720259003737540ed0d5d1724c1",
+    "radar/official.sig": "5adc2f393b3b044b6adfe5680ff7cd4e17b69fe3806508d7d255bd4f3e7a8935",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "f8f6fc4f43505d8fe503779ee6fe19b295ae0e343320c504feb4b783b26b3f50",
+    "radar/package.json": "ad1eaabb7615ff5f0572c22e7bc7e0fd91d2f8577bc36d23fa88034c722f231e",
     "radar/preload.cjs": "aede6b59054b4ae719d0b104e5133a5a75b35e97e7b06aa2afcaad18dc74b385",
     "radar/settings_schema.json": "af9d36f7318b6c21931b8c2762bde99b9a832e08a799a993d4499afa9c943572",
-    "radar/ui/index.html": "0a000ec4419ec7aebaa640809e1b144cdc0372c019c9b946e3a36ef2bbeb9269",
+    "radar/ui/index.html": "1e35d6ae7add118410017435de290d90df5929b407516535551a32a682e2bb97",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -80,11 +77,11 @@
     "tools/guard_rules.json": "ac91171f9601ff71dcf752b6da699a0f1aba4e933b1cf6271994820372c6377f",
     "tools/zero_allowlist.json": "d0cb703db3d2af37724eb92569abcb273627eb427675b1ef58561850281e4ac6",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "730199c73690d6c0899ff8a17db4d1f0c4042ebd4325ec14cfe88b52c4d5d29f",
+    "watch.mjs": "e9f195d1dfc4646ee0bd9559da5c84b223be1001de895cb1b456ab115416327d",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "1e141a57ef3b95a3bcd7d2c254b16329fe434b2a8b6a1c7b61b2fb1663fecf65",
     "一键安装.bat": "c81665cfabc0cff65c64999c43d4a3e14c6909dcfd247107c355c3b9d23c7e21",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "730199c73690d6c0899ff8a17db4d1f0c4042ebd4325ec14cfe88b52c4d5d29f"
+  "sha256": "e9f195d1dfc4646ee0bd9559da5c84b223be1001de895cb1b456ab115416327d"
 }
