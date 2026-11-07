@@ -4570,7 +4570,9 @@ setInterval(()=>{try{bar()}catch{}},2000);
 })();
 /*HOT126-END*/</script>
 <style>/*B3-1107*/
-#board #mbV,#board #poolV,#board #rhmV{display:none!important}
+body.b3gen #board #mbV,body.b3gen #board #poolV,body.b3gen #board #rhmV{display:none!important}
+#b3ch{display:none!important}/*链只留最上面那一排（#segC），新看板跟着它走*/
+body.fbOn #hero{flex-wrap:wrap!important}body.fbOn #sqRow{flex:1 1 100%!important;order:3}/*搜寻框固定单独一行，不会被挤出画面*/
 #b3root{max-width:1700px;margin:0 auto}
 .b3q{margin-left:auto;min-width:260px;flex:0 1 340px;background:#0a0c10;border:1px solid #f0b90b66;color:var(--ink);border-radius:8px;padding:7px 12px;font-size:13px}
 .b3bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:2px 0 10px}
@@ -4623,7 +4625,8 @@ function amtTxt(){try{if(typeof BUYABLE!=='undefined'&&!BUYABLE[net])return 'AVE
 function card(x){const c24=+x.c24,cc=isFinite(c24)&&x.c24!=null?`<b class="${c24>=0?'up':'dn'}">${c24>=0?'▲':'▼'}${Math.abs(c24).toFixed(1)}%</b>`:'';const p=plName(x.pl);
 return `<div class="b3c" data-b3c="${esc(x.c)}"><div class="b3a"><span>${esc(String(x.s||'?')[0]||'?').toUpperCase()}</span>${x.lg?`<img src="${esc(x.lg)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</div><div class="b3m"><div class="b3r1"><b>${esc(x.s||'?')}</b><small>${esc(x.n&&x.n!==x.s?x.n:'')}</small>${p?`<i>${esc(p)}</i>`:''}<em>${age(x.ca)}</em></div><div class="b3r2"><span>MC <b>$${fmt(x.mc)}</b></span><span>V <b>$${fmt(x.v24)}</b></span><span>TX <b>${fmt(x.tx)}</b></span><span>👥 <b>${fmt(x.h)}</b></span>${cc}</div></div><button class="b3b" data-b="${esc(x.c)}">⚡ ${amtTxt()}</button></div>`}
 function pass(x){return plf==='all'||plName(x.pl)===plf}
-function frame(){const r=root();if(!r||r.dataset.b3)return;r.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target&&ev.target.id==='b3q'){const x=ev.target.value;ev.target.value='';b3Search(x)}});r.dataset.b3=1;r.innerHTML=`<div class="b3bar"><div class="b3ch" id="b3ch"></div><div class="b3pl" id="b3pl"></div><div class="b3st" id="b3st"></div><input id="b3q" class="b3q" placeholder="🔍 贴合约地址或网址，按 Enter" autocomplete="off" spellcheck="false"></div><div id="b3er"></div><div class="b3g" id="b3g"></div>`;
+function frame(){const r=root();if(!r||r.dataset.b3)return;document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('#segC a[data-sc]');if(!a)return;const m={bsc:'bsc',rh:'robinhood',solana:'solana',eth:'eth',base:'base'}[a.dataset.sc];if(m&&m!==net){net=m;LSs('b3net',net);plf='all';LSs('b3pl','all');sig={};D=null;paintBar();tick()}else if(!m){try{t(en()?'Elysium is view-only on AVE':'Elysium 目前没有看盘清单')}catch{}}setTimeout(syncSeg,0)});/*B3-SYNC 最上面的链按钮＝唯一的链选择，新看板跟着它走*/
+r.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target&&ev.target.id==='b3q'){const x=ev.target.value;ev.target.value='';b3Search(x)}});r.dataset.b3=1;r.innerHTML=`<div class="b3bar"><div class="b3ch" id="b3ch"></div><div class="b3pl" id="b3pl"></div><div class="b3st" id="b3st"></div></div><div id="b3er"></div><div class="b3g" id="b3g"></div>`;
 r.addEventListener('click',ev=>{const a=ev.target.closest('[data-n],[data-p],[data-b],[data-b3c]');if(!a)return;
  if(a.dataset.n){net=a.dataset.n;LSs('b3net',net);plf='all';LSs('b3pl','all');sig={};D=null;paintBar();tick();return}
  if(a.dataset.p){plf=a.dataset.p;LSs('b3pl',plf);sig={};paint();return}
@@ -4638,6 +4641,7 @@ function b3Search(v){v=String(v||'').trim();if(!v)return;const m=v.match(/0x[0-9
  if(!a){try{t(L==='en'?'Paste a contract address or a token link':'请贴合约地址或币的网址')}catch{}return}
  if(BUYABLE[n]&&m&&typeof openToken==='function'){try{openToken(n,a,{board:1});return}catch{}}
  try{window.radar.open('https://ave.ai/token/'+a+'-'+n)}catch{}}
+function syncSeg(){const m={bsc:'bsc',robinhood:'rh',solana:'solana',eth:'eth',base:'base'}[net];document.querySelectorAll('#segC a[data-sc]').forEach(x=>x.classList.toggle('on',x.dataset.sc===m))}
 function openDetail(x){if(BUYABLE[net]&&typeof openToken==='function'){try{openToken(net,x.c,{board:1,name:x.s||''});return}catch{}}try{window.radar.open(aveUrl(x))}catch{}}
 async function buy(x,btn){const e=en();try{if(typeof buyStop==='function'&&buyStop())return;if(!BUYABLE[net]){try{await navigator.clipboard.writeText(x.c)}catch{}t(e?'This chain is view-only here — contract copied, opening AVE':'这条链在雷达里只能看，合约已复制，打开 AVE');try{window.radar.open(aveUrl(x))}catch{}return}
  if(typeof qbBuy!=='function'){t(e?'Quick-buy not ready':'快买还没准备好');return}
@@ -4655,8 +4659,8 @@ function status(){const s=Q('#b3st'),er=Q('#b3er');if(!s)return;const ok=D&&D.ok
  let m='';if(D&&!D.ok)m=D.err==='nomod'?(en()?'Board module is missing — update the radar':'看盘模块缺失，请更新雷达'):(en()?'Waiting for the relay…':'正在连转接站拿资料…');else if(D&&ago>60)m=en()?'AVE data is stale — relay may be down':'AVE 资料超过 1 分钟没更新（转接站可能连不上）';
  if(m!==lastErr){lastErr=m;if(er)er.innerHTML=m?`<div class="b3er">${esc(m)}</div>`:''}}
 async function tick(){const r=root();if(!r||!vis()||busy)return;busy=1;try{frame();if(!Q('#b3ch').children.length)paintBar();const d=await window.radar.b3(net);if(d&&d.net!==undefined&&d.net!==net)return;D=d;if(D&&D.ok){paintPl();paint()}status()}catch(e){D={ok:0,err:'net'};status()}finally{busy=0}}
-function vis(){const r=root();if(!r)return false;const b=Q('#board');if(!b||!b.classList.contains('on'))return false;const k=Q('#segK a.on');const gen=!k||k.dataset.sk==='gen';r.style.display=gen?'block':'none';return gen}
-setInterval(tick,1500);setInterval(()=>{if(D&&D.ok){status();}},1000);setTimeout(tick,600);
+function vis(){const r=root();if(!r)return false;const b=Q('#board');if(!b||!b.classList.contains('on')){document.body.classList.remove('b3gen');return false}const k=Q('#segK a.on');const gen=!k||k.dataset.sk==='gen';r.style.display=gen?'block':'none';document.body.classList.toggle('b3gen',gen);/*AI专属时不再藏旧的铸造看盘*/return gen}
+setInterval(()=>{try{if(vis())syncSeg()}catch{}},1000);setInterval(tick,1500);setInterval(()=>{if(D&&D.ok){status();}},1000);setTimeout(tick,600);
 window.__b3tick=tick;
 })();
 </script>
