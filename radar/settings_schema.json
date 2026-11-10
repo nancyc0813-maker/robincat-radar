@@ -6297,6 +6297,28 @@
    "max": 100
   },
   {
+   "k": "label.bundleRed",
+   "g": "label",
+   "zh": "疑似捆绑钱包占比 红灯",
+   "en": "Bundled wallets share: red at",
+   "dzh": "AVE 标为捆绑（同一人开多个钱包一起买）的持有人合计 ≥ 这个 % 标红；空着＝不标",
+   "den": "Mark red when holders AVE tags as bundled own ≥ this %",
+   "unit": "%",
+   "min": 0,
+   "max": 100
+  },
+  {
+   "k": "label.bundleYellow",
+   "g": "label",
+   "zh": "疑似捆绑钱包占比 黄灯",
+   "en": "Bundled wallets share: yellow at",
+   "dzh": "AVE 标为捆绑的持有人合计 ≥ 这个 % 标黄；空着＝不标",
+   "den": "Mark yellow when holders AVE tags as bundled own ≥ this %",
+   "unit": "%",
+   "min": 0,
+   "max": 100
+  },
+  {
    "k": "label.devSoldRed",
    "g": "label",
    "zh": "开发者卖出 红灯（持仓体检）",
@@ -6886,6 +6908,18 @@
    ],
    "xzh": "已关掉「免费铸造只通知、不自动打」（两个不能同时开）",
    "xen": "Turned off “Free mints: notify only” (they conflict)"
+  },
+  {
+   "k": "tgbot.on",
+   "g": "tgmon",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "用机器人读我的群（不用登入 TG 帐号）",
+   "en": "Read my groups with the bot (no TG login)",
+   "dzh": "把雷达的 TG 机器人拉进你的群（频道要设成管理员；群要在 BotFather 把隐私模式关掉），群里贴的合约加进追踪清单（只追踪，打不打照你的规则）。没开＝不读",
+   "den": "Add the radar bot to your group (channels: make it admin; groups: turn privacy mode off in BotFather). Contracts posted there are added to tracking only. Off = not read"
   },
   {
    "k": "tgmon.on",

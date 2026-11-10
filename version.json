@@ -1,9 +1,16 @@
 {
-  "version": "1.0.31",
-  "date": "2026-11-07",
+  "version": "1.0.32",
+  "date": "2026-11-10",
   "critical": false,
   "notes": [
-    "修正：群里 Solana 币的 CA 贴进搜寻框没反应 → 现在会打开 AVE 上那个币（Solana 在雷达里暂时只能看）"
+    "看盘：可以自己填数字筛选（市值、24h 量、持有人、交易数、涨幅；空着＝不筛），每一栏可以自己选排序",
+    "搜寻框旁多了「📋 粘贴」键，点一下直接贴上并搜寻",
+    "看盘资料读不到时，会写出真正原因（转接站连不上、登录失效等），不再只显示「连接中」",
+    "成交明细会标出官方 KOL 和你自己加的 KOL 钱包（不只限前 100 持有人）",
+    "监测的 TG 频道：可以一次贴很多个，自动检查读不读得到；新增官方推荐频道（点一下才加入）",
+    "新增「我的 TG 机器人」：贴上自己的机器人 token，就能让雷达读你的群（只追踪合约，不直接买，开关预设关）",
+    "防一人演多人：新增「疑似捆绑钱包占比」红／黄标示（门槛自己填，空着＝不标）",
+    "拿掉没有作用的「涨跌时区」设定"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
@@ -39,16 +46,16 @@
     "radar/desklink.cjs": "21b4593af23fabadbcbf12c2e1f61da75f03c074fc3ddd8da9982f0d750d15bc",
     "radar/ghmine.cjs": "085154c479db11c9f4347e14f508ab2744cd1951313990005e083b171c0fc415",
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
-    "radar/main.cjs": "3427b0645d20e1d3ed3ea267e3529bf1220d73c317e285a010f57d5d07c67ede",
+    "radar/main.cjs": "b8c9f26497c65cceb361d0176590a3cc9bf25eaa1b8798d7d23e61f0f48044f5",
     "radar/market.cjs": "95a3c532c84ac91d5b924549d02994c231d84099c77431de0f681398d368d28a",
     "radar/next.cjs": "31798271b9ca320ee2155c906383722d0dd5e99ec7a13ac618eac7d7e5fa524c",
-    "radar/official.json": "18e152136e08ce9274571336b6debd578ed64720259003737540ed0d5d1724c1",
-    "radar/official.sig": "5adc2f393b3b044b6adfe5680ff7cd4e17b69fe3806508d7d255bd4f3e7a8935",
+    "radar/official.json": "8effa2df67cdcf55d4d3f6be27d6902b0dce8a02558c779c9162316c8b449090",
+    "radar/official.sig": "b0ebb5049f1c52b6844fccaadc5176c79bda0b49b331ca6e543819d6b5e41826",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "ad1eaabb7615ff5f0572c22e7bc7e0fd91d2f8577bc36d23fa88034c722f231e",
-    "radar/preload.cjs": "aede6b59054b4ae719d0b104e5133a5a75b35e97e7b06aa2afcaad18dc74b385",
-    "radar/settings_schema.json": "af9d36f7318b6c21931b8c2762bde99b9a832e08a799a993d4499afa9c943572",
-    "radar/ui/index.html": "1e35d6ae7add118410017435de290d90df5929b407516535551a32a682e2bb97",
+    "radar/package.json": "599a228181dd0fe26a0a370a5612bd2fdaa7f1bc7e2833bbae7c73d655b7305e",
+    "radar/preload.cjs": "d3e1db496c21fb6f1128f855343de6e1f5e50606f6975479cddf33b42d9d0867",
+    "radar/settings_schema.json": "a6db494a5a8775875da26568566f7983c6691f9d305a23df0f20f18df4edc38b",
+    "radar/ui/index.html": "ef7633282845a01f9460d10346bb0ca8adcceb6cb5bc8c70bbe19da973634cb3",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -77,11 +84,11 @@
     "tools/guard_rules.json": "ac91171f9601ff71dcf752b6da699a0f1aba4e933b1cf6271994820372c6377f",
     "tools/zero_allowlist.json": "d0cb703db3d2af37724eb92569abcb273627eb427675b1ef58561850281e4ac6",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "e9f195d1dfc4646ee0bd9559da5c84b223be1001de895cb1b456ab115416327d",
+    "watch.mjs": "7587cf5471682acdb8b19af1b7dc7186cae1162a0899eb82730c952749528b25",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "1e141a57ef3b95a3bcd7d2c254b16329fe434b2a8b6a1c7b61b2fb1663fecf65",
     "一键安装.bat": "c81665cfabc0cff65c64999c43d4a3e14c6909dcfd247107c355c3b9d23c7e21",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "e9f195d1dfc4646ee0bd9559da5c84b223be1001de895cb1b456ab115416327d"
+  "sha256": "7587cf5471682acdb8b19af1b7dc7186cae1162a0899eb82730c952749528b25"
 }
