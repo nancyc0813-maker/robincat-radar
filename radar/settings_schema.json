@@ -6519,9 +6519,9 @@
   {
    "k": "label.newMin",
    "g": "label",
-   "zh": "手机看盘「新」标签",
-   "en": "Phone \"new\" tag",
-   "dzh": "开池不到这么多分钟标「新」；空着＝不标",
+   "zh": "看盘「新」标签（手机＋电脑）",
+   "en": "\"New\" tag (phone + desktop board)",
+   "dzh": "开池／建立不到这么多分钟标「新」（电脑看盘的时间会变金色）；空着＝不标",
    "den": "Tag pools younger than this many minutes as new",
    "unit": "分钟",
    "min": 0,
