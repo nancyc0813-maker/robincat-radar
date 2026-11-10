@@ -453,7 +453,8 @@ function sgMark(what, ok) { try { const f = path.join(DATA, 'sig_state.json'); c
    回传 { D, ok }：ok＝'sig'（签名不对／格式不对）、'type'（别种资料冒充）、'old'（比手上旧＝回放，静静忽略）、''＝可以用；用完呼叫 sigCommit(type, D) 记下 seq */
 const SIG_SEQ_F = path.join(DATA, 'sig_seq.json'); /* PTS-1105:sig 积分 points.json 也走这一套：sigOpen(j, 'points') */
 function sigOpen(j, type) { try { if (!j || typeof j.data !== 'string' || typeof j.sig !== 'string') return { ok: 'sig' }; const c = require('crypto');
-  if (!c.verify(null, Buffer.from(j.data), c.createPublicKey({ key: Buffer.from(OFFICIAL_PUB, 'base64'), format: 'der', type: 'spki' }), Buffer.from(j.sig, 'base64'))) return { ok: 'sig' };
+  const vk = (k) => { try { return c.verify(null, Buffer.from(j.data), c.createPublicKey({ key: Buffer.from(k, 'base64'), format: 'der', type: 'spki' }), Buffer.from(j.sig, 'base64')); } catch { return false; } };
+  if (!vk(OFFICIAL_PUB) && !(['invites', 'points', 'blacklist'].includes(type) && OFFI.INV_PUB && vk(OFFI.INV_PUB))) return { ok: 'sig' }; /* V120-INV：邀请类资料也认转接站的邀请专用金钥 */
   const D = JSON.parse(j.data); if (!D || typeof D !== 'object' || D.type !== type) return { ok: 'type' }; if (!Number.isSafeInteger(D.seq) || !(D.seq > 0)) return { ok: 'type' };
   const S = readJSON(SIG_SEQ_F, {}) || {}; const last = Number.isSafeInteger(S[type]) ? S[type] : 0; if (D.seq < last) return { ok: 'old', D }; return { ok: '', D }; } catch { return { ok: 'sig' }; } }
 function sigCommit(type, D) { try { const S = readJSON(SIG_SEQ_F, {}) || {}; if (Number.isSafeInteger(S[type]) && !(D.seq > S[type])) return; S[type] = D.seq; fs.writeFileSync(SIG_SEQ_F, JSON.stringify(S)); } catch {} }

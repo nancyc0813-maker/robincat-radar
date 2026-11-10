@@ -12,7 +12,7 @@ import { b2Handle, b2Add } from './board.js'; /*BOARD124 转接站自己抓 AVE 
    ① 名单：官方发布到 GitHub robincat-radar-data/invites.json（repo.cjs 的 DATA），有官方签名（Ed25519），这里核对签名才相信
    ② 本人：电脑雷达附上「钱包签的邀请绑定」（EIP-712），这里还原出签名的钱包，必须是名单里的钱包
    改自己电脑上的程式跳过邀请码画面，在这里还是过不了 */
-import OFFI from '../repo.cjs'; /* NEW-100：官方来源只写在 repo.cjs（打包时一起包进来） */
+import OFFI from '../repo.cjs'; import { invDo, invReady } from './invite.js'; /* V120-INV 邀请机器人搬进转接站 */ /* NEW-100：官方来源只写在 repo.cjs（打包时一起包进来） */
 const OFFICIAL_PUB = OFFI.PUBKEY;
 const INV_URL = OFFI.DATA_RAW + 'invites.json';
 const enc = new TextEncoder();
@@ -34,9 +34,9 @@ async function seqOk(env, type, seq) { if (!Number.isSafeInteger(seq) || !(seq >
 async function members(env) {
   if (Date.now() - INV.at < 10 * 60e3) return INV.rw;
   try {
-    const j = await (await fetch(INV_URL + '?t=' + Math.floor(Date.now() / 300e3), { cf: { cacheTtl: 120 } })).json();
-    const key = await crypto.subtle.importKey('spki', Uint8Array.from(atob(OFFICIAL_PUB), (c) => c.charCodeAt(0)), { name: 'Ed25519' }, false, ['verify']);
-    if (!(await crypto.subtle.verify({ name: 'Ed25519' }, key, Uint8Array.from(atob(j.sig), (c) => c.charCodeAt(0)), enc.encode(j.data)))) throw new Error('bad sig');
+    let j = null; if (invReady(env)) { try { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_pub'); if (r.ok) j = await r.json(); } catch {} } /* V120-INV：转接站自己的名单优先 */
+    if (!j) j = await (await fetch(INV_URL + '?t=' + Math.floor(Date.now() / 300e3), { cf: { cacheTtl: 120 } })).json();
+    if (!(await offVerify(j))) throw new Error('bad sig'); /* V120-INV：发布金钥或邀请专用金钥 */
     const D = JSON.parse(j.data); if (D.type !== 'invites') throw new Error('bad type'); if (!(D.seq >= INV_SEQ) || !(await seqOk(env, 'invites', D.seq))) throw new Error('old');
     if (Array.isArray(D.rw)) INV = { at: Date.now(), rw: new Set(D.rw), raw: JSON.stringify({ data: j.data, sig: j.sig }) }; INV_SEQ = D.seq;
   } catch { INV.at = Date.now() - INV_RETRY_BACK; } /* H8-D14：读不到时不要每个请求都重抓（隔一分钟再试）；读到旧的／不对的就继续用手上的 */
@@ -61,7 +61,7 @@ async function inList(env, w) { const rw = await members(env); if (!rw) return f
    转接站先核对官方签名、type 要对、seq 不能比上次收过的旧（记在 sig-seq 物件，全球一致），雷达拿到后照样自己再验一次 ── */
 const MIRROR = { points: { ms: 10 * 60e3 }, xwatch: { ms: 2 * 60e3 } }; /* 技术用：多久重新抓一次（跟雷达读 GitHub 的间隔一样） */
 const MIRROR_RETRY_MS = 60e3; /* 技术用：抓失败后多久再试（失败时继续给手上验过的那份） */
-async function offVerify(j) { if (typeof j?.data !== 'string' || typeof j?.sig !== 'string') return false; const key = await crypto.subtle.importKey('spki', Uint8Array.from(atob(OFFICIAL_PUB), (c) => c.charCodeAt(0)), { name: 'Ed25519' }, false, ['verify']); return await crypto.subtle.verify({ name: 'Ed25519' }, key, Uint8Array.from(atob(j.sig), (c) => c.charCodeAt(0)), enc.encode(j.data)); }
+async function offVerify(j) { if (typeof j?.data !== 'string' || typeof j?.sig !== 'string') return false; for (const k of [OFFICIAL_PUB, OFFI.INV_PUB].filter(Boolean)) { try { const key = await crypto.subtle.importKey('spki', Uint8Array.from(atob(k), (c) => c.charCodeAt(0)), { name: 'Ed25519' }, false, ['verify']); if (await crypto.subtle.verify({ name: 'Ed25519' }, key, Uint8Array.from(atob(j.sig), (c) => c.charCodeAt(0)), enc.encode(j.data))) { if (k === OFFICIAL_PUB) return true; try { return ['invites', 'points', 'blacklist'].includes(JSON.parse(j.data).type); } catch { return false; } } } catch {} } return false; } /* V120-INV：邀请专用金钥只认邀请类资料 */
 async function mirrorGet(env, name) { const C = MIRROR[name]; if (!C.raw) C.raw = ''; if (!C.seq) C.seq = 0; if (!C.at) C.at = 0;
   if (Date.now() - C.at >= C.ms) { C.at = Date.now();
     try { const j = await (await fetch(OFFI.DATA_RAW + name + '.json?t=' + Math.floor(Date.now() / C.ms), { cf: { cacheTtl: 60 } })).json(); if (!(await offVerify(j))) throw new Error('sig');
@@ -107,6 +107,15 @@ async function bindQueue(req, env) { const t = await req.text(); if (t.length > 
   let D = null; try { D = JSON.parse(o.data); } catch {} if (!D || D.t !== 'rcbindq1' || !Number.isSafeInteger(D.ts) || Math.abs(Date.now() - D.ts) > BIND_Q_SKEW_MS) return J({ err: 'stale' }, 400);
   const j = await (await env.ROOM.get(env.ROOM.idFromName('bind-q')).fetch('https://do/_bind_q', { method: 'POST', body: JSON.stringify({ ts: D.ts, done: Array.isArray(D.done) ? D.done.slice(0, BIND_TAKE_MAX * 2) : [] }) })).json();
   return J(j, j.err ? 409 : 200); }
+/* V120-INV：每分钟（转接站有设好邀请密码时）① 把雷达送来的绑定从队列拿出来处理（跟以前电脑机器人一样，结果照样回写给 /bind/status） ② 名单核对、签名、发布 */
+async function invCron(env) { const Q = env.ROOM.get(env.ROOM.idFromName('bind-q')), V = env.ROOM.get(env.ROOM.idFromName('inv-main')); let done = [];
+  for (let n = 0; n < 5; n++) { const j = await (await Q.fetch('https://do/_bind_q', { method: 'POST', body: JSON.stringify({ ts: Date.now() + n, done }) })).json(); done = []; if (!j || !Array.isArray(j.items) || !j.items.length) break;
+    for (const it of j.items) { let r = { ok: 0, msg: '机器人处理时出错，请回雷达再按一次' }; try { const P = bindParse(it); if (P && bindSigOk(P)) r = await (await V.fetch('https://do/_inv_bind', { method: 'POST', body: JSON.stringify({ P }) })).json(); else r = { ok: 0, msg: '绑定资料不对，请回雷达再按一次' }; } catch {} if (r.wait) return; done.push({ id: it.id, ok: r.ok ? 1 : 0, msg: String(r.msg || '').slice(0, 300) }); } }
+  if (done.length) await Q.fetch('https://do/_bind_q', { method: 'POST', body: JSON.stringify({ ts: Date.now() + 9, done }) });
+  await V.fetch('https://do/_inv_tick'); }
+async function invAdmin(req, u, env) { const t = await req.text(); if (t.length > 4 * 1024 * 1024) return J({ err: 'big' }, 413); let o; try { o = JSON.parse(t); } catch { return J({ err: 'fmt' }, 400); }
+  const ok = await onlineVerify(env, o && o.sig, o && o.data); if (!ok) return J({ err: 'bad sig' }, 403); let D = null; try { D = JSON.parse(o.data); } catch {} if (!D || D.t !== (u.pathname === '/inv/import' ? 'rcinvimp1' : 'rcinvexp1') || Math.abs(Date.now() - (+D.ts || 0)) > 10 * 60e3) return J({ err: 'stale' }, 400);
+  const V = env.ROOM.get(env.ROOM.idFromName('inv-main')); const r = await V.fetch('https://do/' + (u.pathname === '/inv/import' ? '_inv_import' : '_inv_export'), { method: 'POST', body: JSON.stringify(D.body || {}) }); return new Response(r.body, { status: r.status, headers: { 'content-type': 'application/json' } }); }
 /* ── OPS-RT15：短时效通行证（session token）。绑定签名／作者通行证只在 POST /session 的内容里出现一次，换到 { t, exp }；
    之后 HTTP（/ave、/aveboard）用 header x-rc-session、手机连结的电脑端 WebSocket 用「连上后第一则讯息 {"auth": t}」。网址里不再有任何签名。
    t＝base64url(JSON{id,c,r,exp}).HMAC；HMAC 金钥用 Cloudflare 秘密变数 SESSION_KEY，没设就由 Durable Object「sess-key」第一次自动产生并保存。
@@ -277,13 +286,15 @@ const ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rec
 const MANIFEST = JSON.stringify({ name: '罗宾猫雷达', short_name: '罗宾猫雷达', scope: '/', display: 'standalone', background_color: '#0b0d11', theme_color: '#0b0d11', icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' }, { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }, { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }] });
 
 export default {
-  async scheduled(ev, env, ctx) { ctx.waitUntil(env.ROOM.get(env.ROOM.idFromName('ave-board2')).fetch('https://do/_b2?cron=1').catch(() => {})); }, /*BOARD124 Cron：最近有人看才帮看盘保鲜（AVE_BOARD_IDLE_S）*/
+  async scheduled(ev, env, ctx) { ctx.waitUntil(env.ROOM.get(env.ROOM.idFromName('ave-board2')).fetch('https://do/_b2?cron=1').catch(() => {})); if (invReady(env)) ctx.waitUntil(invCron(env).catch(() => {})); }, /*BOARD124 Cron：最近有人看才帮看盘保鲜（AVE_BOARD_IDLE_S）*/
   async fetch(req, env) {
     const u = new URL(req.url);
     if (u.pathname === '/aveboard' && (req.method === 'GET' || req.method === 'POST')) return aveBoard(req, u, env);
     if (u.pathname === '/session' && req.method === 'POST') return sessionNew(req, env); /* OPS-RT15 */
     if (u.pathname === '/bind' && req.method === 'POST') return bindPost(req, env); /* V105-1：雷达内直接绑定 */
-    if (u.pathname === '/bind/queue' && req.method === 'POST') return bindQueue(req, env); /* V105-1：官方邀请机器人取队列＋回写结果（线上金钥签名） */
+    if (u.pathname === '/bind/queue' && req.method === 'POST') { if (invReady(env)) return J({ items: [], fin: 0, moved: 1 }); return bindQueue(req, env); } /* V120-INV：搬到转接站后，旧的电脑机器人取不到队列（由转接站自己处理） */
+    if (u.pathname === '/tg/hook' && req.method === 'POST') { if (!invReady(env) || !env.TG_HOOK_SECRET || req.headers.get('x-telegram-bot-api-secret-token') !== env.TG_HOOK_SECRET) return new Response('no', { status: 403 }); const t = await req.text(); if (t.length > 64 * 1024) return new Response('big', { status: 413 }); await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_tg', { method: 'POST', body: t }); return new Response('ok'); } /* V120-INV：@RobinCatRadar_bot 的 webhook */
+    if ((u.pathname === '/inv/import' || u.pathname === '/inv/export') && req.method === 'POST') return invAdmin(req, u, env); /* V120-INV：线上金钥签名才收 */ /* V105-1：官方邀请机器人取队列＋回写结果（线上金钥签名） */
     if (req.method !== 'GET') return new Response('method', { status: 405 });
     if (u.pathname === '/aveboard2' && req.method === 'GET') return aveBoard2(req, u, env); /*BOARD124*/
     if (u.pathname === '/ave') return aveProxy(req, u, env);
@@ -292,6 +303,7 @@ export default {
     if (u.pathname === '/bind/status') return bindStat(u, env); /* V105-1 */
     if (u.pathname === '/avews') return aveWsRoute(req, env); /* AVE-WSS（11/4）：即时推送（WebSocket） */
     if (u.pathname === '/avestat') { const C = await sessOf(req, env); if (!C || C.id !== 'owner') return J({ err: 'session' }, 401); return J(await (await env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter_get')).json().then((x) => { const wv = envNum(env, 'AVE_MONTH_WARN_CU'), sv = envNum(env, 'AVE_MONTH_STOP_CU'); return { ...x, mwarnAt: wv, mstopAt: sv, mwarn: wv != null && +x.mcu >= wv ? 1 : 0, mstop: sv != null && +x.mcu >= sv ? 1 : 0 }; })); } /*BOARD124 /avestat：当月累计＋提醒／退避门槛*/ /*RISK-FIX 10：只有作者通行证看得到今天的 AVE 用量（REST 单位＋WSS 订阅／推送），跟 AVE 对帐用 */
+    if (u.pathname === '/invites.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_pub'); return new Response(r.body, { status: r.status, headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); }
     if (u.pathname === '/invites.json') { await members(env); return INV.raw ? new Response(INV.raw, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=120' } }) : J({ err: 'not loaded' }, 503); } /* H2-M2：邀请名单镜像（原样的官方签名档，雷达照样核对签名） */
     if (u.pathname === '/' || u.pathname === '/index.html') return new Response(PHONE, { headers: { ...SEC, 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache', 'content-security-policy': CSP } });
     if (u.pathname === '/manifest.webmanifest') return new Response(MANIFEST, { headers: { ...SEC, 'content-type': 'application/manifest+json', 'cache-control': 'max-age=3600' } });
@@ -359,6 +371,7 @@ export class Room extends DurableObject {
     if (iu.pathname === '/_seq') { /* OPS-RT4：签名资料 seq 只能往前（全球一致） */ const t = String(iu.searchParams.get('t') || '').slice(0, 20), sq = Number(iu.searchParams.get('s')); if (!t || !Number.isSafeInteger(sq)) return new Response(JSON.stringify({ ok: false }));
       const k = 'seq:' + t, last = await this.ctx.storage.get(k); if (Number.isSafeInteger(last) && sq < last) return new Response(JSON.stringify({ ok: false, last })); if (!(sq === last)) await this.ctx.storage.put(k, sq); return new Response(JSON.stringify({ ok: true })); }
     if (iu.pathname === '/_skey') { /* OPS-RT15：没设 SESSION_KEY 时，通行证的 HMAC 金钥第一次自动产生、存在这个物件里（外面连不到这个路径：/ws/ 房间号格式不同） */ let k = await this.ctx.storage.get('skey'); if (!k) { const b = new Uint8Array(32); crypto.getRandomValues(b); k = [...b].map((x) => x.toString(16).padStart(2, '0')).join(''); await this.ctx.storage.put('skey', k); } return new Response(k); }
+    if (iu.pathname.startsWith('/_inv_')) return invDo(this, req, this.env, { bindCheck: (P) => bindSigOk({ ...P, v: Number(P.v) % 27 }) }); /* V120-INV（物件名 inv-main） */
     if (iu.pathname === '/_bind_put') return this.bindPut(await req.json()); /* V105-1（只有 /bind 会转到这里，物件名固定 bind-q） */
     if (iu.pathname === '/_bind_get') return this.bindGet(String(iu.searchParams.get('id') || ''));
     if (iu.pathname === '/_bind_q') return this.bindTake(await req.json());

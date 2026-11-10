@@ -15,9 +15,10 @@ const REF_BINANCE_CODE = 'HI444QQY';
 const REF_BINANCE_URL = 'https://web3.binance.com/referral?ref=' + REF_BINANCE_CODE;
 const PUBKEY = 'MCowBQYDK2VwAyEAens/SqtK4KkmLBB3gSAxamce9VYy9v+urlWdCqX6bcc='; /* 11/3 Nancy 在自己电脑产生（私钥只在她电脑 .sign_radar/private.pem） */
 const ONLINE_PUB = 'MCowBQYDK2VwAyEA6yiFLuIICmiINfXUBFCf6/bUDGZK+Hx4ecwv9AiqtEM='; /* OPS-ONL：sign_radar.mjs onlinekey 会自动填（同时写进 relay/wrangler.toml 的 ONLINE_PUBKEY） */
+const INV_PUB = 'MCowBQYDK2VwAyEA4O54gks7IbGD46tBgxOfijr9iyyij6a9NhE1GzeVawI='; /* V120-INV：邀请／积分／黑名单专用金钥（私钥只在转接站，主私钥不离开 Nancy 电脑）；只认 type＝invites／points／blacklist */
 const X_ACC = 'nancy_c813', TG_ACC = 'nancy_c0813', TG_BOT = 'RobinCatRadar_bot'; /* OPS-RT14：官方帐号 */
 module.exports = {
-  OWNER, NAME, DATA, PUBKEY, ONLINE_PUB, X_ACC, TG_ACC, TG_BOT, REF_AVE_URL, REF_BINANCE_CODE, REF_BINANCE_URL,
+  OWNER, NAME, DATA, PUBKEY, ONLINE_PUB, INV_PUB, X_ACC, TG_ACC, TG_BOT, REF_AVE_URL, REF_BINANCE_CODE, REF_BINANCE_URL,
   REPO: OWNER + '/' + NAME,
   URL: 'https://github.com/' + OWNER + '/' + NAME,
   RAW: 'https://raw.githubusercontent.com/' + OWNER + '/' + NAME + '/main/',
