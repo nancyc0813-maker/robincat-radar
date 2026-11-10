@@ -4,6 +4,7 @@
    需要的密码（wrangler secret）：INV_PRIV、TG_BOT_TOKEN（@RobinCatRadar_bot）、TG_HOOK_SECRET、OWNER_CHAT（Nancy 的 TG 数字 id）、GH_TOKEN、INV_ADMIN_PUB（可省，汇入用＝线上金钥）
    全部没设＝这个模组不动（旧的 GangPaper 照常）。 */
 import OFFI from '../repo.cjs';
+import { loadRules, computePoints, sample, publicPayload, tgReply } from './points.js'; /* V120：积分（原 GangPaper/points） */
 
 const enc = new TextEncoder();
 const hex = (u) => [...u].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -34,6 +35,13 @@ async function signData(env, data) { const key = await crypto.subtle.importKey('
 async function tgApi(env, m, b) { try { return await (await fetch(`https://api.telegram.org/bot${env.TG_BOT_TOKEN}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b || {}) })).json(); } catch { return null; } }
 const tgOwner = (env, text) => tgApi(env, 'sendMessage', { chat_id: Number(env.OWNER_CHAT), text: String(text).slice(0, 3900), disable_web_page_preview: true });
 
+/* ---------- 积分账本（照 points/ledger.mjs：每行 {i,t,at,d,prev,h}，h＝sha256(prev＋规范化 JSON)） ---------- */
+const ZERO = '0'.repeat(64);
+const canon = (v) => Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : v && typeof v === 'object' ? '{' + Object.keys(v).sort().filter((k) => v[k] !== undefined).map((k) => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}' : JSON.stringify(v);
+const lhash = (prev, e) => sha(prev + canon({ i: e.i, t: e.t, at: e.at, d: e.d }));
+async function ledgerOk(L) { let prev = ZERO; for (let k = 0; k < L.length; k++) { const e = L[k]; if (e.i !== k || e.prev !== prev || (await lhash(prev, e)) !== e.h) return `第 ${k} 条对不上`; prev = e.h; } return ''; }
+async function ledgerAdd(L, t, d, at) { const last = L[L.length - 1]; const e = { i: last ? last.i + 1 : 0, t, at, d, prev: last ? last.h : ZERO }; e.h = await lhash(e.prev, e); L.push(e); }
+
 /* ---------- 名单逻辑（照 invite.mjs） ---------- */
 const blank = () => ({ joins: {}, groups: {}, pend: {}, own: {}, titles: {}, tids: {}, hc: {}, salt: '', rl: {}, fb: {}, pushedH: '', pushedAt: 0, ghSha: '', log: [] });
 function codeOwner(I, c) { c = String(c || '').toLowerCase(); if (RESV.includes(c) || c === NANCY_CODE) return NANCY_W; if (I.own[c]) return I.own[c].w; if (/^[0-9a-f]{8}$/.test(c)) { const w = Object.keys(I.joins).find((x) => x.slice(2, 10) === c && I.joins[x].ok); return w || ''; } return ''; }
@@ -55,27 +63,62 @@ function doBind(I, P, uid, user) {
     if (!relay && codeMine(I, code, uid)) return { ok: 0, msg: '不能用自己的邀请码喔（同一个 TG 帐号）' };
     const J0 = I.joins[w]; if (J0 && J0.code === code && J0.via === 'relay' && (J0.uid == null || J0.uid === '') && !relay) { J0.uid = uid; J0.user = user; }
     const J = I.joins[w]; if (J) return J.code === code ? { ok: 1, msg: '✅ 这个钱包已经绑定好了' } : { ok: 0, msg: `这个钱包已经绑定过邀请码「${J.code}」，每个钱包只能绑一次` };
-    I.joins[w] = { code, uid: relay ? '' : uid, user, at: Date.now(), ok: false, sig, v, ...(relay ? { via: 'relay' } : {}) }; if (!relay) delete I.pend[uid]; note(I, `新绑定 ${w.slice(0, 8)}… → ${code}`);
+    I.joins[w] = { code, uid: relay ? '' : uid, user, at: Date.now(), ok: false, sig, v, ...(relay ? { via: 'relay' } : {}) }; if (!relay) delete I.pend[uid]; note(I, `新绑定 ${w.slice(0, 8)}… → ${code}`); (I._led = I._led || []).push(['bind', { wallet: w, inviter: code, sig: String(sig).toLowerCase().slice(0, 130) }, Date.now()]);
     return { ok: 1, msg: `✅ 绑定完成！你的邀请人是「${code}」，以后不能更改。\n回到雷达，大约 10 分钟内就能打开自动买。` };
   }
   if ((RESV.includes(code) && w !== NANCY_W) || BLOCK.test(code) || /^[0-9a-f]{8}$/.test(code)) return { ok: 0, msg: `「${code}」不能申请，请换一个` };
   const O0 = I.own[code]; if (O0 && O0.w === w && O0.via === 'relay' && (O0.uid == null || O0.uid === '') && !relay) { O0.uid = uid; O0.user = user; }
   const had = myCode(I, w); if (had && had !== code) return { ok: 0, msg: `每个钱包只能有一个专属邀请码，你的是「${had}」\n${BOT}?start=${had}` };
   if (I.own[code] && I.own[code].w !== w) return { ok: 0, msg: `「${code}」已经被别人用了，请回雷达换一个` };
-  if (!I.own[code]) { I.own[code] = { w, uid: relay ? '' : uid, user, at: Date.now(), sig, v, ...(relay ? { via: 'relay' } : {}) }; note(I, `新的专属邀请码 ${code}（${w.slice(0, 8)}…）`); }
+  if (!I.own[code]) { I.own[code] = { w, uid: relay ? '' : uid, user, at: Date.now(), sig, v, ...(relay ? { via: 'relay' } : {}) }; note(I, `新的专属邀请码 ${code}（${w.slice(0, 8)}…）`); (I._led = I._led || []).push(['code', { wallet: w, code, sig: String(sig).toLowerCase().slice(0, 130) }, Date.now()]); }
   return { ok: 1, msg: `✅ 你的专属邀请码「${code}」开通了！\n邀请连结：${BOT}?start=${code}\n\n大约 10 分钟后所有雷达都认得这个码。朋友用你的连结安装、绑定，就算你的邀请。` };
 }
+
+/* ---------- X 帐号统一监测（照 GangPaper/xwatch.mjs）：GetXAPI 金钥＝env.GX_KEY ---------- */
+const X_MAX = 50, X_DAY_CAP = 4000, X_BATCH = 12; /* 她 11/2 定的：最多 50 个帐号、每天最多 4000 次、一次查 12 个 */
+const xBlank = () => ({ acc: {}, hits: [], seen: {}, day: '', calls: 0, capDay: '', creditAt: 0, lastPoll: 0, pubH: '', seq: 0 });
+const xN = (A) => (A.uids || []).length;
+const xOk = (X) => Object.entries(X.acc).filter(([, A]) => A.st === 'ok').map(([h]) => h);
+const today8 = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+async function xEnforce(X, env) { const cand = Object.entries(X.acc).filter(([, A]) => A.st === 'ok' || A.st === 'drop').sort((a, b) => (xN(b[1]) - xN(a[1])) || ((a[1].okAt || 0) - (b[1].okAt || 0))); const out = [];
+  cand.forEach(([h, A], i) => { const st = i < X_MAX ? 'ok' : 'drop'; if (A.st !== st) { if (st === 'drop') out.push(h); A.st = st; if (st === 'ok') A.init = 0; } });
+  if (out.length) await tgOwner(env, `ℹ️ X 监测已满 ${X_MAX} 个，自动拿掉最少人关心的：${out.map((h) => '@' + h).join('、')}（之后关心的人变多会自动补回）`); }
+async function xPoll(X, env) { if (!env.GX_KEY) return; const hs = xOk(X); if (!hs.length) return; const B = []; for (let i = 0; i < hs.length; i += X_BATCH) B.push(hs.slice(i, i + X_BATCH));
+  const gap = Math.max(3, Math.ceil((B.length * 1440) / X_DAY_CAP)) * 60e3; if (Date.now() - (X.lastPoll || 0) < gap) return; X.lastPoll = Date.now();
+  for (const b of B) { const d = today8(); if (X.day !== d) { X.day = d; X.calls = 0; } if (X.calls >= X_DAY_CAP) { if (X.capDay !== d) { X.capDay = d; await tgOwner(env, `⚠️ X 帐号监测今天的上限（${X_DAY_CAP} 次）用完了，先暂停，明天 0 点自动恢复。`); } break; } X.calls++;
+    let j; try { const r = await fetch('https://api.getxapi.com/twitter/tweet/advanced_search?q=' + encodeURIComponent('(' + b.map((h) => 'from:' + h).join(' OR ') + ')') + '&product=Latest', { headers: { Authorization: 'Bearer ' + env.GX_KEY } });
+      if (r.status === 402 || r.status === 401) { if (Date.now() - (X.creditAt || 0) > 12 * 3600e3) { X.creditAt = Date.now(); await tgOwner(env, '⚠️ X 帐号监测停了：GetXAPI ' + (r.status === 402 ? '余额用完，请到 getxapi.com 储值' : '金钥失效') + '（雷达其他功能照常）'); } break; } if (!r.ok) break; j = await r.json(); } catch { break; }
+    for (const t of Array.isArray(j?.tweets) ? j.tweets : []) { const id = String(t.id || ''), h = String(t.author?.userName || '').toLowerCase(); if (!id || !b.includes(h) || X.seen[id]) continue; X.seen[id] = Date.now(); const A = X.acc[h]; if (!A?.init) continue;
+      const txt = String(t.text || '') + ' ' + String(t.retweeted_tweet?.text || ''); for (const c of new Set((txt.match(/0x[a-fA-F0-9]{40}/g) || []).map((x) => x.toLowerCase()))) X.hits.push({ id, h, c, at: Date.parse(t.createdAt || '') || Date.now(), u: String(t.url || '').slice(0, 120) }); }
+    for (const h of b) if (X.acc[h]) X.acc[h].init = 1; }
+  const ks = Object.keys(X.seen); if (ks.length > 6000) for (const k of ks.sort((a, b) => X.seen[a] - X.seen[b]).slice(0, ks.length - 6000)) delete X.seen[k];
+  X.hits = X.hits.filter((x) => Date.now() - x.at < 48 * 3600e3).slice(-300); }
+async function xStart(X, env, m, payload, say) { const x = String(payload).match(/^x_([A-Za-z0-9_]{1,15})$/); if (!x) return false; const h = x[1].toLowerCase(), uid = m.from.id, user = m.from.username || '';
+  const A = (X.acc[h] = X.acc[h] || { st: 'wait', uids: [], at: Date.now() }); if (A.st === 'no' || A.st === 'del') { await say(`@${h} 目前没有开放监测`); return true; }
+  if (!A.uids.includes(uid)) A.uids.push(uid);
+  if (A.st === 'ok') await say(`✅ @${h} 已经在监测了（${xN(A)} 人关注）。贴出合约会自动加进你雷达的追踪。`);
+  else if (A.st === 'drop') { await xEnforce(X, env); await say(A.st === 'ok' ? `✅ @${h} 关注的人变多，已经重新开始监测` : `已记下你的关注。@${h} 目前名额已满，关注的人够多就会自动加回来。`); }
+  else { await say(`✅ 已送出 @${h} 的监测申请，审核通过后会自动开始（贴出合约会加进你雷达的追踪，照同一套规则决定打不打）。`); if (!A.told) { A.told = 1; await tgOwner(env, `🆕 X 帐号申请监测：@${h}\n申请人：${user ? '@' + user : uid}\nhttps://x.com/${h}\n\n回复「通过 ${h}」或「拒绝 ${h}」`); } }
+  return true; }
+async function xCmd(X, I, env, t) { t = String(t).trim();
+  if (/^[xX𝕏]\s*名[单單]$/.test(t)) { const ok = xOk(X).sort((a, b) => xN(X.acc[b]) - xN(X.acc[a])); const wait = Object.entries(X.acc).filter(([, A]) => A.st === 'wait');
+    return `📡 X 监测中（${ok.length}/${X_MAX}）：\n${ok.map((h) => `@${h}（${xN(X.acc[h])} 人）`).join('\n') || '（还没有）'}${wait.length ? `\n\n等你审核：\n${wait.map(([h, A]) => `@${h}（${xN(A)} 人）`).join('\n')}` : ''}\n\n今天已查 ${X.day === today8() ? X.calls : 0}/${X_DAY_CAP} 次`; }
+  const m = t.match(/^(通过|通過|过|過|同意|拒绝|拒絕|拒|删除|刪除|删|刪|恢复|恢復)\s*([xX𝕏])?\s*@?([A-Za-z0-9_]{1,15})$/); if (!m) return null; const h = m[3].toLowerCase(), A = X.acc[h]; if (!A) return m[2] ? `找不到 X 帐号 @${h}` : null;
+  if (!m[2] && I.groups[h]) return null; const act = m[1];
+  if (/通|过|過|同意|恢/.test(act)) { A.st = 'ok'; A.okAt = Date.now(); A.init = 0; await xEnforce(X, env); } else if (/拒/.test(act)) A.st = 'no'; else A.st = 'del'; X.pubH = '';
+  return A.st === 'ok' ? `✅ @${h} 开始监测，几分钟内所有雷达都会跟上` : A.st === 'drop' ? `@${h} 已通过，但名额已满（${X_MAX} 个），关注的人够多会自动加进来` : A.st === 'del' ? `已删除 @${h}，不再监测（回「恢复 ${h}」可以加回来）` : `已拒绝 @${h}`; }
 
 /* TG 讯息（照 GangPaper 反馈机器人＋invite.mjs onStart/onMsg/onCmd） */
 async function onTg(I, env, m, bindCheck) {
   const say = (t) => tgApi(env, 'sendMessage', { chat_id: m.chat.id, text: t, disable_web_page_preview: true });
   const uid = m.from.id, user = m.from.username || ''; let txt = String(m.text || m.caption || '').trim();
-  if (String(uid) === String(env.OWNER_CHAT)) { /* 她回「通过 xxx」「拒绝 xxx」 */
+  if (String(uid) === String(env.OWNER_CHAT)) { const xr = await xCmd(bindCheck.X, I, env, txt); if (xr) { await say(xr); return; } /* 她回「通过 xxx」「拒绝 xxx」 */
     const x = txt.match(/^(通过|通過|过|過|同意|拒绝|拒絕|拒)\s*@?([A-Za-z0-9_]{4,32})$/);
     if (x) { const h = x[2].toLowerCase(); if (!I.groups[h]) { await say(`找不到 @${h} 的申请`); return; } I.groups[h].st = /通|过|過|同意/.test(x[1]) ? 'ok' : 'no'; if (I.groups[h].st === 'ok') { I.groups[h].t0 = I.titles?.[h]?.t || ''; delete I.groups[h].why; } I.pushedH = ''; await say(I.groups[h].st === 'ok' ? `✅ @${h} 已通过，几分钟内所有雷达都看得到` : `已拒绝 @${h}`); return; }
     if (/^(邀请状态|邀請狀態|invstat)$/i.test(txt)) { await say(`邀请名单：绑定 ${Object.keys(I.joins).length}（生效 ${Object.values(I.joins).filter(counted).length}）、专属码 ${Object.keys(I.own).length}、社群 ${Object.values(I.groups).filter((g) => g.st === 'ok').length}\n最近：\n${I.log.slice(-8).join('\n')}`); return; }
   }
   const sp = txt.match(/^\/start(?:@\w+)?\s+(\S+)/);
+  if (sp && await xStart(bindCheck.X, env, m, sp[1], say)) return;
   if (sp) { let payload = sp[1]; let x; const pl = payload.toLowerCase(); if (CODE_RE.test(pl) && codeOwner(I, pl)) payload = 'ref_' + pl;
     if ((x = payload.match(/^ref_([a-z0-9_]{3,10})$/))) { I.pend[uid] = { code: x[1], at: Date.now() }; await say(`👋 欢迎！你的朋友邀请你用「罗宾猫雷达」（免费、开源、不碰私钥）。\n\n安装：把下面这一整段复制，丢给你电脑上的 AI：\n\n帮我安装 ${GH} ，我的邀请码是 ${x[1]}\n\n邀请码会自动存进雷达，不用自己填。装好、连上钱包后，雷达会提示你点一下「完成绑定」。`); return; }
     if (/^j_/.test(payload)) { await say('这是旧版雷达的登记方式，已经停用。请先把雷达更新到最新版，再到雷达里按「完成绑定」。'); return; }
@@ -100,7 +143,7 @@ async function onTg(I, env, m, bindCheck) {
     const P = { k, c, w, s, v }; if (!bindCheck(P)) { await say('❌ 钱包签名核对不过，没有登记。请回雷达再按一次「完成绑定」'); return; }
     await say(doBind(I, P, uid, user).msg); return; }
   if (I.pend[uid] && /0x[0-9a-fA-F]{40}/.test(txt)) { await say('现在改成在雷达里按「完成绑定」，不用贴钱包地址了。'); return; }
-  if (/^\/?(积分|積分|points)(@\w+)?$/i.test(txt)) { await say('积分在雷达「🎁 邀请好友」卡片里看（每几个小时更新一次）。'); return; }
+  if (/^\/?(积分|積分|points)(@\w+)?$/i.test(txt)) { const en = /points/i.test(txt); let out; try { const PR = await bindCheck.st.get('PR'); out = tgReply((await bindCheck.st.get('PL')) || null, uid, PR ? loadRules(PR) : null, en); } catch { out = en ? 'Points data is not available right now — please try again later.' : '积分资料暂时读不到，请稍后再试。'; } await say(out); return; }
   if (!txt || /^\/start\b/.test(txt)) { await say('👋 这里是罗宾猫雷达的反馈信箱。\n直接把你想要的功能、遇到的问题打出来送出就好（在雷达按「💡 反馈」会帮你整理好格式）。\nNancy 会看过每一则，好的建议会做进下一个官方版本。'); return; }
   if (/^\//.test(txt)) return;
   const day = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); if (I.fb.d !== day) I.fb = { d: day, n: {} }; const n = (I.fb.n[uid] || 0) + 1; I.fb.n[uid] = n; if (n > FB_PER_DAY) return;
@@ -148,18 +191,43 @@ async function ghPut(env, I, name, body) { if (!env.GH_TOKEN) return false; cons
   const r = await fetch(api, { method: 'PUT', headers: H, body: JSON.stringify({ message: name + ' ' + new Date().toISOString().slice(0, 16), content: btoa(String.fromCharCode(...enc.encode(body))), ...(I[sk] ? { sha: I[sk] } : {}) }) }).catch(() => null);
   if (!r) return false; if (r.status === 409 || r.status === 422) { I[sk] = ''; return false; } if (r.ok) { I[sk] = (await r.json()).content?.sha || ''; return true; } return false; }
 
+/* 积分（照 runFromBot＋publish 的积分那段）：每 10 分钟算一次；规则 PR 来自 GangPaper/points/points_rules.json */
+const OWNER_PTS = { codes: [NANCY_CODE, ...RESV], wallet: NANCY_W };
+async function pointsRun(I, env, st) {
+  const PR = await st.get('PR'); if (!PR) return; const rules = loadRules(PR); if (!rules.on.enabled) return;
+  const L = (await st.get('L')) || []; const bad = await ledgerOk(L); if (bad) throw new Error('账本检查没过（' + bad + '）');
+  const cache = (await st.get('PC')) || { w: {} }; cache.w = cache.w || {};
+  const pre = computePoints({ rows: L, bot: I, rules, cache, now: Date.now(), owner: OWNER_PTS });
+  await sample({ need: pre.need, cache, rules, rpc, explorer: null, now: Date.now });
+  await st.put('PC', cache);
+  const res = computePoints({ rows: L, bot: I, rules, cache, now: Date.now(), owner: OWNER_PTS });
+  await st.put('PL', { at: res.at, persons: res.persons, review: res.review, owner: OWNER_PTS });
+  const on = rules.on; if (on.top == null || on.maxItems == null || on.pushHours == null) return;
+  for (const p of res.persons) for (const c of p.codes) { const k = 'rcv4:' + c; if (!I.hc[k]) I.hc[k] = await pbk(I.salt, 'rcv4:', c); }
+  const pubC = new Set(Object.values(I.groups || {}).filter((g) => g && g.st === 'ok' && g.code).map((g) => String(g.code).toLowerCase()));
+  const pd = publicPayload(res, rules, { salt: I.salt, it: INV_IT, publicCodes: pubC, fp: (c) => I.hc['rcv4:' + c] });
+  const h = await sha(JSON.stringify(pd)); if (h === I.ptsH && Date.now() - (I.ptsAt || 0) < on.pushHours * 3600e3) return;
+  I.pseq = Math.max(Date.now(), (+I.pseq || 0) + 1); const data = JSON.stringify({ ...pd, at: Date.now(), type: 'points', seq: I.pseq });
+  await st.put('ppub', JSON.stringify({ data, sig: await signData(env, data) })); I.ptsH = h; I.ptsAt = Date.now(); I.pghPend = 1; note(I, `积分更新：${res.persons.length} 人`);
+}
+
 /* ---------- Durable Object 里跑（物件名 inv-main） ---------- */
 export async function invDo(obj, req, env, tools) {
   const iu = new URL(req.url); const st = obj.ctx.storage;
   let I = (await st.get('I')) || blank(); I = { ...blank(), ...I };
-  const save = async () => { delete I._hn; await st.put('I', I); };
+  const save = async () => { delete I._hn; if (I._led?.length) { const L = (await st.get('L')) || []; for (const [t, d, at] of I._led) await ledgerAdd(L, t, d, at); await st.put('L', L); } delete I._led; await st.put('I', I); };
+  if (iu.pathname === '/_pts_pub') { const p = await st.get('ppub'); return p ? new Response(p, { headers: { 'content-type': 'application/json' } }) : new Response(JSON.stringify({ err: 'not loaded' }), { status: 503 }); }
   if (iu.pathname === '/_inv_pub') { const p = await st.get('pub'); return p ? new Response(p, { headers: { 'content-type': 'application/json' } }) : new Response(JSON.stringify({ err: 'not loaded' }), { status: 503 }); }
   if (iu.pathname === '/_inv_bind') { if (!I.salt) return new Response(JSON.stringify({ wait: 1 })); /* 还没汇入资料 → 先不处理，留在队列 */ const { P } = await req.json(); const r = doBind(I, P, 'rb:' + P.w, ''); await save(); return new Response(JSON.stringify(r)); }
-  if (iu.pathname === '/_inv_tg') { const up = await req.json(); const m = up.message; if (m?.from && m.chat?.type === 'private') { await onTg(I, env, m, tools.bindCheck); await save(); } return new Response('ok'); }
+  if (iu.pathname === '/_inv_tg') { const up = await req.json(); const m = up.message; if (m?.from && m.chat?.type === 'private') { const bc = tools.bindCheck; bc.st = st; bc.X = { ...xBlank(), ...((await st.get('X')) || {}) }; await onTg(I, env, m, bc); await st.put('X', bc.X); await save(); } return new Response('ok'); }
+  if (iu.pathname === '/_x_pub') { const p = await st.get('xpub'); return p ? new Response(p, { headers: { 'content-type': 'application/json' } }) : new Response(JSON.stringify({ err: 'not loaded' }), { status: 503 }); }
   if (iu.pathname === '/_inv_import') { const D = await req.json(); if (!D || typeof D.joins !== 'object' || typeof D.own !== 'object' || !/^[0-9a-f]{32}$/.test(String(D.salt || ''))) return new Response(JSON.stringify({ err: 'fmt' }), { status: 400 });
-    I = { ...blank(), joins: D.joins, own: D.own, groups: D.groups || {}, pend: D.pend || {}, titles: D.titles || {}, tids: D.tids || {}, salt: D.salt, hc: D.hc || {}, seq: Math.max(+D.seq || 0, +I.seq || 0) }; note(I, `从 GangPaper 汇入：绑定 ${Object.keys(I.joins).length}、专属码 ${Object.keys(I.own).length}`); await save();
-    return new Response(JSON.stringify({ ok: 1, joins: Object.keys(I.joins).length, own: Object.keys(I.own).length })); }
-  if (iu.pathname === '/_inv_export') return new Response(JSON.stringify({ day: new Date().toISOString().slice(0, 10), joins: I.joins, own: I.own, groups: I.groups }));
+    I = { ...blank(), joins: D.joins, own: D.own, groups: D.groups || {}, pend: D.pend || {}, titles: D.titles || {}, tids: D.tids || {}, salt: D.salt, hc: D.hc || {}, seq: Math.max(+D.seq || 0, +I.seq || 0) }; note(I, `从 GangPaper 汇入：绑定 ${Object.keys(I.joins).length}、专属码 ${Object.keys(I.own).length}`);
+    if (Array.isArray(D.ledger)) { const bad = await ledgerOk(D.ledger); if (bad) return new Response(JSON.stringify({ err: '账本 ' + bad }), { status: 400 }); await st.put('L', D.ledger); }
+    if (D.xwatch && typeof D.xwatch === 'object' && D.xwatch.acc) await st.put('X', { ...xBlank(), ...D.xwatch, pubH: '' });
+    if (D.rules && typeof D.rules === 'object') await st.put('PR', D.rules); if (D.pcache && typeof D.pcache === 'object') await st.put('PC', D.pcache); if (Number.isSafeInteger(D.pseq)) I.pseq = D.pseq; await save();
+    return new Response(JSON.stringify({ ok: 1, joins: Object.keys(I.joins).length, own: Object.keys(I.own).length, ledger: ((await st.get('L')) || []).length })); }
+  if (iu.pathname === '/_inv_export') return new Response(JSON.stringify({ day: new Date().toISOString().slice(0, 10), joins: I.joins, own: I.own, groups: I.groups, pend: I.pend, titles: I.titles, tids: I.tids, hc: I.hc, seq: I.seq || 0 }));
   if (iu.pathname === '/_inv_tick') { /* 每分钟（Cron）：链上核对 → 社群标题 → 组名单 → 有变才签名发布 */
     if (!I.salt) return new Response('no data');
     try { await verifyChain(I); } catch {} try { await titles(I); } catch {}
@@ -169,6 +237,11 @@ export async function invDo(obj, req, env, tools) {
       I.seq = Math.max(Date.now(), (+I.seq || 0) + 1); const data = JSON.stringify({ ...core, at: Date.now(), seq: I.seq }); const body = JSON.stringify({ data, sig: await signData(env, data) });
       await st.put('pub', body); I.pushedH = h; I.pushedAt = Date.now(); I.ghPend = 1; } }
     if (I.ghPend) { const body = await st.get('pub'); if (body && await ghPut(env, I, 'invites.json', body)) I.ghPend = 0; }
+    if (Date.now() - (I.ptsRun || 0) > 10 * 60e3) { I.ptsRun = Date.now(); try { await pointsRun(I, env, st); } catch (e) { note(I, '积分这轮没算：' + String(e?.message || e).slice(0, 80)); } }
+    { const X = (await st.get('X')) || null; if (X) { try { await xPoll(X, env); } catch {} const D = { v: 1, acc: xOk(X).map((h) => ({ h, n: xN(X.acc[h]) })), hits: X.hits }; const h = await sha(JSON.stringify(D));
+      if (h !== X.pubH) { X.seq = Math.max(Date.now(), (+X.seq || 0) + 1); const data = JSON.stringify({ type: 'xwatch', ...D, at: Date.now(), seq: X.seq }); await st.put('xpub', JSON.stringify({ data, sig: await signData(env, data) })); X.pubH = h; X.ghPend = 1; }
+      if (X.ghPend) { const body = await st.get('xpub'); if (body && await ghPut(env, I, 'xwatch.json', body)) X.ghPend = 0; } await st.put('X', X); } }
+    if (I.pghPend) { const body = await st.get('ppub'); if (body && await ghPut(env, I, 'points.json', body)) I.pghPend = 0; }
     await save(); return new Response('ok'); }
   return new Response('not found', { status: 404 });
 }

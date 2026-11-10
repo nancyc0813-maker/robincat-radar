@@ -61,7 +61,7 @@ async function inList(env, w) { const rw = await members(env); if (!rw) return f
    转接站先核对官方签名、type 要对、seq 不能比上次收过的旧（记在 sig-seq 物件，全球一致），雷达拿到后照样自己再验一次 ── */
 const MIRROR = { points: { ms: 10 * 60e3 }, xwatch: { ms: 2 * 60e3 } }; /* 技术用：多久重新抓一次（跟雷达读 GitHub 的间隔一样） */
 const MIRROR_RETRY_MS = 60e3; /* 技术用：抓失败后多久再试（失败时继续给手上验过的那份） */
-async function offVerify(j) { if (typeof j?.data !== 'string' || typeof j?.sig !== 'string') return false; for (const k of [OFFICIAL_PUB, OFFI.INV_PUB].filter(Boolean)) { try { const key = await crypto.subtle.importKey('spki', Uint8Array.from(atob(k), (c) => c.charCodeAt(0)), { name: 'Ed25519' }, false, ['verify']); if (await crypto.subtle.verify({ name: 'Ed25519' }, key, Uint8Array.from(atob(j.sig), (c) => c.charCodeAt(0)), enc.encode(j.data))) { if (k === OFFICIAL_PUB) return true; try { return ['invites', 'points', 'blacklist'].includes(JSON.parse(j.data).type); } catch { return false; } } } catch {} } return false; } /* V120-INV：邀请专用金钥只认邀请类资料 */
+async function offVerify(j) { if (typeof j?.data !== 'string' || typeof j?.sig !== 'string') return false; for (const k of [OFFICIAL_PUB, OFFI.INV_PUB].filter(Boolean)) { try { const key = await crypto.subtle.importKey('spki', Uint8Array.from(atob(k), (c) => c.charCodeAt(0)), { name: 'Ed25519' }, false, ['verify']); if (await crypto.subtle.verify({ name: 'Ed25519' }, key, Uint8Array.from(atob(j.sig), (c) => c.charCodeAt(0)), enc.encode(j.data))) { if (k === OFFICIAL_PUB) return true; try { return ['invites', 'points', 'blacklist', 'xwatch'].includes(JSON.parse(j.data).type); } catch { return false; } } } catch {} } return false; } /* V120-INV：邀请专用金钥只认邀请类资料 */
 async function mirrorGet(env, name) { const C = MIRROR[name]; if (!C.raw) C.raw = ''; if (!C.seq) C.seq = 0; if (!C.at) C.at = 0;
   if (Date.now() - C.at >= C.ms) { C.at = Date.now();
     try { const j = await (await fetch(OFFI.DATA_RAW + name + '.json?t=' + Math.floor(Date.now() / C.ms), { cf: { cacheTtl: 60 } })).json(); if (!(await offVerify(j))) throw new Error('sig');
@@ -298,7 +298,9 @@ export default {
     if (req.method !== 'GET') return new Response('method', { status: 405 });
     if (u.pathname === '/aveboard2' && req.method === 'GET') return aveBoard2(req, u, env); /*BOARD124*/
     if (u.pathname === '/ave') return aveProxy(req, u, env);
+    if (u.pathname === '/points.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_pts_pub'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：积分改由转接站算 */
     if (u.pathname === '/points.json') return mirrorGet(env, 'points'); /* V105-2：积分镜像 */
+    if (u.pathname === '/xwatch.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_x_pub'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：X 监测改由转接站查 */
     if (u.pathname === '/xwatch.json') return mirrorGet(env, 'xwatch'); /* V105-2：X 监测镜像 */
     if (u.pathname === '/bind/status') return bindStat(u, env); /* V105-1 */
     if (u.pathname === '/avews') return aveWsRoute(req, env); /* AVE-WSS（11/4）：即时推送（WebSocket） */
