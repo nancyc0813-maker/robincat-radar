@@ -38,6 +38,7 @@ globalThis.TRAYUPD123 = { trayTpl, trayUpd }; /* 测试用 */
 ipcMain.handle('uiLang', (e, l) => { const v = l === 'en' ? 'en' : 'zh'; if (v !== UI_LANG) { UI_LANG = v; trayLang(); } return UI_LANG; });
 
 if (!app.requestSingleInstanceLock()) { app.quit(); }
+{ try { const qf = path.join(__dirname, '..', 'data', 'quit.req'); if (fs.existsSync(qf)) { fs.unlinkSync(qf); app.exit(0); } } catch {} } /*QUIT-1111 data/quit.req 存在＝这次启动直接关掉（用来远端关雷达；关掉时自己删档，下次照常开）*/
 app.on('second-instance', () => { if (win) { win.show(); win.focus(); } });
 
 function readJSON(f, d) { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } }
