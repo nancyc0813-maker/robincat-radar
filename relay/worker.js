@@ -298,9 +298,9 @@ export default {
     if (req.method !== 'GET') return new Response('method', { status: 405 });
     if (u.pathname === '/aveboard2' && req.method === 'GET') return aveBoard2(req, u, env); /*BOARD124*/
     if (u.pathname === '/ave') return aveProxy(req, u, env);
-    if (u.pathname === '/points.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_pts_pub'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：积分改由转接站算 */
+    if (u.pathname === '/points.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_pts'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：积分改由转接站算 */
     if (u.pathname === '/points.json') return mirrorGet(env, 'points'); /* V105-2：积分镜像 */
-    if (u.pathname === '/xwatch.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_x_pub'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：X 监测改由转接站查 */
+    if (u.pathname === '/xwatch.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_xpub'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：X 监测改由转接站查 */
     if (u.pathname === '/xwatch.json') return mirrorGet(env, 'xwatch'); /* V105-2：X 监测镜像 */
     if (u.pathname === '/bind/status') return bindStat(u, env); /* V105-1 */
     if (u.pathname === '/avews') return aveWsRoute(req, env); /* AVE-WSS（11/4）：即时推送（WebSocket） */
