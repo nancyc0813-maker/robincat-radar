@@ -9,6 +9,10 @@ import { dirname, join, posix, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { createRequire } from 'node:module'; import { AsyncLocalStorage } from 'node:async_hooks'; const ACK = new AsyncLocalStorage(); /* 这张单你是否按了「仍然执行」 */ const GATE_CTX = new AsyncLocalStorage(); /* GATE-1：这一笔是谁下的（TG 指令＝src:tg）——统一动作闸门用 */ const FACK = new Set(), FACKA = new Set(); /* 强制打时按了「仍然执行」的合约／也勾了「我看懂了」授权的 */ globalThis.ACK_STORE = () => ACK.getStore(); /* rh.mjs／bscnft.mjs 读：这张单是不是你按了「仍然执行」 */
+/* SPAWNLOG-1107 診斷：記下每一次叫出別的程式（時間、有沒有隱藏視窗、指令），找黑框閃一下的來源；只寫 data/spawn.log，不影響功能 */
+import _cpm from 'node:child_process'; import { syncBuiltinESMExports as _sbe } from 'node:module'; import * as _fsl from 'node:fs';
+{ const F = new URL('./data/spawn.log', import.meta.url); const lg = (fn, a) => { try { const o = a.find((x) => x && typeof x === 'object' && !Array.isArray(x)) || {}; const c = [a[0], ...(Array.isArray(a[1]) ? a[1] : [])].join(' ').replace(/\s+/g, ' ').slice(0, 140); _fsl.appendFileSync(F, `${new Date().toISOString()} engine ${fn} hide=${o.windowsHide ? 1 : 0} ${c}\n`); try { if (_fsl.statSync(F).size > 3e5) _fsl.writeFileSync(F, ''); } catch {} } catch {} };
+  for (const fn of ['spawn', 'spawnSync', 'execFile', 'execFileSync', 'execSync', 'exec']) { const o = _cpm[fn]; if (typeof o === 'function') _cpm[fn] = function (...a) { lg(fn, a); return o.apply(this, a); }; } _sbe(); }
 const DIR = dirname(fileURLToPath(import.meta.url));
 /* HN-FIX 11/5：电脑名是中文时，币安 baw 把它放进 HTTP 标头会出错（登入、扫码、下单全卡）→ 只对 baw 子程序换成英文设备名 */
 { try { const _os = await import('node:os'); const _h = _os.hostname(); if (/[^\x20-\x7e]/.test(_h)) { const _fs = await import('node:fs'); const _p = join(DIR, 'data', 'hn_shim.cjs'); const _safe = 'RobinCat-' + Buffer.from(_h).toString('hex').slice(0, 8); _fs.mkdirSync(join(DIR, 'data'), { recursive: true }); _fs.writeFileSync(_p, "const os=require('os');os.hostname=()=>" + JSON.stringify(_safe) + ";require('module').syncBuiltinESMExports();\n"); const _o = String(process.env.NODE_OPTIONS || ''); if (!_o.includes('hn_shim.cjs')) process.env.NODE_OPTIONS = (_o + ' --require ' + JSON.stringify(_p)).trim(); } } catch {} }
@@ -3315,7 +3319,7 @@ async function tgCmdLoop() {
   if (S.tgOff == null) { try { const r = await (await fetch(`${TG_API}/bot${TG.a}/getUpdates?timeout=0`)).json(); const u = r.result || []; S.tgOff = u.length ? u[u.length - 1].update_id + 1 : 0; save(); } catch { S.tgOff = 0; } }
   for (;;) {
     try {
-      const resp = await fetch(`${TG_API}/bot${TG.a}/getUpdates?timeout=25&offset=${S.tgOff}&allowed_updates=${encodeURIComponent(JSON.stringify(['message', 'edited_message']))}`, { signal: AbortSignal.timeout(35000) }); const r = await resp.json();
+      const resp = await fetch(`${TG_API}/bot${TG.a}/getUpdates?timeout=25&offset=${S.tgOff}&allowed_updates=${encodeURIComponent(JSON.stringify(nrOn('tgbot.on') ? ['message', 'edited_message', 'channel_post'] : ['message', 'edited_message']))}`, { signal: AbortSignal.timeout(35000) }); const r = await resp.json();
       { const sd = Date.parse(resp.headers.get('date') || ''); if (Number.isFinite(sd)) TG_SKEW = sd - Date.now(); } /* 用 Telegram 伺服器的时间校正（电脑时钟不准也不会误判太旧） */
       if (r.ok === false) { const code = r.error_code, ra = +(r.parameters?.retry_after || 0); const why = code === 409 ? '同一个机器人 token 有另一个程式在收讯息（两个雷达或别的 bot 程式在用同一个 token）' : code === 401 ? '机器人 token 无效（被撤销或打错）' : String(r.description || '').slice(0, 120); if (TG_ERR !== code) { TG_ERR = code; log('TG 收不到指令：' + why + ((code === 401 || code === 409) ? '。如果 token 可能外流，请到 @BotFather 用 /revoke 换新的 token，再到雷达设定填新的' : '')); } try { writeFileSync(join(DIR, 'data', 'tg_status.json'), JSON.stringify({ at: Date.now(), ok: false, code, why })); } catch {} await sleep(Math.max(ra * 1000, TG_ERR_WAIT_MS)); continue; } /* 出错不要一直狂问 */
       if (TG_ERR !== null) { TG_ERR = null; log('TG 指令恢复正常'); try { writeFileSync(join(DIR, 'data', 'tg_status.json'), JSON.stringify({ at: Date.now(), ok: true })); } catch {} }
@@ -3324,6 +3328,7 @@ async function tgCmdLoop() {
       for (const u of r.result || []) {
         S.tgOff = u.update_id + 1; save();
         if (u.edited_message) { if (tgMine(u.edited_message) && u.edited_message.text) await tgSay('编辑过的指令不会执行，请重新发送一则新的讯息'); continue; } 
+        { const gm = u.message || u.channel_post; if (gm && gm.chat && gm.chat.type !== 'private') { if (nrOn('tgbot.on')) await tgBotHit(gm).catch(() => {}); continue; } } /* TGBOT-1110 机器人读群／频道贴文（开关 tgbot.on，预设关）；非私讯一律不当指令，只在开关开着时记合约 */
         const m = u.message; if (!m || !tgMine(m) || !m.text) continue; // 只听使用者本人（T5：私讯、不是转发、不是透过别的 bot）
         const txt = m.text.trim().replace(/^\//, '');
         if (tgNow() - m.date > TG_OLD_S && !/^(暫停|暂停|全停|紧急全停|緊急全停|pause|stop)$/i.test(txt)) { await tgSay(`这则指令是 ${Math.round((tgNow() - m.date) / 60)} 分钟前发的（雷达刚才没在线），为了安全没执行：「${txt.slice(0, 40)}」。要的话请重新发一次`); continue; } // 太旧的指令不执行（全停除外）
@@ -3438,6 +3443,18 @@ setInterval(async () => { if (globalThis._bindBusy || !WALLETS[0] || !BIND) retu
 /* 拿掉「USDT 自动换回 BNB」——一键买可以直接选用 BNB 或 U 付，不替用户互换（浪费时间和手续费） */
 
 
+/* TGBOT-1110 机器人读群：把机器人拉进你的群（频道要设管理员），群里贴的 0x 合约加进追踪（只追踪，不直接买；打不打照你原本的规则）。本机跑，不花 Claude 用量，不存讯息内容 */
+async function tgBotHit(m) {
+  const text = String(m.text || m.caption || ''); const addrs = [...new Set((text.match(/0x[a-fA-F0-9]{40}/g) || []).map((x) => x.toLowerCase()))]; if (!addrs.length) return;
+  const title = String(m.chat?.title || m.chat?.username || m.chat?.id || '群').replace(/[\u0000-\u001f<>]/g, ''); const src = '🤖 ' + title; S.callSeen = S.callSeen || {}; S.callHits = S.callHits || {};
+  const key = 'bot:' + m.chat.id + '/' + m.message_id; if (S.callSeen[key]) return; S.callSeen[key] = ts();
+  const name = (text.match(/\$([A-Za-z0-9_一-鿿]{2,20})/) || [])[1] || '';
+  for (const c of addrs) { if (INFRA.has(c)) continue; const code = ((await rpc('eth_getCode', [c, 'latest']).catch(() => '')) || '').toLowerCase(); if (code.length <= 2) continue;
+    const hits = (S.callHits[c] = S.callHits[c] || []); if (!hits.includes(src)) hits.push(src); (S.callLog = S.callLog || []).push({ c, src, at: Date.now() }); if (S.callLog.length > 600) S.callLog.splice(0, S.callLog.length - 600);
+    S.paid = S.paid || {}; if (!S.paid[c]) S.paid[c] = { at: Date.now(), name: name ? '$' + name : '群项目', done: {}, fromCall: key, needLearn: 1 }; S.paid[c].calls = hits.length;
+    log(`机器人在「${title}」看到：${name ? '$' + name + ' ' : ''}${c} 加入追踪（目前 ${hits.length} 个来源提到；只追踪，打不打照规则）`); }
+  save();
+}
 async function callChannelWatch() { /* 监测你自己在雷达「设定 → 监测的 TG 频道」填的公开频道（data/tg_channels.txt 一行一个频道名；没填＝不监测，没有内建频道），频道贴的合约自动加入追踪，照同一套规则决定打不打；在本机跑，不花钱、不花 Claude 用量 */
   let chs = []; try { const f = join(DIR, 'data', 'tg_channels.txt'); if (existsSync(f)) { const l = readFileSync(f, 'utf8').split(/\r?\n/).map((x) => x.trim().replace(/^@|^https?:\/\/t\.me\/(s\/)?/i, '').replace(/\/.*$/, '')).filter((x) => /^[A-Za-z0-9_]{4,40}$/.test(x)); chs = [...new Set(l)]; } } catch {}
   S.callSeen = S.callSeen || {}; S.callHits = S.callHits || {};

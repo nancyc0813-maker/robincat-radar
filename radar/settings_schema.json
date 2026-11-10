@@ -6888,6 +6888,18 @@
    "xen": "Turned off “Free mints: notify only” (they conflict)"
   },
   {
+   "k": "tgbot.on",
+   "g": "tgmon",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "用机器人读我的群（不用登入 TG 帐号）",
+   "en": "Read my groups with the bot (no TG login)",
+   "dzh": "把雷达的 TG 机器人拉进你的群（频道要设成管理员；群要在 BotFather 把隐私模式关掉），群里贴的合约加进追踪清单（只追踪，打不打照你的规则）。没开＝不读",
+   "den": "Add the radar bot to your group (channels: make it admin; groups: turn privacy mode off in BotFather). Contracts posted there are added to tracking only. Off = not read"
+  },
+  {
    "k": "tgmon.on",
    "g": "tgmon",
    "type": "bool",

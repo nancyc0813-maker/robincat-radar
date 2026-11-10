@@ -68,6 +68,7 @@ contextBridge.exposeInMainWorld('radar', {
   xKeysStatus: () => call('xKeysStatus'),
   saveXKeys: (a, b) => call('saveXKeys', S(a, 300), S(b, 300)),
   feedback: () => call('feedback'),
+  tgBotSave: (t, c) => call('tgBotSave', S(t, 120), S(c, 20)),
   tgChannels: () => call('tgChannels'),
   tgChannelsSave: (l) => call('tgChannelsSave', A(l, 500).map((x) => S(x, 80))),
   saveSettings: (s) => call('saveSettings', O(s)),
