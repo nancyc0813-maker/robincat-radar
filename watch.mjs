@@ -1962,6 +1962,7 @@ async function radarOrders() {
       } catch (e) { return { c, kind: 'other', why: '读取失败：' + e.message.slice(0, 60) }; } }));
       out.found.sort((a, b) => (b.self - a.self) || ((b.kind === 'mint') - (a.kind === 'mint')));
       W_(out); log(`雷达搜寻 ${q}：${out.found.length} 个合约`); })().catch((e) => log('雷达搜寻出错 ' + e.message)); continue; }
+    if (o.mc != null && MCT && MCT.MCT_CHAINS[String(o.mc)] && (o.type === 'buy' || o.type === 'sell')) { if (Date.now() - (o.at || 0) > 5 * 60e3) continue; if (o.type === 'buy') { const bb = buyBlock(); if (bb) { log(`雷达手动买 ${o.name || o.c}（${o.mc}）：${bb}`); continue; } } await MCT.mctOrder(o, { DIR, WALLETS, log, tgSay }).catch((e) => log('多链买卖出错 ' + e.message)); continue; } /*MCT-1111 钱包支援的其他 EVM 链：手动买卖（一样经过 W.baw 的统一闸门）*/
     const c = String(o.c || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(c) || Date.now() - (o.at || 0) > 5 * 60e3) continue; if (o.mc != null || o.mcChain != null || (o.chain != null && o.chain !== '' && !['56', '4663'].includes(String(o.chain)))) { log(`雷达单 ${o.type} ${o.name || c}：不是雷达现有买卖的链（${String(o.chain ?? o.mcChain ?? o.mc).slice(0, 20)}），不执行`); continue; } /*MC121-ORD 引擎也挡一次：只执行 BNB Chain／Robinhood 的单*/ /* 过期的旧单（例如重开前按的）不执行，只会挡、不会多买 */
     if (['buy', 'mint', 'nftmint', 'shareMint'].includes(o.type)) { const bb = buyBlock(); if (bb) { log(`雷达${o.type === 'buy' ? '手动买' : '铸造'} ${o.name || c}：${bb}`); try { writeFileSync(join(DIR, 'data', 'buy_block.json'), JSON.stringify({ at: Date.now(), c, name: o.name || '', msg: bb })); } catch {} continue; } } /* 全停／手动买关闭时，雷达、手机送来的买单一律不执行 */
     if (o.type === 'sentRevoke' || o.type === 'sentAck') { if (globalThis.SENTINEL) globalThis.SENTINEL.order(o).catch((e) => log('安全哨兵 ' + e.message)); else log('安全哨兵模组没载入'); continue; } /* 你按的「去取消授权」／「知道了」（取消授权只拿掉对方权限，不转钱） */
@@ -2018,7 +2019,7 @@ let _loginBusy = false;
 /* 新增／登出钱包要马上反应 → 每分钟查一次登入状态；登出的钱包所有买卖、铸造都先跳过（不会一直失败、乱发通知），重新连接就自动恢复 */
 /* 送出前一刻再挡一次（卖、撤销授权照常）
    ② 参数只能是位址／数字／十六进位：第一个钱包是用命令列呼叫的，节点或项目方回来的资料如果夹带特殊字元就挡下，防止被塞指令 */
-const BAW_STABLE = new Set(['0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', '0x55d398326f99059ff775485246999027b3197955', '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', '0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d', '0x5fc5360d0400a0fd4f2af552add042d716f1d168']);
+const BAW_STABLE = new Set(['0xdac17f958d2ee523a2206206994597c13d831ec7', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913', '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9', '0xaf88d065e77c8cc2239327c5edb3a432268e5831', /*MCT-1111 ETH／Base／Arbitrum 的 USDT／USDC：换回这些＝卖出；紧急全停时拿它们买＝挡*/ '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', '0x55d398326f99059ff775485246999027b3197955', '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', '0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d', '0x5fc5360d0400a0fd4f2af552add042d716f1d168']);
 const bawArg = (a, k) => { const i = a.indexOf(k); return i >= 0 ? String(a[i + 1] || '').toLowerCase() : ''; };
 function bawBlock(W, a) {
   if (!Array.isArray(a)) return '参数格式不对';
@@ -2185,6 +2186,7 @@ let BA = null; try { const { makeBscAnalyze } = await import('./bscanal.mjs?v=' 
 let BN = null; try { const { startBscNft } = await import('./bscnft.mjs?v=' + Date.now()); BN = startBscNft({ rpc, rpcBatch, WALLETS, log, tg, S, save, radarOff, radarSet, previewExec, bnbUsd }); } catch (e) { log('BSC NFT 载入失败 ' + e.message); } /* BSC NFT 铸造 */
 try { if (OWNER_OK() && existsSync(join(DIR, '.sign', 'ave_key.txt'))) { /* 作者本人版（owner.sig 验过）才跑 AVE 看盘资料整理 */ const { startAve } = await import('./ave.mjs?v=' + Date.now()); startAve({ DIR, log, tg: tgSay }); } } catch (e) { log('AVE 资料载入失败 ' + e.message); } /* AVE 合作资料（只有放了金钥的电脑会跑） */
 try { const { startSmart } = await import('./smart.mjs?v=' + Date.now()); startSmart({ rpc, log, tg, S, save, radarSet }); } catch (e) { log('聪明钱包载入失败 ' + e.message); } /* 聪明钱包监控，本地跑 */
+var MCT = null; try { MCT = await import('./mctrade.mjs?v=' + Date.now()); } catch (e) { log('多链买卖模组载入失败 ' + e.message); } /*MCT-1111*/
 try { const { startSmartFind } = await import('./smartfind.mjs?v=' + Date.now()); startSmartFind({ DIR, rpc, log }); } catch (e) { log('找聪明钱载入失败 ' + e.message); } 
 /* ── AGC-BACK（老板 11/5：AGC 挖矿放回工具，照一般挖矿项目的机制走）
    agcc.fun「免费挖」：押 BNB 换份数，到期领回 BNB＋AGC。清单里跟其他挖矿项目一样（AI专属 → ⛏ AI挖矿），雷达多会的只有「挖」和「领回」：

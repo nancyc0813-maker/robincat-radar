@@ -1008,11 +1008,13 @@ const MC_CHAINS = [ /* 看盘链选单（热门链在前）；ave＝AVE 的链�
   { k: 'bsc', ave: 'bsc', zh: 'BNB Chain', en: 'BNB Chain', ic: '🟡', addr: 'evm', doc: 1, own: 'bsc' },
   { k: 'eth', ave: 'eth', zh: 'Ethereum', en: 'Ethereum', ic: '🔷', addr: 'evm', doc: 0 },
   { k: 'base', ave: 'base', zh: 'Base', en: 'Base', ic: '🔵', addr: 'evm', doc: 0 },
+  { k: 'arbitrum', ave: 'arbitrum', zh: 'Arbitrum', en: 'Arbitrum', ic: '🔹', addr: 'evm', doc: 0 }, /*MCT-1111 币安钱包 wallet chains 有回报的链*/
+  { k: 'polygon', ave: 'polygon', zh: 'Polygon', en: 'Polygon', ic: '🟪', addr: 'evm', doc: 0 },
   { k: 'robinhood', ave: 'robinhood', zh: 'Robinhood', en: 'Robinhood', ic: '🟢', addr: 'evm', doc: 1, own: 'rh' },
   { k: 'elysium', ave: 'elysium', zh: 'Elysium', en: 'Elysium', ic: '🌐', addr: 'evm', doc: 0, own: 'ely' },
 ]; /* doc：AVE 文件有没有写到这个链代号（0＝沿用 ave.ai 网址的写法，AVE 不认就显示读不到） */
 const MC_WALLET_KINDS = { /* 钱包种类 → 怎么读它支援哪些链。之后加 OKX AI 钱包＝在这里加一种（引擎写进 wallet_chains.json 的 kinds.<种类>） */
-  binance: { zh: '币安 AI 钱包（baw）', en: 'Binance AI wallet', ids: { '56': 'bsc', '1': 'eth', '8453': 'base', 'CT_501': 'solana', '4663': 'robinhood' } },
+  binance: { zh: '币安 AI 钱包（baw）', en: 'Binance AI wallet', ids: { '56': 'bsc', '1': 'eth', '8453': 'base', 'CT_501': 'solana', '4663': 'robinhood', '42161': 'arbitrum', '137': 'polygon' } },
 };
 const MC_RADAR_TRADE = new Set(['bsc', 'robinhood']); /* 雷达已经有下单程式的链（现有行为，不动）；新链要等第 2 步逐链测试 */
 const MC_NEW = new Set(MC_CHAINS.filter((c) => !c.own).map((c) => c.k)); /* 这次新加、走多链面板的链 */
@@ -1031,7 +1033,8 @@ const mcTradeSet0 = () => { const o = readJSON(path.join(DATA, 'mc_trade.json'),
 function mcMode(ch, det) { /* trade＝雷达现有买卖（BNB Chain／Robinhood）；soon＝玩家打开了开关，但这一步还没接下单；view＝只能看（去 AVE 买） */
   if (MC_RADAR_TRADE.has(ch)) return 'trade'; if (!MC_NEW.has(ch)) return 'view';
   const D = det || mcDetected(); const sup = Object.values(D).some((L) => L.includes(ch)); if (!sup) return 'view';
-  return mcTradeSet0()[ch] === true ? 'soon' : 'view'; }
+  return MC_MANUAL.has(ch) ? 'trade' : 'view'; } /*MCT-1111 钱包回报支援、引擎有下单程式（mctrade.mjs）＝自动开放手动买卖；不用玩家另外开开关*/
+const MC_MANUAL = new Set(['eth', 'base', 'arbitrum', 'polygon']); /* mctrade.mjs 能手动买卖的链（Solana 等安全审核通过再加） */
 function mcChains() { const det = mcDetected(); const on = mcTradeSet0(); const W = readJSON(path.join(DATA, 'wallet_chains.json'), null);
   return { at: +W?.at || 0, kinds: Object.fromEntries(Object.entries(MC_WALLET_KINDS).map(([k, K]) => [k, { zh: K.zh, en: K.en, chains: det[k] || [], err: (() => { const L = Object.values(W?.kinds?.[k]?.wallets || {}).filter((x) => x && typeof x === 'object'); return L.length && !L.some((x) => x.ok) ? String(L.find((x) => x.err)?.err || 'unknown').replace(/[\u0000-\u001f<>]/g, ' ').slice(0, 120) : ''; })() /*MCFIX123-B 全部钱包都读失败＝侦测失败（写原因），不是「没侦测到新链」*/ }])),
     chains: MC_CHAINS.map((c) => ({ k: c.k, zh: c.zh, en: c.en, ic: c.ic, ave: c.ave, own: c.own || '', doc: c.doc, radar: MC_RADAR_TRADE.has(c.k) ? 1 : 0, det: Object.values(det).some((L) => L.includes(c.k)) ? 1 : 0, on: on[c.k] === true ? 1 : 0, mode: mcMode(c.k, det) })).map((x, i) => ({ x, i, r: x.mode === 'trade' ? 0 : x.mode === 'soon' ? 1 : x.own === 'ely' ? 3 : 2 })).sort((p, q) => p.r - q.r || p.i - q.i).map((z) => z.x) /*MCFIX123-D 可在雷达买卖 → 即将开放 → 只能看 → Elysium（只看）；照实际状态排，以后哪条链开放交易就自动往前*/ }; }
@@ -1040,7 +1043,7 @@ const mcTagTab = (tag, ave) => (tag === 'trend_' + ave ? 'hot' : /_in_new$/.test
 const MCC = new Map(); const mcGet = (k, ms) => { const v = MCC.get(k); return v && Date.now() - v.at < ms ? v.v : null; }; const mcPut = (k, v) => { MCC.set(k, { at: Date.now(), v }); if (MCC.size > MC_T.mem) MCC.delete(MCC.keys().next().value); return v; };
 const mcNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 /*MCFIX123-A 多链看盘清单：用户端看哪条链／哪个分页就经转接站查哪个 AVE 排行（转接站共用快取）。不靠作者电脑发布的共用档 */
-const MC_LISTQ = { solana: { hot: ['/v2/tokens/trending?chain=solana&page_size=100'], fresh: ['/v2/tokens/platform?tag=pump_in_new&limit=100'], soon: ['/v2/tokens/platform?tag=pump_in_almost&limit=100', '/v2/tokens/platform?tag=pump_in_hot&limit=100', '/v2/tokens/platform?tag=pump_in_new&limit=100'], done: ['/v2/tokens/platform?tag=pump_out_new&limit=100', '/v2/tokens/platform?tag=pump_out_hot&limit=100'] }, eth: { hot: ['/v2/tokens/trending?chain=eth&page_size=100'] }, base: { hot: ['/v2/tokens/trending?chain=base&page_size=100'] } };
+const MC_LISTQ = { solana: { hot: ['/v2/tokens/trending?chain=solana&page_size=100'], fresh: ['/v2/tokens/platform?tag=pump_in_new&limit=100'], soon: ['/v2/tokens/platform?tag=pump_in_almost&limit=100', '/v2/tokens/platform?tag=pump_in_hot&limit=100', '/v2/tokens/platform?tag=pump_in_new&limit=100'], done: ['/v2/tokens/platform?tag=pump_out_new&limit=100', '/v2/tokens/platform?tag=pump_out_hot&limit=100'] }, eth: { hot: ['/v2/tokens/trending?chain=eth&page_size=100'] }, base: { hot: ['/v2/tokens/trending?chain=base&page_size=100'] }, arbitrum: { hot: ['/v2/tokens/trending?chain=arbitrum&page_size=100'] }, polygon: { hot: ['/v2/tokens/trending?chain=polygon&page_size=100'] } };
 const MC_LIST_MS = MC_T.detMs; /* 技术用：清单在记忆体留多久（跟详情同一个快取时间） */ const mcListCu = (q) => (/trending/.test(q) ? 5 : 10); /* AVE 文件的单位数（计量用） */
 const mcListTag = (q) => (q.match(/tag=([a-z0-9_]+)/) || [])[1] || 'trend_' + ((q.match(/chain=([a-z]+)/) || [])[1] || 'x');
 async function mcList(q) { if (!fs.existsSync(AVE_KF) && !aveProof()) return { err: 'bind' }; /* 没金钥也没绑定＝转接站不会给，不去问 */ const ck = 'L|' + q; const hit = mcGet(ck, MC_LIST_MS); if (hit) return hit; const j = await aveGet(q, mcListCu(q)).catch(() => null); if (!j || j.status !== 1) return { err: aveWhy() || 'ave' }; const d = j.data; const arr = Array.isArray(d) ? d : Array.isArray(d?.tokens) ? d.tokens : []; return mcPut(ck, { at: Date.now(), arr }); }
@@ -1109,9 +1112,9 @@ ipcMain.handle('mc', async (e, act, o) => { o = o && typeof o === 'object' ? o :
   if (act === 'chains') return mcChains(); if (act === 'board') return await mcBoard(String(o.chain || ''), String(o.tab || ''), o.n);
   if (act === 'detail') return await mcDetail(String(o.chain || ''), o.c); if (act === 'kline') return await mcKline(String(o.chain || ''), o.c, String(o.tf || ''));
   if (act === 'trades') return await mcTrades(String(o.chain || ''), o.c, o.pair); if (act === 'wallet') return await mcWallet(String(o.chain || ''), o.w);
-  if (act === 'tradeSet') return mcTradeSet(String(o.chain || ''), o.on === true); if (act === 'aveUrl') return { u: mcAveUrl(String(o.chain || ''), o.c) };
+  if (act === 'tradeSet') return mcTradeSet(String(o.chain || ''), o.on === true); if (act === 'myTrades') { const a = readJSON(path.join(DATA, 'mc_trade.json'), []); return Array.isArray(a) ? a.slice(0, 30) : []; } /*MCT-1111 多链手动买卖的结果（只读）*/ if (act === 'aveUrl') return { u: mcAveUrl(String(o.chain || ''), o.c) };
   return { err: 'act' }; } catch (err) { return { err: String(err?.message || err).slice(0, 120) }; } });
-const mcOrderBad = (o) => { if (!o || typeof o !== 'object') return ''; if (o.mc != null || o.mcChain != null) return 'mc'; /* 多链面板不送单；有这个栏位的一律不收 */
+const mcOrderBad = (o) => { if (!o || typeof o !== 'object') return ''; if (o.mcChain != null) return 'mc'; if (o.mc != null) { const ch = String(o.mc); /*MCT-1111 钱包回报支援、雷达有下单程式的链＝只收手动买／卖单*/ if (!MC_MANUAL.has(ch) || mcMode(ch) !== 'trade' || !['buy', 'sell'].includes(String(o.type)) || !mcAddr(ch, o.c)) return 'mc'; for (const k of ['chain', 'net', 'ch']) if (o[k] != null && o[k] !== '') return 'mc'; return ''; }
   for (const k of ['chain', 'net', 'ch']) if (o[k] != null && o[k] !== '') { const v = String(o[k]).toLowerCase(); if (!['56', '4663', 'bsc', 'robinhood', 'rh'].includes(v)) return 'chain'; } return ''; }; /* 只收雷达现有买卖的链（BNB Chain／Robinhood） */
 globalThis.MC121 = { MC_CHAINS, MC_WALLET_KINDS, MC_RADAR_TRADE, mcMode, mcDetected, mcAveUrl, mcOrderBad }; /* 测试用 */
 /*MC121-END*/
