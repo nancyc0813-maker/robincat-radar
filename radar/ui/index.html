@@ -4223,7 +4223,7 @@ document.addEventListener('click',async(ev)=>{const t=ev.target;const inV=t.clos
  const cp=t.closest('[data-mc-cp]');if(cp){ev.stopPropagation();const c=cp.dataset.mcCp;try{await navigator.clipboard.writeText(c);window.t?.(e?'Copied':'已复制')}catch{}return}
  const av=t.closest('[data-mc-ave]');if(av){ev.stopPropagation();goAve(av.dataset.mcAve);return}
  if(t.closest('[data-mc-soon]')){ev.stopPropagation();return}
- const sw=t.closest('[data-mc-sw]');if(sw){const C=chOf(MC.D?.chain||MC.chain);if(!C)return;const on=!C.on;if(on&&!confirm(e?'Turn on “Trade on this chain”? In this step it only shows “coming soon” — no orders are placed. Auto strategies, ⚡ quick buy, TP/SL, minting and mining stay off on this chain until you turn them on separately later.':'打开「在这条链交易」？这一步打开后只会显示「此链交易即将开放」，不会下单；自动策略、⚡ 快速买、止盈止损、铸造、挖矿在这条链之后也要你另外打开。'))return;
+ const sw=t.closest('[data-mc-sw]');if(sw){const C=chOf(MC.D?.chain||MC.chain);if(!C)return;const on=!C.on;if(on&&!(await ask(e?'Turn on “Trade on this chain”? In this step it only shows “coming soon” — no orders are placed. Auto strategies, ⚡ quick buy, TP/SL, minting and mining stay off on this chain until you turn them on separately later.':'打开「在这条链交易」？这一步打开后只会显示「此链交易即将开放」，不会下单；自动策略、⚡ 快速买、止盈止损、铸造、挖矿在这条链之后也要你另外打开。',{ok:e?'Turn on':'打开'})))return;/*BTN-1111 原本用浏览器原生 confirm，改成雷达自己的确认视窗*/
   const r=await window.radar.mc('tradeSet',{chain:C.k,on});if(r?.err){window.t?.(r.err==='nodet'?(e?'Wallet has not shown support for this chain':'钱包没侦测到支援这条链'):(e?'Not saved':'没存到'));return}await loadChains();MC.B={};window.t?.(on?(e?'On — trading on this chain is coming soon':'已打开：此链交易即将开放'):(e?'Off — buttons go to AVE':'已关闭：按钮带你去 AVE'));if(MC.D)paintDet();else{$('#mcV').__sig=''}loadBoard(1);return}
  if(t.closest('[data-mc-x]')){close();return}
  const rl=t.closest('[data-mc-rail]');if(rl){openDet(rl.dataset.mcRail);return}
@@ -4737,7 +4737,7 @@ r.addEventListener('change',ev=>{const k=ev.target&&ev.target.dataset&&ev.target
 r.addEventListener('click',ev=>{if(ev.target.closest&&ev.target.closest('[data-fxc]')){FX={};LSs('b3fx','{}');const f=Q('#b3fx');if(f)f.innerHTML=fxBar();sig={};fxBtn();paint()}});
 r.addEventListener('click',ev=>{{const cp=ev.target.closest&&ev.target.closest('.b3cp[data-cp]');if(cp){ev.stopPropagation();const v=cp.dataset.cp;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>{try{t(en()?'Contract copied':'已复制合约')}catch{}}).catch(()=>{try{window.radar.copyText?.(v)}catch{}});return}}{const k=ev.target.closest&&ev.target.closest('.b3k[data-url]');if(k){ev.stopPropagation();try{window.radar.open(k.dataset.url)}catch{}return}}const a=ev.target.closest('[data-n],[data-p],[data-b],[data-b3c]');if(!a)return;
  if(a.dataset.n){net=a.dataset.n;LSs('b3net',net);plf='all';LSs('b3pl','all');sig={};D=null;paintBar();tick();return}
- if(a.dataset.p){plf=a.dataset.p;LSs('b3pl',plf);sig={};paint();return}
+ if(a.dataset.p){plf=a.dataset.p;LSs('b3pl',plf);sig={};paintPl();paint();return}/*BTN-1111 发射台按下去马上亮灯（原本要等下一轮刷新）*/
  const addr=a.dataset.b||a.dataset.b3c;const x=find(addr);if(!x)return;ev.stopPropagation();
  if(a.dataset.b){buy(x,a);return}openDetail(x)})}
 function find(addr){for(const k of Object.keys(D?.cols||{}))for(const x of D.cols[k])if(x.c===addr)return x;return null}
@@ -4818,8 +4818,10 @@ document.addEventListener('mousedown',e=>{if(P.style.display==='block'&&!P.conta
 P.addEventListener('click',async ev=>{const s=ev.target.closest('[data-s]');if(s){const i=+s.dataset.s;LS('cfgSlot',String(i));let o=null;try{o=JSON.parse(LS('cfgSlot'+i))}catch{}if(o){put(o);t(en()?'Slot '+i+' loaded — reloading':'已套用配置 '+i+'，重新载入');setTimeout(()=>location.reload(),500)}else{t(en()?'Slot '+i+' is empty — press “Save to this slot”':'配置 '+i+' 还是空的，按「存到目前配置」')}paint();return}
 const a=ev.target.closest('[data-a]')?.dataset.a;if(!a)return;
 if(a==='theme'){toggleTheme();paint();return}
-if(a==='strat'){close();try{go('set')}catch{}return}
-if(a==='push'||a==='wallet'){close();try{go('more')}catch{}return}
+/*BTN-1111 这里没有全域 go()（原本 try{go()} 吞掉错误＝按了没反应）→ 直接点分页*/const goP=(p)=>{const t0=document.querySelector(`.tabs a[data-p="${p}"]`);if(t0)t0.click()};
+if(a==='strat'){close();goP('set');return}
+if(a==='push'){close();try{(STW.open||={}).note=true}catch{}goP('set');setTimeout(()=>{const d=document.querySelector('#sch details[data-sec="note"]');if(d){d.open=true;d.scrollIntoView({block:'start'})}},400);return}
+if(a==='wallet'){close();if(typeof cfgGo==='function')cfgGo('more','wal');else goP('more');return}
 if(a==='save'){LS('cfgSlot'+slot(),JSON.stringify(snap()));t(en()?'Saved to slot '+slot():'已存到配置 '+slot());return}
 if(a==='lang'){close();try{setLang()}catch{}return}
 if(a==='zh'){LS('cfgZh',LS('cfgZh')==='1'?'0':'1');paint();t(en()?'Takes effect on the next refresh':'下次刷新生效');return}
@@ -4834,7 +4836,7 @@ async function okxConnect(){const en=L==='en';if(window.__okxBusy)return t(en?'W
  let h=await window.radar.okx('has');if(!h?.bin){if(!await ask(en?'Install the OKX AI wallet tool first?\nThe radar runs OKX\'s official installer (about 1 minute).':'先安装 OKX AI 钱包工具？\n雷达会执行 OKX 官方安装程式（约 1 分钟）。',{ok:en?'Install':'安装'}))return;t(en?'Installing…':'安装中…');const r=await window.radar.okx('install');if(!r?.ok){return t((en?'Install failed: ':'安装失败：')+String(r?.t||r?.err||'').slice(-160))}h=await window.radar.okx('has');if(!h?.bin)return t(en?'Installed — please restart the radar once':'装好了，请重开一次雷达')}
  t(en?'A login page opens in your browser — log in with Email / Google / Apple':'浏览器会打开登入页，用 Email／Google／Apple 登入');const r=await window.radar.okx('connect');
  if(r?.ok){t(en?'OKX wallet connected':'OKX 钱包已连接')}else t((en?'OKX login failed: ':'OKX 登入没完成：')+String(r?.err==='noAddr'?(en?'no EVM address':'读不到钱包地址'):r?.err||'').slice(0,160))}finally{window.__okxBusy=0}}
-</script><style>.okxB{font-style:normal;font-size:10.5px;margin-left:6px;padding:1px 6px;border-radius:6px;background:#ffffff14;color:#cfd3da;font-weight:700}</style>
+</script><style>/*BTN-1111 钱包「已连接」状态牌不是按钮：.ok 的手指游标漏到这里*/#wl .v{cursor:default}.okxB{font-style:normal;font-size:10.5px;margin-left:6px;padding:1px 6px;border-radius:6px;background:#ffffff14;color:#cfd3da;font-weight:700}</style>
 <script>/*DUALW-13 主钱包：一般代币的买入用它；AI 专属只用币安钱包；卖出用当初买的钱包*/
 function mainAddr(ws){let m='';try{m=String((SNAP&&SNAP.set&&SNAP.set['wallet.main'])||'').toLowerCase()}catch{}if(m&&ws.some(x=>x.addr===m))return m;const b=ws.find(x=>x.kind!=='okx')||ws[0];return b?b.addr:''}
 async function setMainW(a){const en=L==='en';try{const r=await window.radar.saveSettings({'wallet.main':String(a).toLowerCase()});if(r&&r.err)return t(String(r.err).slice(0,80));try{SNAP.set['wallet.main']=String(a).toLowerCase()}catch{}t(en?'Main wallet set — normal tokens buy with it':'已设为主钱包：一般代币用它买')}catch(e){t(String(e?.message||e).slice(0,80))}}
