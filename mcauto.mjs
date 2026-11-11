@@ -42,6 +42,7 @@ export function startMcAuto({ DIR, WALLETS, log, tgSay, MCT }) {
     if (ST.day.d !== today()) { ST.day = { d: today(), n: 0 }; save(); }
     let C = null; try { C = JSON.parse(readFileSync(CF, 'utf8')); } catch {}
     if (!C || !Array.isArray(C.items) || Date.now() - (+C.at || 0) > MA.staleMs) { if (!staleSaid) { staleSaid = 1; log('[发射台自动买] 候选清单读不到或太旧（雷达视窗没开、AVE 读不到）→ 不买'); } return; } staleSaid = 0;
+    { const ks = Object.keys(ST.seen); if (ks.length > MA.keepBought) { const t0 = Date.now() - MA.logRepeatMs; for (const k of ks) if (ST.seen[k].at < t0) delete ST.seen[k]; } } /* 判断日志的去重纪录只在记忆体，太多就丢掉旧的 */
     const dayN = num('mca.dayN'); const seenNow = new Set();
     for (const x of C.items) {
       const key = x.ch + '|' + x.c; if (seenNow.has(key)) continue; seenNow.add(key); if (ST.bought[key]) continue;
