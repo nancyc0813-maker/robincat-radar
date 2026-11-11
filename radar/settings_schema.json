@@ -5813,6 +5813,18 @@
    "den": "Checked every 10 min; one alert per wallet per day. Empty = no alert (the wallet card still shows usage)"
   },
   {
+   "k": "notify.feastCar",
+   "g": "note",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "Feast 有新的拼车开始招人就通知",
+   "en": "Notify when a new Feast group opens",
+   "dzh": "看盘的「🚗 打新」看到 Feast 有新车开始招人时发 TG（附那台车的连结）。上车要在 feast.meme 用你自己的钱包，雷达不代你上车",
+   "den": "Sends a TG when the board sees a new Feast group start boarding (with its link). Boarding happens on feast.meme with your own wallet; the radar never boards for you"
+  },
+  {
    "k": "notify.nftVol",
    "g": "note",
    "type": "bool",

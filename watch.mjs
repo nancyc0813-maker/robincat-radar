@@ -2569,6 +2569,10 @@ async function bawQuote(W, chainId, qty, from, to) { const k = chainId + ':' + S
   if (!r?.j) { return { ok: 0, tmp: 1, why: '币安钱包没回应报价（' + String(r?.t || '').replace(/\s+/g, ' ').slice(0, 60) + '），这次不送单，稍后再试' }; } /* 逾时／没回应＝暂时的：不快取、不标「报不出价」 */
   const v = r.j.success ? { ok: 1 } : { ok: 0, why: quoteWhy(r) }; QUOTE.set(k, { at: Date.now(), v }); if (QUOTE.size > QUOTE_MAX) QUOTE.delete(QUOTE.keys().next().value); if (!v.ok) { quoteFailNote(chainId, to, v.why); log(`报价失败 ${to}：${v.why}`); } return v; }
 const QUOTE_MAX = 500; /* 技术用：报价快取最多几笔 */ globalThis.BAW_QUOTE = bawQuote; /* rh.mjs 用同一个 */
+/*FEAST13 Feast（feast.meme）的币：先跟币安钱包「报价」（只报价、不下单、不花钱），报不出价的会记进 data/quote_fail.json，画面那颗的快买改成「去 Feast 买」，不让人按了才失败。币清单由画面主程式写在 data/feast_coins.json */
+const FEAST_RT = { ms: 480e3, n: 20, qty: '0.001' }; /* 技术用：多久测一次（要比报不出价的标记保留时间短）、最多测几颗、测路线用的报价数量 */
+async function feastRoute() { try { const f = join(DIR, 'data', 'feast_coins.json'); if (!existsSync(f)) return; const o = JSON.parse(readFileSync(f, 'utf8')); if (!(Date.now() - (+o.at || 0) < FEAST_RT.ms * 3)) return; const L = (Array.isArray(o.list) ? o.list : []).map((a) => String(a).toLowerCase()).filter((a) => /^0x[0-9a-f]{40}$/.test(a)).slice(0, FEAST_RT.n); const W = WALLETS.find((w) => !w.off && w.kind !== 'okx'); if (!W || !L.length) return; for (const c of L) await bawQuote(W, 56, FEAST_RT.qty, NATIVE_BNB, c); } catch (e) { log('feastRoute ' + e.message); } }
+setInterval(() => feastRoute().catch(() => {}), FEAST_RT.ms).unref(); setTimeout(() => feastRoute().catch(() => {}), 90e3);
 async function tgBuy(ca, usd, opt = {}) { if (!opt.auto) return tgBuy0(ca, usd, opt); const k = String(ca || '').toLowerCase(); if (AUTO_INFL.has(k) || S.agTok?.[k] === 'buy') return '⏳ 另一个自动策略正在买／已经买了这个币，这次不重复买'; AUTO_INFL.add(k); try { return await tgBuy0(ca, usd, opt); } finally { AUTO_INFL.delete(k); } }
 /*DUALW-13 双钱包分工（Nancy 11/11 17:11 定）：一笔单只用一个钱包；
    AI 专属（已知 Agent ID 专属的币）只用币安钱包；一般代币用「主钱包」（设定 wallet.main，没设＝第一个币安钱包）；
@@ -3249,7 +3253,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.3.1', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.3.2', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;
