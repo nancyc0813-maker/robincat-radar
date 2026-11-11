@@ -4924,12 +4924,20 @@ body.pzShell header nav.uxG>a:hover{background:#ffffff08;color:#E6E8EE}
 body.pzShell header nav.uxG #uxMore{display:none!important}
 body.pzShell main{margin-left:84px}
 body.pzShell #fmSB,body.pzShell #pxSB{left:84px}
-body.pzOn #board>:not(#pz):not(#sres):not(#mcV){display:none!important}
+body.pzOn #board>:not(#pz):not(#sres):not(#mcV):not(#mineV):not(#gmineV){display:none!important}body.pzOn #board>#mineV,body.pzOn #board>#gmineV{display:none!important}
 body.pzOn #board>#mcV{display:none!important}
 body.pzOn.pzMc #board>#mcV{display:block!important}
 body.pzOn.pzMc #pz{display:none}
 body.pzOn main:has(#board.on){padding:0!important}
-body.pzAi #pz .pzBody,body.pzAi #pzCh,body.pzAi #pz .pzSq,body.pzAi #pz .pzVr{display:none}body.pzAi #segK,body.pzAi #hero{display:none!important}body.pzAi #pz .pzTop{border-bottom:0}
+#pzAiB,#pzMineB{display:none}body.pzAi #pz .pzBody:not(#pzAiB),body.pzMine #pz .pzBody:not(#pzAiB){display:none}body.pzAi #pzAiB{display:flex}body.pzMine #pzMineB{display:block}
+body.pzOn.pzMine #board>#mineV,body.pzOn.pzMine #board>#gmineV{display:none!important}body.pzOn.pzMine.pzMineAi #board>#mineV{display:block!important;padding:12px 14px}body.pzOn.pzMine.pzMineGen #board>#gmineV{display:block!important;padding:12px 14px}
+.pzSub{display:flex;gap:6px;flex-wrap:wrap}
+.pzAiC .pzVd{font-size:12px}.pzVd.ok{color:#2EBD85;font-weight:700}.pzVd.no{color:#8C94A5}.pzVd.wt{color:#F0B90B}.pzVd.dn{color:#2EBD85}
+.pzAiC .pzAB{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pzMb{height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:var(--p2);color:var(--m2);font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}
+.pzMb.y{border-color:#F0B90B;background:#1B1606;color:#F0B90B}.pzMb.y:hover{background:#F0B90B;color:#0A0D13}.pzMb:hover{color:#E6E8EE}
+.pzMore{padding:12px;text-align:center;color:var(--m);font-size:12px}.pzMore a{color:#F0B90B;cursor:pointer}
+
 #pz{--b:#161B24;--p:#0B0E14;--p2:#10141C;--m:#7D8597;--m2:#AEB5C3;color:#E6E8EE;font-size:13px}
 #pz button{font-family:inherit}
 .pzTop{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--b);flex-wrap:wrap;background:#0A0D13}
@@ -5032,7 +5040,7 @@ const toast=m=>{try{t(m)}catch{}};
 const CH=[['bsc','BNB Chain','#F0B90B'],['robinhood','Robinhood','#2EBD85'],['solana','Solana','#9B6BFF'],['eth','Ethereum','#6F8BFF'],['base','Base','#3D7BFF'],['arbitrum','Arbitrum','#4AA8FF'],['polygon','Polygon','#A66BFF']];
 const OWN={bsc:1,robinhood:1};
 const COLK={own:[['new','新开盘','New pairs','#2EBD85'],['soon','即将打满','Final stretch','#F0B90B'],['out','已上外盘','Migrated','#4AA8FF']],mc:[['fresh','新开盘','New pairs','#2EBD85'],['soon','即将打满','Final stretch','#F0B90B'],['done','已上外盘','Migrated','#4AA8FF']]};
-const S={net:LSg('pzNet','bsc'),cat:'gen',pad:'all',hot:LSg('pzHot','hot'),p:+LSg('pzP','0')||0,pause:{},hover:{},fx:LSj('pzFx',{}),D:null,M:{},at:0,busy:0,err:'',sig:{},SG:null,sgAt:0};
+const S={ai:{net:LSg('pzAiNet','bsc'),kind:LSg('pzAiKind','tok')},mineK:LSg('pzMineK','ai'),aiSig:{},net:LSg('pzNet','bsc'),cat:LSg('pzCat','gen'),pad:'all',hot:LSg('pzHot','hot'),p:+LSg('pzP','0')||0,pause:{},hover:{},fx:LSj('pzFx',{}),D:null,M:{},at:0,busy:0,err:'',sig:{},SG:null,sgAt:0};
 if(!CH.some(c=>c[0]===S.net))S.net='bsc';
 const isOwn=()=>!!OWN[S.net];
 /* 数字格式 */
@@ -5061,13 +5069,13 @@ function setAmt(v){const o=LSj('pzAmt',{});const a=amts().slice();a[S.p]=v;o[amt
 function tradeMode(){if(isOwn())return 'trade';try{return window.MCX?.mode(S.net)||'view'}catch{return 'view'}}
 /* 画面骨架 */
 function frame(){let z=Q('#pz');if(z)return z;const b=Q('#board');if(!b)return null;z=document.createElement('div');z.id='pz';b.prepend(z);
- z.innerHTML=`<div class="pzTop"><div class="pzSeg" id="pzCat"></div><div class="pzVr"></div><div class="pzCh" id="pzCh"></div><label class="pzSq"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="pzQ" placeholder=""></label></div><div class="pzBody"><div class="pzMain"><div class="pzBar"><div class="pzPads" id="pzPads"></div><div class="pzQ" id="pzQb"></div></div><div id="pzErr"></div><div id="pzGrp"></div><div class="pzCols" id="pzCols"></div></div><aside class="pzRail"><div class="pzBox"><div class="pzBH" id="pzHotH"></div><div id="pzHot"></div></div><div class="pzBox"><div class="pzBH"><b id="pzSgT"></b><small id="pzSgS"></small></div><div id="pzSg"></div></div></aside></div>`;
+ z.innerHTML=`<div class="pzTop"><div class="pzSeg" id="pzCat"></div><div class="pzVr"></div><div class="pzCh" id="pzCh"></div><label class="pzSq"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="pzQ" placeholder=""></label></div><div class="pzBody"><div class="pzMain"><div class="pzBar"><div class="pzPads" id="pzPads"></div><div class="pzQ" id="pzQb"></div></div><div id="pzErr"></div><div id="pzGrp"></div><div class="pzCols" id="pzCols"></div></div><aside class="pzRail"><div class="pzBox"><div class="pzBH" id="pzHotH"></div><div id="pzHot"></div></div><div class="pzBox"><div class="pzBH"><b id="pzSgT"></b><small id="pzSgS"></small></div><div id="pzSg"></div></div></aside></div><div class="pzBody" id="pzAiB"><div class="pzMain"><div class="pzBar"><div class="pzSub" id="pzAiK"></div><div class="pzLive" id="pzAiInfo"></div></div><div class="pzCols" id="pzAiCols"></div></div><aside class="pzRail"><div class="pzBox"><div class="pzBH"><b id="pzAiHotT"></b><small id="pzAiHotS"></small></div><div id="pzAiHot"></div></div><div class="pzBox" id="pzAiTr"></div></aside></div><div id="pzMineB"><div class="pzBar" style="padding:10px 14px 0"><div class="pzSub" id="pzMineK"></div></div></div>`;
  wire(z);return z}
 function paintTop(){const e=en();
- const cat=Q('#pzCat');const C=[['gen',e?'Tokens':'一般代币'],['ai',e?'AI-only':'AI 专属']];const hc=C.map(([k,l])=>`<a data-pzcat="${k}" class="${S.cat===k?'on':''}">${l}</a>`).join('');if(cat.innerHTML!==hc)cat.innerHTML=hc;
- const ch=Q('#pzCh');const h=CH.map(([k,n,c])=>`<a data-pznet="${k}" class="${S.net===k?'on':''}" style="--c:${c}"><i style="background:${c}"></i>${n}</a>`).join('');if(ch.innerHTML!==h)ch.innerHTML=h;
+ const cat=Q('#pzCat');const C=[['gen',e?'Tokens':'一般代币'],['ai',e?'AI-only mints':'AI 专属'],['mine',e?'Mining':'挖矿']];const hc=C.map(([k,l])=>`<a data-pzcat="${k}" class="${S.cat===k?'on':''}">${l}</a>`).join('');if(cat.innerHTML!==hc)cat.innerHTML=hc;
+ const ch=Q('#pzCh');const h=S.cat==='mine'?'':S.cat==='ai'?CH.filter(c=>OWN[c[0]]).map(([k,n,c])=>`<a data-pzainet="${k}" class="${S.ai.net===k?'on':''}" style="--c:${c}"><i style="background:${c}"></i>${n}</a>`).join(''):CH.map(([k,n,c])=>`<a data-pznet="${k}" class="${S.net===k?'on':''}" style="--c:${c}"><i style="background:${c}"></i>${n}</a>`).join('');if(ch.innerHTML!==h)ch.innerHTML=h;
  const q=Q('#pzQ');const ph=e?'Search token / paste contract or link':'搜代币 / 贴合约地址或网址，按 Enter';if(q.placeholder!==ph)q.placeholder=ph;
- const qb=Q('#pzQb');const tm=tradeMode();let hq='';
+ if(S.cat!=='gen')return;const qb=Q('#pzQb');const tm=tradeMode();let hq='';
  if(tm==='trade'){const a=amts();hq=`<span>${e?'Quick buy':'快买'}</span><div class="pzSeg" id="pzPs">${['P1','P2','P3'].map((l,i)=>`<a data-pzp="${i}" class="${S.p===i?'on':''}" title="${a[i]?a[i]+' '+unit():(e?'empty':'未填')}">${l}</a>`).join('')}</div><label class="pzAmt" title="${e?'Amount for the ⚡ buttons (you fill it)':'⚡ 按钮的买入金额（你自己填）'}"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><input id="pzAmtI" inputmode="decimal" placeholder="${e?'amount':'填金额'}"><b id="pzU" title="${isOwn()?(e?'Switch unit':'切换单位'):''}">${esc(unit())}</b></label>`}
  else hq=`<span>${e?'View only on this chain — buy buttons open AVE':'这条链在雷达里只能看：买入按钮会打开 AVE'}</span>`;
  if(qb.dataset.sig!==tm+'|'+S.p+'|'+unit()+'|'+L){qb.dataset.sig=tm+'|'+S.p+'|'+unit()+'|'+L;qb.innerHTML=hq}
@@ -5092,11 +5100,11 @@ function card(x,k,col){const e=en();const p=plName(x.pl);const ini=esc(String(x.
  const a=amt();const btn=feast?`<button class="pzB" data-pzbuy="${esc(x.c)}">Feast ↗</button>`:tm==='trade'?`<button class="pzB" data-pzbuy="${esc(x.c)}">⚡ ${a!=null?a:(e?'Buy':'买')}</button>`:`<button class="pzB v" data-pzbuy="${esc(x.c)}">AVE ↗</button>`;
  const c24=x.c24!=null&&isFinite(+x.c24)?`<span class="${+x.c24>=0?'up':'dn'}">${pct(x.c24)}</span>`:'';
  return `<div class="pzC" data-pzc="${esc(x.c)}"><div class="pzAv" style="${ring(x,col)}"><s>${ini}${x.lg?`<img src="${esc(x.lg)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</s></div><div class="pzM"><div class="pzR1"><b>${esc(x.s||'?')}</b><small>${esc(x.n&&x.n!==x.s?x.n:'')}</small>${p?`<i>${esc(p)}</i>`:''}<em>${age(x.ca)}</em></div><div class="pzR2">${r2.join('')}</div><div class="pzR3"><span class="pzSo">${so}<a class="k" data-pzcp="${esc(x.c)}" title="${e?'Copy contract':'复制合约'}">⧉</a></span>${r3.join('')}</div></div><div class="pzS">${btn}${c24}</div></div>`}
-function paintCols(){const g=Q('#pzCols');const e=en();const K=COLK[isOwn()?'own':'mc'];const key=S.net+'|'+L;if(g.dataset.k!==key){g.dataset.k=key;S.sig={};
+function paintCols(force){const g=Q('#pzCols');const e=en();const K=COLK[isOwn()?'own':'mc'];const key=S.net+'|'+L;if(g.dataset.k!==key){g.dataset.k=key;S.sig={};
   g.innerHTML=K.map(([k,zh,enn,c])=>`<section class="pzCol" data-pzcol="${k}"><div class="pzCH"><i style="background:${c}"></i><b>${e?enn:zh}</b><small></small><span class="r"><a data-pzpz="${k}" title="${e?'Pause':'暂停滚动'}">❚❚</a><a data-pzf="${k}">${e?'Filter':'筛选'}</a></span><div class="pzFx" data-pzfx="${k}"></div></div><div class="pzL"></div></section>`).join('')}
  for(const [k,,,c] of K){const col=g.querySelector(`[data-pzcol="${k}"]`);if(!col)continue;let arr=colItems(k).filter(x=>pass(k,x));if(k==='fresh'||k==='new')arr.sort((a,b)=>(+b.ca||0)-(+a.ca||0));arr=arr.slice(0,80);
   col.querySelector('.pzCH small').textContent=arr.length||'';const fb=col.querySelector(`[data-pzf="${k}"]`);const n=fxN(k);fb.textContent=(e?'Filter':'筛选')+(n?' · '+n:'');fb.classList.toggle('on',!!n);const pb=col.querySelector(`[data-pzpz="${k}"]`);pb.classList.toggle('on',!!S.pause[k]);pb.textContent=S.pause[k]?'▶':'❚❚';
-  if(S.pause[k]||S.hover[k])continue;/* 暂停／滑鼠停在栏上＝不刷新（像 Photon） */
+  if(!force&&S.sig[k]&&(S.pause[k]||S.hover[k]))continue;/* 暂停／滑鼠停在栏上＝自动刷新先停（像 Photon）；你自己按的（筛选、发射台、金额、换链）照样马上更新 */
   const sig=S.pad+'|'+JSON.stringify(S.fx[k]||{})+'|'+S.p+'|'+amt()+'|'+arr.map(x=>[x.c,x.mc,x.v,x.h,x.tx,x.pg,x.c5,x.c1,x.c24].join(',')).join('|');if(S.sig[k]===sig)continue;S.sig[k]=sig;
   const L2=col.querySelector('.pzL');const top=L2.scrollTop;const loading=isOwn()?!S.D:!S.M[S.net+'|'+k];L2.innerHTML=arr.length?arr.map(x=>card(x,k,c)).join(''):`<div class="pzE">${loading?(e?'Loading…':'读取中…'):(e?'Nothing here right now':'暂时没有')}</div>`;L2.scrollTop=top}}
 function paintRail(){const e=en();const H=Q('#pzHotH');const hh=`<div class="pzSeg">${[['hot',e?'Hot':'热门'],['fomo','FOMO']].map(([k,l])=>`<a data-pzhot="${k}" class="${S.hot===k?'on':''}">${l}</a>`).join('')}</div><small>${S.hot==='hot'?(e?'by volume':'按成交额'):(e?'by short-term change':'按短线涨幅')}</small>`;if(H.innerHTML!==hh)H.innerHTML=hh;
@@ -5104,7 +5112,40 @@ function paintRail(){const e=en();const H=Q('#pzHotH');const hh=`<div class="pzS
  L2=L2.slice(0,10);const h=L2.length?L2.map((x,i)=>{const ch=S.hot==='hot'?x.c24:(x.c5!=null&&isFinite(+x.c5)?x.c5:x.c1!=null&&isFinite(+x.c1)?x.c1:x.c24);return `<div class="pzHr" data-pzc="${esc(x.c)}"><span>${i+1}</span><b>${esc(x.s||'?')}</b><small>${x.mc!=null?'$'+fmt(x.mc):''}</small><em class="${+ch>=0?'up':'dn'}">${ch!=null&&isFinite(+ch)?pct(ch):''}</em></div>`}).join(''):`<div class="pzE">${e?'Nothing yet':'暂时没有'}</div>`;const el=Q('#pzHot');if(el.innerHTML!==h)el.innerHTML=h;
  Q('#pzSgT').textContent=e?'Signals':'信号流';Q('#pzSgS').textContent=e?'TG groups · X · smart money':'TG 群 · X · 聪明钱';
  const F=(S.SG?.feed||[]).filter(s=>(S.net==='bsc'&&s.ch==='bsc')||(S.net==='robinhood'&&s.ch==='rh')).slice(0,8);const sh=F.length?F.map(s=>`<div class="pzSg" data-pzsg="${esc(s.c)}" data-ch="${esc(s.ch)}"><div><i>${esc(String(s.src||'').slice(0,14))}</i><b>${esc(s.sym||'')}</b><small>${age(Math.floor((+s.last||0)/1000))}</small></div><span>${s.n>1?(e?s.n+' sources':s.n+' 个来源提到'):(e?'1 source':'1 个来源提到')}${+s.mc>0?' · '+(e?'MC':'市值')+' $'+fmt(s.mc):''}</span></div>`).join(''):`<div class="pzE">${isOwn()?(e?'No signals yet':'暂时没有信号'):(e?'Signals cover BNB Chain / Robinhood':'信号目前只有 BNB Chain／Robinhood')}</div>`;const se=Q('#pzSg');if(se.innerHTML!==sh)se.innerHTML=sh}
-function paint(){if(!Q('#pz'))return;paintTop();paintPads();const er=errTxt();const ee=Q('#pzErr');const eh=er?`<div class="pzErr">${esc(er)}</div>`:'';if(ee.innerHTML!==eh)ee.innerHTML=eh;grpStrip();paintCols();paintRail()}
+function paint(){if(!Q('#pz'))return;paintTop();if(S.cat==='ai'){paintAi();return}if(S.cat==='mine'){paintMine();return}paintPads();const er=errTxt();const ee=Q('#pzErr');const eh=er?`<div class="pzErr">${esc(er)}</div>`:'';if(ee.innerHTML!==eh)ee.innerHTML=eh;grpStrip();paintCols();paintRail()}
+
+/* ===== AI 专属铸造（同一套画面）：资料照旧用铸造看盘的 mbItems／mbCol（SNAP.board、rhMint、bscNft、开盘分页），按钮照旧呼叫 mintFlow／trashAdd／选打法／openMint ===== */
+function aiCx(){try{return mbCtx(AI_CH())}catch{return null}}
+const AI_COLS={tok:[['new','新创建','New','#2EBD85'],['full','即将打满','Almost full','#F0B90B'],['open','已开盘','Trading','#4AA8FF']],nft:[['new','新创建','New','#2EBD85'],['full','即将打满','Almost full','#F0B90B'],['done','已铸完','Minted out','#4AA8FF']]};
+function aiAge(at){try{return hbAge(at)}catch{return ''}}
+function aiCard(cx,x,k,col){const e=en();const nm=String(x.name||'').trim()||(x.c.slice(0,6)+'…'+x.c.slice(-4));const pg=x.prog!=null&&isFinite(+x.prog)?+x.prog:null;
+ const r2=[];if(pg!=null)r2.push(`<span>${e?'Progress':'进度'} <b>${pg.toFixed(pg<10?1:0)}%</b></span>`);if(x.ag!=null)r2.push(`<span>${cx.ch==='mint'?(e?'Agent wallets':'Agent 钱包'):(e?'Real wallets':'真人钱包')} <b>${x.agp?'≥':''}${x.ag}</b></span>`);if(cx.ch==='mint'&&x.gen!=null)r2.push(`<span>${e?'Normal':'一般钱包'} <b>${x.gen}</b></span>`);if(cx.ch!=='mint'&&x.tot!=null)r2.push(`<span>${e?'Total':'总共'} <b>${x.tot}</b></span>`);
+ if(x.opened){if(x.mc!=null)r2.push(`<span>${e?'MC':'市值'} <b>$${fmt(x.mc)}</b></span>`);if(x.vol&&x.vol.h24!=null)r2.push(`<span>${e?'Vol':'量'} <b>$${fmt(x.vol.h24)}</b></span>`)}
+ let vd='';try{vd=x.v==='ok'?(x.off?`<span class="pzVd wt">${esc(uf5Off(x.off))}</span>`:`<span class="pzVd ok">${cx.ch==='mint'?(e?'✅ Will mint':'✅ 会打'):(e?'✅ Eligible':'✅ 符合条件')}</span>`):x.v==='no'?`<span class="pzVd no">${esc(uf5Note(x.note))}</span>`:x.v==='done'?`<span class="pzVd dn">${e?'✔ Minted by the radar':'✔ 雷达已打'}</span>`:x.v?`<span class="pzVd wt">⏳ ${esc(uf5Note(x.note))}</span>`:''}catch{}
+ if(x.wait)vd=`<span class="pzVd wt">${x.wait==='wait'?(e?'Full · waiting to trade':'已铸满等开盘'):x.wait==='miss'?(e?'Full · token address unreadable':'已铸满·读不到代币地址'):(e?'Checking for a pool':'查开盘中')}</span>`;
+ const btn=[];if(x.v&&x.v!=='done'&&!x.full){btn.push(`<button class="pzMb ${x.v==='ok'?'y':''}" data-pzmint="${esc(x.c)}" data-k="${esc(x.fk)}" data-n="${esc(x.name||'')}" data-why="${x.v==='no'?esc(x.note||''):''}">${e?'Force mint':'强制铸造'}</button>`);if(cx.ch==='mint'&&x.v==='no')btn.push(`<button class="pzMb" data-pztr="${esc(x.c)}" data-n="${esc(x.name||'')}">${e?'Skip 🗑':'不打 🗑'}</button>`)}
+ if(x.um||x.pick)btn.push(`<button class="pzMb" data-mpk="${esc(x.c)}" data-n="${esc(x.name||'')}">${e?'✋ Choose how':'✋ 选打法'}</button>`);
+ if(x.opened)btn.push(`<button class="pzMb" data-pzchart="${esc(x.tok||x.c)}" data-n="${esc(x.name||'')}">${e?'Chart':'看图'}</button>`);
+ const tags=[];if(x.mine)tags.push(`<i class="kol">${e?'You minted':'有打到'}</i>`);if(x.opened)tags.push(`<i class="up">${e?'Trading':'已开盘'}</i>`);
+ return `<div class="pzC pzAiC" data-pzmd="${esc(x.dm)}" data-c="${esc(x.c)}" data-tok="${esc(x.tok||(x.opened?x.c:''))}" data-op="${x.opened?1:0}" data-n="${esc(x.name||'')}"><div class="pzAv" style="${pg!=null?`background:conic-gradient(${col} ${Math.round(Math.min(100,pg)*3.6)}deg,#1C2330 0)`:`background:${col}22`}"><s>${esc(nm.slice(0,1).toUpperCase())}${x.img?`<img src="${esc(x.img)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</s></div><div class="pzM"><div class="pzR1"><b>${esc(nm)}</b><small>${esc(x.c.slice(0,6)+'…'+x.c.slice(-4))}</small><em>${aiAge(x.at)}</em></div><div class="pzR2">${r2.join('')}</div>${tags.length||vd?`<div class="pzR3">${tags.join('')}${vd}</div>`:''}${btn.length?`<div class="pzAB">${btn.join('')}</div>`:''}</div></div>`}
+function aiFoot(cx,k,n){const e=en();if(k==='open'||k==='done'){let P=null;try{P=mbPg(cx)}catch{}if(P&&P.err)return `<div class="pzMore"><a data-pzretry="1">${e?'Could not load — retry':'读不到，按这里重试'}</a></div>`;if(P&&(P.busy||!P.started))return `<div class="pzMore">${e?'Loading…':'读取中…'}</div>`;if(P&&!P.end)return `<div class="pzMore"><a data-pzmore="1">${e?'Load earlier':'载入更早的'}</a></div>`}
+ return n?'':`<div class="pzE">${typeof SNAP==='undefined'||!SNAP?(e?'Loading…':'读取中…'):(e?'Nothing right now':'目前没有')}</div>`}
+function paintAi(){const e=en();const cx=aiCx();
+ const K=Q('#pzAiK');const kh=[['tok',e?'Mint tokens':'铸造代币'],['nft',e?'Mint NFTs':'铸造 NFT']].map(([k,l])=>`<a data-pzaik="${k}" class="${S.ai.kind===k?'on':''}">${l}</a>`).join('');const kk=`<div class="pzSeg">${kh}</div>`;if(K.innerHTML!==kk)K.innerHTML=kk;
+ const inf=Q('#pzAiInfo');const it=S.ai.kind==='tok'?(e?'Mint data: scanned by your radar · trading data: DexScreener':'铸造资料：雷达自己扫链上 · 开盘行情：DexScreener'):(e?'Mint data: scanned by your radar · progress read on-chain':'铸造资料：雷达自己扫链上 · 进度链上读');if(inf.textContent!==it)inf.textContent=it;
+ const g=Q('#pzAiCols');if(!cx){g.innerHTML='';return}const C=AI_COLS[cx.kind];const key=cx.ch+'|'+L;if(g.dataset.k!==key){g.dataset.k=key;S.aiSig={};g.innerHTML=C.map(([k,zh,enn,c])=>`<section class="pzCol" data-pzaicol="${k}"><div class="pzCH"><i style="background:${c}"></i><b>${e?enn:zh}</b><small></small></div><div class="pzL"></div></section>`).join('')}
+ let items=[];try{items=mbItems(cx)}catch{}
+ if(cx.kind==='tok'){try{const P=mbPg(cx);if(!P.started)mbFetch(cx)}catch{}}
+ for(const [k,,,c] of C){const col=g.querySelector(`[data-pzaicol="${k}"]`);if(!col)continue;let L2=[];try{L2=mbCol(cx,k,items)}catch{}if(k==='open'){/* 已开盘＝开盘分页＋铸满后查到开池的 */}col.querySelector('.pzCH small').textContent=L2.length||'';
+  if(S.hover['ai'+k])continue;const sig=L+'|'+L2.map(x=>[x.c,x.prog,x.ag,x.gen,x.v,x.off,x.note,x.mine,x.opened,x.mc,x.wait,x.um,x.pick].join(',')).join('|')+'|'+aiFoot(cx,k,L2.length);if(S.aiSig[k]===sig)continue;S.aiSig[k]=sig;
+  const box=col.querySelector('.pzL');const top=box.scrollTop;box.innerHTML=L2.map(x=>aiCard(cx,x,k,c)).join('')+aiFoot(cx,k,L2.length);box.scrollTop=top}
+ /* 右栏：热门铸造（钱包数）＋废弃池 */
+ Q('#pzAiHotT').textContent=e?'Hot mints':'热门铸造';Q('#pzAiHotS').textContent=e?'by wallets':'按钱包数';
+ let H=[];try{H=items.filter(x=>!x.full&&x.ag!=null).sort((a,b)=>(b.ag||0)-(a.ag||0)).slice(0,10)}catch{}
+ const hh=H.length?H.map((x,i)=>`<div class="pzHr" data-pzmd="${esc(x.dm)}" data-c="${esc(x.c)}"><span>${i+1}</span><b>${esc(x.name||x.c.slice(0,8))}</b><small>${x.prog!=null?Math.round(x.prog)+'%':''}</small><em class="up">${x.ag}</em></div>`).join(''):`<div class="pzE">${e?'Nothing yet':'暂时没有'}</div>`;const he=Q('#pzAiHot');if(he.innerHTML!==hh)he.innerHTML=hh;
+ let trN=0;try{if(cx.ch==='mint'){const TR=trashGet();trN=(SNAP?.board||[]).filter(x=>TR[x.c]).length}}catch{}const tr=Q('#pzAiTr');const th=trN?`<div class="pzBH"><b>${e?'Discarded':'废弃池'}</b><small>${trN}</small></div><div class="pzMore"><a data-pztro="1">${e?'Open discard pile':'打开废弃池'}</a></div>`:'';if(tr.innerHTML!==th){tr.innerHTML=th;tr.style.display=th?'':'none'}}
+/* ===== 挖矿 ===== */
+function paintMine(){const e=en();const K=Q('#pzMineK');const kh=`<div class="pzSeg">${[['ai',e?'AI mining':'AI 挖矿'],['gen',e?'Mining':'一般挖矿']].map(([k,l])=>`<a data-pzmk="${k}" class="${S.mineK===k?'on':''}">${l}</a>`).join('')}</div>`;if(K.innerHTML!==kh)K.innerHTML=kh}
 /* 找币 */
 function find(c){for(const x of allItems())if(x.c===c)return x;return null}
 /* 动作 */
@@ -5120,19 +5161,33 @@ function search(v){v=String(v||'').trim();if(!v)return;const m=v.match(/0x[0-9a-
   const a=m?m[0]:sol[0];if(OWN[n]){if(typeof openToken==='function')try{openToken(n,a.toLowerCase(),{board:1});return}catch{}}if(n!==S.net)setNet(n);openTok(a);return}
  /* 名称：先在目前看盘里找，找不到交给原本的搜寻 */const lo=v.toLowerCase();const hit=allItems().find(x=>String(x.s).toLowerCase()===lo)||allItems().find(x=>String(x.s).toLowerCase().includes(lo)||String(x.n).toLowerCase().includes(lo));if(hit){openTok(hit.c,hit.s);return}
  const sq=Q('#sq');if(sq&&typeof doSearch==='function'){sq.value=v;try{doSearch()}catch{}const r=Q('#sres');if(r)r.scrollIntoView({block:'start'})}}
-function setNet(n){if(!CH.some(c=>c[0]===n))return;S.net=n;LSs('pzNet',n);S.pad='all';S.D=null;S.at=0;S.sig={};S.err='';document.body.classList.remove('pzMc');try{window.MCX?.close()}catch{}const g=Q('#pzCols');if(g)g.dataset.k='';paint();tick(1)}
-function setCat(k){S.cat=k;document.body.classList.toggle('pzAi',k==='ai');document.body.classList.toggle('pzOn',k!=='ai');const a=Q(`#segK a[data-sk="${k==='ai'?'ai':'gen'}"]`);if(a&&!a.classList.contains('on'))a.click();if(k==='ai'){const c=Q('#segC a[data-sc="'+(S.net==='robinhood'?'rh':'bsc')+'"]');if(c&&!c.classList.contains('on'))c.click()}paint()}
+function setNet(n){if(!CH.some(c=>c[0]===n))return;S.net=n;LSs('pzNet',n);S.pad='all';S.pause={};S.D=null;S.at=0;S.sig={};S.err='';document.body.classList.remove('pzMc');try{window.MCX?.close()}catch{}const g=Q('#pzCols');if(g)g.dataset.k='';paint();tick(1)}
+const AI_CH=()=>S.ai.net==='robinhood'?(S.ai.kind==='nft'?'rhnft':'rhmint'):(S.ai.kind==='nft'?'bscnft':'mint');
+function chip(ch){const c=Q(`#chips [data-ch="${ch}"]`);if(c&&(typeof CH==='undefined'||CH!==ch))c.click()}
+function setCat(k){if(!['gen','ai','mine'].includes(k))k='gen';S.cat=k;LSs('pzCat',k);const B=document.body.classList;B.add('pzOn');B.toggle('pzAi',k==='ai');B.toggle('pzMine',k==='mine');B.toggle('pzMineAi',k==='mine'&&S.mineK==='ai');B.toggle('pzMineGen',k==='mine'&&S.mineK==='gen');B.remove('pzMc');try{window.MCX?.close()}catch{}
+ if(k==='ai'){chip(AI_CH());try{MB.tab[AI_CH()]='new'}catch{}S.aiSig={};const g=Q('#pzAiCols');if(g)g.dataset.k=''}else if(k==='mine'){chip(S.mineK==='ai'?'mine':'gmine');try{S.mineK==='ai'?renderMineBoard():mkRender('gen')}catch{}}
+ paint();if(k==='gen')tick(1)}
 function wire(z){
  z.addEventListener('click',ev=>{const T=ev.target;const q=s=>T.closest&&T.closest(s);let a;
   if(a=q('[data-pzcat]')){setCat(a.dataset.pzcat);return}
-  if(a=q('[data-pznet]')){if(S.cat==='ai')setCat('gen');setNet(a.dataset.pznet);return}
-  if(a=q('[data-pzpad]')){S.pad=a.dataset.pzpad;S.sig={};paint();return}
-  if(a=q('[data-pzp]')){S.p=+a.dataset.pzp;LSs('pzP',String(S.p));S.sig={};paint();return}
+  if(a=q('[data-pznet]')){setNet(a.dataset.pznet);return}
+  if(a=q('[data-pzainet]')){S.ai.net=a.dataset.pzainet;LSs('pzAiNet',S.ai.net);setCat('ai');return}
+  if(a=q('[data-pzaik]')){S.ai.kind=a.dataset.pzaik;LSs('pzAiKind',S.ai.kind);setCat('ai');return}
+  if(a=q('[data-pzmk]')){S.mineK=a.dataset.pzmk;LSs('pzMineK',S.mineK);setCat('mine');return}
+  if(a=q('[data-pzmint]')){ev.stopPropagation();const D=a.dataset;try{mintFlow(D.k,D.pzmint,D.n||'',AI_CH()==='mint'?{why:D.why||''}:undefined)}catch(er){toast(String(er?.message||er))}return}
+  if(a=q('[data-pztr]')){ev.stopPropagation();try{const r=trashAdd(a.dataset.pztr,a.dataset.n||'');r&&r.then&&r.then(()=>{S.aiSig={};paint()})}catch{}return}
+  if(q('[data-pztro]')){try{trashOpen()}catch{}return}
+  if(q('[data-pzmore]')||q('[data-pzretry]')){try{const cx=aiCx();const P=mbPg(cx);P.err='';mbFetch(cx).then(()=>{S.aiSig={};paint()})}catch{}S.aiSig={};paint();return}
+  if(a=q('[data-pzchart]')){ev.stopPropagation();try{openToken(S.ai.net,String(a.dataset.pzchart).toLowerCase(),{name:a.dataset.n||''})}catch{}return}
+  if(q('[data-mpk]'))return;
+  if(a=q('[data-pzmd]')){try{if(a.dataset.op==='1'&&a.dataset.tok){openToken(S.ai.net,String(a.dataset.tok).toLowerCase(),{name:a.dataset.n||''});return}openMint(a.dataset.pzmd,a.dataset.c)}catch(er){console.error(er)}return}
+  if(a=q('[data-pzpad]')){S.pad=a.dataset.pzpad;S.sig={};paint();paintCols(1);return}
+  if(a=q('[data-pzp]')){S.p=+a.dataset.pzp;LSs('pzP',String(S.p));S.sig={};paint();paintCols(1);return}
   if(q('#pzU')){if(!isOwn())return;try{const us=(typeof QBU!=='undefined'&&QBU[S.net])||[];const cu=unit();const nx=us[(us.indexOf(cu)+1)%us.length];if(nx&&nx!==cu&&typeof qbUnit==='function')qbUnit(S.net,nx)}catch{}S.sig={};paint();return}
   if(a=q('[data-pzhot]')){S.hot=a.dataset.pzhot;LSs('pzHot',S.hot);paintRail();return}
-  if(a=q('[data-pzpz]')){const k=a.dataset.pzpz;S.pause[k]=!S.pause[k];S.sig[k]='';paintCols();return}
+  if(a=q('[data-pzpz]')){const k=a.dataset.pzpz;S.pause[k]=!S.pause[k];paintCols(1);return}
   if(a=q('[data-pzf]')){ev.stopPropagation();const k=a.dataset.pzf;const p=z.querySelector(`[data-pzfx="${k}"]`);const on=!p.classList.contains('on');QA('.pzFx.on',z).forEach(x=>x.classList.remove('on'));if(on){const F=S.fx[k]||{};const e=en();p.innerHTML=FXK.map(([f,zh,enn])=>`<label>${e?enn:zh}</label><input data-pzfi="${f}" data-k="pzfx${k}${f}" inputmode="decimal" value="${esc(F[f]??'')}">`).join('')+`<div><a data-pzfc="${k}">${e?'Clear':'清空'}</a><a data-pzfd="1">${e?'Done':'完成'}</a></div>`;p.classList.add('on')}return}
-  if(a=q('[data-pzfc]')){const k=a.dataset.pzfc;S.fx[k]={};LSs('pzFx',JSON.stringify(S.fx));QA('input',a.closest('.pzFx')).forEach(i=>i.value='');S.sig[k]='';paintCols();return}
+  if(a=q('[data-pzfc]')){const k=a.dataset.pzfc;S.fx[k]={};LSs('pzFx',JSON.stringify(S.fx));QA('input',a.closest('.pzFx')).forEach(i=>i.value='');S.sig[k]='';paintCols(1);return}
   if(q('[data-pzfd]')){q('.pzFx').classList.remove('on');return}
   if(q('.pzFx'))return;
   if(a=q('[data-pzgrp]')){try{window.radar.open('https://feast.meme/groups/'+encodeURIComponent(a.dataset.pzgrp))}catch{}return}
@@ -5141,11 +5196,11 @@ function wire(z){
   if(a=q('[data-pzbuy]')){ev.stopPropagation();const x=find(a.dataset.pzbuy);if(x)buyX(x,a);return}
   if(a=q('[data-pzsg]')){const n=a.dataset.ch==='rh'?'robinhood':'bsc';if(typeof openToken==='function')try{openToken(n,a.dataset.pzsg,{board:1})}catch{}return}
   if(a=q('[data-pzc]')){const x=find(a.dataset.pzc);openTok(a.dataset.pzc,x?.s);return}});
- z.addEventListener('input',ev=>{const T=ev.target;if(T.id==='pzAmtI'){const v=T.value.trim();if(v===''||+v>0){setAmt(v);S.sig={};paintCols();const ps=Q('#pzPs');if(ps)ps.querySelectorAll('a').forEach((x,i)=>x.title=amts()[i]?amts()[i]+' '+unit():(en()?'empty':'未填'))}return}
-  const f=T.dataset&&T.dataset.pzfi;if(f){const k=T.closest('.pzFx').dataset.pzfx;S.fx[k]={...(S.fx[k]||{}),[f]:T.value.trim()};LSs('pzFx',JSON.stringify(S.fx));S.sig[k]='';paintCols()}});
+ z.addEventListener('input',ev=>{const T=ev.target;if(T.id==='pzAmtI'){const v=T.value.trim();if(v===''||+v>0){setAmt(v);S.sig={};paintCols(1);const ps=Q('#pzPs');if(ps)ps.querySelectorAll('a').forEach((x,i)=>x.title=amts()[i]?amts()[i]+' '+unit():(en()?'empty':'未填'))}return}
+  const f=T.dataset&&T.dataset.pzfi;if(f){const k=T.closest('.pzFx').dataset.pzfx;S.fx[k]={...(S.fx[k]||{}),[f]:T.value.trim()};LSs('pzFx',JSON.stringify(S.fx));S.sig[k]='';paintCols(1)}});
  z.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='pzQ'){const v=ev.target.value;ev.target.value='';search(v)}});
- z.addEventListener('mouseover',ev=>{const c=ev.target.closest&&ev.target.closest('.pzCol');if(c)S.hover[c.dataset.pzcol]=1});
- z.addEventListener('mouseout',ev=>{const c=ev.target.closest&&ev.target.closest('.pzCol');if(c&&!c.contains(ev.relatedTarget)){const k=c.dataset.pzcol;S.hover[k]=0;S.sig[k]='';paintCols()}});
+ z.addEventListener('mouseover',ev=>{const c=ev.target.closest&&ev.target.closest('.pzCol');if(c){if(c.dataset.pzaicol)S.hover['ai'+c.dataset.pzaicol]=1;else S.hover[c.dataset.pzcol]=1}});
+ z.addEventListener('mouseout',ev=>{const c=ev.target.closest&&ev.target.closest('.pzCol');if(c&&!c.contains(ev.relatedTarget)){if(c.dataset.pzaicol){S.hover['ai'+c.dataset.pzaicol]=0;S.aiSig[c.dataset.pzaicol]='';paint()}else{const k=c.dataset.pzcol;S.hover[k]=0;S.sig[k]='';paintCols()}}});
  document.addEventListener('mousedown',ev=>{if(!ev.target.closest('.pzFx')&&!ev.target.closest('[data-pzf]'))QA('#pz .pzFx.on').forEach(x=>x.classList.remove('on'))});}
 /* 其他链详情的「返回」：回到新看盘 */
 document.addEventListener('click',ev=>{if(ev.target.closest&&ev.target.closest('[data-mc-x]')&&document.body.classList.contains('pzMc'))setTimeout(()=>document.body.classList.remove('pzMc'),0)},true);
@@ -5159,10 +5214,10 @@ async function tick(force){if(!onBoard()||S.cat==='ai'||document.body.classList.
  if(Date.now()-S.sgAt>15e3&&OWN[S.net]){S.sgAt=Date.now();window.radar.signals().then(r=>{S.SG=r;paintRail()}).catch(()=>{})}
  paint()}
 function railIcons(){const n=Q('#uxG');if(!n)return;for(const a of n.querySelectorAll('a[data-g]')){if(a.querySelector('.pzI'))continue;const t=a.textContent.trim();const m=t.match(/^(\S+)\s+(.+)$/);if(!m)continue;a.innerHTML=`<span class="pzI">${esc(m[1])}</span><span>${esc(m[2])}</span>`}}
-function boot(){const z=frame();if(!z)return;document.body.classList.add('pzShell');railIcons();try{const n=Q('#uxG');if(n)new MutationObserver(()=>railIcons()).observe(n,{childList:true,subtree:true,characterData:true})}catch{}if(S.cat!=='ai')document.body.classList.add('pzOn');paint();tick(1)}
-setInterval(()=>{try{if(onBoard()&&OWN[S.net])tick();else if(Q('#pz'))paintPads()}catch(e){console.error('PZ',e)}},2000);
+function boot(){const z=frame();if(!z)return;document.body.classList.add('pzShell');setTimeout(()=>{try{setCat(S.cat)}catch(e){console.error(e)}},50);railIcons();try{const n=Q('#uxG');if(n)new MutationObserver(()=>railIcons()).observe(n,{childList:true,subtree:true,characterData:true})}catch{}if(S.cat!=='ai')document.body.classList.add('pzOn');paint();tick(1)}
+setInterval(()=>{try{if(onBoard()&&S.cat!=='gen'){paint();return}if(onBoard()&&OWN[S.net])tick();else if(Q('#pz')&&S.cat==='gen')paintPads()}catch(e){console.error('PZ',e)}},2000);
 setInterval(()=>{try{if(!onBoard())return;if(!OWN[S.net])tick()}catch{}},15000);
-document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('header nav.tabs a[data-p="board"]');if(a)setTimeout(()=>{document.body.classList.remove('pzMc');tick(1)},0)});
+document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('header nav.tabs a[data-p="board"],#uxG a[data-g="board"]');if(a)setTimeout(()=>{document.body.classList.remove('pzMc');if(S.cat==='gen')tick(1);else paint()},0)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));else setTimeout(boot,300);
 window.__pzS=S;window.__pzTick=tick;/* 测试用 */
 })();
