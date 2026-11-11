@@ -4231,11 +4231,11 @@ function paintDet(){const D=MC.D;const el=$('#mcV');if(!D||!el||CH!=='mc')return
  if(D.loading){h+=`<div class="mcMu" style="padding:40px;text-align:center">${e?'Loading…':'读取中…'}</div></section></div>`;el.innerHTML=h;return}
  const Hd=D.hold;
  h+=`<div class="mcBody"><div class="mcCol">${D.err||D.why?`<div class="mcMu" style="padding:0 0 8px">${e?'Some data cannot be read: ':'部分资料读不到：'}${E(D.err||whyTxt(D.why))} <a data-mc-dre="1" style="cursor:pointer;color:#f0b90b">${e?'Retry':'重试'}</a></div>`:''}<div class="mcSeg">${['1m','5m','15m','1h','4h','1d'].map(t=>`<a data-mc-tf="${t}" class="${MC.tf===t?'on':''}">${t}</a>`).join('')}</div><div class="mcK" id="mcKv"></div>
- <div class="mcDtabs"><a data-mc-dt="hold" class="${MC.dt==='hold'?'on':''}">${e?'Holders':'持有者'}${Hd?` (${Hd.rows?.length||0}) · 🎙 KOL ×${Hd.k}`:''}</a><a data-mc-dt="tr" class="${MC.dt==='tr'?'on':''}">${e?'Trades':'成交'}</a></div><div id="mcDt">${dtHtml()}</div></div>${sideHtml()}</div></section></div>`;
+ <div class="mcDtabs"><a data-mc-dt="hold" class="${MC.dt==='hold'?'on':''}">${e?'Holders':'持有者'}${Hd?` (${Hd.rows?.length||0}) · 🎙 KOL ×${Hd.k??0}`:''}</a><a data-mc-dt="tr" class="${MC.dt==='tr'?'on':''}">${e?'Trades':'成交'}</a></div><div id="mcDt">${dtHtml()}</div></div>${sideHtml()}</div></section></div>`;
  el.innerHTML=h;paintK()}
 function dtHtml(){const D=MC.D;const e=en();if(!D)return '';
  if(MC.dt==='hold'){const Hd=D.hold;if(!Hd)return `<div class="mcMu" style="padding:14px">${e?'Holders cannot be read (AVE did not return them).':'持有者读不到（AVE 没回资料）。'}</div>`;
-  const kl=Hd.k?`<div style="margin:6px 0 8px">🎙 KOL ×${Hd.k}${Hd.kn?.length?'：'+E(Hd.kn.join('、')):''} · 🧠 ${e?'Smart money':'聪明钱'} ×${Hd.sm} · 🐋 ${e?'Whales':'鲸鱼'} ×${Hd.wh}</div>`:`<div class="mcMu" style="margin:6px 0 8px">${e?'No KOL among the top holders AVE returned':'AVE 回的持有者里没有 KOL'} · 🧠 ×${Hd.sm} · 🐋 ×${Hd.wh}</div>`;
+  const kl=Hd.k?`<div style="margin:6px 0 8px">🎙 KOL ×${Hd.k}${Hd.kn?.length?'：'+E(Hd.kn.join('、')):''} · 🧠 ${e?'Smart money':'聪明钱'} ×${Hd.sm??0} · 🐋 ${e?'Whales':'鲸鱼'} ×${Hd.wh??0}</div>`:`<div class="mcMu" style="margin:6px 0 8px">${e?'No KOL among the top holders AVE returned':'AVE 回的持有者里没有 KOL'} · 🧠 ×${Hd.sm??0} · 🐋 ×${Hd.wh??0}</div>`;
   return kl+`<table><thead><tr><th>#</th><th>${e?'Wallet':'钱包'}</th><th class="mcN">${e?'Share':'占比'}</th><th>${e?'Tags':'标签'}</th></tr></thead><tbody>${(Hd.rows||[]).map((r,i)=>`<tr><td>${i+1}</td><td><span class="mcWl" data-mc-w="${E(r.a)}">${E(sh(r.a))}</span></td><td class="mcN">${r.p==null?'—':(+r.p).toFixed(2)+'%'}</td><td>${r.kol?`<span class="mcK1">KOL</span>${r.nick?' '+E(r.nick):''} `:''}${r.sm?`<span class="mcK2">${e?'Smart':'聪明钱'}</span> `:''}${r.wh?'🐋':''}</td></tr>`).join('')}</tbody></table>`}
  const R=MC.D.tr;if(!R)return `<div class="mcMu" style="padding:14px">${e?'Loading trades…':'成交读取中…'}</div>`;
  if(!R.rows?.length)return `<div class="mcMu" style="padding:14px">${e?'Trades cannot be read: ':'成交读不到：'}${E(whyTxt(R.why||'empty'))}</div>`;
@@ -5029,7 +5029,7 @@ body.pzShell ::-webkit-scrollbar{width:8px;height:8px}body.pzShell ::-webkit-scr
 .pzSg div i{font-style:normal;font-size:11px;padding:1px 6px;border-radius:5px;background:var(--b2);color:#4AA8FF}
 .pzSg div small{margin-left:auto;color:var(--m);font-size:11.5px}
 .pzSg>span{color:var(--m2);font-size:12px}
-@media(max-width:1280px){.pzRail{display:none}}
+@media(max-width:1440px){.pzRail{flex-basis:250px}.pzHr>small{display:none}}@media(max-width:1100px){.pzRail{display:none}}
 @media(max-width:1000px){.pzCols{grid-template-columns:1fr}.pzCol{height:auto;max-height:70vh}}
 </style>
 <script>/*PZ-1111 新看盘（Pulse）：一套画面取代旧的几个看板（b3／多链／Elysium 叠在一起的问题）。
@@ -5113,7 +5113,7 @@ function paintCols(force){const g=Q('#pzCols');const e=en();const K=COLK[isOwn()
   col.querySelector('.pzCH small').textContent=arr.length||'';const fb=col.querySelector(`[data-pzf="${k}"]`);const n=fxN(k);fb.textContent=(e?'Filter':'筛选')+(n?' · '+n:'');fb.classList.toggle('on',!!n);const pb=col.querySelector(`[data-pzpz="${k}"]`);pb.classList.toggle('on',!!S.pause[k]);pb.textContent=S.pause[k]?'▶':'❚❚';
   if(!force&&S.sig[k]&&(S.pause[k]||S.hover[k]))continue;/* 暂停／滑鼠停在栏上＝自动刷新先停（像 Photon）；你自己按的（筛选、发射台、金额、换链）照样马上更新 */
   const sig=S.pad+'|'+JSON.stringify(S.fx[k]||{})+'|'+S.p+'|'+amt()+'|'+arr.map(x=>[x.c,x.mc,x.v,x.h,x.tx,x.pg,x.c5,x.c1,x.c24].join(',')).join('|');if(S.sig[k]===sig)continue;S.sig[k]=sig;
-  const L2=col.querySelector('.pzL');const top=L2.scrollTop;const loading=isOwn()?!S.D:!S.M[S.net+'|'+k];L2.innerHTML=arr.length?arr.map(x=>card(x,k,c)).join(''):`<div class="pzE">${loading?(e?'Loading…':'读取中…'):(e?'Nothing here right now':'暂时没有')}</div>`;L2.scrollTop=top}}
+  const L2=col.querySelector('.pzL');const top=L2.scrollTop;const loading=isOwn()?(!S.D||(!S.D.ok&&S.D.err==='wait')):!S.M[S.net+'|'+k];/* 读不到（上面有红字原因）＝显示「暂时没有」，不要一直「读取中」 */L2.innerHTML=arr.length?arr.map(x=>card(x,k,c)).join(''):`<div class="pzE">${loading?(e?'Loading…':'读取中…'):(e?'Nothing here right now':'暂时没有')}</div>`;L2.scrollTop=top}}
 function paintRail(){const e=en();const H=Q('#pzHotH');const hh=`<div class="pzSeg">${[['hot',e?'Hot':'热门'],['fomo','FOMO']].map(([k,l])=>`<a data-pzhot="${k}" class="${S.hot===k?'on':''}">${l}</a>`).join('')}</div><small>${S.hot==='hot'?(e?'by volume':'按成交额'):(e?'by short-term change':'按短线涨幅')}</small>`;if(H.innerHTML!==hh)H.innerHTML=hh;
  let L2=colItems('hot');if(!L2.length)L2=allItems();if(S.hot==='hot')L2=[...L2].sort((a,b)=>(+b.v||0)-(+a.v||0));else{const f=x=>x.c5!=null&&isFinite(+x.c5)?+x.c5:x.c1!=null&&isFinite(+x.c1)?+x.c1:x.c24!=null&&isFinite(+x.c24)?+x.c24:null;L2=allItems().filter(x=>f(x)!=null).sort((a,b)=>f(b)-f(a))}
  L2=L2.slice(0,10);const h=L2.length?L2.map((x,i)=>{const ch=S.hot==='hot'?x.c24:(x.c5!=null&&isFinite(+x.c5)?x.c5:x.c1!=null&&isFinite(+x.c1)?x.c1:x.c24);return `<div class="pzHr" data-pzc="${esc(x.c)}"><span>${i+1}</span><b>${esc(x.s||'?')}</b><small>${x.mc!=null?'$'+fmt(x.mc):''}</small><em class="${+ch>=0?'up':'dn'}">${ch!=null&&isFinite(+ch)?pct(ch):''}</em></div>`}).join(''):`<div class="pzE">${e?'Nothing yet':'暂时没有'}</div>`;const el=Q('#pzHot');if(el.innerHTML!==h)el.innerHTML=h;
@@ -5163,6 +5163,7 @@ function openTok(c,name){if(isOwn()){if(typeof openToken==='function')try{openTo
 async function buyX(x,btn){const e=en();
  if(S.net==='bsc'&&x.pl==='feast'&&(x.grp||!!(typeof SNAP!=='undefined'&&SNAP?.qfail?.bsc?.[x.c.toLowerCase()]?.why))){try{await navigator.clipboard.writeText(x.c)}catch{}toast(e?'Contract copied — opening Feast':'合约已复制，打开 Feast');try{window.radar.open('https://feast.meme/coin/'+x.c)}catch{}return}
  if(tradeMode()!=='trade'){try{await navigator.clipboard.writeText(x.c)}catch{}const u=window.MCX?.aveUrl(S.net,x.c);if(u)try{window.radar.open(u)}catch{}return}
+ if(typeof nwNo==='function'&&nwNo()){try{nwGo()}catch{}return}/* 还没连钱包：带去连钱包（跟旧看板一样） */
  const a=amt();if(a==null){toast(e?'Fill the quick-buy amount first (top right)':'先在右上角填快买金额');const i=Q('#pzAmtI');if(i){i.focus();i.select()}return}
  try{if(isOwn()){if(typeof buyStop==='function'&&buyStop())return;if(typeof qbBuy!=='function'){toast(e?'Quick-buy not ready':'快买还没准备好');return}await qbBuy(S.net,x.c.toLowerCase(),x.s||'',btn,0,a)}else await window.MCX.buy(S.net,x.c,x.s||'',a)}catch(er){if(!er?.silent)toast((e?'Not sent: ':'没有送出：')+String(er?.message||er?.err||er).slice(0,80))}}
 function search(v){v=String(v||'').trim();if(!v)return;const m=v.match(/0x[0-9a-fA-F]{40}/);const sol=!m&&v.match(/[1-9A-HJ-NP-Za-km-z]{32,44}/);
