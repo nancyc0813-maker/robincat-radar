@@ -18214,6 +18214,12 @@
    "file": "^radar/ui/index\\.html$",
    "match": "inCurve=x=>",
    "reason": "PZ-1112 内盘进度 <100%＝还在内盘（只决定放哪一栏显示）"
+  },
+  {
+   "rule": "TIMEWIN|CMP|COMMENT_NUM",
+   "file": "^radar/main\\.cjs$",
+   "match": "MC_AVECH_MS|S\\.size < 5",
+   "reason": "CHK-1112 技术用：AVE 支援的链清单 6 小时重查一次；回来的清单少于 5 条或没有 bsc＝格式看不懂、不拿来过滤（只影响链选单显示哪些链）"
   }
  ]
 }

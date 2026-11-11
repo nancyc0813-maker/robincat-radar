@@ -160,8 +160,9 @@ AVE_OK.push([/^\/v2\/txs\/swap\/0x[0-9a-f]{40}-(bsc|robinhood)\?limit=50&sort=de
   [/^\/v2\/tokens\?keyword=[A-Za-z0-9_.%-]{1,90}(&chain=(bsc|robinhood|solana|eth|base))?&limit=(20|50)$/, 30, 5]);
 /*OPEN-1112 Nancy 11/12「全开放」：任何链、AVE 所有读取接口都可以经转接站查（只限 GET 读取；金钥只在这里；同样的查询大家共用快取）。
   栏位＝[规则, 快取秒数, 每次估计单位]；上面写死的旧规则先比对（快取秒数不变），没对到才用这里的通用规则 */
-const OK_ID = '[A-Za-z0-9_.]{16,100}-[a-z0-9]{2,24}', OK_Q = '(\\?[A-Za-z0-9_.=&%:,\\-]{0,400})?';
+const OK_ID = '[A-Za-z0-9_.:\\-]{16,140}-[a-z0-9]{2,24}', /*CHK-1112 Sui 合约有「::」、TON 地址有「-」「_」*/ OK_Q = '(\\?[A-Za-z0-9_.=&%:,\\-]{0,400})?';
 AVE_OK.push(
+  [/^\/v2\/supported_chains$/, 3600, 5], /*CHK-1112 AVE 支援的链清单（雷达核对链代号用）*/
   [new RegExp('^/v2/tokens/' + OK_ID + '$'), 2, 5],
   [new RegExp('^/v2/pairs/' + OK_ID + '$'), 2, 5],
   [new RegExp('^/v2/contracts/' + OK_ID + '$'), 1800, 10],
