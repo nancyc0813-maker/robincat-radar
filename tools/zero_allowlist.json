@@ -18086,6 +18086,134 @@
     "60e3"
    ],
    "reason": "FIX-1112 技术用：Robinhood 扫描连续失败多久才发 TG 提醒（只影响通知时机，不影响任何买卖条件）"
+  },
+  {
+   "rule": "TIMEWIN|OBJNUM|NUMSTR|CMP|SLICE|MINMAX|COMMENT_NUM",
+   "file": "^padscout\\.mjs$",
+   "match": ".",
+   "reason": "PADSCOUT-1112 🆕 新发射台发现只读模组：没有买卖。「什么算发射台」只看玩家填的 pads.minTok／pads.winMin（没填＝不连线、不判断）。其他数字都是技术用：轮询间隔、getLogs 区块段与减半下限、落后多少块就跳到最新、逾时、退避、记忆体／快取上限、画面列几个样本、确认是不是新币往回看几块（受公开节点 getLogs 区间上限限制）、每轮确认几个、JSON-RPC 版本字串 '2.0'、ERC20 Transfer 3 个 topic、ABI 字长 64／128、字串长度上限 256、链编号（连线前核对用）"
+  },
+  {
+   "rule": "TIMEWIN|OBJNUM|SLICE|CMP|COMMENT_NUM",
+   "file": "^radar/main\\.cjs$",
+   "match": "PADAVE|PADNAME|padAveSee|padsGet",
+   "reason": "PADSCOUT-1112 AVE 发行平台清单（只显示）：最多记几个平台、每个平台留几个样本、最多几秒写一次档、每次最多问几个名字（AVE 额度）；不影响买卖或通知"
+  },
+  {
+   "rule": "SLICE|CMP|TIMEWIN",
+   "file": "^radar/ui/index\\.html$",
+   "match": "npPaint|npCount|pzNp",
+   "reason": "PADSCOUT-1112 🆕 新发射台清单画面：列几行、几分钟／小时／天前的显示换算、每 60 秒更新徽章；只影响显示"
+  },
+  {
+   "rule": "CMP",
+   "file": "^radar/main\\.cjs$",
+   "match": "f\\.known \\|\\| k >= 3",
+   "reason": "PADSCOUT-1112 技术用：每次打开清单最多向 AVE 问 3 个发射台的名字（AVE 额度），其余下次再问；只影响显示名字"
+  },
+  {
+   "rule": "SLICE",
+   "file": "^radar/main\\.cjs$",
+   "match": "padsGet\\(\\)\\.catch",
+   "reason": "PADSCOUT-1112 错误讯息截断长度（只影响显示）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "^radar/ui/index\\.html$",
+   "match": "\\.sort\\(\\(a,b\\)=>b\\[1\\]-a\\[1\\]\\)\\.slice\\(0,10\\)",
+   "reason": "PZ-1111 看盘上方发射台筛选列最多列 10 个（只影响显示）"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "^radar/ui/index\\.html$",
+   "match": "24h vol",
+   "reason": "栏位名称「24h 量」（显示文字，不是门槛）"
+  },
+  {
+   "rule": "TIMEWIN|CMP|COMMENT_NUM",
+   "file": "^radar/ui/index\\.html$",
+   "match": "isNew=x=>|inCurve=x=>|只有热门榜",
+   "reason": "PZ-1112 没有发射台清单的链：把 AVE 热门榜照建立时间／内盘进度分进三栏（新开盘＝24 小时内建立、进度 <100%＝还在内盘；秒／毫秒换算）。只决定放哪一栏显示，不影响买卖、通知、标签"
+  },
+  {
+   "rule": "SLICE",
+   "file": "^radar/ui/index\\.html$",
+   "match": "aveRows=A\\.slice",
+   "reason": "PADSCOUT-1112 AVE 发行平台清单画面最多列 80 个（只影响显示）"
+  },
+  {
+   "rule": "CMP|COMMENT_NUM",
+   "file": "^radar/ui/index\\.html$",
+   "match": "sgPoll|信号只读本机档",
+   "reason": "FIX-1112 技术用：信号流每 15 秒重读一次本机档（不打网路、不影响判断）"
+  },
+  {
+   "rule": "SCHEMA_DEF",
+   "file": "radar/settings_schema\\.json$",
+   "match": "节点网址$|^number item must not have def$",
+   "value": "pads.rpc.bsc=\"https://1rpc.io/bnb,https://bsc.drpc.org\"",
+   "reason": "PADSCOUT-1112：pads.rpc.bsc 是文字栏位（资料来源，不是数字、不影响买卖或判断），预设＝实测可用的公开节点；画面看得到、可以改、清空＝不连线；开关 pads.on、pads.ch.* 预设关"
+  },
+  {
+   "rule": "SCHEMA_DEF",
+   "file": "radar/settings_schema\\.json$",
+   "match": "节点网址$|^number item must not have def$",
+   "value": "pads.rpc.robinhood=\"https://rpc.mainnet.chain.robinhood.com\"",
+   "reason": "PADSCOUT-1112：pads.rpc.robinhood 是文字栏位（资料来源，不是数字、不影响买卖或判断），预设＝实测可用的公开节点；画面看得到、可以改、清空＝不连线；开关 pads.on、pads.ch.* 预设关"
+  },
+  {
+   "rule": "SCHEMA_DEF",
+   "file": "radar/settings_schema\\.json$",
+   "match": "节点网址$|^number item must not have def$",
+   "value": "pads.rpc.base=\"https://base.drpc.org\"",
+   "reason": "PADSCOUT-1112：pads.rpc.base 是文字栏位（资料来源，不是数字、不影响买卖或判断），预设＝实测可用的公开节点；画面看得到、可以改、清空＝不连线；开关 pads.on、pads.ch.* 预设关"
+  },
+  {
+   "rule": "SCHEMA_DEF",
+   "file": "radar/settings_schema\\.json$",
+   "match": "节点网址$|^number item must not have def$",
+   "value": "pads.rpc.eth=\"https://eth.drpc.org\"",
+   "reason": "PADSCOUT-1112：pads.rpc.eth 是文字栏位（资料来源，不是数字、不影响买卖或判断），预设＝实测可用的公开节点；画面看得到、可以改、清空＝不连线；开关 pads.on、pads.ch.* 预设关"
+  },
+  {
+   "rule": "SCHEMA_DEF",
+   "file": "radar/settings_schema\\.json$",
+   "match": "节点网址$|^number item must not have def$",
+   "value": "pads.rpc.arbitrum=\"https://arb1.arbitrum.io/rpc,https://arbitrum.drpc.org\"",
+   "reason": "PADSCOUT-1112：pads.rpc.arbitrum 是文字栏位（资料来源，不是数字、不影响买卖或判断），预设＝实测可用的公开节点；画面看得到、可以改、清空＝不连线；开关 pads.on、pads.ch.* 预设关"
+  },
+  {
+   "rule": "SCHEMA_DEF",
+   "file": "radar/settings_schema\\.json$",
+   "match": "节点网址$|^number item must not have def$",
+   "value": "pads.rpc.polygon=\"https://polygon.drpc.org,https://1rpc.io/matic\"",
+   "reason": "PADSCOUT-1112：pads.rpc.polygon 是文字栏位（资料来源，不是数字、不影响买卖或判断），预设＝实测可用的公开节点；画面看得到、可以改、清空＝不连线；开关 pads.on、pads.ch.* 预设关"
+  },
+  {
+   "rule": "SCHEMA_DEF",
+   "file": "radar/settings_schema\\.json$",
+   "match": "节点网址$|^number item must not have def$",
+   "value": "pads.rpc.xlayer=\"https://rpc.xlayer.tech,https://xlayerrpc.okx.com\"",
+   "reason": "PADSCOUT-1112：pads.rpc.xlayer 是文字栏位（资料来源，不是数字、不影响买卖或判断），预设＝实测可用的公开节点；画面看得到、可以改、清空＝不连线；开关 pads.on、pads.ch.* 预设关"
+  },
+  {
+   "rule": "SCHEMA_DEF",
+   "file": "radar/settings_schema\\.json$",
+   "match": "节点网址$|^number item must not have def$",
+   "value": "pads.rpc.monad=\"https://rpc.monad.xyz,https://rpc1.monad.xyz\"",
+   "reason": "PADSCOUT-1112：pads.rpc.monad 是文字栏位（资料来源，不是数字、不影响买卖或判断），预设＝实测可用的公开节点；画面看得到、可以改、清空＝不连线；开关 pads.on、pads.ch.* 预设关"
+  },
+  {
+   "rule": "SLICE",
+   "file": "^radar/main\\.cjs$",
+   "match": "padsGet",
+   "reason": "PADSCOUT-1112 错误讯息截断长度（只影响显示）"
+  },
+  {
+   "rule": "CMP",
+   "file": "^radar/ui/index\\.html$",
+   "match": "inCurve=x=>",
+   "reason": "PZ-1112 内盘进度 <100%＝还在内盘（只决定放哪一栏显示）"
   }
  ]
 }
