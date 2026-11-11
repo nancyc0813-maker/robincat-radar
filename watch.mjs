@@ -1095,6 +1095,7 @@ async function autoMint(c, fname, W = WALLETS[0], val = 0n) {
   { const mg = NR.num('risk.minGasBnb'); if (mg != null && Number(bnb) / 1e18 < mg) return `⚠️ 钱包 BNB 只剩 ${(Number(bnb) / 1e18).toFixed(6)}，低于你设的「至少要有」${mg} BNB，没有铸`; } /* gas 底线＝你的 risk.minGasBnb；没填＝不另外设底线，付不付得起由预演决定 */
   { const rb = await riskBlock(W, c, val, d, val === 0n); if (rb) return '⏸ 风控：' + rb + '，没有铸'; }
   if (W.kind === 'okx') return 'ℹ️ OKX 钱包不能铸造（AI 专属铸造只认币安 Agent ID），这个钱包跳过'; /*OKX-13*/
+  if (W.noAid) return `ℹ️ ${W.name} 这个钱包还没有 Agent ID（币安 App 查过），AI 专属铸造跳过`; /*AID-13*/
   const p = await W.baw(['contract-call', 'preview', '--binanceChainId', '56', '--from', W.addr, '--to', c, '--value', val.toString(), '--inputData', d]);
   const sim = p.j?.data?.simulationResult, rid = p.j?.data?.requestId;
   if (!p.j?.success || !rid) return '❌ 预演失败，没有铸：' + (p.j?.error?.message || '').slice(0, 120);
@@ -2063,7 +2064,7 @@ const bawBuyLike = (a) => { const d = bawArg(a, '--inputData'); const v = BigInt
    ⑥ 卖出、撤销授权照常（紧急全停也能卖）
    ⑦ 读不到资料／判断出错：只能「不买」（卖出、撤销照常）
    每一笔送出（和被挡下的）都写一行到 data/gate_log.jsonl：谁下的、哪一种、每一项检查过没过 */
-const GATE_CMDS = new Set(['wallet status', 'wallet chains' /*MCFIX123-B 只列钱包支援哪些链（唯读）；以前没列进来，被闸门当成不认识的指令挡掉 → 永远「没侦测到新链」*/, 'wallet settings', 'market-order list', 'wallet balance' /*MCT-1111 Nancy 11/11 16:49 同意：唯读查询——查订单最后结果（币安文件规定送出后要查到 FINISHED／FAILED）、查某个币的余额（卖几 % 用）；不花钱、不签名，不在 GATE_SEND*/, 'auth signin', 'auth verify', 'approvals list', 'approvals revoke', 'market-order quote', 'market-order swap', 'contract-call preview', 'contract-call execute', 'sign-message preview', 'sign-message execute', 'sign-message result']);
+const GATE_CMDS = new Set(['wallet status', 'wallet chains' /*MCFIX123-B 只列钱包支援哪些链（唯读）；以前没列进来，被闸门当成不认识的指令挡掉 → 永远「没侦测到新链」*/, 'wallet settings', 'market-order list', 'wallet balance', 'wallet agent-id' /*AID-13 Nancy 11/11 18:24 同意：唯读查这个钱包有没有 Agent ID（.ai），不花钱、不签名*/ /*MCT-1111 Nancy 11/11 16:49 同意：唯读查询——查订单最后结果（币安文件规定送出后要查到 FINISHED／FAILED）、查某个币的余额（卖几 % 用）；不花钱、不签名，不在 GATE_SEND*/, 'auth signin', 'auth verify', 'approvals list', 'approvals revoke', 'market-order quote', 'market-order swap', 'contract-call preview', 'contract-call execute', 'sign-message preview', 'sign-message execute', 'sign-message result']);
 const GATE_SEND = new Set(['approvals revoke', 'market-order swap', 'contract-call execute', 'sign-message execute']);
 const GATE_QUOTE = new Set([...BAW_STABLE, '0xc5f0f7b66764f6ec8c8dff7ba683102295e16409']); /* 换回这些币＝卖出（原生币／WBNB／USDT／USDC／FDUSD／USDG） */
 const GATE_XFER = /^0x(a9059cbb|23b872dd|42842e0e|b88d4fde|f242432a|2eb2c2d6|4000aea0|88d695b2|9bd9bbc6|62ad1b83|1296ee62|d8fbe994|c1d34b89)/; /* 转帐／代转／NFT 转移／批次转／ERC777／ERC1363 */
@@ -3135,6 +3136,13 @@ async function mcWalletScan(W, force) { const now = Date.now(); if (!force && no
 /*MC121-W-END*/
 /*ENG127-A5 开发者模式到期时间：数字＝Unix 秒（小于 1e12 当秒、否则当毫秒，技术用：单位判断），字串数字同上，其他字串照日期解析；读不到＝NaN */
 function devExpMs(v) { if (v == null || v === '' || typeof v === 'boolean') return NaN; const n = Number(v); if (Number.isFinite(n)) return n > 0 ? (n < 1e12 ? n * 1000 : n) : NaN; const d = Date.parse(String(v)); return Number.isFinite(d) ? d : NaN; }
+/*AID-13 问币安钱包这个钱包有没有 Agent ID（官方指令 wallet agent-id；以前用钱包名称猜）：
+   claimed=true → 用官方的 .ai 名称算 Agent 编号；claimed=false → 标记没有（AI 专属铸造跳过）；服务错误（20003008）或读不到 → 不改（照旧）。每个钱包 6 小时问一次。*/
+const AID = { ms: 6 * 3600e3, last: {} }; /* 技术用：同一个钱包多久重问一次 */
+async function aidCheck(W, force) { if (!W || W.kind === 'okx') return; const now = Date.now(); if (!force && now - (AID.last[W.name] || 0) < AID.ms) return; AID.last[W.name] = now;
+  const r = await W.baw(['wallet', 'agent-id'], 60000); const d = r?.j?.data; if (!r?.j?.success || !d || typeof d.claimed !== 'boolean') return;
+  if (d.claimed) { const h = String(d.handle || String(d.agentId || '').replace(/\.ai$/i, '')).toLowerCase(); if (h) W.agentId = keccak256(h); if (W.noAid) log(`[钱包] ${W.name} 已有 Agent ID ${d.agentId || h}`); W.noAid = 0; }
+  else { if (!W.noAid) log(`[钱包] ${W.name} 还没有 Agent ID（币安钱包回报）：AI 专属铸造会跳过这个钱包`); W.noAid = 1; } }
 async function loginCheck() {
   for (const W of WALLETS) {
     if (W.kind === 'okx') { const r0 = await W.baw(['wallet', 'status'], 60000); const on = r0.j?.data?.status === 'CONNECTED'; const was = MCW.st[W.name]; MCW.st[W.name] = on ? 1 : 0; S.lastLoginAlert = S.lastLoginAlert && typeof S.lastLoginAlert === 'object' ? S.lastLoginAlert : {}; const k = 'okx:' + W.name;
@@ -3148,6 +3156,7 @@ async function loginCheck() {
       if (Number.isFinite(exp) && exp > 0 && nrNum('notify.devModeH') != null && exp - Date.now() < nrNum('notify.devModeH') * 3600e3 && S.devAlert[W.name] !== exp) { S.devAlert[W.name] = exp; await tg(`⏰ ${W.name} 的开发者模式${exp <= Date.now() ? '已经在' : '将在'} ${new Date(exp).toLocaleString('zh-TW', { hour12: false, timeZone: CONFIG.timeZone || 'Asia/Taipei' })} 到期\n到期后自动铸造／自动卖出会停，请在那个帐号的币安 App → Agentic Wallet → 设定 重新开启开发者模式`); }
       if (st.j?.data?.devMode && st.j.data.devMode.enabled === false && S.devAlert[W.name + ':off'] !== 1) { S.devAlert[W.name + ':off'] = 1; await tg(`⚠️ ${W.name} 的开发者模式已关闭，自动操作会失败，请在 App 重新开启`); }
       if (st.j?.data?.devMode?.enabled) S.devAlert[W.name + ':off'] = 0;
+      aidCheck(W).catch(() => {}); /*AID-13*/
       if (S.lastLoginAlert?.[W.name]) delete S.lastLoginAlert[W.name]; nClear('login:' + W.name); /* 重新连上了：下次再断才通知 */
       continue;
     }
