@@ -24,6 +24,11 @@ const isAddr = (x) => /^0x[0-9a-f]{40}$/.test(lc(x));
 export function startRH(ctx) {
   const { WALLETS, log, tg, S, save, radarOff } = ctx;
   const conflOf = () => { try { return String(ctx.confl?.() || ''); } catch { return ''; } }; /*RISK-FIX 1：另一个雷达正在用同一个钱包（引擎的 CONFL）→ 自动卖先停，避免两边重复卖 */
+  /*FIX-1112 用户回报：铸造扫描连续好几天 fetch failed 只写日志、没人知道 → 连续失败超过 FAIL_ALERT_MS 发一次 TG（附可能原因），恢复时再说一声；状态存在 S.rh.err 给画面看 */
+  const FAIL_ALERT_MS = 10 * 60e3; /* 技术用：连续失败多久才提醒（避免偶发断线就吵） */ const FAILS = {};
+  const proxyHint = () => { const P = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy || ''; const N = String(process.env.NO_PROXY || process.env.no_proxy || ''); return P && RPCS.some((u) => N.includes(new URL(u).hostname)) ? `\n可能原因：你的 NO_PROXY 包含 Robinhood 节点（${RPCS.map((u) => new URL(u).hostname).filter((h) => N.includes(h)).join('、')}），引擎会绕过代理直连；如果你的网路直连连不上，请把它们从 NO_PROXY 拿掉。` : P ? '' : '\n可能原因：网路连不上 Robinhood 节点（需要代理的网路请设定系统代理）。'; };
+  function scanFail(k, name, e) { const F = FAILS[k] || (FAILS[k] = { since: Date.now(), n: 0, told: 0 }); F.n++; F.msg = String(e?.message || e).slice(0, 120); try { const E = (S.rh = S.rh || {}); E.err = E.err || {}; E.err[k] = { since: F.since, n: F.n, msg: F.msg }; } catch {} if (!F.told && Date.now() - F.since >= FAIL_ALERT_MS) { F.told = 1; Promise.resolve().then(() => tg(`⚠️ [Robinhood ${name}] 连续 ${Math.round((Date.now() - F.since) / 60e3)} 分钟失败（${F.msg}），这段时间没有在扫描。${proxyHint()}`)).catch(() => {}); } }
+  function scanOk(k) { const F = FAILS[k]; if (!F) return; delete FAILS[k]; try { if (S.rh?.err) delete S.rh.err[k]; } catch {} if (F.told) Promise.resolve().then(() => tg(`✅ [Robinhood] ${k === 'mint' ? '铸造扫描' : '热门扫描'} 恢复正常`)).catch(() => {}); }
   const RH_SELLING = new Set(); /*RISK-FIX 2：同一个钱包同一个币同时只送一张卖单（手动卖、自动卖不会撞，剩下比例 w.rem 不会算错） */
   const remCost = (w) => (+w.cost || 0) * (Number.isFinite(+w.rem) ? Math.max(0, Math.min(1, +w.rem)) : 1); /*RISK-FIX3：剩下的成本＝总成本×剩下比例 */
   const SELL_CTX = new WeakMap(); /*RISK-FIX3 A：卖单送出当下的剩下成本 cl、平均买入价 ap0，和送单期间的加码 adds（只在记忆体） */
@@ -275,7 +280,8 @@ export function startRH(ctx) {
       }
       for (const [c, o] of Object.entries(R.seen)) if (Date.now() - o.at > 86400e3) delete R.seen[c];
       save();
-    } catch (e) { log('[Robinhood] 扫描出错 ' + e.message); } finally { scanBusy = false; }
+      scanOk('scan');
+    } catch (e) { log('[Robinhood] 扫描出错 ' + e.message); scanFail('scan', '热门扫描', e); } finally { scanBusy = false; }
   }
 
   // ── Robinhood 铸造项目（11/2）：扫链上「从 0 地址转出」= 铸造。ZR-1103：只要有 1 笔铸造就列出来（不设官方门槛），全部轮流深查；要不要铸照你的条件 ──
@@ -296,7 +302,8 @@ export function startRH(ctx) {
       const win = RHC.mintWinMin; const cands = Object.entries(R.mint).map(([c, M]) => [c, M, Object.values(M.m).filter((t) => win == null || Date.now() - t < win * 60e3).length]).filter((x) => x[2] > 0).sort((a, b) => (a[1].chkAt || 0) - (b[1].chkAt || 0)); /* ZR-1103：有铸造就排进来；最久没查的先查（轮流），不再只挑最热的几个 */
       let nck = 0; for (const [c, M, recent] of cands) { M.recent = recent; if (M.chkAt && Date.now() - M.chkAt < RECHECK_MS) continue; if (++nck > MINT_CHECK_BUDGET) break; await checkMint(c, M, recent).catch((e) => log('[Robinhood 铸造] 检查出错 ' + e.message)); }
       save();
-    } catch (e) { log('[Robinhood 铸造] 扫描出错 ' + e.message); } finally { mintBusy = false; }
+      scanOk('mint');
+    } catch (e) { log('[Robinhood 铸造] 扫描出错 ' + e.message); scanFail('mint', '铸造扫描', e); } finally { mintBusy = false; }
   }
   async function checkMint(c, M, recent) {
     M.chkAt = Date.now();
