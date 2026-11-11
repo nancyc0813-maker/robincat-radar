@@ -53,9 +53,9 @@ export async function mctOrder(o, { DIR, WALLETS, log, tgSay }) {
   else return done(false, '不认识的单种，没送出');
   if (slip) a.push('--slippage', slip);
   let r; try { r = await W.baw(a, 90000); } catch (e) { return done(false, '送出失败：' + String(e?.message || e).slice(0, 160)); }
+  if (r?.j?.data?.final?.status === 'FAILED') return done(false, '❌ 没成交（链上失败：可能滑点、流动性不够或路由问题），钱没花掉', { id: String(r.j.data.orderId || '') });
   const id = r?.j?.data?.orderId; if (!r?.j?.success || !id) return done(false, '没送出：' + String(r?.j?.error?.message || r?.j?.message || r?.t || '没有回原因').slice(0, 160));
-  log(`🌐 ${ch} 已送出单号 ${id}，确认成交中…`);
-  const x = await waitOrder(W, id, C.id);
+  const x = r.j.data.final || (log(`🌐 ${ch} 已送出单号 ${id}，确认成交中…`), await waitOrder(W, id, C.id)); /* 引擎外层（SWAPWAIT）通常已经查到结果 */
   if (x.status === 'FINISHED') { const rf = Array.isArray(x.refund) ? x.refund.filter((y) => y && Number(y.amount) > 0) : []; const got = x.toTokenActualQty ? `收到 ${x.toTokenActualQty} ${x.toTokenName || ''}` : '';
     return done(true, `✅ 成交 ${got}${rf.length ? `（部分成交，退回 ${rf.map((y) => y.amount + ' ' + (y.symbol || '')).join('、')}）` : ''}`, { tx: String(x.txHash || ''), id: String(id) }); }
   if (x.status === 'FAILED') return done(false, '❌ 没成交（链上失败：可能滑点、流动性不够或路由问题），钱没花掉', { id: String(id) });
