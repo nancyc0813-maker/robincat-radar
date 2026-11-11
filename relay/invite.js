@@ -18,7 +18,7 @@ const RPCS = ['https://bsc-dataseed.bnbchain.org', 'https://bsc-rpc.publicnode.c
 const INV_IT = 40000; /* 技术用：跟原本一样的 PBKDF2 次数（雷达照资料里的 it 算） */
 const HASH_PER_RUN = 40; /* 技术用：每次排程最多算几个新指纹（省 CPU，没算完下一分钟继续） */
 const BIND_PER_HOUR = 20; /* 技术用：每个 TG 帐号每小时最多送几次绑定（防灌） */
-const FB_PER_DAY = 10; /* 技术用：每人每天最多收几则反馈 */
+const FB_KEEP = 200, FB_LEN = 2000; /* 技术用：转接站留最近几则反馈、每则最多几个字（单独存一个键，不撑大邀请资料） */ const FB_PER_DAY = 10; /* 技术用：每人每天最多收几则反馈 */
 const GH_REPO = OFFI.OWNER + '/' + OFFI.DATA;
 const BOT = 'https://t.me/' + OFFI.TG_BOT;
 const GH = 'https://github.com/' + OFFI.OWNER + '/robincat-sentinel';
@@ -147,6 +147,7 @@ async function onTg(I, env, m, bindCheck) {
   if (!txt || /^\/start\b/.test(txt)) { await say('👋 这里是罗宾猫雷达的反馈信箱。\n直接把你想要的功能、遇到的问题打出来送出就好（在雷达按「💡 反馈」会帮你整理好格式）。\nNancy 会看过每一则，好的建议会做进下一个官方版本。'); return; }
   if (/^\//.test(txt)) return;
   const day = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); if (I.fb.d !== day) I.fb = { d: day, n: {} }; const n = (I.fb.n[uid] || 0) + 1; I.fb.n[uid] = n; if (n > FB_PER_DAY) return;
+  (I._fbNew = I._fbNew || []).push({ at: Date.now(), u: user ? '@' + user : String(m.from.first_name || uid).slice(0, 40), t: txt.slice(0, FB_LEN), img: m.photo || m.document ? 1 : 0 }); /*FB-1112 也留一份在转接站（只有持 FB_KEY 的作者读得到）*/
   await tgOwner(env, `💬 罗宾猫雷达新反馈 ${user ? '@' + user : (m.from.first_name || uid)}${m.photo || m.document ? '（附图片，请到机器人看）' : ''}\n${txt.slice(0, 800)}`);
   await say(n === FB_PER_DAY ? '✅ 收到了，谢谢！（今天已经收满 10 则，明天再来～）' : '✅ 收到了，谢谢你的反馈！Nancy 会看。');
 }
@@ -219,7 +220,8 @@ export async function invDo(obj, req, env, tools) {
   if (iu.pathname === '/_inv_pts') { const p = await st.get('ppub'); return p ? new Response(p, { headers: { 'content-type': 'application/json' } }) : new Response(JSON.stringify({ err: 'not loaded' }), { status: 503 }); }
   if (iu.pathname === '/_inv_pub') { const p = await st.get('pub'); return p ? new Response(p, { headers: { 'content-type': 'application/json' } }) : new Response(JSON.stringify({ err: 'not loaded' }), { status: 503 }); }
   if (iu.pathname === '/_inv_bind') { if (!I.salt) return new Response(JSON.stringify({ wait: 1 })); /* 还没汇入资料 → 先不处理，留在队列 */ const { P } = await req.json(); const r = doBind(I, P, 'rb:' + P.w, ''); await save(); return new Response(JSON.stringify(r)); }
-  if (iu.pathname === '/_inv_tg') { const up = await req.json(); const m = up.message; if (m?.from && m.chat?.type === 'private') { const bc = tools.bindCheck; bc.st = st; bc.X = { ...xBlank(), ...((await st.get('X')) || {}) }; await onTg(I, env, m, bc); await st.put('X', bc.X); await save(); } return new Response('ok'); }
+  if (iu.pathname === '/_inv_tg') { const up = await req.json(); const m = up.message; if (m?.from && m.chat?.type === 'private') { const bc = tools.bindCheck; bc.st = st; bc.X = { ...xBlank(), ...((await st.get('X')) || {}) }; await onTg(I, env, m, bc); await st.put('X', bc.X); if (I._fbNew?.length) { let L = (await st.get('FBL')) || []; L = L.concat(I._fbNew).slice(-FB_KEEP); await st.put('FBL', L); } delete I._fbNew; await save(); } return new Response('ok'); }
+  if (iu.pathname === '/_inv_fb') return new Response(JSON.stringify({ list: (await st.get('FBL')) || [] }), { headers: { 'content-type': 'application/json' } });
   if (iu.pathname === '/_inv_xpub') { const p = await st.get('xpub'); return p ? new Response(p, { headers: { 'content-type': 'application/json' } }) : new Response(JSON.stringify({ err: 'not loaded' }), { status: 503 }); }
   if (iu.pathname === '/_inv_import') { const D = await req.json(); if (!D || typeof D.joins !== 'object' || typeof D.own !== 'object' || !/^[0-9a-f]{32}$/.test(String(D.salt || ''))) return new Response(JSON.stringify({ err: 'fmt' }), { status: 400 });
     I = { ...blank(), joins: D.joins, own: D.own, groups: D.groups || {}, pend: D.pend || {}, titles: D.titles || {}, tids: D.tids || {}, salt: D.salt, hc: D.hc || {}, seq: Math.max(+D.seq || 0, +I.seq || 0) }; note(I, `从 GangPaper 汇入：绑定 ${Object.keys(I.joins).length}、专属码 ${Object.keys(I.own).length}`);
