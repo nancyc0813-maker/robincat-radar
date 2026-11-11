@@ -1118,6 +1118,17 @@ const mcOrderBad = (o) => { if (!o || typeof o !== 'object') return ''; if (o.mc
   for (const k of ['chain', 'net', 'ch']) if (o[k] != null && o[k] !== '') { const v = String(o[k]).toLowerCase(); if (!['56', '4663', 'bsc', 'robinhood', 'rh'].includes(v)) return 'chain'; } return ''; }; /* 只收雷达现有买卖的链（BNB Chain／Robinhood） */
 globalThis.MC121 = { MC_CHAINS, MC_WALLET_KINDS, MC_RADAR_TRADE, mcMode, mcDetected, mcAveUrl, mcOrderBad }; /* 测试用 */
 /*MC121-END*/
+/*OKX-13 连接 OKX AI 钱包：装工具（官方安装程式，固定版本）→ 浏览器登入（Email／Google／Apple）→ 取 EVM 地址 → 交给引擎当一个钱包（买卖照样过引擎闸门）*/
+const OKX_INSTALLER = '@okxweb3/onchainos-installer@0.0.1-beta-4af28c368a-260910124122'; /* 技术用：OKX 官方安装程式固定版本（不跟着最新版自动变） */
+let OKXM = null; const okxMod = async () => OKXM || (OKXM = await import(require('url').pathToFileURL(path.join(ROOT, 'okx.mjs')).href));
+let OKX_BUSY = 0;
+ipcMain.handle('okx', async (e, act) => { try { const M = await okxMod();
+  if (act === 'has') return { bin: fs.existsSync(M.OKX_BIN) || M.OKX_BIN !== 'onchainos' };
+  if (act === 'install') { if (OKX_BUSY) return { err: 'busy' }; OKX_BUSY = 1; try { const r = await new Promise((res) => require('child_process').execFile(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['-y', OKX_INSTALLER, 'install'], { shell: process.platform === 'win32', windowsHide: true, timeout: 600e3, maxBuffer: 8 << 20 }, (er, so, se) => res({ ok: !er, t: String(so || se || er?.message || '').slice(-600) }))); OKXM = null; return r; } finally { OKX_BUSY = 0; } }
+  if (act === 'connect') { if (OKX_BUSY) return { err: 'busy' }; OKX_BUSY = 1; try { const i = await M.okxLoginInit(); if (i.err) return { err: i.err }; if (i.url && !i.opened) { try { await shell.openExternal(i.url); } catch {} }
+      const p = await M.okxLoginPoll(i.sid); if (p.err) return { err: p.err, url: i.url }; const a = await M.okxEvmAddr(); if (!a) return { err: 'noAddr' };
+      const r = ordPush({ type: 'addWallet', address: a, name: 'OKX', kind: 'okx' }); return { ok: 1, addr: a, r }; } finally { OKX_BUSY = 0; } }
+  return { err: 'act' }; } catch (err) { return { err: String(err?.message || err).slice(0, 160) }; } });
 const ORD_TYPES = new Set(['addWallet', 'analyze', 'buy', 'health', 'lookup', 'mint', 'mintHist', 'mintpick', 'nftmint', 'previewMint', 'removeWallet', 'rescan', 'sell', 'sentAck', 'sentRevoke', 'shareInfo', 'shareMint', 'tpsl', 'track', 'update']), ORD_PHONE = new Set(['buy', 'sell']);
 function ordClean(o, types) { if (!o || typeof o !== 'object' || Array.isArray(o) || !types.has(o.type)) return null; let j; try { j = JSON.stringify(o); } catch { return null; } if (j.length > 20000) return null; const x = JSON.parse(j); if (Object.keys(x).length > 60) return null; delete x.id; delete x.at; if (x.src === 'phone') delete x.src; return x; }
 ipcMain.handle('phoneOrder', (e, o) => { const x = ordClean(o, ORD_PHONE); if (!x) return { err: 'bad' }; x.src = 'phone'; return ordPush(x); }); /* 手机经转接站送来、桌面画面转送的单：一定带 src:'phone'（引擎会再用手机规则挡一次） */

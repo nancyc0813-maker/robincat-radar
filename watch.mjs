@@ -1,6 +1,7 @@
 // 罗宾猫雷达 引擎 — 链上新项目监测、你自己开的买卖策略、持仓止盈止损。
 // 全部在本地跑：扫 BSC 新合约 → 模拟 → 用 baw CLI 自动打 → 开池后照规则自动卖 → Telegram 通知。不使用任何 AI。
 // 停止：在同资料夹放 WATCH_STOP 档。设定见 config.example.json。
+import { makeOkxBaw } from './okx.mjs'; /*OKX-13*/
 import { execFile, execFileSync } from 'node:child_process';
 import { openSync, readSync, closeSync } from 'node:fs';
 import { appendFileSync, writeFileSync, readFileSync, existsSync, statSync, renameSync, copyFileSync, unlinkSync, mkdirSync, readdirSync, chmodSync } from 'node:fs';
@@ -286,7 +287,7 @@ async function ensureBaw2() {
 ensureBaw2();
 const wHidden = new Set((WCFG.hidden || []).map((a) => String(a).toLowerCase()));
 const walFromCfg = (wc) => ({ name: wc.name, addr: wc.address.toLowerCase(), baw: makeBaw(wc) }); /* UIFIX4：config.json 的钱包（开机和「新增钱包」共用这一份；之后新增的经 WALLETS.push 自动包上闸门） */
-const walFromAdd = (w) => ({ name: String(w.name).slice(0, 30), addr: w.address.toLowerCase(), baw: bawFor(w), added: 1 }); /* UIFIX4：雷达画面新增的钱包（开机和即时新增共用） */
+const walFromAdd = (w) => ({ name: String(w.name).slice(0, 30), addr: w.address.toLowerCase(), baw: w.kind === 'okx' ? bawGuard(makeOkxBaw(w)) : bawFor(w), added: 1, ...(w.kind === 'okx' ? { kind: 'okx' } : {}) }); /*OKX-13 OKX AI 钱包：指令翻成币安格式，照样经过同一个闸门*/ /* UIFIX4：雷达画面新增的钱包（开机和即时新增共用） */
 const WALLETS = (Array.isArray(CONFIG.wallets) ? CONFIG.wallets : []).filter((wc) => /^0x[0-9a-fA-F]{40}$/.test(String(wc?.address || ''))).map(walFromCfg); /* UIFIX4：只收真的地址（范本的 0xYourAgentWallet 不算） */
 for (const w of WCFG.add || []) { if (/^0x[0-9a-fA-F]{40}$/.test(w.address) && !WALLETS.some((x) => x.addr === w.address.toLowerCase())) WALLETS.push(walFromAdd(w)); }
 { const keep = WALLETS.filter((w) => !wHidden.has(w.addr)); WALLETS.splice(0, WALLETS.length, ...keep); } /*RISK-FIX 11：钱包全部被隐藏＝视为没有钱包（只读、不买、不下单），不再把隐藏的钱包全部拿回来用 */
@@ -1082,6 +1083,7 @@ async function autoMint(c, fname, W = WALLETS[0], val = 0n) {
   const bnb = BigInt((await rpc('eth_getBalance', [W.addr, 'latest']).catch(() => '0x0')) || '0x0');
   { const mg = NR.num('risk.minGasBnb'); if (mg != null && Number(bnb) / 1e18 < mg) return `⚠️ 钱包 BNB 只剩 ${(Number(bnb) / 1e18).toFixed(6)}，低于你设的「至少要有」${mg} BNB，没有铸`; } /* gas 底线＝你的 risk.minGasBnb；没填＝不另外设底线，付不付得起由预演决定 */
   { const rb = await riskBlock(W, c, val, d, val === 0n); if (rb) return '⏸ 风控：' + rb + '，没有铸'; }
+  if (W.kind === 'okx') return 'ℹ️ OKX 钱包不能铸造（AI 专属铸造只认币安 Agent ID），这个钱包跳过'; /*OKX-13*/
   const p = await W.baw(['contract-call', 'preview', '--binanceChainId', '56', '--from', W.addr, '--to', c, '--value', val.toString(), '--inputData', d]);
   const sim = p.j?.data?.simulationResult, rid = p.j?.data?.requestId;
   if (!p.j?.success || !rid) return '❌ 预演失败，没有铸：' + (p.j?.error?.message || '').slice(0, 120);
@@ -1287,6 +1289,7 @@ async function curveSell(c, W, amt) { if (!(amt > 0n)) return false; const q = a
   const cx = await previewExec(W, c, data, 0n, (sim) => { if (sim?.allowanceChanges?.length || sim?.authorityChanges?.length) return '会授权或交出钱包权限'; const mine = (sim?.balanceChanges || []).filter((b) => String(b.owner).toLowerCase() === W.addr); if (mine.some((b) => !String(b.contractAddress || '').toLowerCase().startsWith('0xeeee') && String(b.contractAddress).toLowerCase() !== c && Number(b.change) < 0)) return '会扣你别的币'; if (!mine.some((b) => String(b.contractAddress || '').toLowerCase().startsWith('0xeeee') && Number(b.change) > 0)) return '预演看不到拿回 BNB'; return ''; }, null, { manual: true });
   if (!cx?.rc) { log(`[${W.name}] ${CURVES[c].name} 曲线卖出已送出，但查不到收据 → 结果待确认`); return 'pend'; } /*V105-FIX2*/ log(`[${W.name}] ${CURVES[c].name} 曲线卖出：约拿回 ${(Number(q) / 1e18).toFixed(5)} BNB`); return true; }
 async function previewExec(W, to, data, valueWei, check, recheck = null, opts = {}) {
+  if (W.kind === 'okx') throw new Error('OKX 钱包不支援合约直接呼叫（曲线买卖／铸造），请用币安 AI 钱包'); /*OKX-13 跟预演失败一样处理*/
   const p = await W.baw(['contract-call', 'preview', '--binanceChainId', '56', '--from', W.addr, '--to', to, '--value', valueWei.toString(), '--inputData', data]);
   const sim = p.j?.data?.simulationResult, rid = p.j?.data?.requestId;
   if (!p.j?.success || !rid) throw new Error('预演失败 ' + (p.j?.error?.message || p.t).slice(0, 120) + (valueWei > 0n ? pbHint(p.j?.error?.message || p.t) : '')); 
@@ -1939,7 +1942,7 @@ async function radarOrders() {
     if (!['addWallet', 'removeWallet', 'analyze', 'mintHist', 'lookup' /*SEARCH123 搜寻是唯读*/].includes(o.type) && LOCKED()) { log('🔒 还没完成邀请绑定，雷达下单被挡：' + o.type); await tgSay('🔒 还没完成邀请码绑定' + lockWhy() + '：现在只能看，不能买卖。请在雷达填邀请码、完成绑定') /*RISK-FIX 4*/.catch(() => {}); continue; } 
     if (o.type === 'addWallet' || o.type === 'removeWallet') { const f = join(DIR, 'data', 'radar_wallets_cfg.json'); const cfg = { add: [], hidden: [], ...WCFG }; const a = String(o.address || '').toLowerCase();
       if (!/^0x[0-9a-f]{40}$/.test(a)) continue;
-      if (o.type === 'addWallet') { cfg.hidden = (cfg.hidden || []).filter((x) => x !== a); if (!WALLETS.some((w) => w.addr === a) && !cfg.add.some((w) => w.address.toLowerCase() === a)) { const id = 'w' + Date.now().toString(36); cfg.add.push({ name: String(o.name || 'wallet').replace(/[^\w.\-\u4e00-\u9fff]/g, '').slice(0, 30) || 'wallet', address: a, bawDir: 'baw_' + id, instanceId: 'radar-' + id }); } }
+      if (o.type === 'addWallet') { cfg.hidden = (cfg.hidden || []).filter((x) => x !== a); if (!WALLETS.some((w) => w.addr === a) && !cfg.add.some((w) => w.address.toLowerCase() === a)) { const id = 'w' + Date.now().toString(36); cfg.add.push({ name: String(o.name || 'wallet').replace(/[^\w.\-\u4e00-\u9fff]/g, '').slice(0, 30) || 'wallet', address: a, bawDir: 'baw_' + id, instanceId: 'radar-' + id, ...(o.kind === 'okx' ? { kind: 'okx' } : {}) }); } }
       else { const held = (S.dyn || []).filter((t) => t.only === a && !t.closed).length; if (WALLETS.filter((w) => w.addr !== a).length < 1) { await tgSay('❌ 没有删除：至少要留一个钱包').catch(() => {}); continue; } cfg.add = cfg.add.filter((w) => w.address.toLowerCase() !== a); if (!cfg.hidden.includes(a)) cfg.hidden.push(a); if (held) await tgSay(`⚠️ 已移除钱包 ${a.slice(0, 8)}…，它还有 ${held} 个持仓，雷达之后不会再帮它卖，请自己处理`).catch(() => {}); }
       writeFileSync(f, JSON.stringify(cfg, null, 1)); Object.assign(WCFG, cfg); const wr = walApply(o.type, a, cfg); log(`雷达${o.type === 'addWallet' ? '新增' : '移除'}钱包 ${a}（立即生效）`); await tgSay(wr).catch(() => {}); continue; } /* UIFIX4：钱包名单在引擎里立刻生效（不靠重新启动） */
     if (o.type === 'lookup') { const seq = ++LK_SEQ; (async () => { 
@@ -2143,7 +2146,7 @@ function walApply(type, a, cfg) { const rm = type === 'removeWallet';
   try { const f = join(DIR, 'data', 'radar_wallets.json'); let j = {}; try { j = JSON.parse(readFileSync(f, 'utf8')) || {}; } catch {} const old = new Map((Array.isArray(j.list) ? j.list : []).map((x) => [String(x?.addr || '').toLowerCase(), x])); writeFileSync(f, JSON.stringify({ at: Date.now(), list: WALLETS.map((W) => old.get(W.addr) || { name: W.name, addr: W.addr, status: 'UNCONNECTED' }) })); } catch {}
   setTimeout(() => { radarWalletPoll(); }, 0);
   const W = WALLETS.find((w) => w.addr === a); return rm ? `✅ 已删除钱包 ${a.slice(0, 8)}…（立即生效：雷达不再用它买卖）` : W ? `✅ 已新增钱包 ${W.name}（立即生效）：请在雷达「设定 → 钱包」按它旁边的「连接（扫码）」` : `❌ 新增钱包失败：${a.slice(0, 8)}…`; }
-async function radarWalletPoll(force) { try { const out = []; for (const W of WALLETS) { guardBaw(W); swapWaitWrap(W); const r = await W.baw(['wallet', 'status'], 60000); const st = r.j?.data?.status || 'UNKNOWN'; if (st !== 'UNKNOWN') { const off = st !== 'CONNECTED'; W.off = off; S.wOff = S.wOff || {}; const seen = W.addr in S.wOff; if (!seen) { S.wOff[W.addr] = off; save(); } /* 第一次看到只记下来，不通知 */ else if (off !== !!S.wOff[W.addr]) { S.wOff[W.addr] = off; save(); log(`[钱包] ${W.name} ${off ? '登出了，自动买卖先跳过这个钱包' : '重新连上了，恢复正常'}`); if (off) { if (!globalThis._loginNowBusy) { globalThis._loginNowBusy = 1; loginCheck().catch((e) => log('loginCheck ' + e.message)).finally(() => { globalThis._loginNowBusy = 0; }); } } /*V102-LOGOUT1：登出只发 loginCheck 那一则（有连结和配对码），这里不再另外发 */ else tg(`✅ ${W.name} 钱包重新连上了，恢复自动买卖`).catch(() => {}); } } out.push({ name: W.name, addr: W.addr, status: st === 'UNKNOWN' && S.wOff && W.addr in S.wOff ? (S.wOff[W.addr] ? 'UNCONNECTED' : 'CONNECTED') : st, ...(st === 'UNKNOWN' ? { stale: 1 } : {}) }); } writeFileSync(join(DIR, 'data', 'radar_wallets.json'), JSON.stringify({ at: Date.now(), list: out })); } catch (e) { log('radarWalletPoll ' + e.message); } }
+async function radarWalletPoll(force) { try { const out = []; for (const W of WALLETS) { guardBaw(W); swapWaitWrap(W); const r = await W.baw(['wallet', 'status'], 60000); const st = r.j?.data?.status || 'UNKNOWN'; if (st !== 'UNKNOWN') { const off = st !== 'CONNECTED'; W.off = off; S.wOff = S.wOff || {}; const seen = W.addr in S.wOff; if (!seen) { S.wOff[W.addr] = off; save(); } /* 第一次看到只记下来，不通知 */ else if (off !== !!S.wOff[W.addr]) { S.wOff[W.addr] = off; save(); log(`[钱包] ${W.name} ${off ? '登出了，自动买卖先跳过这个钱包' : '重新连上了，恢复正常'}`); if (off) { if (!globalThis._loginNowBusy) { globalThis._loginNowBusy = 1; loginCheck().catch((e) => log('loginCheck ' + e.message)).finally(() => { globalThis._loginNowBusy = 0; }); } } /*V102-LOGOUT1：登出只发 loginCheck 那一则（有连结和配对码），这里不再另外发 */ else tg(`✅ ${W.name} 钱包重新连上了，恢复自动买卖`).catch(() => {}); } } out.push({ name: W.name, addr: W.addr, ...(W.kind === 'okx' ? { kind: 'okx' } : {}), status: st === 'UNKNOWN' && S.wOff && W.addr in S.wOff ? (S.wOff[W.addr] ? 'UNCONNECTED' : 'CONNECTED') : st, ...(st === 'UNKNOWN' ? { stale: 1 } : {}) }); } writeFileSync(join(DIR, 'data', 'radar_wallets.json'), JSON.stringify({ at: Date.now(), list: out })); } catch (e) { log('radarWalletPoll ' + e.message); } }
 /*QR120-ENG*/ /* 连接钱包（扫码）：每一步失败都写真正原因（画面会显示＋重试）；等扫码时再按一次就拿新码（新的请求取代旧的，不会卡住）；没有钱包也回原因 */
 const QR120_SIGNIN_MS = 60000, QR120_VERIFY_MS = 330000; /* 技术用：baw 向币安要二维码／等手机扫码最多等多久（指令逾时，不是买卖数字） */
 /*NET123 反过来判断：只有币安正常回了 JSON 业务错误（认得的业务代码）才显示币安的原因；其他一律「连不到币安」＋VPN 白话＋重试*/
@@ -3099,6 +3102,8 @@ async function mcWalletScan(W, force) { const now = Date.now(); if (!force && no
 /*MC121-W-END*/
 async function loginCheck() {
   for (const W of WALLETS) {
+    if (W.kind === 'okx') { const r0 = await W.baw(['wallet', 'status'], 60000); const on = r0.j?.data?.status === 'CONNECTED'; const was = MCW.st[W.name]; MCW.st[W.name] = on ? 1 : 0; S.lastLoginAlert = S.lastLoginAlert && typeof S.lastLoginAlert === 'object' ? S.lastLoginAlert : {}; const k = 'okx:' + W.name;
+      if (on) { mcWalletScan(W, was !== 1).catch(() => {}); delete S.lastLoginAlert[k]; } else if (r0.j && S.lastLoginAlert[k] !== 1) { S.lastLoginAlert[k] = 1; await tg(`⚠️ OKX 钱包 ${W.name} 没有登入：在雷达「设定 → 钱包」按「连接 OKX 钱包」重新登入`).catch(() => {}); } continue; } /*OKX-13 OKX 钱包用自己的登入（浏览器 Email／Google／Apple），不走币安的扫码；断线只提醒一次*/
     const r = await W.baw(['wallet', 'status'], 60000);
     { const on = r.j?.data?.status === 'CONNECTED'; const was = MCW.st[W.name]; MCW.st[W.name] = on ? 1 : 0; if (on) mcWalletScan(W, was !== 1).catch(() => {}); } /*MC121-W 启动／重新登入后读这个钱包支援哪些链（只读）*/
     if (r.j?.data?.status === 'CONNECTED') {
