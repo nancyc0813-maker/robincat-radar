@@ -1087,6 +1087,22 @@ const MC_PADS = { solana: ['pump', 'bonk', 'boop', 'moonshot', 'heaven', 'meteor
 const MC_PAD_TAGS = new Set('bankr_in_almost bankr_in_new bankr_out_new baseapp_in_almost baseapp_in_new baseapp_out_new basememe_in_almost basememe_in_new basememe_out_new bonk_in_almost bonk_in_hot bonk_in_new bonk_out_hot bonk_out_new boop_in_almost boop_in_hot boop_in_new boop_out_hot boop_out_new clanker_in_almost clanker_in_new clanker_out_new cookpump_in_almost cookpump_in_hot cookpump_in_new cookpump_out_hot cookpump_out_new heaven_in_almost heaven_in_new heaven_out_hot klik_in_almost klik_in_new klik_out_new meteora_in_hot meteora_in_new meteora_out_hot meteora_out_new moonshot_in_hot moonshot_out_hot movepump_in_hot movepump_out_hot nadfun_in_almost nadfun_in_hot nadfun_in_new nadfun_out_hot nadfun_out_new popme_in_new popme_out_new pump_in_almost pump_in_hot pump_in_new pump_out_hot pump_out_new sunpump_in_almost sunpump_in_hot sunpump_in_new sunpump_out_hot sunpump_out_new xdyorswap_in_hot xdyorswap_in_new xdyorswap_out_hot xdyorswap_out_new zoracontent_in_almost zoracontent_in_new zoracontent_out_new zoracreator_in_almost zoracreator_in_new zoracreator_out_new'.split(' '));
 for (const [ch, P] of Object.entries(MC_PADS)) { const q = (sf) => P.flatMap((p) => sf.map((x) => p + x)).filter((t) => MC_PAD_TAGS.has(t)).map((t) => '/v2/tokens/platform?tag=' + t + '&limit=100'); const L = (MC_LISTQ[ch] = MC_LISTQ[ch] || { hot: ['/v2/tokens/trending?chain=' + ch + '&page_size=100'] }); L.fresh = q(['_in_new']); L.soon = q(['_in_almost', '_in_hot']); L.done = q(['_out_new', '_out_hot']); }
 const mcPads = (k) => (MC_PADS[k] || []).length > 0;
+/*MCA-1112 各链发射台自动买：雷达视窗照你的设定（mca.*）去 AVE 抓你选的发射台、你选的阶段清单，写 data/mca_cand.json 给引擎（mcauto.mjs）判断。
+  没开 mca.on、没选链、没填发射台＝不抓。只抓资料，不下单；下单在引擎、一定经过统一闸门。 */
+const MCA_CHAINS = ['solana', 'base']; /* 有 AVE 发射台清单、而且雷达能下单（mctrade）的链 */
+const MCA_MS = 45e3; /* 技术用：多久抓一轮候选清单（AVE 转接站快取 30～60 秒） */
+const zOn = (z, k) => z?.[k] === 1 || z?.[k] === true || z?.[k] === '1';
+let MCA_BUSY = 0;
+async function mcaPoll() { if (MCA_BUSY) return; const z = zSet(); if (!zOn(z, 'mca.on')) return; MCA_BUSY = 1; try {
+  const want = String(z['mca.pads'] || '').toLowerCase().split(/[\s,，;；]+/).filter(Boolean); const st = [['_in_new', 'new', zOn(z, 'mca.stNew')], ['_in_almost', 'almost', zOn(z, 'mca.stAlmost')], ['_out_new', 'out', zOn(z, 'mca.stOut')]].filter((x) => x[2]);
+  const out = { at: Date.now(), items: [], err: '' }; if (!aveOK()) { out.err = 'ave'; } else {
+    for (const ch of MCA_CHAINS) { if (!zOn(z, 'mca.ch.' + ch)) continue; const C = mcChain(ch); if (!C) continue;
+      for (const p of (MC_PADS[ch] || []).filter((x) => want.includes(x))) for (const [sf, stage] of st) { const tag = p + sf; if (!MC_PAD_TAGS.has(tag)) continue;
+        const r = await mcList('/v2/tokens/platform?tag=' + tag + '&limit=100').catch(() => null); if (!r || r.err) { out.err = out.err || String(r?.err || 'ave'); continue; }
+        for (const t of r.arr) { const pk = mcPack(t); if (!pk || pk[0] !== C.ave) continue; padAveSee(pk); const v = pk[2]; out.items.push({ ch, c: pk[1], pad: p, stage, sym: v.s || '', n: v.n || '', mc: v.mc ?? null, h: v.h ?? null, pg: v.pg ?? null, ca: v.ca ?? null, tvl: v.tvl ?? null, v1: v.v1 ?? null, hp: v.hp ?? null, pl: v.pl || '' }); } } } }
+  const f = path.join(DATA, 'mca_cand.json'), tmp = f + '.w' + process.pid; fs.writeFileSync(tmp, JSON.stringify(out)); fs.renameSync(tmp, f);
+} catch (e) { console.error('mca', e); } finally { MCA_BUSY = 0; } }
+setInterval(() => { mcaPoll().catch(() => {}); }, MCA_MS);
 /*PADSCOUT-1112 从 AVE 发现发射台：AVE 每个币有「发行平台」（issue_platform）。看盘查到的清单里，第一次看到的平台记下来（data/pads_ave.json），
   画面「🆕 新发射台」列出来；记录开始后才第一次出现的标 🆕。只看、只通知，不会自动买。 */
 const PADAVE_F = path.join(DATA, 'pads_ave.json'); let PADAVE = null, PADAVE_W = 0;

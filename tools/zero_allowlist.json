@@ -18220,6 +18220,18 @@
    "file": "^radar/main\\.cjs$",
    "match": "MC_AVECH_MS",
    "reason": "CHK-1112 技术用：AVE 支援的链清单 6 小时重查一次；回来的清单少于 5 条或没有 bsc＝格式看不懂、不拿来过滤（只影响链选单显示哪些链）"
+  },
+  {
+   "rule": "TIMEWIN|CMP|SLICE|FALLBACK0|COMMENT_NUM|OBJNUM",
+   "file": "^mcauto\\.mjs$",
+   "match": ".",
+   "reason": "MCA-1112 各链发射台自动买：买不买、买多少、每天几笔全部是玩家填的（mca.*，没填＝不买）。这里的数字都是技术用：多久判断一轮、候选清单多旧就当读不到（不买）、记住买过的币几个、同结果多久才重写判断日志、台北时间换算（+8 小时）、发币时间秒／毫秒换算、日志截断长度；FALLBACK0 是「候选清单没有时间」＝当成很旧（不买）"
+  },
+  {
+   "rule": "TIMEWIN|COMMENT_NUM",
+   "file": "^radar/main\\.cjs$",
+   "match": "MCA_MS",
+   "reason": "MCA-1112 技术用：多久向 AVE 抓一轮发射台候选清单（只抓资料，不下单）"
   }
  ]
 }

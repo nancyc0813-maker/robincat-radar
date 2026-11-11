@@ -1723,7 +1723,7 @@ const NR = { on: nrOn, num: nrNum, str: nrStr, steps: nrSteps, floor: (k) => NR_
 globalThis.NR = NR;
 /* 每个条件：读不到这个资料时（1 不买／2 用备用条件，备用条件的数字也是你填的）。没有「跳过这个条件」。
    底线是另一层：不参加组合，开着的底线一定要过。每次买／不买都把逐条结果写进日志（data/decisions.jsonl）。 */
-const NR_SNAME = { bsc: '铸造代币（AI 项目）', tok: 'AI 热门代币', gen: '一般新币', rh: 'Robinhood 热门代币', rhmint: 'Robinhood 铸造', nft: 'BNB Chain NFT 铸造', mine: '挖矿流动性提醒', agc: 'AGC 挖矿', pol: 'Pol 流动性挖矿' };
+const NR_SNAME = { bsc: '铸造代币（AI 项目）', tok: 'AI 热门代币', gen: '一般新币', rh: 'Robinhood 热门代币', rhmint: 'Robinhood 铸造', mca: '各链发射台自动买', nft: 'BNB Chain NFT 铸造', mine: '挖矿流动性提醒', agc: 'AGC 挖矿', pol: 'Pol 流动性挖矿' };
 const nrFmt = (v) => (typeof v === 'number' ? (Math.abs(v) >= 100 ? Math.round(v) : Math.round(v * 100) / 100) : v);
 const nrPairK = (c) => (c.op === '>=' ? c.k + '.hi' : c.op === '<=' ? c.k + '.lo' : null); /* 另一边的 key */
 function nrRange(c) { const a = nrNum(c.k), pk = nrPairK(c), b = pk ? nrNum(pk) : null; return c.op === '>=' ? { lo: a, hi: b } : { lo: b, hi: a }; }
@@ -2558,6 +2558,7 @@ try { const { startMintPick } = await import('./mintpick.mjs?v=' + Date.now()); 
 try { const { startSentinel } = await import('./sentinel.mjs?v=' + Date.now()); globalThis.SENTINEL = startSentinel({ DIR, S, save, WALLETS, rpc, logsRpc, log, tgSay, nOnce, rhRpc: () => RH?.rpc || null }); } catch (e) { log('安全哨兵载入失败 ' + e.message); } /* 🛡 安全哨兵（只提醒，全部预设关） */
 try { const { startElysium } = await import('./elysium.mjs?v=' + Date.now()); globalThis.ELYSIUM = startElysium({ DIR, log, radarSet }); } catch (e) { log('Elysium 监测载入失败 ' + e.message); } /* ELY107 🌐 Elysium 只读监测：不给钱包、不签名、不送交易；开关 ely.on 预设关 */
 try { const { startPadScout } = await import('./padscout.mjs?v=' + Date.now()); globalThis.PADSCOUT = startPadScout({ DIR, log, radarSet, tg: tgSay }); } catch (e) { log('新发射台发现载入失败 ' + e.message); } /* PADSCOUT-1112 🆕 新发射台发现：只读节点，不给钱包、不签名、不送交易；开关 pads.on 预设关 */
+try { const { startMcAuto } = await import('./mcauto.mjs?v=' + Date.now()); if (MCT) globalThis.MCAUTO = startMcAuto({ DIR, WALLETS, log, tgSay, MCT }); else log('发射台自动买没启动：多链买卖模组没载入'); } catch (e) { log('发射台自动买载入失败 ' + e.message); } /* MCA-1112 各链发射台自动买：开关 mca.on 预设关；下单走 mctrade → W.baw（统一闸门） */
 try { const { startJournal } = await import('./journal.mjs?v=' + Date.now()); startJournal({ DIR, S, save, WALLETS, log, tg }); } catch (e) { log('交易日记载入失败 ' + e.message); } /* 交易日记，全部本地跑 */
 try { const { startPlugins } = await import('./plugins.mjs?v=' + Date.now()); await startPlugins({ DIR, WALLETS, log, tg, S, save, radarOff, radarSet, rpc, walletBusy: () => INFLIGHT > 0, keepBnb: () => PAID.keepBnb /* 传读取函式，设定改了马上生效 */, bnbUsd }); } catch (e) { log('外挂载入器失败 ' + e.message); } /* 量化外挂（网格、定投…），要在雷达按允许才载入 */
 const AUTO_INFL = new Set(); /* 自动策略之间不重复买同一个币（一个在买时，另一个跳过） */

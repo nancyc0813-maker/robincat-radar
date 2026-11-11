@@ -37,7 +37,7 @@ async function waitOrder(W, id, cid) { /* 轮询到终态（币安文件规定�
 /* o：{ type:'buy'|'sell', mc:'eth'|'base'|'arbitrum'|'polygon'|'solana', c, amt（买：原生币数量）, pct（卖：1–100）, w（钱包地址，可空）, slip（滑点 %，可空＝币安预设）, name } */
 export async function mctOrder(o, { DIR, WALLETS, log, tgSay }) {
   const ch = String(o.mc || ''); const C = MCT_CHAINS[ch]; const name = String(o.name || '').slice(0, 40);
-  const done = (ok, msg, extra = {}) => { const rec = { at: Date.now(), ch, c: String(o.c || ''), type: o.type, name, w: String(o._w || ''), ok: ok ? 1 : 0, msg: String(msg).slice(0, 300), ...extra }; result(DIR, rec); log(`🌐 ${ch} ${o.type === 'buy' ? '手动买' : '手动卖'} ${name || o.c}：${msg}`); tgSay(`🖥 ${C?.sym ? ch.toUpperCase() : ch} ${o.type === 'buy' ? '买' : '卖'} ${name || o.c}\n${msg}`).catch(() => {}); return rec; };
+  const done = (ok, msg, extra = {}) => { const rec = { at: Date.now(), ch, c: String(o.c || ''), type: o.type, name, w: String(o._w || ''), ok: ok ? 1 : 0, msg: String(msg).slice(0, 300), ...extra }; result(DIR, rec); log(`🌐 ${ch} ${o.type === 'buy' ? (o.auto ? '自动买' : '手动买') : '手动卖'} ${name || o.c}：${msg}`); tgSay(`${o.auto ? '🤖 自动' : '🖥 '}${C?.sym ? ch.toUpperCase() : ch} ${o.type === 'buy' ? '买' : '卖'} ${name || o.c}\n${msg}`).catch(() => {}); return rec; };
   if (!C) return done(false, '雷达不认识这条链，没送出');
   const c = mctAddr(ch, o.c); if (!c) return done(false, '合约地址格式不对，没送出');
   const wa = String(o.w || '').toLowerCase(); const sup = (x) => x && mctSupported(DIR, ch, x.name); let W = wa ? (WALLETS || []).find((x) => String(x.addr || '').toLowerCase() === wa && sup(x)) : null;

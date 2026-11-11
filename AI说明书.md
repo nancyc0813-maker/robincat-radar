@@ -442,6 +442,11 @@ api.panel({ title: '我的面板', items: [
 - 资料：`data/elysium.json`（画面／手机读）；每个新代币写一行判断记录（✅ 从 0 地址铸出　✅／❌ 在不在排除清单 → 显示／不显示）。
 - 「在 AVE 打开」：先复制合约，再打开 `https://ave.ai/token/<合约小写>-elysium`（合约先验 `0x`＋40 位）。交易在用户自己的 AVE 钱包完成，雷达不经手。`radar/main.cjs` 的 `openOfficial` 只把「网域刚好是 `ave.ai`、路径以 `/token/` 开头」当官方（不跳陌生网址提醒），理由：这是固定格式的看币页，网址由雷达自己用验过的合约组出来；`ave.ai` 其他路径、子网域、长得像的网域（例如 `evil-ave.ai`、`ave.ai.evil.com`）照样跳提醒。「还没装 AVE？下载」用 `repo.cjs` 的 `REF_AVE_URL`。
 
+## 五之一之二、🆕 新发射台发现（PADSCOUT-1112）与 🚀 各链发射台自动买（MCA-1112）
+
+- 新发射台发现：`padscout.mjs`（引擎模组，官方内建、只读）。跟 Elysium 一样拿不到钱包／baw／闸门，JSON-RPC 只准 `eth_chainId`、`eth_blockNumber`、`eth_getLogs`、`eth_getCode`、`eth_call`。原理：同一个合约在玩家填的时间内收到很多个「新币」的第一笔铸造（往回看确认之前没有转帐；LP 凭证排除）＝疑似发射台。设定 `pads.*`（`pads.on`、`pads.ch.<链>`、`pads.minTok`＋`pads.winMin`（没填＝不连线不判断）、`pads.tg`、`pads.ignore`、`pads.rpc.<链>`）。另外雷达视窗把 AVE 清单的「发行平台」记在 `data/pads_ave.json`。只看、只通知，**不准**在这个功能加买卖。
+- 各链发射台自动买：`mcauto.mjs`（引擎模组）。候选由雷达视窗照 `mca.*` 设定向 AVE 抓（`data/mca_cand.json`），引擎用 `NR.judge('mca', …)` 判断，下单走 `mctrade.mjs` → `W.baw`（统一闸门，自动买总开关照查）。全部预设关：没开 `mca.on`、没选链、没填每笔金额（`mca.amt.<链>`）、没填每天上限（`mca.dayN`）、没选组合方式＝不买；候选清单超过 3 分钟没更新＝读不到＝不买；同一个币只买一次（`data/mca_state.json`）。
+
 ## 五之二、🛡 安全哨兵（SEN-1103）
 
 雷达「⚙️ 设定」底下有一个「🛡 安全哨兵」子分页<!-- NAV9 -->（桌面最上面一级导航：📡 看盘｜🔥 热门社群｜📣 信号｜✨ AI 加功能｜🎁 空投｜🎯 自订策略｜💼 持仓｜📰 新闻｜⚙️ 设定）：**只看、只提醒**，不挡单、不自动取消授权、不自动卖。全部开关预设关，在「🎯 自订策略 → 🛡 安全哨兵」打开。
