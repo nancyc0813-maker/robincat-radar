@@ -20,9 +20,11 @@ export function okxRun(args, timeout = T.cmd) {
 const arg = (a, f) => { const i = a.indexOf(f); return i >= 0 ? String(a[i + 1] ?? '') : ''; };
 const fail = (m) => ({ t: m, j: { success: false, error: { message: m } } });
 const okj = (data) => ({ t: '', j: { success: true, data } });
+const BSOL = 'So11111111111111111111111111111111111111111', OSOL = '11111111111111111111111111111111'; const tok = (t) => (t === BSOL ? OSOL : t); /*SOL-13 币安 SOL 原生币地址 → OKX 的写法*/
 const chainOf = (a) => { const c = arg(a, '--binanceChainId') || '56'; return c === 'CT_501' ? '501' : c; };
 
 export function makeOkxBaw(w) { const addr = String(w.address || w.addr || '').toLowerCase();
+  let solAddr = ''; const walletFor = async (ch) => { if (ch !== '501') return addr; if (!solAddr) { const r = await okxRun(['wallet', 'addresses', '--chain', '501'], 60000); const m = JSON.stringify(r.j?.data || {}).match(/[1-9A-HJ-NP-Za-km-z]{32,44}/); solAddr = m ? m[0] : ''; } return solAddr; }; /*SOL-13 Solana 要用 OKX 帐号的 Solana 地址*/
   const f = async (a, timeout) => { a = (a || []).map(String); const c = a[0] + ' ' + a[1];
     if (c === 'wallet status') { const r = await okxRun(['wallet', 'status'], timeout); if (!r.j) return fail('读不到 OKX 钱包状态：' + (r.t || '').slice(0, 120)); const d = r.j.data || {}; return okj({ status: r.j.ok && d.loggedIn ? 'CONNECTED' : 'NOT_LOGGED_IN', okx: 1 }); }
     if (c === 'wallet settings') return okj({ okx: 1 }); /* OKX 没有开发者模式这类设定 */
@@ -30,7 +32,7 @@ export function makeOkxBaw(w) { const addr = String(w.address || w.addr || '').t
       return okj(L.map((x) => { const id = String(x?.realChainIndex ?? x?.chainIndex ?? ''); return { binanceChainId: id === '501' ? 'CT_501' : id, simpleName: String(x?.showName || x?.chainName || '') }; }).filter((x) => x.binanceChainId)); }
     if (c === 'wallet balance') { const ch = chainOf(a), tk = arg(a, '--tokenAddress'); const r = await okxRun(['wallet', 'balance', '--chain', ch, ...(tk ? ['--token-address', tk] : [])], timeout); if (!r.j?.ok) return fail(String(r.j?.error || r.t || '').slice(0, 160));
       const D = Array.isArray(r.j.data) ? r.j.data : [r.j.data]; const out = []; for (const d of D) for (const x of (d?.tokenAssets || d?.assets || [])) out.push({ address: String(x?.tokenAddress || ''), symbol: x?.symbol, balance: String(x?.balance ?? '0') }); return okj(out); }
-    if (c === 'market-order swap') { const ch = chainOf(a); const q = ['swap', 'execute', '--from', arg(a, '--fromToken'), '--to', arg(a, '--toToken'), '--readable-amount', arg(a, '--fromTokenQty'), '--chain', ch, '--wallet', addr]; const sl = arg(a, '--slippage'); if (sl && sl !== 'auto') q.push('--slippage', sl);
+    if (c === 'market-order swap') { const ch = chainOf(a); const wal = await walletFor(ch); if (!wal) return fail('读不到 OKX 帐号的 Solana 地址，没送出'); const q = ['swap', 'execute', '--from', tok(arg(a, '--fromToken')), '--to', tok(arg(a, '--toToken')), '--readable-amount', arg(a, '--fromTokenQty'), '--chain', ch, '--wallet', wal]; const sl = arg(a, '--slippage'); if (sl && sl !== 'auto') q.push('--slippage', sl);
       const r = await okxRun(q, timeout || T.cmd); if (r.code === 2 || r.j?.confirming) return fail('OKX 钱包要求你确认这笔交易（' + String(r.j?.message || '').slice(0, 120) + '），雷达不会替你确认，没送出');
       if (!r.j?.ok) return { ...fail(String(r.j?.error || r.t || 'OKX 没回结果').slice(0, 200)), timeout: r.timeout ? 1 : 0 };
       const d = r.j.data || {}; const tx = String(d.swapTxHash || ''), oid = String(d.swapOrderId || ''); if (!tx && !oid) return fail('OKX 回了成功但没有交易编号');
@@ -39,7 +41,7 @@ export function makeOkxBaw(w) { const addr = String(w.address || w.addr || '').t
       const final = { status: st, txHash: tx, fromTokenQty: String(d.fromAmount ?? ''), toTokenActualQty: '', toTokenName: '', refund: [] };
       if (st === 'FAILED') return { t: 'OKX 交易链上失败', j: { success: false, error: { message: '链上没成交（OKX 交易失败：可能滑点、流动性或路由问题），钱没花掉' }, data: { orderId: tx || oid, final } } };
       return okj({ orderId: tx || oid, txHash: tx, status: st, ...(st === 'FINISHED' ? { final } : {}) }); } /* 还在等＝照旧回送出（跟币安查不到结果时一样） */
-    if (c === 'market-order quote') { const r = await okxRun(['swap', 'quote', '--from', arg(a, '--fromToken'), '--to', arg(a, '--toToken'), '--readable-amount', arg(a, '--fromTokenQty'), '--chain', chainOf(a)], timeout); if (!r.j?.ok) return fail(String(r.j?.data?.reason || r.j?.error || r.t || '报不出价').slice(0, 160));
+    if (c === 'market-order quote') { const r = await okxRun(['swap', 'quote', '--from', tok(arg(a, '--fromToken')), '--to', tok(arg(a, '--toToken')), '--readable-amount', arg(a, '--fromTokenQty'), '--chain', chainOf(a)], timeout); if (!r.j?.ok) return fail(String(r.j?.data?.reason || r.j?.error || r.t || '报不出价').slice(0, 160));
       const d = Array.isArray(r.j.data) ? r.j.data[0] : r.j.data; const dec = Number(d?.toToken?.decimal ?? d?.toToken?.decimals); const raw = Number(d?.toTokenAmount); const amt = Number.isFinite(raw) && Number.isInteger(dec) ? raw / 10 ** dec : NaN;
       return okj({ toCoinAmount: Number.isFinite(amt) ? String(amt) : '', priceImpact: d?.priceImpactPercent ?? null, okx: 1 }); } /* 唯读报价（雷达送单前先确认报得出价） */
     if (c === 'market-order list') return okj({ list: [] }); /* OKX 在送出时就查过结果了 */

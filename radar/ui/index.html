@@ -4119,7 +4119,7 @@ const en=()=>typeof L!=='undefined'&&L==='en';const E=(x)=>esc(String(x??''));
 const MC={chain:'solana',tab:'hot',S:null,B:{},D:null,K:{},tf:'5m',dt:'hold',at:0};
 const NEWC=['solana','eth','base','arbitrum','polygon'];const isNew=(c)=>NEWC.includes(c);
 /*MCT-1111 钱包支援的链：雷达里直接手动买卖（引擎 mctrade.mjs，一样经过统一闸门：紧急全停、手动买卖开关、邀请绑定）*/
-const NAT={eth:'ETH',base:'ETH',arbitrum:'ETH',polygon:'POL'};const natOf=(ch)=>NAT[ch]||'';
+const NAT={eth:'ETH',base:'ETH',arbitrum:'ETH',polygon:'POL',solana:'SOL'};const natOf=(ch)=>NAT[ch]||'';
 const mctAmt=(ch)=>{try{return localStorage.getItem('mctAmt_'+ch)||''}catch{return ''}};const mctSlip=()=>{try{return localStorage.getItem('mctSlip')||''}catch{return ''}};
 async function mctSend(o){const e=en();try{await radarOrder(o);t(e?'Sent — confirming on-chain, result on TG':'已送出，链上确认中，结果看 TG');setTimeout(mctLoad,4000);setTimeout(mctLoad,20000);setTimeout(mctLoad,60000)}catch(x){if(!x?.silent)t(String(x?.message||x?.err||x))}}
 async function mctBuy(ch,c,name,amt,noAsk){const e=en();const a=+amt;if(!(a>0)){t(e?'Enter an amount first':'先填金额');return}if(!noAsk&&!(await ask((e?`Buy ${name||''} with ${a} ${natOf(ch)}?`:`用 ${a} ${natOf(ch)} 买 ${name||''}？`)+'\n'+(e?'Market order through your Binance AI wallet. The radar confirms the fill on-chain before reporting.':'透过你的币安 AI 钱包市价买入，雷达会等链上确认成交才回报。'),{ok:e?'Buy':'买入'})))return;try{localStorage.setItem('mctAmt_'+ch,String(a))}catch{}mctSend({type:'buy',mc:ch,c,amt:a,slip:+mctSlip()||undefined,name})}

@@ -1043,7 +1043,7 @@ function mcMode(ch, det) { /* trade＝雷达现有买卖（BNB Chain／Robinhood
   if (MC_RADAR_TRADE.has(ch)) return 'trade'; if (!MC_NEW.has(ch)) return 'view';
   const D = det || mcDetected(); const sup = Object.values(D).some((L) => L.includes(ch)); if (!sup) return 'view';
   return MC_MANUAL.has(ch) ? 'trade' : 'view'; } /*MCT-1111 钱包回报支援、引擎有下单程式（mctrade.mjs）＝自动开放手动买卖；不用玩家另外开开关*/
-const MC_MANUAL = new Set(['eth', 'base', 'arbitrum', 'polygon']); /* mctrade.mjs 能手动买卖的链（Solana 等安全审核通过再加） */
+const MC_MANUAL = new Set(['eth', 'base', 'arbitrum', 'polygon', 'solana']); /* mctrade.mjs 能手动买卖的链（Solana 等安全审核通过再加） */
 function mcChains() { const det = mcDetected(); const on = mcTradeSet0(); const W = readJSON(path.join(DATA, 'wallet_chains.json'), null);
   return { at: +W?.at || 0, kinds: Object.fromEntries(Object.entries(MC_WALLET_KINDS).map(([k, K]) => [k, { zh: K.zh, en: K.en, chains: det[k] || [], err: (() => { const L = Object.values(W?.kinds?.[k]?.wallets || {}).filter((x) => x && typeof x === 'object'); return L.length && !L.some((x) => x.ok) ? String(L.find((x) => x.err)?.err || 'unknown').replace(/[\u0000-\u001f<>]/g, ' ').slice(0, 120) : ''; })() /*MCFIX123-B 全部钱包都读失败＝侦测失败（写原因），不是「没侦测到新链」*/ }])),
     chains: MC_CHAINS.map((c) => ({ k: c.k, zh: c.zh, en: c.en, ic: c.ic, ave: c.ave, own: c.own || '', doc: c.doc, radar: MC_RADAR_TRADE.has(c.k) ? 1 : 0, det: Object.values(det).some((L) => L.includes(c.k)) ? 1 : 0, on: on[c.k] === true ? 1 : 0, mode: mcMode(c.k, det) })).map((x, i) => ({ x, i, r: x.mode === 'trade' ? 0 : x.mode === 'soon' ? 1 : x.own === 'ely' ? 3 : 2 })).sort((p, q) => p.r - q.r || p.i - q.i).map((z) => z.x) /*MCFIX123-D 可在雷达买卖 → 即将开放 → 只能看 → Elysium（只看）；照实际状态排，以后哪条链开放交易就自动往前*/ }; }

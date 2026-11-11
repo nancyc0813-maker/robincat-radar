@@ -10,7 +10,7 @@ export const MCT_CHAINS = { /* 雷达链代号 → 币安 binanceChainId＋原�
   base: { id: '8453', nat: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', sym: 'ETH' },
   arbitrum: { id: '42161', nat: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', sym: 'ETH' },
   polygon: { id: '137', nat: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', sym: 'POL' },
-  /* Solana（CT_501、base58 地址）要放宽引擎的参数检查，安全审核还没过 → 先不开 */
+  solana: { id: 'CT_501', nat: 'So11111111111111111111111111111111111111111', sym: 'SOL' }, /*SOL-13 币安文件：Solana 原生币地址、链代号 CT_501*/
 };
 const T = { pollMs: 3000, pollMax: 40, keep: 30 }; /* 技术用：轮询订单状态的间隔、最多几次（约 2 分钟）、结果档留几笔（只影响显示） */
 const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/, EVM = /^0x[0-9a-fA-F]{40}$/;
@@ -34,7 +34,7 @@ async function waitOrder(W, id, cid) { /* 轮询到终态（币安文件规定�
   return { status: 'PENDING' };
 }
 
-/* o：{ type:'buy'|'sell', mc:'eth'|'base'|'arbitrum'|'polygon', c, amt（买：原生币数量）, pct（卖：1–100）, w（钱包地址，可空）, slip（滑点 %，可空＝币安预设）, name } */
+/* o：{ type:'buy'|'sell', mc:'eth'|'base'|'arbitrum'|'polygon'|'solana', c, amt（买：原生币数量）, pct（卖：1–100）, w（钱包地址，可空）, slip（滑点 %，可空＝币安预设）, name } */
 export async function mctOrder(o, { DIR, WALLETS, log, tgSay }) {
   const ch = String(o.mc || ''); const C = MCT_CHAINS[ch]; const name = String(o.name || '').slice(0, 40);
   const done = (ok, msg, extra = {}) => { const rec = { at: Date.now(), ch, c: String(o.c || ''), type: o.type, name, w: String(o._w || ''), ok: ok ? 1 : 0, msg: String(msg).slice(0, 300), ...extra }; result(DIR, rec); log(`🌐 ${ch} ${o.type === 'buy' ? '手动买' : '手动卖'} ${name || o.c}：${msg}`); tgSay(`🖥 ${C?.sym ? ch.toUpperCase() : ch} ${o.type === 'buy' ? '买' : '卖'} ${name || o.c}\n${msg}`).catch(() => {}); return rec; };
