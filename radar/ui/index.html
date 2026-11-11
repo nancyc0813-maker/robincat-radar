@@ -714,7 +714,7 @@ function uf5StClick(el){if(uf5EngDead()){uf5Restart();return}mode(!el.classList.
 function uf5SnGo(){const a=document.querySelector('.tabs a[data-p="sentry"]');if(a)a.click();setTimeout(()=>{try{const b=$('#schS');if(b&&b.firstElementChild)b.scrollIntoView({block:'start'})}catch{}},300)}
 function uf5SnPut(){const h=$('#schS');if(!h)return;const x=window.__uf5SnBox||'';if(h.__h!==x+L){h.innerHTML=x;h.__h=x+L}}
 /* 16. W＝切到看盘的「⭐ 自选」分页 */
-function uf5Wl(){const a=document.querySelector('.tabs a[data-p="board"]');if(a&&!$('#board')?.classList.contains('on'))a.click();setTimeout(()=>{const mv=$('#mbV');if(mv&&mv.style.display!=='none'&&mv.offsetParent){$('#mbTabs [data-mbt="wl"]')?.click();return}if(typeof BV!=='undefined'&&BV.wl)return;document.querySelector('#fmTabC [data-bvwl]')?.click()},120)}
+function uf5Wl(){if(window.__pz&&window.PXD&&window.PXD.show){window.PXD.show('w');return}/*PZ-1111 新看盘没有旧的自选分页：开自选抽屉*/const a=document.querySelector('.tabs a[data-p="board"]');if(a&&!$('#board')?.classList.contains('on'))a.click();setTimeout(()=>{const mv=$('#mbV');if(mv&&mv.style.display!=='none'&&mv.offsetParent){$('#mbTabs [data-mbt="wl"]')?.click();return}if(typeof BV!=='undefined'&&BV.wl)return;document.querySelector('#fmTabC [data-bvwl]')?.click()},120)}
 /* 15. 邀请名单读不到：已经填过邀请码（存过＝当时验证过）的老用户照常用 */
 function uf5RefOk(){const v=String(SNAP?.set?.['ref.code']||'').trim().toLowerCase();return refOk(v)||(!invLoaded()&&/^[a-z0-9]{3,10}$/.test(v))}
 function uf5InvBar(){let b=$('#uf5Inv');const show=!!SNAP&&!SNAP.inv?.personal&&!invLoaded()&&!SNAP.inv?.pending;if(!show){if(b)b.style.display='none';return}if(!b){b=document.createElement('div');b.id='uf5Inv';b.style.cssText='background:#2a2410;color:#f0b90b;padding:7px 22px;font-size:13px';document.querySelector('header')?.after(b)}const tx='⚠️ '+(L==='en'?INV_MISS_EN:INV_MISS_ZH);if(b.textContent!==tx)b.textContent=tx;b.style.display='block'}
@@ -3149,7 +3149,7 @@ const css=document.createElement('style');css.textContent=`
 function wl(){if(PX.w)return PX.w;const s=snap()?.set;if(!s)return null;PX.w=Array.isArray(s['px.watch'])?s['px.watch'].filter((x)=>x&&A40.test(lc(x.c))).map((x)=>({...x,c:lc(x.c)})):[];PX.sys=s['px.sysNote']?1:0;return PX.w}
 function wSave(){try{window.radar.saveSettings({'px.watch':PX.w||[],'px.sysNote':PX.sys?1:0})}catch{}}
 const wHas=(c)=>(wl()||[]).some((x)=>x.c===lc(c));
-/* BOARD-V3：看盘「⭐ 自选」和手机读写用（同一份 px.watch；只是清单，不下单） */window.PXD={wl:()=>wl(),set:async(op,c,net,sym)=>{const W=wl();if(!W)throw new Error(EN()?'Radar data not loaded yet':'雷达资料还没读到，等一下再试');c=lc(c);if(!A40.test(c))throw new Error(EN()?'Bad contract address':'合约地址格式不对');const i=W.findIndex((x)=>x.c===c);if(op==='del'&&i>=0)W.splice(i,1);if(op==='add'&&i<0)W.unshift({c,net:net==='robinhood'||net==='rh'?'robinhood':'bsc',sym:String(sym||'').substring(0,PXC.snip),name:'',at:Date.now(),a:{},f:{}});await window.radar.saveSettings({'px.watch':W,'px.sysNote':PX.sys?1:0});try{if(SNAP&&SNAP.set)SNAP.set['px.watch']=W}catch{}try{starPaint();sbCount();if(PX.open==='w')wRender()}catch{}return W}};
+/* BOARD-V3：看盘「⭐ 自选」和手机读写用（同一份 px.watch；只是清单，不下单） */window.PXD={show:(k)=>show(k),/*PZ-1111 新看盘：⭐ 自选直接开右边自选抽屉*/wl:()=>wl(),set:async(op,c,net,sym)=>{const W=wl();if(!W)throw new Error(EN()?'Radar data not loaded yet':'雷达资料还没读到，等一下再试');c=lc(c);if(!A40.test(c))throw new Error(EN()?'Bad contract address':'合约地址格式不对');const i=W.findIndex((x)=>x.c===c);if(op==='del'&&i>=0)W.splice(i,1);if(op==='add'&&i<0)W.unshift({c,net:net==='robinhood'||net==='rh'?'robinhood':'bsc',sym:String(sym||'').substring(0,PXC.snip),name:'',at:Date.now(),a:{},f:{}});await window.radar.saveSettings({'px.watch':W,'px.sysNote':PX.sys?1:0});try{if(SNAP&&SNAP.set)SNAP.set['px.watch']=W}catch{}try{starPaint();sbCount();if(PX.open==='w')wRender()}catch{}return W}};
 function wToggle(c,net,sym,name){const W=wl();if(!W){t0(EN()?'Radar data not loaded yet':'雷达资料还没读到，等一下再按');return}c=lc(c);if(!A40.test(c))return;const i=W.findIndex((x)=>x.c===c);
  if(i>=0){W.splice(i,1);t0(EN()?'Removed from watchlist':'已从自选移除')}else{W.unshift({c,net:net==='robinhood'||net==='rh'?'robinhood':'bsc',sym:String(sym||'').substring(0,PXC.snip),name:String(name||'').substring(0,PXC.snip),at:Date.now(),a:{},f:{}});t0(EN()?'Added to watchlist (W)':'已加入自选（按 W 打开）')}
  wSave();starPaint();sbCount();if(PX.open==='w')wRender()}
@@ -3251,7 +3251,7 @@ function ssInit(){for(const id of ['set','more']){const sec=Q('#'+id);if(!sec||s
 document.addEventListener('keydown',(e)=>{if(e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey)return;const tg=e.target;const typing=tg&&(TYPN.has(tg.tagName)||tg.isContentEditable);
  if(e.key==='Escape'&&PX.open&&!typing){show('');return}if(typing)return;const am=Q('#askm');if(am&&getComputedStyle(am).display!=='none')return;
  const dtOpen=(()=>{const d=Q('#dtl');return !!d&&getComputedStyle(d).display!=='none'})();const k=e.key;
- if(k==='/'&&!dtOpen){e.preventDefault();Q('.tabs a[data-p="board"]')?.click();setTimeout(()=>Q('#sq')?.focus(),0)}
+ if(k==='/'&&!dtOpen){e.preventDefault();(Q('#uxG a[data-g="board"]')||Q('.tabs a[data-p="board"]'))?.click();setTimeout(()=>(Q('#pzQ')||Q('#sq'))?.focus(),0)}/*PZ-1111 搜寻框在新看盘*/
  else if(k==='w'||k==='W'){e.preventDefault();uf5Wl()}/*UIFIX5*/else if(k==='n'||k==='N'){e.preventDefault();show('n')}else if(k==='?'){e.preventDefault();show('k')}
  else if((k==='f'||k==='F')&&dtOpen){e.preventDefault();Q('#pxStar')?.click()}});
 
@@ -4827,7 +4827,7 @@ window.__b3tick=tick;
 <script>/*GEAR-1107 齿轮设定（参考 AVE 的齿轮：主题、策略、配置1/2/3、推送、钱包、语言、中文数字、涨跌时区、匯入匯出、重置缓存）。白天黑夜和自订策略从主选单搬进来*/
 (()=>{try{
 const en=()=>L==='en',LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch{}return null};
-const KEYS=['theme','lang','b3net','b3pl','qb','qs','qbCfm','cfgZh','cfgTz','amt'];
+const KEYS=['theme','lang','b3net','b3pl','qb','qs','qbCfm','cfgZh','cfgTz','amt','pzNet','pzCat','pzAmt','pzP','pzFx','pzHot','pzAiNet','pzAiKind','pzMineK'];/*PZ-1111 新看盘的选择也存进配置*/
 const hdr=document.querySelector('.right');if(!hdr||document.getElementById('gearBtn'))return;
 const thm=document.getElementById('thm');if(thm)thm.style.display='none';
 const stab=document.querySelector('.tabs a[data-p="set"]');if(stab)stab.style.display='none';/* 仍留在 DOM：别处用 go('set') 会点它 */
@@ -4928,7 +4928,7 @@ body.pzShell header nav.uxG>a.gon{background:var(--gt)!important;color:#F0B90B!i
 body.pzShell header nav.uxG>a:hover{background:#ffffff08;color:var(--ink2)}
 body.pzShell header nav.uxG #uxMore{display:none!important}
 body.pzShell main{margin-left:84px}
-body.pzShell #fmSB,body.pzShell #pxSB{left:84px}
+body.pzShell #fmSB{left:84px}
 body.pzOn #board>:not(#pz):not(#sres):not(#mcV):not(#mineV):not(#gmineV){display:none!important}body.pzOn #board>#mineV,body.pzOn #board>#gmineV{display:none!important}
 body.pzOn #board>#mcV{display:none!important}
 body.pzOn.pzMc #board>#mcV{display:block!important}
@@ -4976,7 +4976,7 @@ body.pzShell ::-webkit-scrollbar{width:8px;height:8px}body.pzShell ::-webkit-scr
 .pzGrp>b{color:#F0B90B}.pzGrp .g{display:flex;align-items:center;gap:10px}.pzGrp .bar{width:140px;height:6px;border-radius:6px;background:var(--line);overflow:hidden}.pzGrp .bar i{display:block;height:100%;background:#F0B90B}
 .pzGrp a{padding:5px 12px;border-radius:8px;background:#F0B90B;color:#0A0D13;font-weight:800;cursor:pointer}
 .pzCols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.pzCol{display:flex;flex-direction:column;min-width:0;border:1px solid var(--b);border-radius:14px;background:var(--p);overflow:hidden;height:calc(100vh - 186px);min-height:420px}
+.pzCol{display:flex;flex-direction:column;min-width:0;border:1px solid var(--b);border-radius:14px;background:var(--p);overflow:hidden;height:var(--pzH,calc(100vh - 220px));min-height:420px}
 .pzCH{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--b);position:relative}
 .pzCH>i{width:8px;height:8px;border-radius:50%}
 .pzCH>b{font-size:13.5px}.pzCH>small{color:var(--m);font-size:12px}
@@ -5119,7 +5119,9 @@ function paintRail(){const e=en();const H=Q('#pzHotH');const hh=`<div class="pzS
  L2=L2.slice(0,10);const h=L2.length?L2.map((x,i)=>{const ch=S.hot==='hot'?x.c24:(x.c5!=null&&isFinite(+x.c5)?x.c5:x.c1!=null&&isFinite(+x.c1)?x.c1:x.c24);return `<div class="pzHr" data-pzc="${esc(x.c)}"><span>${i+1}</span><b>${esc(x.s||'?')}</b><small>${x.mc!=null?'$'+fmt(x.mc):''}</small><em class="${+ch>=0?'up':'dn'}">${ch!=null&&isFinite(+ch)?pct(ch):''}</em></div>`}).join(''):`<div class="pzE">${e?'Nothing yet':'暂时没有'}</div>`;const el=Q('#pzHot');if(el.innerHTML!==h)el.innerHTML=h;
  Q('#pzSgT').textContent=e?'Signals':'信号流';Q('#pzSgS').textContent=e?'TG groups · X · smart money':'TG 群 · X · 聪明钱';
  const F=(S.SG?.feed||[]).filter(s=>(S.net==='bsc'&&s.ch==='bsc')||(S.net==='robinhood'&&s.ch==='rh')).slice(0,8);const sh=F.length?F.map(s=>`<div class="pzSg" data-pzsg="${esc(s.c)}" data-ch="${esc(s.ch)}"><div><i>${esc(String(s.src||'').slice(0,14))}</i><b>${esc(s.sym||'')}</b><small>${age(Math.floor((+s.last||0)/1000))}</small></div><span>${s.n>1?(e?s.n+' sources':s.n+' 个来源提到'):(e?'1 source':'1 个来源提到')}${+s.mc>0?' · '+(e?'MC':'市值')+' $'+fmt(s.mc):''}</span></div>`).join(''):`<div class="pzE">${isOwn()?(e?'No signals yet':'暂时没有信号'):(e?'Signals cover BNB Chain / Robinhood':'信号目前只有 BNB Chain／Robinhood')}</div>`;const se=Q('#pzSg');if(se.innerHTML!==sh)se.innerHTML=sh}
-function paint(){if(!Q('#pz'))return;paintTop();if(S.cat==='ai'){paintAi();return}if(S.cat==='mine'){paintMine();return}paintPads();const er=errTxt();const ee=Q('#pzErr');const eh=er?`<div class="pzErr">${esc(er)}</div>`:'';if(ee.innerHTML!==eh)ee.innerHTML=eh;grpStrip();paintCols();paintRail()}
+function fitCols(){/* 三栏高度＝视窗剩下的高度（扣掉底部状态列），整页不用再捲 */for(const id of ['pzCols','pzAiCols']){const g=Q('#'+id);if(!g||!g.offsetParent)continue;const top=g.getBoundingClientRect().top;const sb=Q('#fmSB');const sr=sb&&getComputedStyle(sb).display!=='none'?sb.getBoundingClientRect():null;const bot=sr&&sr.height?innerHeight-sr.top:0;const h=Math.max(380,Math.round(innerHeight-top-bot-14));const v=h+'px';if(g.style.getPropertyValue('--pzH')!==v)g.style.setProperty('--pzH',v)}}
+addEventListener('resize',()=>{try{fitCols()}catch{}});
+function paint(){if(!Q('#pz'))return;paintTop();setTimeout(fitCols,0);if(S.cat==='ai'){paintAi();return}if(S.cat==='mine'){paintMine();return}paintPads();const er=errTxt();const ee=Q('#pzErr');const eh=er?`<div class="pzErr">${esc(er)}</div>`:'';if(ee.innerHTML!==eh)ee.innerHTML=eh;grpStrip();paintCols();paintRail()}
 
 /* ===== AI 专属铸造（同一套画面）：资料照旧用铸造看盘的 mbItems／mbCol（SNAP.board、rhMint、bscNft、开盘分页），按钮照旧呼叫 mintFlow／trashAdd／选打法／openMint ===== */
 function aiCx(){try{return mbCtx(AI_CH())}catch{return null}}
