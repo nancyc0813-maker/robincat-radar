@@ -5802,6 +5802,17 @@
    "den": "Empty = no advance alert"
   },
   {
+   "k": "notify.quotaPct",
+   "g": "note",
+   "min": 1,
+   "max": 100,
+   "unit": "%",
+   "zh": "币安钱包今日交易额度用到几 % 提醒",
+   "en": "Alert when daily trading limit used (%)",
+   "dzh": "每 10 分钟读一次；同一天同一个钱包只提醒一次。空白＝不提醒（钱包卡片照样显示已用／上限）",
+   "den": "Checked every 10 min; one alert per wallet per day. Empty = no alert (the wallet card still shows usage)"
+  },
+  {
    "k": "notify.nftVol",
    "g": "note",
    "type": "bool",
@@ -7129,6 +7140,97 @@
    "en": "Use the other wallet when the main wallet is offline",
    "dzh": "连了两个以上钱包时：一般代币平常用「主钱包」买（在 设定 → 钱包 选）；主钱包登入过期时，打开这个就改用另一个有登入的钱包，没开＝不买。AI 专属项目一律只用币安钱包，卖出一律用当初买进的钱包",
    "den": "With two or more wallets: normal tokens buy with the main wallet (pick it in Settings → Wallets). If the main wallet is logged out, this switches to another logged-in wallet; off = don't buy. AI-only projects always use the Binance wallet; sells always use the wallet that bought"
+  },
+  {
+   "k": "trade.slip.on",
+   "g": "buy",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "统一滑点",
+   "en": "Default slippage",
+   "dzh": "市价单和限价单没另外指定滑点（或用币安自动滑点）时，一律用下面的滑点；策略自己算的滑点、重试滑点、Robinhood 卖出滑点照旧优先。没开＝币安钱包自动滑点",
+   "den": "Used for market and limit orders that have no slippage of their own (or use wallet auto slippage); strategy / retry / Robinhood sell slippage still win. Off = wallet auto slippage"
+  },
+  {
+   "k": "trade.slip",
+   "g": "buy",
+   "min": 0.1,
+   "max": 50,
+   "unit": "%",
+   "zh": "滑点",
+   "en": "Slippage",
+   "dzh": "单位 %",
+   "den": "In %",
+   "need": "trade.slip.on"
+  },
+  {
+   "k": "trade.mevOff",
+   "g": "buy",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "关闭防夹（MEV 保护）",
+   "en": "Turn off MEV protection",
+   "dzh": "币安钱包预设会开防夹（防三明治攻击）。打开这个＝送单时关掉防夹（可能比较快，但容易被夹）。Solana 不适用",
+   "den": "The wallet protects against sandwich attacks by default. On = send without MEV protection (may be faster, but can be sandwiched). Not for Solana"
+  },
+  {
+   "k": "trade.gasHigh",
+   "g": "buy",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "excl": [
+    "trade.gasLow"
+   ],
+   "zh": "Gas 用高档",
+   "en": "Gas: high",
+   "dzh": "送单用高档手续费（比较快上链）。跟「Gas 用低档」只能开一个；都没开＝币安钱包预设的中档",
+   "den": "Send with high gas (faster). Only one of high / low; neither = wallet default (medium)"
+  },
+  {
+   "k": "trade.gasLow",
+   "g": "buy",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "excl": [
+    "trade.gasHigh"
+   ],
+   "zh": "Gas 用低档",
+   "en": "Gas: low",
+   "dzh": "送单用低档手续费（比较省，但可能比较慢）。跟「Gas 用高档」只能开一个",
+   "den": "Send with low gas (cheaper, may be slower). Only one of high / low"
+  },
+  {
+   "k": "trade.speedUp.on",
+   "g": "buy",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "交易卡住自动加速",
+   "en": "Speed up stuck trades",
+   "dzh": "市价单送出超过下面的秒数还没成交 → 用币安钱包把同一笔交易提高手续费重送一次（不会多买）。只限 EVM 链",
+   "den": "If a market order is still pending after the seconds below, resend the same transaction once with higher gas (never buys twice). EVM chains only"
+  },
+  {
+   "k": "trade.speedUpS",
+   "g": "buy",
+   "min": 5,
+   "max": 600,
+   "unit": "秒",
+   "uen": "s",
+   "zh": "卡住几秒就加速",
+   "en": "Speed up after",
+   "dzh": "单位 秒",
+   "den": "Seconds",
+   "need": "trade.speedUp.on"
   },
   {
    "k": "mine.liqRemind",
