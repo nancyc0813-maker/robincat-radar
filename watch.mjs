@@ -2524,6 +2524,14 @@ async function bawQuote(W, chainId, qty, from, to) { const k = chainId + ':' + S
   const v = r.j.success ? { ok: 1 } : { ok: 0, why: quoteWhy(r) }; QUOTE.set(k, { at: Date.now(), v }); if (QUOTE.size > QUOTE_MAX) QUOTE.delete(QUOTE.keys().next().value); if (!v.ok) { quoteFailNote(chainId, to, v.why); log(`报价失败 ${to}：${v.why}`); } return v; }
 const QUOTE_MAX = 500; /* 技术用：报价快取最多几笔 */ globalThis.BAW_QUOTE = bawQuote; /* rh.mjs 用同一个 */
 async function tgBuy(ca, usd, opt = {}) { if (!opt.auto) return tgBuy0(ca, usd, opt); const k = String(ca || '').toLowerCase(); if (AUTO_INFL.has(k) || S.agTok?.[k] === 'buy') return '⏳ 另一个自动策略正在买／已经买了这个币，这次不重复买'; AUTO_INFL.add(k); try { return await tgBuy0(ca, usd, opt); } finally { AUTO_INFL.delete(k); } }
+/*DUALW-13 双钱包分工（Nancy 11/11 17:11 定）：一笔单只用一个钱包；
+   AI 专属（已知 Agent ID 专属的币）只用币安钱包；一般代币用「主钱包」（设定 wallet.main，没设＝第一个币安钱包）；
+   主钱包登出时不偷换别的钱包，除非你打开 wallet.fallback（预设关）；卖出一律用当初买进的钱包（原本就是）。*/
+function aiOnlyTok(ca) { try { return !!(S.agentOnly && S.agentOnly[String(ca || '').toLowerCase()]); } catch { return false; } }
+function mainWallet(pool) { const m = nrStr('wallet.main').toLowerCase(); return (m && pool.find((x) => x.addr === m)) || pool.find((x) => x.kind !== 'okx') || pool[0] || null; }
+function pickBuyWallet(ca) { const pool = aiOnlyTok(ca) ? WALLETS.filter((x) => x.kind !== 'okx') : WALLETS; const M = mainWallet(pool); if (!M) return null; if (!M.off) return M; if (nrOn('wallet.fallback')) return pool.find((x) => x !== M && !x.off) || null; return null; }
+globalThis.PICK_BUY_W = (ca) => pickBuyWallet(ca); /* rh.mjs 共用同一套分工 */
+function pickBuyWhy(ca) { if (aiOnlyTok(ca) && !WALLETS.some((x) => x.kind !== 'okx')) return '❌ 这是 AI 专属（Agent ID）项目，只能用币安 AI 钱包买；你没有连币安钱包，没买'; const pool = aiOnlyTok(ca) ? WALLETS.filter((x) => x.kind !== 'okx') : WALLETS; const M = mainWallet(pool); if (!M) return '❌ 没有可用的钱包，没买'; return `❌ ${aiOnlyTok(ca) ? '币安钱包' : '主钱包'} ${M.name} 登入过期，请先重新连接，没买${nrOn('wallet.fallback') ? '（另一个钱包也没登入）' : '（要自动改用另一个钱包，打开「主钱包断线时改用另一个」）'}`; }
 async function tgBuy0(ca, usd, opt = {}) { { const bb = opt.auto ? (ESTOP() ? '🛑 紧急全停中，自动买不执行' : '') : buyBlock(); if (bb) return bb; } /* 自动买不看「手动买卖」开关 */ if (LOCKED()) return '🔒 还没完成邀请码绑定：现在只能看，不能买卖'; /* TG 指令「/打 合约 金额U」：用第一个钱包透过币安钱包买（曲线盘、已上池子都一样） */
   ca = ca.toLowerCase(); usd = Number(usd) > 0 ? Number(usd) : Number(opt.bnb) > 0 ? 0 : NR.num('manual.defUsd') ?? 0; /* 没写金额＝用你设的预设金额，没设就不买 */ /* 金额由用户自己决定 */ const price = await bnbUsd().catch(() => 0); if (!(price > 0)) return '读不到 BNB 价格，稍后再试';
   let hp = null; try { hp = await (await fetch(`https://api.honeypot.is/v2/IsHoneypot?address=${ca}&chainID=56`, { signal: AbortSignal.timeout(15000) })).json(); } catch {} /* 手动买也先过貔貅／税率检查 */
@@ -2532,7 +2540,7 @@ async function tgBuy0(ca, usd, opt = {}) { { const bb = opt.auto ? (ESTOP() ? '�
   const hbt = Number(hp?.simulationResult?.buyTax), hst = Number(hp?.simulationResult?.sellTax);
   const mxT = opt.maxTax !== undefined ? opt.maxTax : NR.num('manual.maxTax'); if (mxT != null && (hbt > mxT || hst > mxT)) { if (opt.auto) return `❌ 没买：税超过你设的上限（买 ${hbt}%／卖 ${hst}%，你的上限 ${mxT}%）`; if (!ackB) return `⚠️需要确认：税超过你设的上限（买 ${hbt}%／卖 ${hst}%，你的上限 ${mxT}%）——买进时先被扣 ${hbt}%，之后卖出再被扣 ${hst}%，例如买 100U 卖掉大约只剩 ${Math.max(0, Math.round((100 - hbt) * (100 - hst) / 100))}U（按「我知道风险，仍然执行」才会买）`; ackW.push(`税超过你的上限（买 ${hbt}%／卖 ${hst}%）`); } /* 一般新币自动买用自己的税上限，不跟 AI 热门代币的设定绑在一起 */
   const hpWarn = ackW.length ? `\n⚠️ 你按了「我知道风险，仍然执行」：${ackW.join('；')}` : hp?.simulationSuccess ? `\n🛡 貔貅检查通过（买税 ${hbt}%／卖税 ${hst}%）` : '\n⚠️ 查不到貔貅检查结果（可能还在曲线盘、没上池子），照你的指示已买，风险自负';
-  const wq = String(opt.w || '').toLowerCase(); const W = wq ? WALLETS.find((x) => x.addr === wq) : WALLETS.find((x) => !x.off) || WALLETS[0]; if (!W) return '❌ 你选的钱包不在雷达里了，没买'; if (W.off) return `❌ 你选的钱包 ${W.name} 登入过期，请先重新连接，没买`; /* 你选了钱包就只用那个，找不到不会换别的钱包；没选才用第一个有登入的 */ const pay = Number(opt.bnb) > 0 ? 'BNB' : PAY_TOK[opt.pay] ? opt.pay : 'BNB'; if (Number(opt.bnb) > 0) usd = Number(opt.bnb) * price; /* 一键买可以直接设「几 BNB」→ 用 BNB 付这么多，不换算、不换币 */ 
+  const wq = String(opt.w || '').toLowerCase(); const W = wq ? WALLETS.find((x) => x.addr === wq) : pickBuyWallet(ca); if (!W) return wq ? '❌ 你选的钱包不在雷达里了，没买' : pickBuyWhy(ca); if (W.off) return `❌ 你选的钱包 ${W.name} 登入过期，请先重新连接，没买`; /* 你选了钱包就只用那个，找不到不会换别的钱包；没选才用第一个有登入的 */ const pay = Number(opt.bnb) > 0 ? 'BNB' : PAY_TOK[opt.pay] ? opt.pay : 'BNB'; if (Number(opt.bnb) > 0) usd = Number(opt.bnb) * price; /* 一键买可以直接设「几 BNB」→ 用 BNB 付这么多，不换算、不换币 */ 
   if (!(usd > 0)) return '❌ 没写要买多少（在设定的「下单方式」可以设「没写金额时默认买多少」）';
   const bnbHave = Number(big(await rpc('eth_getBalance', [W.addr, 'latest']))) / 1e18; const have = pay === 'BNB' ? bnbHave : pay === 'USDT' ? Number(await usdtFree(W)) / 1e18 : Number(big(await call(PAY_TOK[pay], '0x70a08231' + wa(W.addr)))) / 1e18; /* USDT 扣掉外挂（网格／定投）今天要用的 */
   if (pay !== 'BNB' && NR.num('risk.minGasBnb') != null && bnbHave < NR.num('risk.minGasBnb')) return `❌ [${W.name}] BNB 只剩 ${bnbHave.toFixed(4)}，付不起手续费（gas）。用 ${pay} 买也要一点 BNB 当手续费，而且之后卖出也要。\n👉 请先换一点 BNB 到这个钱包当手续费`; const need = pay === 'BNB' ? usd / price + PAID.keepBnb : usd; /* BNB 付的话留一点当之后卖出的手续费 */
@@ -3023,7 +3031,7 @@ async function paidLoop(mode = 'all', shard = null) {
           if (!(v > 0n)) { if (freeGo) riskAfter(W, c, '', 0n, true, false); /*V104-FREEPATH：算进「每天最多几个免费项目」（gas 已由送出时记帐）*/ trackFromSim(W, r.sim, sym, 0); noteFree(c, W, sym); return; }
           trackFromSim(W, r.sim, sym, vb * price); 
           addPaidUsd(W, vb * price); /* 加价的部分也算进「每天最多」（介面写的是每天总上限） */ /* 跟单加价的部分不算进每日总上限 */
-          if (forced) forceTag(W); await tg(`🛒 [${W.name}] ${forced ? '手动强制打了' : '自动打了'}付费 Agent ID 项目：${sym}（照别人的铸造方式）${grpTxt(c)}\n花 ${vb.toFixed(4)} BNB（约 ${(vb * price).toFixed(1)}U）· 进度约 ${Math.round(progress * 100)}%\n${c}\n交易 ${r.tx}`);
+          if (forced) forceTag(W); await tg(`🛒 [${W.name}] ${forced ? '手动强制打了' : '自动打了'}付费 Agent ID 项目：${sym}（照别人的铸造方式）${grpTxt(c)}\n花 ${vb.toFixed(4)} BNB（约 ${(vb * price).toFixed(1)}U）· 进度约 ${Math.round(progress * 100)}%\n${c}\n交易 ${r.tx}${r.rc ? '' : '\n⏳ 1 分钟内还没查到链上收据：结果待确认，请到钱包看一下（雷达不会重打）'}`); /*ENG127-A7b 没收据＝明讲待确认；状态照旧记已打，避免重复花钱*/
           return;
         }
         if (kind === 'recv') {

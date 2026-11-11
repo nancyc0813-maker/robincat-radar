@@ -37,11 +37,13 @@ async function waitOrder(W, id, cid) { /* 轮询到终态（币安文件规定�
 /* o：{ type:'buy'|'sell', mc:'eth'|'base'|'arbitrum'|'polygon', c, amt（买：原生币数量）, pct（卖：1–100）, w（钱包地址，可空）, slip（滑点 %，可空＝币安预设）, name } */
 export async function mctOrder(o, { DIR, WALLETS, log, tgSay }) {
   const ch = String(o.mc || ''); const C = MCT_CHAINS[ch]; const name = String(o.name || '').slice(0, 40);
-  const done = (ok, msg, extra = {}) => { const rec = { at: Date.now(), ch, c: String(o.c || ''), type: o.type, name, ok: ok ? 1 : 0, msg: String(msg).slice(0, 300), ...extra }; result(DIR, rec); log(`🌐 ${ch} ${o.type === 'buy' ? '手动买' : '手动卖'} ${name || o.c}：${msg}`); tgSay(`🖥 ${C?.sym ? ch.toUpperCase() : ch} ${o.type === 'buy' ? '买' : '卖'} ${name || o.c}\n${msg}`).catch(() => {}); return rec; };
+  const done = (ok, msg, extra = {}) => { const rec = { at: Date.now(), ch, c: String(o.c || ''), type: o.type, name, w: String(o._w || ''), ok: ok ? 1 : 0, msg: String(msg).slice(0, 300), ...extra }; result(DIR, rec); log(`🌐 ${ch} ${o.type === 'buy' ? '手动买' : '手动卖'} ${name || o.c}：${msg}`); tgSay(`🖥 ${C?.sym ? ch.toUpperCase() : ch} ${o.type === 'buy' ? '买' : '卖'} ${name || o.c}\n${msg}`).catch(() => {}); return rec; };
   if (!C) return done(false, '雷达不认识这条链，没送出');
   const c = mctAddr(ch, o.c); if (!c) return done(false, '合约地址格式不对，没送出');
-  const wa = String(o.w || '').toLowerCase(); const W = (WALLETS || []).find((x) => (!wa || String(x.addr || '').toLowerCase() === wa) && mctSupported(DIR, ch, x.name));
+  const wa = String(o.w || '').toLowerCase(); const sup = (x) => x && mctSupported(DIR, ch, x.name); let W = wa ? (WALLETS || []).find((x) => String(x.addr || '').toLowerCase() === wa && sup(x)) : null;
+  if (!wa && !W) { const P = o.type === 'buy' ? globalThis.PICK_BUY_W?.(c) : null; W = (P && sup(P)) ? P : (WALLETS || []).find((x) => sup(x) && !x.off) || null; } /*DUALW-13 买：主钱包优先（要支援这条链）；卖：有支援这条链、有登入的钱包（单子会带当初买的钱包）*/
   if (!W) return done(false, '你的钱包没有回报支援这条链（或选的钱包不支援），没送出');
+  o._w = String(W.addr || '').toLowerCase();
   const slip = Number(o.slip) > 0 && Number(o.slip) <= 50 ? String(+o.slip) : null; /* 没填＝用币安预设滑点 */
   let a;
   if (o.type === 'buy') { const amt = Number(o.amt); if (!(amt > 0)) return done(false, `没填要花多少 ${C.sym}，没送出`);

@@ -180,7 +180,7 @@ export function startRH(ctx) {
     if (!manual) { const cr = await globalThis.CODE_RISK?.('robinhood', c).catch(() => ''); if (cr) return cr + '，不自动买'; } /* 11/3 代码扫描（手动买只在画面提醒，不挡） */
     const px = await ethUsd(); if (!(px > 0)) return '读不到 ETH 价格';
     const res = [];
-    const wq = lc(opt.w || ''); const WL = manual ? [wq ? WALLETS.find((x) => x.addr === wq) : WALLETS.find((x) => !x.off) || WALLETS[0]].filter(Boolean) : WALLETS; if (manual && wq && !WL.length) return '你选的钱包不在雷达里了，没买'; if (manual && WL[0]?.off) return `你选的钱包 ${WL[0].name} 登入过期，请先重新连接，没买`; /* H7-H4 */ /* 11/3：没指定钱包时用第一个有登入的 */ /* 手动／一键买只用你选的钱包（没选就第一个） */
+    const wq = lc(opt.w || ''); const WL = manual ? [wq ? WALLETS.find((x) => x.addr === wq) : (globalThis.PICK_BUY_W ? globalThis.PICK_BUY_W(c) : null) || WALLETS.find((x) => !x.off) || WALLETS[0]].filter(Boolean) : (WALLETS.some((x) => x.kind !== 'okx') ? WALLETS.filter((x) => x.kind !== 'okx') : WALLETS); /*DUALW-13 手动：主钱包；自动：有币安钱包就只用币安钱包（OKX 不跟着重复买）*/ if (manual && wq && !WL.length) return '你选的钱包不在雷达里了，没买'; if (manual && WL[0]?.off) return `你选的钱包 ${WL[0].name} 登入过期，请先重新连接，没买`; /* H7-H4 */ /* 11/3：没指定钱包时用第一个有登入的 */ /* 手动／一键买只用你选的钱包（没选就第一个） */
     const sandPx = manual ? ((await dsInfo([c]).catch(() => new Map())).get(c)?.price || 0) : 0; /* 防夹提醒：买前市价 */
     for (const W of WL) {
       if (!manual && (RHC.dayUsd == null || spent(W.addr) + USD > RHC.dayUsd)) { res.push(`[${W.name}] 今天额度用完（或没填「每天最多」）`); continue; }

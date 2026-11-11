@@ -7119,6 +7119,18 @@
    "need": "phone.dayUsd.on"
   },
   {
+   "k": "wallet.fallback",
+   "g": "buy",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "主钱包断线时改用另一个钱包",
+   "en": "Use the other wallet when the main wallet is offline",
+   "dzh": "连了两个以上钱包时：一般代币平常用「主钱包」买（在 设定 → 钱包 选）；主钱包登入过期时，打开这个就改用另一个有登入的钱包，没开＝不买。AI 专属项目一律只用币安钱包，卖出一律用当初买进的钱包",
+   "den": "With two or more wallets: normal tokens buy with the main wallet (pick it in Settings → Wallets). If the main wallet is logged out, this switches to another logged-in wallet; off = don't buy. AI-only projects always use the Binance wallet; sells always use the wallet that bought"
+  },
+  {
    "k": "mine.liqRemind",
    "g": "note",
    "type": "bool",
