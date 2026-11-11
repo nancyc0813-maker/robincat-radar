@@ -1106,11 +1106,11 @@ setInterval(() => { mcaPoll().catch(() => {}); }, MCA_MS);
 /*PADSCOUT-1112 从 AVE 发现发射台：AVE 每个币有「发行平台」（issue_platform）。看盘查到的清单里，第一次看到的平台记下来（data/pads_ave.json），
   画面「🆕 新发射台」列出来；记录开始后才第一次出现的标 🆕。只看、只通知，不会自动买。 */
 const PADAVE_F = path.join(DATA, 'pads_ave.json'); let PADAVE = null, PADAVE_W = 0;
-const PADAVE_MAX = 500; /* 技术用：最多记几个平台 */
-function padAveLoad() { if (PADAVE) return PADAVE; const o = readJSON(PADAVE_F, null); PADAVE = o && typeof o === 'object' && o.m && typeof o.m === 'object' ? o : { since: Date.now(), m: {} }; return PADAVE; }
+const PADAVE_MAX = 500; /* 技术用：最多记几个平台 */ const PADAVE_IDS = new Map(), PADAVE_IDMAX = 5000; /* 技术用：每个平台记住最近几个币（只在记忆体，用来不重复算） */
+function padAveLoad() { if (PADAVE) return PADAVE; const o = readJSON(PADAVE_F, null); PADAVE = o && typeof o === 'object' && o.m && typeof o.m === 'object' ? o : { since: Date.now(), m: {}, v2: 1 }; if (!PADAVE.v2) { for (const x of Object.values(PADAVE.m)) x.n = Array.isArray(x.s) ? x.s.length : 0; PADAVE.v2 = 1; } /* 旧版数字被重复灌大 → 重算 */ return PADAVE; }
 function padAveSee(pk) { try { const pl = String(pk[2]?.pl || '').replace(/[\u0000-\u001f<>"'`]/g, '').trim().slice(0, 30); if (!pl) return; const C = MC_CHAINS.find((c) => c.ave === pk[0]); if (!C) return; const P = padAveLoad(); const key = C.k + '|' + pl.toLowerCase();
   let x = P.m[key]; if (!x) { if (Object.keys(P.m).length >= PADAVE_MAX) return; x = P.m[key] = { ch: C.k, name: pl, first: Date.now(), n: 0, s: [] }; }
-  x.last = Date.now(); if (!x.s.includes(pk[1])) { x.n++; x.s.push(pk[1]); if (x.s.length > 5) x.s.shift(); }
+  x.last = Date.now(); const ids = PADAVE_IDS.get(key) || new Set(); PADAVE_IDS.set(key, ids); if (!ids.has(pk[1])) { if (ids.size >= PADAVE_IDMAX) ids.delete(ids.values().next().value); ids.add(pk[1]); if (!x.s.includes(pk[1])) { x.n++; x.s.push(pk[1]); if (x.s.length > 5) x.s.shift(); } } /*FIX-1112 第1轮：同一个币重复出现在清单里不重复算（以前看到的数字被灌大）*/
   if (Date.now() - PADAVE_W > 30e3) { PADAVE_W = Date.now(); const tmp = PADAVE_F + '.w' + process.pid; try { fs.writeFileSync(tmp, JSON.stringify(P)); fs.renameSync(tmp, PADAVE_F); } catch {} } } catch {} }
 /* 链上发现的合约：用一个样本币问 AVE 是哪个平台（每个合约只问一次，结果存 data/pads_name.json） */
 const PADNAME_F = path.join(DATA, 'pads_name.json'); let PADNAME_BUSY = 0;
