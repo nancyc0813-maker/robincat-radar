@@ -7047,6 +7047,18 @@
    "den": "One TG when a new version is out. Off = no TG (the in-app notice still shows)"
   },
   {
+   "k": "update.autoOff",
+   "g": "report",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "不要自动装重要更新",
+   "en": "Do not auto-install critical updates",
+   "dzh": "官方标「重要」的新版，雷达会自己下载、验签名后更新（设定都保留）。开这个＝只提醒、你自己按才更新",
+   "den": "Critical versions install themselves after the official signature check (settings kept). On = notice only, you press update yourself"
+  },
+  {
    "k": "report.showGroup",
    "g": "report",
    "type": "bool",

@@ -3253,13 +3253,17 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.4.2', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 只提醒不自动更新；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.4.2', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 一般版本只提醒；官方标「重要」的自动装（AUTOUPD-1112，可在设定关）；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;
   try {
     const r = await fetch(`https://raw.githubusercontent.com/${UPD.repo}/main/version.json?t=${Date.now()}`, { signal: AbortSignal.timeout(15000) }); if (!r.ok) return null;
     const v = await r.json(); const UF = join(DIR, 'data', 'update_avail.json'); if (!v.version || !verGt(v.version, UPD.ver)) { try { if (existsSync(UF)) unlinkSync(UF); } catch {} return null; } UPD.latest = v; /* 没有自动安装（就算官方标「重要」也只通知，你自己按才更新；签名照验） */ try { writeFileSync(UF, JSON.stringify({ version: String(v.version).slice(0, 20), cur: UPD.ver, notes: notesArr(v.notes).slice(0, 12).map((x) => String(x).slice(0, 200)), at: Date.now() })); } catch {} /* 没设 TG 的人也看得到 → 雷达画面右上角显示「有新版」 */
+    if (!quiet && v.critical === true && !nrOn('update.autoOff') && S.updAuto !== v.version) { /*AUTOUPD-1112 Nancy 11/12「强制更新」：官方标「重要」(critical) 的版本自己装（照样下载官方签名清单、验签、比对 sha256，失败就不换）；你在设定开「不要自动装重要更新」就只提醒 */
+      S.updAuto = v.version; save(); log('🔄 重要更新 v' + String(v.version).slice(0, 20) + '：自动安装');
+      doUpdate().catch((e) => '⚠️ 更新出错：' + String(e.message || e).slice(0, 100)).then((m) => { try { writeFileSync(join(DIR, 'data', 'update_result.json'), JSON.stringify({ at: Date.now(), msg: m })); } catch {} log(m); tgSay('🔄 重要更新（自动）：' + m).catch(() => {}); });
+    }
     if (!quiet && S.updNotified !== v.version && nrOn('update.notify')) { /* 只说有新版：这里读到的版本号、说明没有签名，不转发 */ /* 只提醒、不自动更新；TG 提醒＝你的开关 update.notify（预设关；雷达画面的新版提示照样有） */
       S.updNotified = v.version; save();
       const msg = '🔔 罗宾猫雷达有新版，按更新会先验签（在 TG 回「更新」，或在雷达按更新）';
