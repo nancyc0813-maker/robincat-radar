@@ -18056,6 +18056,26 @@
    "match": "'retry\\-after':\\ '10'\\ \\}\\ \\}\\);\\ async\\ function\\ guestNew",
    "value": "'10'",
    "reason": "HOT126：技术用：告诉雷达几秒后再试（HTTP 标头），不是买卖数字"
+  },
+  {
+   "rule": "CMP|TIMEWIN",
+   "file": "^watch\\.mjs$",
+   "match": "return n > 0 \\? \\(n < 1e12 \\? n \\* 1000 : n\\) : NaN",
+   "values": [
+    "1e12",
+    "1000"
+   ],
+   "reason": "ENG127-A5：币安 wallet settings 的 devMode.expiresAt 是 Unix 秒（文件另一处范例是毫秒）；1e12 分辨秒／毫秒、×1000 换成毫秒（单位换算，只用来算开发者模式到期提醒的时间，不是门槛）"
+  },
+  {
+   "rule": "TIMEWIN|OBJNUM",
+   "file": "^plugins\\.mjs$",
+   "match": "const RCW = \\{ ms: 3000, n: 20 \\}",
+   "values": [
+    "3000",
+    "20"
+   ],
+   "reason": "ENG127-A6 技术用：外挂合约互动送出后等收据，多久查一次、最多查几次（约 1 分钟，跟 watch.mjs 的 waitRc 同样的轮询），不影响买卖条件；等不到＝结果不明（不算成功、不重送）"
   }
  ]
 }
