@@ -71,13 +71,13 @@
     "radar/main.cjs": "c7a447d9fc41baa1784eb7200deffe3e6e40a323c814ddf232d7c8c78b3fa62f",
     "radar/market.cjs": "95a3c532c84ac91d5b924549d02994c231d84099c77431de0f681398d368d28a",
     "radar/next.cjs": "31798271b9ca320ee2155c906383722d0dd5e99ec7a13ac618eac7d7e5fa524c",
-    "radar/official.json": "7102205171aad68ff795abd01062b3a810f95792a411860a761340ab7373ebd9",
-    "radar/official.sig": "016185246d42e84791f65fc7cb7d55533e9405a54452b8020b3eb97d943348c0",
+    "radar/official.json": "2fd52a813d3c943d710d0639eb1ad1bfdb09435117a9665d51ca51af88680ba5",
+    "radar/official.sig": "b4aa4f8fd6babe82b11ffbfda0a74d66a93371eeb8c7db8788e034a126dd40d5",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "cfa858dcd5f60f410f450baa1e32d863bd32acfb1293b0e4bf479b723ba2ef9a",
+    "radar/package.json": "d7471cde1dc3e04e7d23897cf556953b3468cd058ef640b911955bae7069860b",
     "radar/preload.cjs": "91d55a935b8ac6fb4c8f0affa239b7f37d5e23b00bb106656d9c6e89f5455b60",
     "radar/settings_schema.json": "cbae279d62284d32a368e5cb7a7bff1e6749c9e815eca5ae3fb71f4bba29d2f6",
-    "radar/ui/index.html": "e1f0124e8941699e8728e9066ee0a077d17c78395b9989656911f1f9572683e9",
+    "radar/ui/index.html": "78023ca193e2f3fd93d3039db2631241176b9b6400ebbf4953fcade45fd1a6ca",
     "radar/ui/logo.ico": "21d35076465459c7a216581b26d6b371c0a4265244d4c202502ece25e284f9f5",
     "radar/ui/logo.png": "6d635534599ecac82ea99e05565efd0aca0d3c9deffa1f947ecf3eebd92ceeb4",
     "radar/ui/logo_head.png": "4948e27c4b076a747684daec454df5f1b6a2969c01911a22acef0875d10d05b1",
@@ -108,11 +108,11 @@
     "tools/guard_rules.json": "ac91171f9601ff71dcf752b6da699a0f1aba4e933b1cf6271994820372c6377f",
     "tools/zero_allowlist.json": "6a2d6a803aeb09c49976bc9a2989bb08d6b0b575a094f119009ae7136568dd04",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "da825d558d80751302ea0ea27d1eaa68801500234dcc0d751087bd47d582973e",
+    "watch.mjs": "290dcd03d914d48f41103ca05f48dbb8075a1bbeb3343253852369b1b2f7568b",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "1e141a57ef3b95a3bcd7d2c254b16329fe434b2a8b6a1c7b61b2fb1663fecf65",
     "一键安装.bat": "c81665cfabc0cff65c64999c43d4a3e14c6909dcfd247107c355c3b9d23c7e21",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "da825d558d80751302ea0ea27d1eaa68801500234dcc0d751087bd47d582973e"
+  "sha256": "290dcd03d914d48f41103ca05f48dbb8075a1bbeb3343253852369b1b2f7568b"
 }
