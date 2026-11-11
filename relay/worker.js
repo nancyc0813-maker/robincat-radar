@@ -158,6 +158,20 @@ AVE_OK.push([/^\/v2\/tokens\/trending\?chain=(solana|eth|base)&page_size=100$/, 
 /*BOARD124 BNB Chain／Robinhood 也开放（只读、共用快取；第二栏＝快取秒数）：已上外盘的成交（pair）、热门榜、发射台清单、关键字搜寻（多链） */
 AVE_OK.push([/^\/v2\/txs\/swap\/0x[0-9a-f]{40}-(bsc|robinhood)\?limit=50&sort=desc$/, 1, 50], [/^\/v2\/tokens\/trending\?chain=(bsc|robinhood)&page_size=100(&current_page=[0-9]{1,2})?$/, 30, 5], [/^\/v2\/tokens\/platform\?tag=[a-z0-9_]{2,40}&limit=(100|300)$/, 30, 10],
   [/^\/v2\/tokens\?keyword=[A-Za-z0-9_.%-]{1,90}(&chain=(bsc|robinhood|solana|eth|base))?&limit=(20|50)$/, 30, 5]);
+/*OPEN-1112 Nancy 11/12「全开放」：任何链、AVE 所有读取接口都可以经转接站查（只限 GET 读取；金钥只在这里；同样的查询大家共用快取）。
+  栏位＝[规则, 快取秒数, 每次估计单位]；上面写死的旧规则先比对（快取秒数不变），没对到才用这里的通用规则 */
+const OK_ID = '[A-Za-z0-9_.]{16,100}-[a-z0-9]{2,24}', OK_Q = '(\\?[A-Za-z0-9_.=&%:,\\-]{0,400})?';
+AVE_OK.push(
+  [new RegExp('^/v2/tokens/' + OK_ID + '$'), 2, 5],
+  [new RegExp('^/v2/pairs/' + OK_ID + '$'), 2, 5],
+  [new RegExp('^/v2/contracts/' + OK_ID + '$'), 1800, 10],
+  [new RegExp('^/v2/tokens/(top100|holders)/' + OK_ID + OK_Q + '$'), 60, 10],
+  [new RegExp('^/v2/klines/(token|pair)/' + OK_ID + OK_Q + '$'), 5, 10],
+  [new RegExp('^/v2/txs/(swap|liq)/' + OK_ID + OK_Q + '$'), 5, 50],
+  [new RegExp('^/v2/tokens/(trending|platform|main)' + OK_Q + '$'), 30, 10],
+  [new RegExp('^/v2/tokens' + OK_Q + '$'), 30, 5],
+  [new RegExp('^/v2/address/tx' + OK_Q + '$'), 30, 100],
+  [new RegExp('^/v2/address/(pnl|walletinfo|walletinfo/tokens|smart_wallet/list)' + OK_Q + '$'), 120, 10]);
 const MC = new Map(), MC_MAX = 2000; /* H8-D5：这个执行个体自己的快取（*.workers.dev 上 caches.default 可能不生效） */
 const mcGet = (k) => { const v = MC.get(k); if (!v) return null; if (Date.now() > v.exp) { MC.delete(k); return null; } return v.body; };
 const mcPut = (k, body, ttlS) => { MC.set(k, { body, exp: Date.now() + ttlS * 1000 }); if (MC.size > MC_MAX) MC.delete(MC.keys().next().value); };
