@@ -1,14 +1,14 @@
 {
-  "version": "1.4.6",
+  "version": "1.4.7",
   "date": "2026-11-11",
   "critical": true,
   "notes": [
+    "🚀 新功能：各链发射台自动买（Solana 的 Pump／Bonk…、Base 的 Clanker／Zora…），在 设定 → 更多设定 打开，全部条件你自己填，预设关",
+    "自动买一样要开「自动买总开关」，紧急全停照样有效",
     "链代号照 AVE 核对：PulseChain 修正，新增 Stable、Arc、Ink、Pharos、Plasma 等链",
     "链选单只显示 AVE 有资料的链",
     "Sui、TON 的币也能看详情（转接站更新后）",
-    "看盘可以自己选要显示哪些链（＋链），AVE 有的链都能看",
-    "Solana、Base、TRON、Monad、X Layer、Sui 的发射台都有新币／即将打满／已开盘三栏",
-    "🆕 新发射台：自动发现市面上新冒出来的发射台（只看、只通知）"
+    "看盘可以自己选要显示哪些链（＋链），AVE 有的链都能看"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
