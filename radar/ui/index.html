@@ -5047,8 +5047,8 @@ const toast=m=>{try{t(m)}catch{}};
 /* 链：BNB Chain、Robinhood 放最前（Nancy 11/11） */
 const CH=[['bsc','BNB Chain','#F0B90B'],['robinhood','Robinhood','#2EBD85'],['solana','Solana','#9B6BFF'],['eth','Ethereum','#6F8BFF'],['base','Base','#3D7BFF'],['arbitrum','Arbitrum','#4AA8FF'],['polygon','Polygon','#A66BFF']];
 /*OPEN-1112 链目录：主程式给的 AVE 链全部可选；上面只显示你勾的（预设 5 条），「＋ 链」打开选单自己加减 */
-const SEL0=['bsc','robinhood','solana','base','eth'];
-async function loadChains(){try{const r=await window.radar.mc('chains');for(const c of r?.chains||[]){if(c.own==='ely')continue;if(!CH.some(x=>x[0]===c.k))CH.push([c.k,c.en||c.zh||c.k,c.color||'#7D8597'])}paint()}catch(e){console.error(e)}}
+const SEL0=['bsc','robinhood','solana','base','eth'];const PADS=new Set(['solana']);const hasPads=k=>PADS.has(k);/*PAD-1112 有发射台的链（主程式 mc chains 回 pads:1）＝新币／即将打满／已开盘三栏都用发射台清单*/
+async function loadChains(){try{const r=await window.radar.mc('chains');for(const c of r?.chains||[]){if(c.pads)PADS.add(c.k);if(c.own==='ely')continue;if(!CH.some(x=>x[0]===c.k))CH.push([c.k,c.en||c.zh||c.k,c.color||'#7D8597'])}paint()}catch(e){console.error(e)}}
 function selChains(){let a=LSj('pzChains',null);if(!Array.isArray(a)||!a.length)a=SEL0.slice();a=a.filter(k=>CH.some(c=>c[0]===k)||!CH.length);if(!a.includes(S.net))a.push(S.net);return a}
 const OWN={bsc:1,robinhood:1};
 const COLK={own:[['new','新开盘','New pairs','#2EBD85'],['soon','即将打满','Final stretch','#F0B90B'],['out','已上外盘','Migrated','#4AA8FF']],mc:[['fresh','新开盘','New pairs','#2EBD85'],['soon','即将打满','Final stretch','#F0B90B'],['done','已上外盘','Migrated','#4AA8FF']]};
@@ -5067,7 +5067,7 @@ function nOwn(x){return {c:String(x.c||''),s:x.s||'',n:x.n||'',lg:x.lg||'',mc:x.
 function nMc(x){return {c:String(x.c||''),s:x.sym||'',n:x.name||'',lg:/^https:\/\//.test(x.lg||'')?x.lg:'',mc:x.mc,v:x.v24,h:x.h,tx:x.tx24,ca:x.ca,pl:x.plat,pg:x.pg,c24:x.c24,c5:x.c5,c1:x.c1,tvl:x.liq,kol:x.kol,kn:x.kn||[]}}
 /* 每栏资料 */
 function colItems(k){if(isOwn()){const L=(S.D&&S.D.ok&&S.D.cols&&S.D.cols[k])||[];return L.map(nOwn)}
- if(S.net!=='solana'){/* 这条链 AVE 只有热门榜：照建立时间／内盘进度分进三栏（新开盘＝24 小时内建立；即将打满＝还在内盘有进度；已上外盘＝其他） */const H=((S.M[S.net+'|hot']||{}).items||[]).map(nMc);if(k==='hot')return H;const now=Date.now()/1e3;const isNew=x=>+x.ca>0&&now-(+x.ca>1e12?x.ca/1e3:x.ca)<86400;const inCurve=x=>x.pg!=null&&isFinite(+x.pg)&&+x.pg<100;
+ if(!hasPads(S.net)){/* 这条链 AVE 只有热门榜：照建立时间／内盘进度分进三栏（新开盘＝24 小时内建立；即将打满＝还在内盘有进度；已上外盘＝其他） */const H=((S.M[S.net+'|hot']||{}).items||[]).map(nMc);if(k==='hot')return H;const now=Date.now()/1e3;const isNew=x=>+x.ca>0&&now-(+x.ca>1e12?x.ca/1e3:x.ca)<86400;const inCurve=x=>x.pg!=null&&isFinite(+x.pg)&&+x.pg<100;
   if(k==='fresh')return H.filter(x=>isNew(x)&&!inCurve(x));if(k==='soon')return H.filter(inCurve).sort((a,b)=>(+b.pg||0)-(+a.pg||0));if(k==='done')return H.filter(x=>!isNew(x)&&!inCurve(x));return []}
  const R=S.M[S.net+'|'+k];return (R&&R.items||[]).map(nMc)}
 function allItems(){const o=new Map();for(const [k] of COLK[isOwn()?'own':'mc'])for(const x of colItems(k))o.set(x.c,x);for(const x of colItems('hot'))if(!o.has(x.c))o.set(x.c,x);return [...o.values()]}
@@ -5122,7 +5122,7 @@ function paintCols(force){const g=Q('#pzCols');const e=en();const K=COLK[isOwn()
   col.querySelector('.pzCH small').textContent=arr.length||'';const fb=col.querySelector(`[data-pzf="${k}"]`);const n=fxN(k);fb.textContent=(e?'Filter':'筛选')+(n?' · '+n:'');fb.classList.toggle('on',!!n);const pb=col.querySelector(`[data-pzpz="${k}"]`);pb.classList.toggle('on',!!S.pause[k]);pb.textContent=S.pause[k]?'▶':'❚❚';
   if(!force&&S.sig[k]&&(S.pause[k]||S.hover[k]))continue;/* 暂停／滑鼠停在栏上＝自动刷新先停（像 Photon）；你自己按的（筛选、发射台、金额、换链）照样马上更新 */
   const sig=S.pad+'|'+JSON.stringify(S.fx[k]||{})+'|'+S.p+'|'+amt()+'|'+arr.map(x=>[x.c,x.mc,x.v,x.h,x.tx,x.pg,x.c5,x.c1,x.c24].join(',')).join('|');if(S.sig[k]===sig)continue;S.sig[k]=sig;
-  const L2=col.querySelector('.pzL');const top=L2.scrollTop;const loading=isOwn()?(!S.D||(!S.D.ok&&S.D.err==='wait')):!S.M[S.net+'|'+(S.net==='solana'?k:'hot')];/* 读不到（上面有红字原因）＝显示「暂时没有」，不要一直「读取中」 */L2.innerHTML=arr.length?arr.map(x=>card(x,k,c)).join(''):`<div class="pzE">${loading?(e?'Loading…':'读取中…'):(e?'Nothing here right now':'暂时没有')}</div>`;L2.scrollTop=top}}
+  const L2=col.querySelector('.pzL');const top=L2.scrollTop;const loading=isOwn()?(!S.D||(!S.D.ok&&S.D.err==='wait')):!S.M[S.net+'|'+(hasPads(S.net)?k:'hot')];/* 读不到（上面有红字原因）＝显示「暂时没有」，不要一直「读取中」 */L2.innerHTML=arr.length?arr.map(x=>card(x,k,c)).join(''):`<div class="pzE">${loading?(e?'Loading…':'读取中…'):(e?'Nothing here right now':'暂时没有')}</div>`;L2.scrollTop=top}}
 function paintRail(){const e=en();const H=Q('#pzHotH');const hh=`<div class="pzSeg">${[['hot',e?'Hot':'热门'],['fomo','FOMO']].map(([k,l])=>`<a data-pzhot="${k}" class="${S.hot===k?'on':''}">${l}</a>`).join('')}</div><small>${S.hot==='hot'?(e?'by volume':'按成交额'):(e?'by short-term change':'按短线涨幅')}</small>`;if(H.innerHTML!==hh)H.innerHTML=hh;
  let L2=colItems('hot');if(!L2.length)L2=allItems();if(S.hot==='hot')L2=[...L2].sort((a,b)=>(+b.v||0)-(+a.v||0));else{const f=x=>x.c5!=null&&isFinite(+x.c5)?+x.c5:x.c1!=null&&isFinite(+x.c1)?+x.c1:x.c24!=null&&isFinite(+x.c24)?+x.c24:null;L2=allItems().filter(x=>f(x)!=null).sort((a,b)=>f(b)-f(a))}
  L2=L2.slice(0,10);const h=L2.length?L2.map((x,i)=>{const ch=S.hot==='hot'?x.c24:(x.c5!=null&&isFinite(+x.c5)?x.c5:x.c1!=null&&isFinite(+x.c1)?x.c1:x.c24);return `<div class="pzHr" data-pzc="${esc(x.c)}"><span>${i+1}</span><b>${esc(x.s||'?')}</b><small>${x.mc!=null?'$'+fmt(x.mc):''}</small><em class="${+ch>=0?'up':'dn'}">${ch!=null&&isFinite(+ch)?pct(ch):''}</em></div>`}).join(''):`<div class="pzE">${e?'Nothing yet':'暂时没有'}</div>`;const el=Q('#pzHot');if(el.innerHTML!==h)el.innerHTML=h;
@@ -5241,7 +5241,7 @@ function onBoard(){const b=Q('#board');return !!b&&b.classList.contains('on')&&!
 async function tick(force){if(!onBoard()||S.cat==='ai'||document.body.classList.contains('pzMc'))return;if(S.busy&&!force)return;S.busy=1;const net=S.net;
  if(!OWN[net])S.mcAt=Date.now();try{if(OWN[net]){const d=await window.radar.b3(net);if(net!==S.net)return;S.D=d;if(d&&d.ok)S.at=+d.okAt||Date.now()}
   else{/*PZ-1112 其他链：只查这条链 AVE 真的有的清单（Solana 有 Pump 各栏；其他链只有热门榜），一个一个查、每个最多等 MC_TO 毫秒，读到一个就先画一个；不再 4 个一起狂查（会把转接站名额用光，详情、K 线跟着变慢）*/
-   const tabs=net==='solana'?['fresh','soon','done']:['hot'];for(const tb of tabs){if(net!==S.net)return;const r=await Promise.race([window.radar.mc('board',{chain:net,tab:tb}).catch(er=>({err:String(er?.message||er)})),new Promise(z=>setTimeout(()=>z({err:en()?'timed out':'读取逾时'}),MC_TO))]);if(net!==S.net)return;if(r&&!r.err||!S.M[net+'|'+tb]?.items)S.M[net+'|'+tb]={...(r||{}),__at:Date.now()};S.at=Date.now();paint()}}}
+   const tabs=hasPads(net)?['fresh','soon','done']:['hot'];for(const tb of tabs){if(net!==S.net)return;const r=await Promise.race([window.radar.mc('board',{chain:net,tab:tb}).catch(er=>({err:String(er?.message||er)})),new Promise(z=>setTimeout(()=>z({err:en()?'timed out':'读取逾时'}),MC_TO))]);if(net!==S.net)return;if(r&&!r.err||!S.M[net+'|'+tb]?.items)S.M[net+'|'+tb]={...(r||{}),__at:Date.now()};S.at=Date.now();paint()}}}
  catch(er){if(OWN[net])S.D={ok:0,err:'net'}}finally{S.busy=0}
  sgPoll()
  paint()}
