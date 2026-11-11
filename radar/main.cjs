@@ -35,6 +35,7 @@ async function trayUpd(o = {}) { if (TRAY_UPD_BUSY) return { st: 'busy' }; TRAY_
     const r = ordPush({ type: 'update' }); if (r && r.err) { await say(en ? 'Update NOT started' : '更新没有开始', r.err === 'engine' ? (en ? 'The radar engine is not running — it is starting now. Try again once it is running.' : '雷达引擎没在跑，正在帮你启动，等它跑起来再按一次。') : String(r.err)); return { st: 'err', err: r.err }; }
     await say(en ? 'Updating…' : '开始更新…', en ? 'The result also goes to TG. The radar restarts by itself when done.' : '结果也会发到 TG，更新好雷达会自动重开。'); return { st: 'sent', nv, id: r?.id }; } finally { TRAY_UPD_BUSY = 0; } }
 globalThis.TRAYUPD123 = { trayTpl, trayUpd }; /* 测试用 */
+let UI_PAGE = ''; ipcMain.handle('uiPage', (e, p) => { UI_PAGE = String(p || '').replace(/[^\w-]/g, '').slice(0, 20); return 1; }); /*HANG-1111 画面目前在哪一页（卡住／挂掉时写进日志）*/
 ipcMain.handle('uiLang', (e, l) => { const v = l === 'en' ? 'en' : 'zh'; if (v !== UI_LANG) { UI_LANG = v; trayLang(); } return UI_LANG; });
 
 if (!app.requestSingleInstanceLock()) { app.quit(); }
@@ -42,6 +43,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); }
 app.on('second-instance', () => { if (win) { win.show(); win.focus(); } });
 
 function readJSON(f, d) { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } }
+const STC = new Map(); function stJSON(f, d) { try { const st = fs.statSync(f); const c = STC.get(f); if (c && c.mt === st.mtimeMs && c.sz === st.size) return c.v; const v = JSON.parse(fs.readFileSync(f, 'utf8')); STC.set(f, { mt: st.mtimeMs, sz: st.size, v }); return v; } catch { const c = STC.get(f); return c ? c.v : d; } } /*HANG-1111 引擎状态档（可能好几 MB）：档案没变就用上次解析好的，不要每个画面请求都重读重解析（只读，不写回）*/
 /* MAINJS-OWN：作者本人版＝.sign/owner.sig 用 repo.cjs 官方公钥验得过（内容 rcr-owner-v1:<OWNER>，跟引擎 watch.mjs 同做法）；只有 .sign 资料夹不算。结果快取（开着的雷达不会中途变身） */
 let OWN_V = null; function isOwner() { if (OWN_V !== null) return OWN_V; OWN_V = false; try { const c = require('crypto'); const sg = Buffer.from(fs.readFileSync(path.join(ROOT, '.sign', 'owner.sig'), 'utf8').trim(), 'base64'); OWN_V = !!OFFI.PUB_OK && sg.length === 64 && c.verify(null, Buffer.from('rcr-owner-v1:' + OFFI.OWNER), c.createPublicKey({ key: Buffer.from(OFFI.PUBKEY, 'base64'), format: 'der', type: 'spki' }), sg); } catch { OWN_V = false; } return OWN_V; }
 /* ZR-UI-1103：读用户设定（空＝没设＝不套用）；轮流队列：资源有限时每次只处理一批，但每个都会轮到（画面显示「排队中」） */
@@ -60,7 +62,7 @@ function verNewer(a, b) { const p = String(a).split('.').map((y) => +y || 0), q 
 let LVC = { at: 0, v: '' }; function localVer() { if (Date.now() - LVC.at < 30e3) return LVC.v; LVC = { at: Date.now(), v: String(readJSON(path.join(ROOT, 'version.json'), {}).version || '') }; return LVC.v; } /* AUD2-8：本机版本只看 version.json（更新时会一起换） */
 function snapshot() {
   if (Date.now() - cache.at < 3000 && cache.v) return cache.v;
-  const S = readJSON(path.join(DATA, 'watch_state.json'), {});
+  const S = stJSON(path.join(DATA, 'watch_state.json'), {});
   const now = Date.now(), px = S.lastBnbUsd || 0;
   const TH = { go: S.thrNow?.go != null ? Math.round(S.thrNow.go * 1000) / 10 : null, ag: S.thrNow?.ag != null ? Math.round(S.thrNow.ag) : null }; /* NR-1103：没开＝null；显示的是引擎实际在用的门槛 */
   const Z0 = readJSON(SET, {}) || {}; const ES0 = !!Z0.estop; const keepH = zon(Z0, 'track.maxAgeH.on') ? zv(Z0, 'track.maxAgeH') : null, hotPct = zv(Z0, 'board.hotPct');
@@ -172,7 +174,7 @@ async function hotBoard(net) { net = net === 'robinhood' ? 'robinhood' : 'bsc'; 
     return markQ(v, 'bsc'); }
   if (net === 'robinhood' && V4R) { const v = V4R.board(); if (v.total) { socialsBg('robinhood', v.cols.flatMap((c) => c.items)); aveFill125('robinhood', v.cols.flatMap((c) => c.items)); /*AUDIT125-A*/
       /* 每个币标「会打／不打：原因」→ 用引擎真的检查过的结果；看板上的新币也交给引擎检查（全部轮流送，不会漏） */
-      try { const seen = readJSON(path.join(DATA, 'watch_state.json'), {}).rh?.seen || {}; for (const c of v.cols) for (const x of c.items) { const e = seen[x.c]; if (e) x.ev = { ok: !!e.ok, why: String(e.why || '').slice(0, 80), at: e.at || 0 }; } } catch {}
+      try { const seen = stJSON(path.join(DATA, 'watch_state.json'), {}).rh?.seen || {}; for (const c of v.cols) for (const x of c.items) { const e = seen[x.c]; if (e) x.ev = { ok: !!e.ok, why: String(e.why || '').slice(0, 80), at: e.at || 0 }; } } catch {}
       try { if (!hotBoard._rc || Date.now() - hotBoard._rc > 60e3) { hotBoard._rc = Date.now(); const L = v.cols.flatMap((c) => c.items).filter((x) => x.tx?.h1).sort( /* ZR-1103 */(a, b) => (b.tx.h1.b + b.tx.h1.s) - (a.tx.h1.b + a.tx.h1.s)); const RT = rotate('rh', L, CAND_BATCH); const LC = RT.pick.map((x) => ({ c: x.c, sym: x.sym, liq: x.liq > 0 ? x.liq : null, at: x.at, plat: x.plat, b: x.tx.h1.b, s: x.tx.h1.s })); QD.rh = new Set(RT.queue.map((x) => x.c)); fs.writeFileSync(path.join(DATA, 'rh_cand.json'), JSON.stringify({ at: Date.now(), list: LC, queued: RT.queue.length })); } } catch {}
       return markQ(v, 'rh'); } } /* 读链还没资料（刚开）才退回 GeckoTerminal */
   const c = HB[net]; if (c && Date.now() - c.at < 90e3) return c.v; if (HB.busy) return c?.v || { cols: [], err: '读取中…' }; HB.busy = 1; try { let err = '';
@@ -213,7 +215,7 @@ async function sigFill(L, P) { /* 1) 行情网站没有的 → 看板（Flap／F
 function smartLive(S) { const st = readJSON(SET, {}); const own = new Set((Array.isArray(st['smart.wallets']) ? st['smart.wallets'] : []).map((x) => String(x?.addr || '').toLowerCase()));
   for (const [a, r] of Object.entries(S.smartW?.related || {})) if (own.has(String(r?.of || '').toLowerCase())) own.add(a.toLowerCase());
   const clr = Number(st['smart.clearAt']) || 0; return (S.smartW?.events || []).filter((e) => e.at > clr && (e.who || []).some((w) => own.has(String(w).toLowerCase()))); }
-async function signals() { const S = readJSON(path.join(DATA, 'watch_state.json'), {}); const P = readJSON(SIGP, {});
+async function signals() { const S = stJSON(path.join(DATA, 'watch_state.json'), {}); const P = readJSON(SIGP, {});
   /* 信号页改版 → 三种来源合在一起（TG 频道、X、聪明钱／KOL 实买），同一个币合并成一行；1 小时内 2 个以上不同来源＝🔥共振 */
   const L = [...(S.callLog || []).slice(-300).map((x) => ({ c: x.c, src: x.src, at: x.at, ch: 'bsc', ty: /^𝕏/.test(x.src) ? 'x' : 'tg' })),
     ...smartLive(S).filter((e) => e.dir === '买' && /^0x[0-9a-f]{40}$/.test(e.tok || '')).map((e) => ({ c: e.tok, src: '🐋 ' + String(e.names || '').slice(0, 30), at: e.at, ch: e.ch === 'robinhood' ? 'rh' : 'bsc', ty: 'smart' }))].sort((a, b) => b.at - a.at);
@@ -234,7 +236,7 @@ async function signals() { const S = readJSON(path.join(DATA, 'watch_state.json'
   const rank = Object.values(by).map((b) => ({ ...b, avg: b.rated ? b.sum / b.rated : 0, rate: CZ.winX != null && b.rated ? b.win / b.rated : null })).sort((a, b) => ((b.rate ?? -1) - (a.rate ?? -1)) || (b.avg - a.avg) || (b.n - a.n)); /* 「准」＝最高涨到你设的 call.winX 倍；没设就不算胜率、照平均倍数排 */
   return { feed, rank, winX: CZ.winX, at: Date.now() }; }
 /* 错过分析 — AI 专属项目满了雷达却没打的，照原因分组，告诉用户可以怎么调 */
-ipcMain.handle('missed', () => { const S = readJSON(path.join(DATA, 'watch_state.json'), {}); const Zm = zSet(); const keepH = zon(Zm, 'track.maxAgeH.on') ? zv(Zm, 'track.maxAgeH') : null; const cut = keepH != null && keepH > 0 ? Date.now() - keepH * 3600e3 : 0; /* ZR-UI-1103：只照你设的「追踪多久」（track.maxAgeH）；没设＝全部列出 */ const L = Object.entries(S.missed || {}).map(([c, m]) => ({ c, name: String(m.name || '').slice(0, 30), why: String(m.why || '').slice(0, 90), at: Date.parse(String(m.at || '').replace(/\//g, '-').replace(' ', 'T')) || 0 })).filter((x) => x.at >= cut).sort((a, b) => b.at - a.at);
+ipcMain.handle('missed', () => { const S = stJSON(path.join(DATA, 'watch_state.json'), {}); const Zm = zSet(); const keepH = zon(Zm, 'track.maxAgeH.on') ? zv(Zm, 'track.maxAgeH') : null; const cut = keepH != null && keepH > 0 ? Date.now() - keepH * 3600e3 : 0; /* ZR-UI-1103：只照你设的「追踪多久」（track.maxAgeH）；没设＝全部列出 */ const L = Object.entries(S.missed || {}).map(([c, m]) => ({ c, name: String(m.name || '').slice(0, 30), why: String(m.why || '').slice(0, 90), at: Date.parse(String(m.at || '').replace(/\//g, '-').replace(' ', 'T')) || 0 })).filter((x) => x.at >= cut).sort((a, b) => b.at - a.at);
   const key = (w) => /找到能打|不[會会]打|学打法|[學学]打法/.test(w) ? 'learn' : /簽名|签名|白名單|白名单|賣完|卖完|關閉|关闭/.test(w) ? 'closed' : /餘額|余额|不夠|不够|BNB/.test(w) ? 'money' : /額度|额度|上限/.test(w) ? 'cap' : /進度|进度|錢包|钱包|熱度|热度/.test(w) ? 'rule' : 'other';
   const G = {}; for (const x of L) { const k = key(x.why); (G[k] = G[k] || []).push(x); } return { total: L.length, groups: Object.entries(G).map(([k, a]) => ({ k, n: a.length, items: a })).sort((a, b) => b.n - a.n) }; });
 /* 回测 — 用雷达读链存下来的成交，照用户填的条件模拟买卖（全部条件都要自己填） */
@@ -857,9 +859,9 @@ function guardKey() { if (GK) return GK;
   /* 退路（Linux 没 keyring、Windows 服务帐号等）：不是「全部当没开」把人锁死、也不是「不验」——改用本机随机金钥存在使用者资料夹（0600），照常签与验，画面黄条提示「本机保护较弱」 */
   if (!wf) { GK_MODE = 'none'; return null; }
   try { fs.mkdirSync(path.dirname(wf), { recursive: true }); fs.writeFileSync(wf, pem(k), { mode: 0o600 }); try { fs.chmodSync(wf, 0o600); } catch {} GK = k; GK_MODE = 'weak'; return GK; } catch { GK_MODE = 'none'; return null; } }
-function guardInfo() { const k = guardKey(); let pending = false; try { const ep = String((readJSON(path.join(DATA, 'watch_state.json'), {}) || {}).guardPub || ''); pending = !!(k && ep && ep !== guardPubOf(k)) || !!guardNeedsConfirm(); /* WAL-GATE：全新安装但引擎有历史、没记住金钥（ep 空）也算待确认 */ } catch {} return { mode: GK_MODE, weak: GK_MODE === 'weak', lost: GK_LOST, pending }; } /* 给画面：pending＝引擎记住的还是旧金钥（要在 TG 回「确认新金钥」） */
+function guardInfo() { const k = guardKey(); let pending = false; try { const ep = String((stJSON(path.join(DATA, 'watch_state.json'), {}) || {}).guardPub || ''); pending = !!(k && ep && ep !== guardPubOf(k)) || !!guardNeedsConfirm(); /* WAL-GATE：全新安装但引擎有历史、没记住金钥（ep 空）也算待确认 */ } catch {} return { mode: GK_MODE, weak: GK_MODE === 'weak', lost: GK_LOST, pending }; } /* 给画面：pending＝引擎记住的还是旧金钥（要在 TG 回「确认新金钥」） */
 let GK_ASKED = '';
-function guardNeedsConfirm() { const k = guardKey(); if (!k) return null; const me = guardPubOf(k); const ep = String((readJSON(path.join(DATA, 'watch_state.json'), {}) || {}).guardPub || ''); const al = readJSON(path.join(DATA, 'guard_alert.json'), {}) || {}; return (ep && ep !== me) || (!ep && al.newPub === me) ? { me, ep } : null; } /* 引擎记住的不是这把金钥（或因有历史而拒绝第一次记住） */
+function guardNeedsConfirm() { const k = guardKey(); if (!k) return null; const me = guardPubOf(k); const ep = String((stJSON(path.join(DATA, 'watch_state.json'), {}) || {}).guardPub || ''); const al = readJSON(path.join(DATA, 'guard_alert.json'), {}) || {}; return (ep && ep !== me) || (!ep && al.newPub === me) ? { me, ep } : null; } /* 引擎记住的不是这把金钥（或因有历史而拒绝第一次记住） */
 async function guardConfirmAsk() { try { const n = guardNeedsConfirm(); if (!n || GK_ASKED === n.me) return false; GK_ASKED = n.me; /* 每把新金钥这次开雷达只问一次；按取消就不再跳，横幅照样提示 */
     const r = await dialog.showMessageBox((typeof win !== 'undefined' && win) || undefined, { type: 'warning', title: APP_T(), buttons: UL() ? ['Cancel', 'Yes, it was me'] : ['取消', '确认是我'], defaultId: 0, cancelId: 0, noLink: true, message: UL() ? 'The radar guard key has changed to a new one. Let the engine switch to the new key?' : '雷达的守护金钥换了一把新的，要让引擎改用这把新金钥吗？', detail: UL() ? 'If you did not just reinstall or move to a new computer, press Cancel (another program or AI may be tampering with your radar).\nJust reinstalled, moved computers or lost the key file: press “Yes, it was me”. Protected settings (add-on switches, phone, auto-approve) still have to be turned on again in the app; if TG is set up you will also get a notice.' : '如果你没有刚重装或换电脑，请按取消（可能是别的程式／AI 在动你的雷达）。\n刚重装、换电脑或金钥档不见了：按「确认是我」。确认后外挂开关、手机、自动允许授权等受保护的设定仍要在画面重新打开；有设 TG 的话也会收到通知。' });
     if (!r || r.response !== 1) return false; const at = Date.now(); const sig = require('crypto').sign(null, guardMsg('confirm', n.ep, n.me + '\n' + at), guardKey()).toString('base64');
@@ -991,7 +993,8 @@ ipcMain.handle('airState', () => readJSON(path.join(DATA, 'air_state.json'), {})
 ipcMain.handle('logTail', (e, n) => { try { const f = path.join(DATA, 'watch.log'); const st = fs.statSync(f); const len = Math.min(st.size, 160 * 1024); const fd = fs.openSync(f, 'r'); const b = Buffer.alloc(len); fs.readSync(fd, b, 0, len, st.size - len); fs.closeSync(fd);
   let L = b.toString('utf8').split(/\r?\n/).filter(Boolean); if (st.size > len) L.shift(); L = L.slice(-Math.max(20, Math.min(600, Number(n) || 300)));
   return L.map((x) => x.replace(/\b\d{8,10}:AA[\w-]{30,}\b/g, '[TG金钥]').replace(/github_pat_[\w]{20,}/g, '[金钥]').replace(/\b(sk|pk|api|key|token|secret)[-_]?[\w-]{16,}/gi, '[金钥]').replace(/0x[0-9a-fA-F]{64}\b/g, (h) => h.slice(0, 8) + '…' + h.slice(-4)).replace(/(私钥|私鑰|助记词|助記詞|mnemonic|private ?key)\S*/gi, '[已隐藏]')); } catch { return []; } });
-ipcMain.handle('smartAuto', () => { const z = readJSON(path.join(DATA, 'smart_auto.json'), {}); return { bsc: { at: z.bsc?.at || 0, rank: z.bsc?.rank || [], n: Object.keys(z.bsc?.done || {}).length }, rh: { at: z.rh?.at || 0, rank: z.rh?.rank || [], n: Object.keys(z.rh?.done || {}).length } }; });
+const SA_C = { mt: -1, v: null }; /*SA-1111 聪明钱排行：只读小档（前 200 名）、档案没变就用上次的；不再在主程式同步读整个大档（几十 MB 会卡住画面 → 被当成当机一直重开）*/
+ipcMain.handle('smartAuto', async () => { const E = { bsc: { at: 0, rank: [], total: 0, n: 0 }, rh: { at: 0, rank: [], total: 0, n: 0 } }; const f = path.join(DATA, 'smart_rank.json'); try { const st = await fs.promises.stat(f); if (st.mtimeMs === SA_C.mt && SA_C.v) return SA_C.v; const z = JSON.parse(await fs.promises.readFile(f, 'utf8')); const v = {}; for (const ch of ['bsc', 'rh']) { const r = Array.isArray(z?.[ch]?.rank) ? z[ch].rank.slice(0, 200) /* 技术用：画面只显示前 200 名（显示笔数，不影响买卖） */ : []; v[ch] = { at: +z?.[ch]?.at || 0, rank: r, total: +z?.[ch]?.total || r.length, n: +z?.[ch]?.n || 0 }; } SA_C.mt = st.mtimeMs; SA_C.v = v; return v; } catch { return SA_C.v || E; } });
 ipcMain.handle('restartEngine', () => startEngine()); /* 引擎停了，按一下重新启动（11/3 起 Mac 也可以） */
 ipcMain.handle('pause', (e, on) => { const f = path.join(DATA, 'pause_buy.txt'); if (on) fs.writeFileSync(f, String(Date.now())); else try { fs.unlinkSync(f); } catch {} cache.at = 0; return on; });
 /* MAINJS-IPC：画面送来的单先检查格式（只收已知的单种、栏位数与长度有上限）；src:'phone' 只能走 phoneOrder（手机转来的单），桌面单一律拿掉 */
@@ -1208,7 +1211,7 @@ function zoomSet(f) { f = Number(f); if (!ZOOM_STEPS.includes(f)) f = 1; try { c
 function zoomStep(d) { const cur = zoomGet(); const i = ZOOM_STEPS.indexOf(cur); return zoomSet(d === 0 ? 1 : ZOOM_STEPS[Math.max(0, Math.min(ZOOM_STEPS.length - 1, (i < 0 ? 2 : i) + d))]); }
 ipcMain.handle('zoomSet', (e, f) => zoomSet(f)); ipcMain.handle('zoomGet', () => ({ f: zoomGet(), eff: zoomEff(zoomGet()), steps: ZOOM_STEPS })); /*ZOOM112-GET*/
 /*BLACKFIX117-K 技术用（不是交易数字）：视窗最晚几毫秒一定显示、画面卡住多久强制重开、几秒没心跳就重载、几分钟内算同一轮*/
-const BF_SHOW_MAX_MS = 4000, BF_HANG_MS = 20e3, BF_HB_MS = 60e3, BF_WIN_MS = 10 * 60e3;
+const BF_SHOW_MAX_MS = 4000, BF_HANG_MS = 60e3, BF_HB_MS = 60e3, BF_WIN_MS = 10 * 60e3;
 /*QA118-2 心跳用单调时钟（改电脑时间、睡眠唤醒不会误判）；唤醒／解锁后重新计时＋给画面一段宽限；连续两次检查都没心跳才重开*/ let BF_MISS = 0, BF_GRACE = 0;
 function bfNow() { return Number(process.hrtime.bigint() / 1000000n); }
 function bfResume(now) { BF_SNAP_AT = now; BF_MISS = 0; BF_GRACE = now + BF_HB_MS; }
@@ -1219,14 +1222,14 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false } }); /* 11/3 手机版：视窗缩到右下角也要能回手机 */
   win.loadFile(path.join(__dirname, 'ui', 'index.html'));
   /*BLACKFIX117-WD*/ { const w0 = win; let shown = 0; const show = () => { if (shown || w0.isDestroyed()) return; shown = 1; if (!BF_HIDDEN) w0.show(); }; w0.once('ready-to-show', show); setTimeout(show, BF_SHOW_MAX_MS);
-    const wc = w0.webContents; let unT = null; const R = { n: 0, t0: Date.now() };
+    const wc = w0.webContents; let unT = null, unAsked = 0; const R = { n: 0, t0: Date.now() };
     const reload = (why) => { if (w0.isDestroyed()) return; if (Date.now() - R.t0 > BF_WIN_MS) { R.n = 0; R.t0 = Date.now(); } R.n++; bfLog(`视窗重载（${why}）第 ${R.n} 次`); const d = R.n <= 3 ? 1500 : 30e3; /* 一直坏就放慢，不要狂重载 */ setTimeout(() => { try { if (!w0.isDestroyed()) { BF_SNAP_AT = 0; wc.reloadIgnoringCache(); } } catch (e) { bfLog('重载失败 ' + e.message); } }, d); };
-    wc.on('render-process-gone', (e, d) => { bfLog(`画面进程结束：${d && d.reason} ${d && d.exitCode}`); if (!quitting && d && d.reason !== 'clean-exit') reload('画面进程 ' + d.reason); });
-    wc.on('unresponsive', () => { bfLog('画面没有回应'); clearTimeout(unT); unT = setTimeout(() => { bfLog('画面卡住太久 → 强制重开画面'); try { wc.forcefullyCrashRenderer(); } catch {} }, BF_HANG_MS); });
-    wc.on('responsive', () => { clearTimeout(unT); unT = null; });
+    wc.on('render-process-gone', (e, d) => { bfLog(`画面进程结束：${d && d.reason} ${d && d.exitCode}（${UI_PAGE || '?'} 页）`); if (!quitting && d && d.reason !== 'clean-exit') reload('画面进程 ' + d.reason); });
+    wc.on('unresponsive', () => { bfLog('画面没有回应（' + (UI_PAGE || '?') + ' 页）'); clearTimeout(unT); if (unAsked) return; unT = setTimeout(() => { if (unAsked || w0.isDestroyed()) return; unAsked = 1; bfLog('画面卡住太久（' + (UI_PAGE || '?') + ' 页）→ 问用户要不要重新整理（不自动重开）'); const en = UL(); dialog.showMessageBox(w0, { type: 'warning', buttons: [en ? 'Reload' : '重新整理', en ? 'Keep waiting' : '继续等'], defaultId: 1, cancelId: 1, noLink: true, message: en ? 'The screen is not responding' : '画面没有回应', detail: en ? 'Buying and selling keep running in the background. Reload the screen now, or keep waiting?' : '买卖引擎在背景照常运作。要现在重新整理画面，还是继续等？' }).then((r) => { if (r && r.response === 0 && !w0.isDestroyed()) { bfLog('用户选择重新整理画面'); try { wc.forcefullyCrashRenderer(); } catch { try { wc.reloadIgnoringCache(); } catch {} } } }).catch(() => {}); }, BF_HANG_MS); }); /*HANG-1111 卡住不再自动重开：只问一次、用户按「重新整理」才重开（卡死的画面要先结束进程，render-process-gone 会重载）*/
+    wc.on('responsive', () => { clearTimeout(unT); unT = null; unAsked = 0; });
     wc.on('did-fail-load', (e, code, desc, u, main) => { if (main && code !== -3) { bfLog(`画面载入失败 ${code} ${desc}`); reload('载入失败'); } });
     wc.on('did-finish-load', () => { BF_SNAP_AT = bfNow(); }); try { if (!bfResume.on) { bfResume.on = 1; const { powerMonitor } = require('electron'); for (const ev of ['resume', 'unlock-screen']) powerMonitor.on(ev, () => { bfResume(bfNow()); bfLog('电脑唤醒／解锁（' + ev + '）→ 心跳重新计时'); }); } } catch {} /*QA118-2*/
-    const hb = setInterval(() => { try { if (w0.isDestroyed()) return clearInterval(hb); if (!w0.isVisible() || w0.isMinimized() || wc.isLoading() || unT) return; if (bfHbTick(bfNow()) === 'crash') { /*QA118-2*/ bfLog('画面 ' + Math.round(BF_HB_MS / 1000) + ' 秒没来拿资料（卡死）→ 强制重开画面'); try { wc.forcefullyCrashRenderer(); } catch { reload('没心跳'); } } /* 卡死的画面没办法直接重新整理 → 先结束画面进程，上面 render-process-gone 会重载 */ } catch {} }, 15e3); }
+    /*HANG-1111 拿掉「几秒没来拿资料就强制重开画面」：画面只是慢（例如大列表）会被误杀、一直跳。真的挂掉由 render-process-gone 处理，卡住由上面 unresponsive 问用户 */ }
   win.webContents.on('did-finish-load', () => { try { win.webContents.setZoomFactor(zoomEff(zoomGet())); } catch {} }); win.on('resize', () => { try { win.webContents.setZoomFactor(zoomEff(zoomGet())); win.webContents.send('zoomChanged', zoomGet(), zoomEff(zoomGet())); } catch {} }); /*ZOOM112-LOAD*/ /* ZOOM110-LOAD 重开／重新整理都套用存好的画面大小 */
   win.webContents.on('before-input-event', (e, inp) => { if (inp.type !== 'keyDown' || !(inp.control || inp.meta) || inp.alt) return; const k = String(inp.key); const d = k === '=' || k === '+' || k === 'Add' ? 1 : k === '-' || k === '_' || k === 'Subtract' ? -1 : k === '0' ? 0 : null; if (d === null) return; e.preventDefault(); zoomStep(d); }); /* ZOOM110-KEY Ctrl／⌘ ＋ 加号／减号／0 */
   /* F5 要一定能重新整理（不管焦点在哪） */
@@ -1275,7 +1278,7 @@ function fbWho(L, o) { const N = (x) => { if (x == null || x === '') return null
 function fbDisc(net, addr) { const out = { x: [], tg: [] }; const a = String(addr || '').toLowerCase();
   for (const it of (Array.isArray(XW?.hits) ? XW.hits : []).slice(-300)) { if (String(it?.c || '').toLowerCase() !== a) continue; const h = String(it.h || '').replace(/[^\w]/g, '').slice(0, 20); const id = String(it.id || '').replace(/[^\d]/g, '').slice(0, 30);
     out.x.push({ h, id, at: Number(it.at || it.t || it.ts) || 0, tx: String(it.tx || it.text || '').slice(0, 600), url: h && id ? `https://x.com/${h}/status/${id}` : '' }); }
-  try { const S = readJSON(path.join(DATA, 'watch_state.json'), {}) || {}; for (const e of (Array.isArray(S.callLog) ? S.callLog : []).slice(-600)) { if (String(e?.c || '').toLowerCase() !== a) continue; const src = String(e.src || ''); if (src.startsWith('𝕏')) continue; out.tg.push({ src: src.slice(0, 40), at: Number(e.at) || 0 }); } } catch {}
+  try { const S = stJSON(path.join(DATA, 'watch_state.json'), {}) || {}; for (const e of (Array.isArray(S.callLog) ? S.callLog : []).slice(-600)) { if (String(e?.c || '').toLowerCase() !== a) continue; const src = String(e.src || ''); if (src.startsWith('𝕏')) continue; out.tg.push({ src: src.slice(0, 40), at: Number(e.at) || 0 }); } } catch {}
   out.x = out.x.slice(-30).reverse(); out.tg = out.tg.slice(-30).reverse(); return out; }
 const FBW = new Map(); /* 技术用：钱包页快取 */
 ipcMain.handle('walletInfo', async (e, net, w) => { net = net === 'robinhood' ? 'robinhood' : 'bsc'; w = String(w || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(w)) return { err: 'addr' }; if (!aveOK()) return { err: 'noave' };

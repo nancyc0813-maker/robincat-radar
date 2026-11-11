@@ -1370,26 +1370,26 @@ setInterval(() => { if (PC_ON && TAB === 'board' && PCAT === 'ai' && !document.h
 </script>
 <script>/*ELY107-PHONE-BEGIN*/
 /* ELY-107（11/5）：手机看盘多一个「🌐 Elysium」（只看）。资料经电脑（PHM.ely）读 data/elysium.json；手机没有买卖按钮。
-   「在 AVE 打开」＝复制合约＋打开 AVE 网页（交易在你自己的 AVE 钱包完成，雷达不经手）；监测开关请在电脑雷达打开。 */
+   「在 AVE 交易」＝复制合约＋打开 AVE 网页（交易在你自己的 AVE 钱包完成，雷达不经手）；监测开关请在电脑雷达打开。 */
 let ELYD = null, ELYB = 0; const ELYP = { tick: 10000, short: 6 }; /* 技术用：多久跟电脑要一次、合约显示前后几码 */
 const ELY_A40 = /^0x[0-9a-f]{40}$/; const elyAve = (c) => { c = String(c || '').toLowerCase(); return ELY_A40.test(c) ? 'https://ave.ai/token/' + c + '-elysium' : ''; };
 async function loadEly() { if (!PC_ON || ELYB) return; ELYB = 1; try { ELYD = await req('ely', {}, 20000); } catch (e) { if (!ELYD || ELYD.err) ELYD = { err: e.message }; } ELYB = 0; if (TAB === 'board' && PCAT === 'ely') render(); }
-function catPaint() { setHTML('#bCat', `<button data-a="pcat" data-k="gen" class="${PCAT === 'gen' ? 'on' : ''}">🪙 一般代币</button><button data-a="pcat" data-k="ai" class="${PCAT === 'ai' ? 'on' : ''}">🤖 AI专属</button><button data-a="pcat" data-k="ely" class="${PCAT === 'ely' ? 'on' : ''}">🌐 Elysium（只看）</button>`); }
+function catPaint() { setHTML('#bCat', `<button data-a="pcat" data-k="gen" class="${PCAT === 'gen' ? 'on' : ''}">🪙 一般代币</button><button data-a="pcat" data-k="ai" class="${PCAT === 'ai' ? 'on' : ''}">🤖 AI专属</button><button data-a="pcat" data-k="ely" class="${PCAT === 'ely' ? 'on' : ''}">🌐 Elysium</button>`); }
 { const f0 = fillMint; fillMint = function () { const r = f0.apply(this, arguments); catPaint(); return r; }; }
 function fillEly() { /*ELY108-PH 数字行可换行*/ const D = ELYD; const sh = (c) => c.slice(0, ELYP.short + 2) + '…' + c.slice(-ELYP.short + 2);
   const ago2 = (t) => { if (!t) return '—'; const s = Math.max(0, Math.round((Date.now() - t) / 1000)); return s < 60 ? s + ' 秒前' : s < 3600 ? Math.round(s / 60) + ' 分钟前' : Math.round(s / 3600) + ' 小时前'; };
   const nv = (v, tr) => v == null ? '读不到' : (tr ? '≥' : '') + v;
-  setHTML('#bStrip', ''); setHTML('#bCol', '<span class="mu" style="font-size:12px;padding:0 4px">🌐 Elysium · 只看</span>'); setHTML('#bNet', ''); setHTML('#bSort', '');
-  const warn = '<div style="margin:0 4px 8px;padding:9px 11px;border-radius:10px;background:#3a2a0b;border:1px solid #f0b90b77;color:#ffd98a;font-size:12.5px;line-height:1.6">⚠️ 主网 11/9 前是偷跑链；跨链桥目前只能跨进不能跨出；资料来自社群节点，不是官方；这里只显示，不提供买卖；交易在你自己的 AVE 钱包完成，雷达不经手。<br><span style="opacity:.8">Pre-launch chain before mainnet on 11/9 · bridge is in-only for now · community node, not official · view only, no buying or selling · trades happen in your own AVE wallet.</span></div>';
+  setHTML('#bStrip', ''); setHTML('#bCol', '<span class="mu" style="font-size:12px;padding:0 4px">🌐 Elysium</span>'); setHTML('#bNet', ''); setHTML('#bSort', '');
+  const warn = ''; /*AVE125 照 AVE：不加说明文字（主网已于 11/9 上线）*/
   const dl = ST?.ref?.ave ? '<div style="padding:0 4px 8px"><a data-ely-dl="1" style="color:var(--gold,#f0b90b);font-size:12.5px">还没装 AVE？下载 · Get AVE</a></div>' : '';
   if (!D) { setHTML('#bList', warn + (PC_ON ? skRows(5) : '<div class="empty">电脑雷达没在线</div>')); return; }
   if (D.err) { setHTML('#bList', warn + `<div class="empty">暂时读不到（${esc(D.err)}）</div>`); return; }
-  if (!D.on) { setHTML('#bList', warn + '<div class="empty">Elysium 监测关着（雷达没有连线）。<br>要看请在电脑雷达「📡 看盘 → 🌐 Elysium（只看）」按「打开监测」。</div>'); return; }
+  if (!D.on) { setHTML('#bList', warn + '<div class="empty">Elysium 监测关着（雷达没有连线）。<br>要看请在电脑雷达「📡 看盘 → 🌐 Elysium」按「打开监测」。</div>'); return; }
   const st = D.st || {}; const M = { ok: '监测中（只读）', catch: '正在补区块', start: '连线中…', err: '读不到', badchain: '已停止：链编号不对', norpc: '没有可用的节点', off: '关着' };
   const head = `<div class="mu" style="font-size:12px;padding:0 4px 8px">状态：<b>${esc(M[st.code] || st.code || '—')}</b>${st.msg ? ' · ' + esc(st.msg) : ''}${D.rpcNow ? ' · 节点 ' + esc(D.rpcNow) + '（社群，不是官方）' : ''}${D.nEx ? ' · 排除清单藏了 ' + D.nEx + ' 个' : ''}</div>`;
   const L = (D.list || []).filter((x) => ELY_A40.test(String(x.c || '').toLowerCase())).sort((a, b) => (b.w10 - a.w10) || (b.w60 - a.w60) || (b.m60 - a.m60) || (b.first - a.first));
   const rows = L.map((x) => { const c = String(x.c).toLowerCase(); const nm = x.sym || x.name ? esc(x.sym || x.name) : (x.meta === 0 ? '读取中…' : '名称读不到');
-    return `<div class="tr"><div class="nm"><div class="t"><b>${nm}</b>${x.name && x.sym ? ` <span class="mu" style="font-size:11px">${esc(x.name)}</span>` : ''}</div><small><span data-ely-cp="${esc(c)}">${esc(sh(c))} 📋</span> · ${ago2(x.first)}</small><small class="l2" data-ely108-ph="1" style="white-space:normal;overflow:visible;text-overflow:clip">钱包 10 分钟 ${nv(x.w10, x.trunc)} · 1 小时 ${nv(x.w60, x.trunc)} · 铸币 ${nv(x.m10, x.trunc)}／${nv(x.m60, x.trunc)}</small></div><div class="rt"><button class="btn g s" data-ely-ave="${esc(c)}">在 AVE 打开<br><small>Open in AVE</small></button></div></div>`; }).join('');
+    return `<div class="tr"><div class="nm"><div class="t"><b>${nm}</b>${x.name && x.sym ? ` <span class="mu" style="font-size:11px">${esc(x.name)}</span>` : ''}</div><small><span data-ely-cp="${esc(c)}">${esc(sh(c))} 📋</span> · ${ago2(x.first)}</small><small class="l2" data-ely108-ph="1" style="white-space:normal;overflow:visible;text-overflow:clip">钱包 10 分钟 ${nv(x.w10, x.trunc)} · 1 小时 ${nv(x.w60, x.trunc)} · 铸币 ${nv(x.m10, x.trunc)}／${nv(x.m60, x.trunc)}</small></div><div class="rt"><button class="btn g s" data-ely-ave="${esc(c)}">在 AVE 交易<br><small>Open in AVE</small></button></div></div>`; }).join('');
   setHTML('#bList', warn + dl + head + (rows || `<div class="empty">${['err', 'badchain', 'norpc'].includes(st.code) ? '读不到（原因见上面），不猜数字' : '从开始监测到现在还没看到新代币'}</div>`)); }
 { const fb0 = fillBoard; fillBoard = function () { if (typeof PCAT !== 'undefined' && PCAT === 'ely') { try { catPaint(); } catch {} return fillEly(); } return fb0.apply(this, arguments); }; }
 document.addEventListener('click', async (ev) => {
@@ -1422,11 +1422,11 @@ function fillMc() { const D = MCD; const sh = (c) => (c.length > 16 ? c.slice(0,
   const tabs = (D?.tabs?.length ? D.tabs : [{ k: 'fresh', zh: '🆕 新创建' }, { k: 'soon', zh: '🚀 即将发射' }, { k: 'hot', zh: '🔥 热门' }, { k: 'done', zh: '✅ 已发射' }]);
   setHTML('#bCol', tabs.map((t) => `<button data-mc-ptab="${esc(t.k)}" class="${MC_PH.tab === t.k ? 'on' : ''}">${esc(t.zh)}${t.n != null ? ' ' + t.n : ''}</button>`).join(''));
   const m = D?.mode || 'view';
-  const head = `<div style="margin:0 4px 8px;padding:9px 11px;border-radius:10px;background:#16202c;border:1px solid #2a3646;font-size:12.5px;line-height:1.6">${esc(MC_CH[MC_PH.chain] || '')} · <b>${mcTag(m)}</b>${det ? '<br>👛 ' + det : ''}<br><span class="mu">${m === 'soon' ? '此链交易即将开放：现在还不会下单。' : '按「去 AVE 买」会复制合约并打开 AVE，在你自己的 AVE 钱包交易。'}自动策略、⚡ 快速买、止盈止损、铸造、挖矿在这条链都不运作。</span></div>`;
+  const head = ''; /*AVE125 照 AVE：链只放名字，不加「只能看／可买卖」标注和说明*/
   if (!D) { setHTML('#bList', head + (PC_ON ? skRows(5) : '<div class="empty">电脑雷达没在线</div>')); return; }
   if (D.err) { setHTML('#bList', head + `<div class="empty">暂时读不到（${esc(D.err)}）</div>`); return; }
   const W = { bind: 'AVE 资料要先完成邀请绑定／转接站', board: 'AVE 看盘资料还没下来', nolist: 'AVE 这条链目前没有这一类清单', empty: '这个清单现在是空的' };
-  const rows = (D.items || []).filter((x) => mcOk(MC_PH.chain, x.c)).map((x) => `<div class="tr" data-mc-pd="${esc(x.c)}"><div class="nm"><div class="t"><b>${esc(x.sym || '?')}</b> <span class="mu" style="font-size:11px">${esc(String(x.name || '').slice(0, 20))}</span></div><small><span data-mc-pcp="${esc(x.c)}">${esc(sh(x.c))} 📋</span></small><small class="l2" style="white-space:normal">市值 ${mcU(x.mc)} · 流动性 ${mcU(x.liq)} · 24h ${mcU(x.v24)} ${mcC(x.c24)}${x.kol ? ' · 🎙×' + x.kol : ''}</small></div><div class="rt"><button class="btn g s" data-mc-pave="${esc(x.c)}">去 AVE 买<br><small>Buy on AVE</small></button></div></div>`).join('');
+  const rows = (D.items || []).filter((x) => mcOk(MC_PH.chain, x.c)).map((x) => `<div class="tr" data-mc-pd="${esc(x.c)}"><div class="nm"><div class="t"><b>${esc(x.sym || '?')}</b> <span class="mu" style="font-size:11px">${esc(String(x.name || '').slice(0, 20))}</span></div><small><span data-mc-pcp="${esc(x.c)}">${esc(sh(x.c))} 📋</span></small><small class="l2" style="white-space:normal">市值 ${mcU(x.mc)} · 流动性 ${mcU(x.liq)} · 24h ${mcU(x.v24)} ${mcC(x.c24)}${x.kol ? ' · 🎙×' + x.kol : ''}</small></div><div class="rt"><button class="btn g s" data-mc-pave="${esc(x.c)}">在 AVE 交易</button></div></div>`).join('');
   setHTML('#bList', head + (rows || `<div class="empty">没有资料：${esc(W[D.why] || D.why || '')}</div>`)); }
 /* 详情整页（跟 BNB Chain 详情同一种整页版面：上方名称＋价格、K 线、涨跌、大的「去 AVE 买」、持有者／KOL）。没有任何下单按钮 */
 let MCP_D = null; const MC_TF = [['1m', '1分'], ['5m', '5分'], ['15m', '15分'], ['1h', '1小时'], ['4h', '4小时'], ['1d', '1天']];
@@ -1441,8 +1441,8 @@ function mcPaint() { const el = mcPage(); const D = MCP_D; if (!D) { el.classLis
   <div style="padding:0 14px">${d.k?.length ? mcCandles(d.k) : `<div class="mu" style="height:190px;display:flex;align-items:center;justify-content:center;font-size:13px">${D.d ? 'K 线读不到' + (d.kwhy ? '（' + esc(d.kwhy) + '）' : '') : 'K 线读取中…'}</div>`}</div>
   <div class="tfs">${MC_TF.map(([k, n]) => `<button data-mc-ptf="${k}" class="${k === D.tf ? 'on' : ''}">${n}</button>`).join('')}</div>
   <div class="chg4">${[['5M', T.c5], ['1H', T.c1], ['24H', T.c24], ['流动性', null]].map(([k, v], i) => `<div>${k}<b>${i === 3 ? mcU(T.liq) : mcC(v)}</b></div>`).join('')}</div>
-  <div style="padding:6px 14px 0"><button class="btn" data-mc-pave="${esc(D.c)}" style="width:100%;padding:14px;font-size:17px;font-weight:800;background:#f0b90b;color:#111;border:0;border-radius:12px">去 AVE 买 ↗</button>
-  <div style="margin:10px 0 0;padding:9px 11px;border-radius:10px;background:#16202c;border:1px solid #2a3646;font-size:12.5px;line-height:1.6"><b>${m === 'soon' ? '此链交易即将开放（现在还不会下单）' : '此链在雷达内交易尚未开放'}</b><br><span class="mu">会复制合约并打开 AVE，在你自己的 AVE 钱包交易。自动策略、⚡ 快速买、止盈止损、铸造、挖矿在这条链都不运作。</span>${det ? '<br>👛 ' + det : ''}<br><span class="mu">「在这条链交易」开关：${d.det ? (d.on ? '已打开（即将开放）' : '关（预设）') : '钱包没侦测到这条链'}，要改请在电脑雷达。</span></div></div>
+  <div style="padding:6px 14px 0"><button class="btn" data-mc-pave="${esc(D.c)}" style="width:100%;padding:14px;font-size:17px;font-weight:800;background:#f0b90b;color:#111;border:0;border-radius:12px">在 AVE 交易 ↗</button>
+  </div>
   <div style="padding:14px 18px 90px"><div style="font-weight:700;margin-bottom:6px">持有者</div>${hold}${d.why && !T.sym && D.d ? `<p class="note">部分资料读不到：${esc(d.why)}</p>` : ''}</div>`;
   el.classList.add('on'); }
 async function mcOpen(c, tf) { const ch = MC_PH.chain; if (!mcOk(ch, c)) return; const first = !MCP_D || MCP_D.c !== c; MCP_D = { chain: ch, c, tf: tf || '5m', d: first ? null : MCP_D.d }; if (first) { try { history.pushState({ mc: 1 }, '', location.pathname + location.hash); } catch {} mcPage().scrollTop = 0; } mcPaint();

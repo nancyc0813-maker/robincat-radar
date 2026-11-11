@@ -2,7 +2,7 @@
 // 做法：从雷达自己读链的看板资料挑「后来涨到你设的倍数」和「没涨起来」的新币 → 查开盘后你设的几分钟内买进的真人钱包 → 统计每个钱包在你设的天数内的命中次数和胜率
 // 怎么算「赢／输／早／几天」全部是你的设定（smartfind.*），开关预设关；没开或必填的没填＝不算、不产生名单
 // BNB Chain、Robinhood Chain 分开算（两条链会赚钱的通常不是同一批人）。结果写 data/smart_auto.json 给雷达画面看。
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 const T = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const ZERO = '0x0000000000000000000000000000000000000000', DEAD = '0x000000000000000000000000000000000000dead';
@@ -10,7 +10,9 @@ export function startSmartFind({ DIR, rpc, log }) {
   const F = join(DIR, 'data', 'smart_auto.json');
   let Z = (() => { try { return JSON.parse(readFileSync(F, 'utf8')); } catch { return {}; } })();
   for (const ch of ['bsc', 'rh']) { Z[ch] = Z[ch] || { done: {}, w: {} }; }
-  const save = () => { try { writeFileSync(F, JSON.stringify(Z)); } catch {} };
+  setTimeout(() => save(), 5e3); /*SA-1111 旧版只有大档 → 开机先补一个小档给画面*/
+  const RANK_MAX = 200; /* 技术用：显示笔数，不影响买卖 */ /*SA-1111 画面只看前面这些名＝另存一个小档（全部钱包的大档给画面读会卡住、被当成当机重开）*/
+  const save = () => { try { writeFileSync(F, JSON.stringify(Z)); } catch {} try { const o = {}; for (const ch of ['bsc', 'rh']) { const r = Z[ch]?.rank || []; o[ch] = { at: Z[ch]?.at || 0, rank: r.slice(0, RANK_MAX), total: r.length, n: Object.keys(Z[ch]?.done || {}).length }; } writeFileSync(join(DIR, 'data', 'smart_rank.json.tmp'), JSON.stringify(o)); renameSync(join(DIR, 'data', 'smart_rank.json.tmp'), join(DIR, 'data', 'smart_rank.json')); } catch {} };
   const RHU = ['https://rpc.mainnet.chain.robinhood.com', 'https://robinhood.drpc.org'];
   const rhRpc = async (m, p) => { let e; for (const u of RHU) { try { const j = await (await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: m, params: p }), signal: AbortSignal.timeout(20000) })).json(); if (j.error) throw new Error(j.error.message); return j.result; } catch (x) { e = x; } } throw e; };
   const R = { bsc: rpc, rh: rhRpc };

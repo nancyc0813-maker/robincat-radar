@@ -9,6 +9,7 @@ const B = (x) => !!x;
 const call = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
 contextBridge.exposeInMainWorld('radar', {
   snapshot: () => call('snapshot'),
+  uiPage: (p) => call('uiPage', S(p, 20)), /*HANG-1111 告诉主程式目前在哪一页（只写日志）*/
   factoryInfo: () => call('factoryInfo'), factoryReset: (t, by) => call('factoryReset', S(t, 20), by === 'phone' ? 'phone' : 'radar'), factoryRestore: () => call('factoryRestore'), /*RESET117 恢复出厂设置／复原*/
   zoomSet: (f) => call('zoomSet', N(f)), zoomGet: () => call('zoomGet'), onZoom: (fn) => { if (typeof fn === 'function') ipcRenderer.on('zoomChanged', (e, f, eff) => fn(N(f), N(eff))); /*ZOOM112*/ }, /* ZOOM110 画面大小 */
   uiLang: (l) => call('uiLang', l === 'en' ? 'en' : 'zh'), /* I18N-FIX：介面语言告诉主程式（对话框、通知、系统匣） */

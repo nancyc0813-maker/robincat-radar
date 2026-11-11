@@ -1,5 +1,5 @@
 // 罗宾猫雷达 · 🌐 Elysium 链新币监测（ELY-107）—— 只看，绝对没有买卖
-// Elysium＝Kinetiq 给 Hyperliquid 做的 L2（gas 用 HYPE）。主网 11/9 才正式上线，现在是偷跑链。
+// Elysium＝Kinetiq 给 Hyperliquid 做的 L2（gas 用 HYPE）。主网已于 11/9 上线（chainId 99901）。
 // 这个模组只读节点（JSON-RPC 只准 eth_chainId／eth_blockNumber／eth_getLogs／eth_call 四种），
 // 不接钱包、不签名、不送交易、不碰 WALLETS／baw／统一动作闸门；拿不到钱包，也没有送交易的程式码。
 // 开关 ely.on（预设关）：关着＝完全不连线。节点清单 ely.rpc、最多留几个 ely.keepN、排除清单 ely.excl 都在设定页，玩家可以改。
