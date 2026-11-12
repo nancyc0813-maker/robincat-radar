@@ -159,7 +159,7 @@ async function sessionNew(req, env) { const t = await req.text(); if (t.length >
   let S = null; try { S = await sessMake(env, claims); } catch {} if (!S) return J({ err: 'SESSION_TTL_S not set in wrangler.toml [vars]' }, 503); return J(S); }
 /* ── 11/3 她选 3：用户点开币也看到 AVE 数据。金钥只在这里（Cloudflare 秘密变数 AVE_KEY），不给用户。
    只准查白名单里的「读取」接口；同样的查询大家共用快取；每天有总用量上限，超过就暂停到隔天，不会把额度用爆 ── */
-const AVE_OK = [[/^\/v2\/tokens\/0x[0-9a-f]{40}-(bsc|robinhood)$/, 3 /*METERMEM-1112 详情资料大家共用 3 秒（即时价格另外走推送）*/, 5], [/^\/v2\/contracts\/0x[0-9a-f]{40}-(bsc|robinhood)$/, 1800, 10], [/^\/v2\/tokens\/top100\/0x[0-9a-f]{40}-(bsc|robinhood)\?limit=100$/, 60, 10], [/^\/v2\/tokens\/holders\/0x[0-9a-f]{40}-(bsc|robinhood)\?limit=100$/, 60, 10] /* KOL-AVE：持有人标签，跟 top100 同样快取／计费 */, [/^\/v2\/klines\/(token|pair)\/0x[0-9a-f]{40}(_[a-z0-9]+)?-(bsc|robinhood)\?interval=(1|5|15|60|240|1440)&limit=(200|600|1000)$/, 10 /*METERMEM-1112 K 线大家共用 10 秒（最新一根走推送）*/, 10], [/^\/v2\/address\/walletinfo\?chain=(bsc|robinhood)&wallet_address=0x[0-9a-f]{40}$/, 1800, 5], [/^\/v2\/address\/walletinfo\/tokens\?chain=(bsc|robinhood)&pageSize=100&wallet_address=0x[0-9a-f]{40}$/, 1800, 10], [/^\/v2\/address\/smart_wallet\/list\?chain=(bsc|robinhood)(&sort=(profit|win_rate|total_profit|pnl))?$/, 3600, 5]];
+const AVE_OK = [[/^\/v2\/tokens\/0x[0-9a-f]{40}-(bsc|robinhood)$/, 5 /*METERMEM-1112 详情资料大家共用 3 秒（即时价格另外走推送）；SHARE-1113 改 5 秒（全球共用一份）*/, 5], [/^\/v2\/contracts\/0x[0-9a-f]{40}-(bsc|robinhood)$/, 1800, 10], [/^\/v2\/tokens\/top100\/0x[0-9a-f]{40}-(bsc|robinhood)\?limit=100$/, 60, 10], [/^\/v2\/tokens\/holders\/0x[0-9a-f]{40}-(bsc|robinhood)\?limit=100$/, 60, 10] /* KOL-AVE：持有人标签，跟 top100 同样快取／计费 */, [/^\/v2\/klines\/(token|pair)\/0x[0-9a-f]{40}(_[a-z0-9]+)?-(bsc|robinhood)\?interval=(1|5|15|60|240|1440)&limit=(200|600|1000)$/, 10 /*METERMEM-1112 K 线大家共用 10 秒（最新一根走推送）*/, 10], [/^\/v2\/address\/walletinfo\?chain=(bsc|robinhood)&wallet_address=0x[0-9a-f]{40}$/, 1800, 5], [/^\/v2\/address\/walletinfo\/tokens\?chain=(bsc|robinhood)&pageSize=100&wallet_address=0x[0-9a-f]{40}$/, 1800, 10], [/^\/v2\/address\/smart_wallet\/list\?chain=(bsc|robinhood)(&sort=(profit|win_rate|total_profit|pnl))?$/, 3600, 5]];
 /*MC121 多链看盘（只读）：Solana／Ethereum／Base 的代币详情、持有人、K 线、成交、交易者小卡。跟 BNB Chain 同一套计费、快取、限速 */
 const MC_ID = '(?:0x[0-9a-f]{40}-(?:eth|base)|[1-9A-HJ-NP-Za-km-z]{32,44}-solana)';
 AVE_OK.push([new RegExp('^/v2/tokens/' + MC_ID + '$'), 1 /*BOARD124*/, 5], [new RegExp('^/v2/tokens/holders/' + MC_ID + '\\?limit=100$'), 60, 10], [new RegExp('^/v2/klines/token/' + MC_ID + '\\?interval=(1|5|15|60|240|1440)&limit=200$'), 5, 10],
@@ -199,16 +199,18 @@ async function aveProxy0(req, u, env) { /* AVE-WSS：外面包了一层 aveProxy
   /* H8-D2：全部用量记在同一个 Durable Object（全球一致）：总额度、每个钱包每天的额度（AVE_USER_DAY_CU）、每个钱包每秒几次（AVE_USER_RPS）、送到 AVE 的总速度；背景查询让你点的先 */
   const ev = (k) => String(envNum(env, k) ?? ''); /* 额度全部是 wrangler.toml [vars] 的营运设定；没设＝那一项不限 */
   const mq = new URLSearchParams({ cu: String(rule[2]), w, code, bg: bg ? '1' : '0', ucap: ev('AVE_USER_DAY_CU'), urps: AVEB_IN.has(u) ? '' : ev('AVE_USER_RPS'), ccap: ev('AVE_CODE_DAY_CU'), grps: ev('AVE_GLOBAL_RPS'), cap: ev('AVE_DAY_CU'), bgpct: ev('AVE_BG_STOP_PCT'), mstop: ev('AVE_MONTH_STOP_CU'), mwarn: ev('AVE_MONTH_WARN_CU'), k: (p.match(/^\/v2\/(tokens\/(holders|top100|trending|platform)|tokens|klines|txs|address\/walletinfo\/tokens|address\/walletinfo|address\/smart_wallet|contracts)/)?.[1] || 'other').replace(/\//g, '_') + (bg ? ':bg' : '') }); /*BOARD124*/ /*PCSTAT-1112 统计各种查询占多少速度*/
-  const m = await (await env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter?' + mq)).json();
-  if (['daily cap', 'user cap', 'code cap', 'bg paused', 'month cap' /*BOARD124*/].includes(m.deny)) return J({ err: m.deny }, 429); if (m.deny) return new Response(JSON.stringify({ err: m.deny }), { status: 429, headers: { ...SEC, 'content-type': 'application/json', 'retry-after': '2' } });
-  const refund = () => env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter_refund?' + new URLSearchParams({ cu: String(rule[2]), w, code })).catch(() => {}); /*CONFLICT116-6：AVE 没成功就把这次扣的额度退回*/
-  let r, body; const t0 = Date.now(); try { r = await fetch('https://prod.ave-api.com' + p, { headers: { 'X-API-KEY': String(env.AVE_KEY).trim() } }); body = await r.text(); latAdd(mq.get('k'), Date.now() - t0); } catch { await refund(); return J({ err: 'ave unreachable' }, 502); }
-  if (r.status === 429) await refund(); if (r.status === 429) return new Response(JSON.stringify({ err: 'ave busy' }), { status: 503, headers: { ...SEC, 'content-type': 'application/json', 'retry-after': '2' } }); /* H8-D2 */
-  if (!r.ok) { await refund(); return J({ err: 'ave ' + r.status }, 502); }
-  let good = false; try { good = JSON.parse(body)?.status === 1; } catch {} if (!good) await refund(); if (!good) return new Response(body, { status: 502, headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'no-store' } }); /* H8-D7：AVE 回错误就不快取 */
-  if (/^\/v2\/tokens(\?keyword=|\/[^/]+-[a-z]+$)/.test(p)) { try { const d = JSON.parse(body)?.data; const L = Array.isArray(d) ? d : d?.token ? [d.token] : []; if (L.length) await env.ROOM.get(env.ROOM.idFromName('ave-board2')).fetch('https://do/_b2add', { method: 'POST', body: JSON.stringify(L.slice(0, 20)) }).catch(() => {}); } catch {} } /*BOARD124 用户查到的币（搜寻、详情）也收进看盘：AVE 没有发射台 tag 的（例 gang.fun）靠这个和热门榜*/
-  const ttl = /^\/v2\/tokens\/(holders|top100)\//.test(p) ? envNum(env, 'AVE_DETAIL_CACHE_S') ?? rule[1] : rule[1]; /*CARDS125 详情的持有人（前10、开发、狙击）：快取秒数＝wrangler 变数 AVE_DETAIL_CACHE_S（所有用户共用：记忆体＋caches.default；同时的相同请求只打一次）*/
-  mcPut(p, body, ttl); const resp = new Response(body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': `public, max-age=${ttl}` } }); await caches.default.put(ck, resp.clone()); return resp;
+  /*SHARE-1113 全部用户共用一份：计量＋快取＋同时请求合并都在同一个 Durable Object（ave-meter）里做，AVE 也由它去问。
+    以前快取只在各个执行个体的记忆体（*.workers.dev 上 caches.default 不生效），不同地区／不同执行个体的用户同一个币各问一次 AVE、各扣一次额度。
+    现在：同一个查询在快取时间内（AVE_OK 第二栏；持有人＝AVE_DETAIL_CACHE_S）全球只问 AVE 一次；Durable Object 请求次数跟以前一样（以前每次没命中也要先问计量） */
+  const ttl = /^\/v2\/tokens\/(holders|top100)\//.test(p) ? envNum(env, 'AVE_DETAIL_CACHE_S') ?? rule[1] : rule[1]; /*CARDS125 详情的持有人（前10、开发、狙击）：快取秒数＝wrangler 变数 AVE_DETAIL_CACHE_S*/
+  mq.set('p', p); mq.set('ttl', String(ttl));
+  const dr = await env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_avefetch?' + mq); const xc = dr.headers.get('x-cache') || '';
+  if (dr.status === 429 && dr.headers.get('x-deny')) { let e = ''; try { e = String((await dr.json())?.err || ''); } catch {} if (['daily cap', 'user cap', 'code cap', 'bg paused', 'month cap' /*BOARD124*/].includes(e)) return J({ err: e }, 429); return new Response(JSON.stringify({ err: e || 'busy' }), { status: 429, headers: { ...SEC, 'content-type': 'application/json', 'retry-after': '2' } }); }
+  if (dr.status === 503) return new Response(JSON.stringify({ err: 'ave busy' }), { status: 503, headers: { ...SEC, 'content-type': 'application/json', 'retry-after': '2' } }); /* H8-D2 */
+  const body = await dr.text(); if (dr.status !== 200) return new Response(body, { status: dr.status, headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'no-store' } }); /* H8-D7：AVE 回错误就不快取 */
+  { const ms = Number(dr.headers.get('x-lat')); if (xc === 'miss' && ms >= 0) latAdd(mq.get('k'), ms); }
+  if (xc === 'miss' && /^\/v2\/tokens(\?keyword=|\/[^/]+-[a-z]+$)/.test(p)) { try { const d = JSON.parse(body)?.data; const L = Array.isArray(d) ? d : d?.token ? [d.token] : []; if (L.length) await env.ROOM.get(env.ROOM.idFromName('ave-board2')).fetch('https://do/_b2add', { method: 'POST', body: JSON.stringify(L.slice(0, 20)) }).catch(() => {}); } catch {} } /*BOARD124 用户查到的币（搜寻、详情）也收进看盘：AVE 没有发射台 tag 的（例 gang.fun）靠这个和热门榜*/
+  mcPut(p, body, ttl); const resp = new Response(body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': `public, max-age=${ttl}`, 'x-cache': xc ? 'do-' + xc : '' } }); await caches.default.put(ck, resp.clone()); return resp;
 }
 /*BOARD124 看盘新路线：转接站自己向 AVE 抓（Durable Object「ave-board2」共用一份），用户端带通行证来拿；since／boot＝只拿有变的币 */
 const B2_MEM = new Map(); const B2_MEM_MS = 1000; /* 技术用：同一瞬间的相同请求共用一份（价格本来就每 AVE_BOARD_PRICE_S 秒才变） */
@@ -280,7 +282,8 @@ async function aveWsRoute(req, env) { if (req.headers.get('Upgrade') !== 'websoc
    ① 同一个查询正在问 AVE 时，其他人直接等同一个结果（不再打一次 AVE、不算额度）；② 转接站的全体速度（wrangler.toml AVE_GLOBAL_RPS）满了就短暂排队再送，不直接回错误。
    快取只用来合并同一瞬间的重复请求（时间见 AVE_OK），不拿旧资料冒充即时资料 */
 const BG_RESERVE_DIV = 4; /*BGSHARE-1112 技术用：全体速度留几分之一给你点的（前景），其余背景可以用（以前背景固定只能用一半，前景没在用时也浪费掉）*/
-const AVE_INFL = new Map(); const AVE_Q_TRIES = 6, AVE_Q_WAIT_MS = 250; /* 技术用：全体速度满了最多排队几次／每次等多久 */
+const AVE_INFL = new Map(); const AVE_Q_TRIES = 6, AVE_Q_WAIT_MS = 250; /* 技术用：全体速度满了最多排队几次／每次等多久 */ const AVE_Q_TRIES_BG = 14; /*SHARE-1113 技术用：背景查询（持有人、钱包资料）多排队几次再放弃（以前约一半被回「太忙」，雷达那个币要隔好几分钟才再问）*/
+const AVE_SHARE_MAX_S = 3600, AVE_SHARE_MAX_B = 48 << 20, AVE_SHARE_MAX_N = 6000; /*SHARE-1113 技术用：共用快取最长几秒／最多占多少记忆体（Durable Object 有 128MB）／最多几笔*/
 /*BUNDLE-1112（Nancy 同意）：雷达看盘一个分页要十几份 AVE 清单 → 打包成一个请求（GET /aveb?ps=[...]），转接站在里面照 /ave 一样逐份处理（同样的通行证、额度计量、快取、同时请求合并），Cloudflare 请求次数大约变成十分之一 */
 const AVEB_IN = new WeakSet(); /* 打包里面的单项（转接站自己产生的网址物件，外面送不进来）：不占用户每秒次数，你点的 K 线／详情不会被清单挤掉 */
 const AVEB_MAX = 24, AVEB_PAR = 2; /* 技术用：一包最多几份（Cloudflare 每个请求的子请求上限）／一次同时问 AVE 几份（留速度给前景的 K 线、详情） */
@@ -298,7 +301,7 @@ async function aveProxy(req, u, env) {
   if (!(await sessOf(req, env))) return J({ err: 'session' }, 401); /* 先验通行证，才可以共用别人正在查的结果 */
   const f = AVE_INFL.get(p); if (f) { const b = await f; if (b) return new Response(b, { headers: { ...SEC, 'content-type': 'application/json', 'x-cache': 'join' } }); }
   let done = null; AVE_INFL.set(p, new Promise((ok) => { done = ok; }));
-  try { let r = null; for (let i = 0; i < AVE_Q_TRIES; i++) { r = await aveProxy0(req, u, env); if (r.status !== 429 || !r.headers.get('retry-after')) break; await new Promise((ok) => setTimeout(ok, AVE_Q_WAIT_MS)); } /* 只有「太快」（有 retry-after）才排队；额度用完不排 */
+  try { let r = null; const tries = u.searchParams.get('bg') === '1' ? AVE_Q_TRIES_BG : AVE_Q_TRIES; for (let i = 0; i < tries; i++) { r = await aveProxy0(req, u, env); if (r.status !== 429 || !r.headers.get('retry-after')) break; await new Promise((ok) => setTimeout(ok, AVE_Q_WAIT_MS)); } /* 只有「太快」（有 retry-after）才排队；额度用完不排 */
     let b = null; if (r.status === 200) { try { b = await r.clone().text(); } catch {} } done(b); return r; }
   catch (e) { done(null); throw e; } finally { AVE_INFL.delete(p); }
 }
@@ -348,7 +351,7 @@ export default {
     if (u.pathname === '/avews') return aveWsRoute(req, env); /* AVE-WSS（11/4）：即时推送（WebSocket） */
     if (u.pathname === '/fb') { const k = String(req.headers.get('x-fb-key') || ''), K = String(env.FB_KEY || ''); let d = K.length >= 32 && k.length === K.length ? 0 : 1; for (let i = 0; i < K.length && i < k.length; i++) d |= K.charCodeAt(i) ^ k.charCodeAt(i); if (d || !invReady(env)) return J({ err: 'no' }, 403); /*FB-1112 作者读反馈：要 Cloudflare 秘密变数 FB_KEY（没设＝一律拒绝）*/
       const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_fb'); return new Response(r.body, { status: r.status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } }); }
-    if (u.pathname === '/stats') { if (STATS_C.b && Date.now() - STATS_C.at < STATS_MS) return new Response(STATS_C.b, { headers: { ...SEC, 'content-type': 'application/json' } }); const x = await (await env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter_get')).json(); STATS_C.b = JSON.stringify({ d: x.d, cu: x.cu, users: x.users, deny: x.dn || {}, peakRps: x.pk || 0, pc: x.pc || {}, lat: Object.fromEntries(Object.entries(LAT).map(([k, e]) => [k, [e[0], Math.round(e[1] / e[0]), e[2]]])), grps: envNum(env, 'AVE_GLOBAL_RPS') }); STATS_C.at = Date.now(); return new Response(STATS_C.b, { headers: { ...SEC, 'content-type': 'application/json' } }); } /*METERMEM-1112 公开统计（只有人数与次数，没有钱包地址）*/
+    if (u.pathname === '/stats') { if (STATS_C.b && Date.now() - STATS_C.at < STATS_MS) return new Response(STATS_C.b, { headers: { ...SEC, 'content-type': 'application/json' } }); const x = await (await env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter_get')).json(); STATS_C.b = JSON.stringify({ d: x.d, cu: x.cu, users: x.users, deny: x.dn || {}, peakRps: x.pk || 0, pc: x.pc || {}, share: x.share || null /*SHARE-1113*/, lat: Object.fromEntries(Object.entries(LAT).map(([k, e]) => [k, [e[0], Math.round(e[1] / e[0]), e[2]]])), grps: envNum(env, 'AVE_GLOBAL_RPS') }); STATS_C.at = Date.now(); return new Response(STATS_C.b, { headers: { ...SEC, 'content-type': 'application/json' } }); } /*METERMEM-1112 公开统计（只有人数与次数，没有钱包地址）*/
     if (u.pathname === '/avestat') { const C = await sessOf(req, env); if (!C || C.id !== 'owner') return J({ err: 'session' }, 401); return J(await (await env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter_get')).json().then((x) => { const wv = envNum(env, 'AVE_MONTH_WARN_CU'), sv = envNum(env, 'AVE_MONTH_STOP_CU'); return { ...x, mwarnAt: wv, mstopAt: sv, mwarn: wv != null && +x.mcu >= wv ? 1 : 0, mstop: sv != null && +x.mcu >= sv ? 1 : 0 }; })); } /*BOARD124 /avestat：当月累计＋提醒／退避门槛*/ /*RISK-FIX 10：只有作者通行证看得到今天的 AVE 用量（REST 单位＋WSS 订阅／推送），跟 AVE 对帐用 */
     if (u.pathname === '/invites.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_pub'); return new Response(r.body, { status: r.status, headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); }
     if (u.pathname === '/invites.json') { await members(env); return INV.raw ? new Response(INV.raw, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=120' } }) : J({ err: 'not loaded' }, 503); } /* H2-M2：邀请名单镜像（原样的官方签名档，雷达照样核对签名） */
@@ -397,8 +400,27 @@ export class Room extends DurableObject {
     for (const w of this.sockets('ph', skip)) this.sys(w, { pc: pcOn });
     for (const w of this.sockets('pc', skip)) this.sys(w, { ph: n });
   }
+  /*SHARE-1113 全球共用的 AVE 快取（只放这个物件的记忆体，不写储存、不花 KV／储存写入）：快取时间内直接回；同一个查询正在问就等同一个结果（不算额度）；
+    没命中才过计量（跟以前同一套 /_meter）→ 问 AVE → 成功（status＝1）才放快取；失败退额度 */
+  async aveFetch(iu) {
+    const q = iu.searchParams, p = String(q.get('p') || ''), ttl = Math.max(0, Math.min(AVE_SHARE_MAX_S, Number(q.get('ttl')) || 0)); if (!/^\/v2\//.test(p) || !this.env.AVE_KEY) return new Response(JSON.stringify({ err: 'not allowed' }), { status: 400 });
+    const C = (this._ac = this._ac || new Map()), F = (this._af = this._af || new Map()); const now = Date.now(); this._acUp = this._acUp || now; const st = (this._acS = this._acS || { hit: 0, join: 0, miss: 0, b: 0 });
+    const c = C.get(p); if (c && now < c.exp) { st.hit++; return new Response(c.body, { headers: { 'x-cache': 'hit' } }); }
+    const f = F.get(p); if (f) { const b = await f; if (b) { st.join++; return new Response(b, { headers: { 'x-cache': 'join' } }); } }
+    const mu = new URL('https://do/_meter'); for (const [k, v] of q) if (k !== 'p' && k !== 'ttl') mu.searchParams.set(k, v);
+    const m = await (await this.fetch(new Request(mu))).json(); if (m.deny) return new Response(JSON.stringify({ err: m.deny }), { status: 429, headers: { 'x-deny': '1' } });
+    const refund = () => this.fetch(new Request('https://do/_meter_refund?' + new URLSearchParams({ cu: String(q.get('cu') || 0), w: String(q.get('w') || ''), code: String(q.get('code') || '') }))).catch(() => {});
+    let done = null; F.set(p, new Promise((ok) => { done = ok; })); let keep = null;
+    try { let r, body; const t0 = Date.now(); try { r = await fetch('https://prod.ave-api.com' + p, { headers: { 'X-API-KEY': String(this.env.AVE_KEY).trim() } }); body = await r.text(); } catch { await refund(); return new Response(JSON.stringify({ err: 'ave unreachable' }), { status: 502 }); } const lat = Date.now() - t0;
+      if (r.status === 429) { await refund(); return new Response(JSON.stringify({ err: 'ave busy' }), { status: 503 }); }
+      if (!r.ok) { await refund(); return new Response(JSON.stringify({ err: 'ave ' + r.status }), { status: 502 }); }
+      let good = false; try { good = JSON.parse(body)?.status === 1; } catch {} if (!good) { await refund(); return new Response(body, { status: 502 }); }
+      st.miss++; keep = body; if (ttl > 0) { const sz = body.length; for (const [k, v] of C) { if (v.exp <= now || st.b + sz > AVE_SHARE_MAX_B || C.size >= AVE_SHARE_MAX_N) { C.delete(k); st.b -= v.sz; } else break; } if (sz <= AVE_SHARE_MAX_B / 8) { const o = C.get(p); if (o) { st.b -= o.sz; C.delete(p); } C.set(p, { body, exp: Date.now() + ttl * 1000, sz }); st.b += sz; } }
+      return new Response(body, { headers: { 'x-cache': 'miss', 'x-lat': String(lat) } }); }
+    finally { F.delete(p); done(keep); } }
   async fetch(req) {
     const iu = new URL(req.url);
+    if (iu.pathname === '/_avefetch') return this.aveFetch(iu); /*SHARE-1113（外面只有 /ave 会转到这里，物件名固定 ave-meter）*/
     if (iu.pathname === '/_avews') return this.hubAccept(req); /* AVE-WSS：集线器（外面只有 /avews 会转到这里，物件名固定 ave-wss） */
     if (iu.pathname === '/_b2add' && req.method === 'POST') { try { await b2Add(this, await req.json()); } catch {} return new Response('ok'); } /*BOARD124 搜寻／详情查到的币收进看盘*/
     if (iu.pathname === '/_b2') { this.padNames = PAD_NAMES.bsc; return b2Handle(this, iu); } /*BOARD124（外面只有 /aveboard2 和 Cron 会转到这里，物件名固定 ave-board2）*/
@@ -418,7 +440,7 @@ export class Room extends DurableObject {
     if (iu.pathname === '/_meter_ws') { /*RISK-FIX 10：WSS 用量（每天一份，跟 REST 额度同一个记录；只记录、不设上限） */ const q = iu.searchParams, d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); const n = (k) => { const v = Number(q.get(k)); return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0; };
       let m = (await this.mGet('m')) || { d, cu: 0, u: {}, c: {} }; if (m.d !== d) m = { d, cu: 0, u: {}, c: {} }; const W = (m.ws = m.ws || { sub: 0, unsub: 0, push: 0, rx: 0, peak: 0, now: 0 });
       for (const k of ['sub', 'unsub', 'push', 'rx', 'open', 'close', 'fast', 'err', 'topic', 'miss']) W[k] = (W[k] || 0) + n(k); if (q.get('lc')) W.lastClose = String(q.get('lc')).slice(0, 100); for (const [a, b] of [['le', 'lastErr'], ['lr', 'lastErrReq'], ['fm', 'firstMsg'], ['lx', 'lastExc']]) if (q.get(a)) W[b] = String(q.get(a)).slice(0, ERR_LEN * 3); W.exc = (W.exc || 0) + n('exc'); /*WSS125 AVE 的错误原文、错误对应的请求、第一则讯息、例外（都已遮掉金钥）*/ /*AVEWS112-METER2*/ W.peak = Math.max(W.peak, n('peak')); W.now = n('now'); W.at = Date.now(); this.mPut('m', m); return new Response('ok'); }
-    if (iu.pathname === '/_meter_get') { const m = (await this.mGet('m')) || null; const mm = (await this.mGet('mm')) || null; return new Response(JSON.stringify({ ...(m ? { d: m.d, cu: m.cu, ws: m.ws || null, users: Object.keys(m.u || {}).length, dn: m.dn || {}, pk: m.pk || 0, pc: m.pc || {} } : {}), ...(mm ? { mo: mm.mo, mcu: mm.cu, prev: mm.prev || null } : {}) })); } /*BOARD124 当月累计*/ /*RISK-FIX 10*/
+    if (iu.pathname === '/_meter_get') { const m = (await this.mGet('m')) || null; const mm = (await this.mGet('mm')) || null; return new Response(JSON.stringify({ ...(this._acS ? { share: { ...this._acS, n: this._ac?.size || 0, up: this._acUp || 0 } } : {}) /*SHARE-1113 共用快取：命中／合并／真的问 AVE 的次数（这个物件这次醒来以后）*/, ...(m ? { d: m.d, cu: m.cu, ws: m.ws || null, users: Object.keys(m.u || {}).length, dn: m.dn || {}, pk: m.pk || 0, pc: m.pc || {} } : {}), ...(mm ? { mo: mm.mo, mcu: mm.cu, prev: mm.prev || null } : {}) })); } /*BOARD124 当月累计*/ /*RISK-FIX 10*/
     if (iu.pathname === '/_seq') { /* OPS-RT4：签名资料 seq 只能往前（全球一致） */ const t = String(iu.searchParams.get('t') || '').slice(0, 20), sq = Number(iu.searchParams.get('s')); if (!t || !Number.isSafeInteger(sq)) return new Response(JSON.stringify({ ok: false }));
       const k = 'seq:' + t, last = await this.ctx.storage.get(k); if (Number.isSafeInteger(last) && sq < last) return new Response(JSON.stringify({ ok: false, last })); if (!(sq === last)) await this.ctx.storage.put(k, sq); return new Response(JSON.stringify({ ok: true })); }
     if (iu.pathname === '/_skey') { /* OPS-RT15：没设 SESSION_KEY 时，通行证的 HMAC 金钥第一次自动产生、存在这个物件里（外面连不到这个路径：/ws/ 房间号格式不同） */ let k = await this.ctx.storage.get('skey'); if (!k) { const b = new Uint8Array(32); crypto.getRandomValues(b); k = [...b].map((x) => x.toString(16).padStart(2, '0')).join(''); await this.ctx.storage.put('skey', k); } return new Response(k); }
