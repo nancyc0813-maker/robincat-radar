@@ -1,14 +1,14 @@
 {
-  "version": "1.4.8",
+  "version": "1.4.9",
   "date": "2026-11-11",
   "critical": true,
   "notes": [
+    "修正：新版引擎有在跑但开机补扫较慢时，不再误报「更新后引擎没有启动成功」",
+    "Robinhood 扫描连不上时，日志会写出真正原因（被拒／逾时／代理或直连）",
+    "引擎启动时在日志记下网路代理环境，方便查连线问题",
     "🆕 新发射台清单：AVE 发行平台「看到的币」不再重复计算",
     "发射台自动买长时间运作更省记忆体",
-    "🚀 新功能：各链发射台自动买（Solana 的 Pump／Bonk…、Base 的 Clanker／Zora…），在 设定 → 更多设定 打开，全部条件你自己填，预设关",
-    "自动买一样要开「自动买总开关」，紧急全停照样有效",
-    "链代号照 AVE 核对：PulseChain 修正，新增 Stable、Arc、Ink、Pharos、Plasma 等链",
-    "链选单只显示 AVE 有资料的链"
+    "🚀 新功能：各链发射台自动买（Solana 的 Pump／Bonk…、Base 的 Clanker／Zora…），在 设定 → 更多设定 打开，全部条件你自己填，预设关"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
