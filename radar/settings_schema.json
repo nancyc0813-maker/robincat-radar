@@ -1716,7 +1716,7 @@
    "max": 1,
    "zh": "自动买",
    "en": "Auto-buy",
-   "dzh": "关掉 = BNB Chain AI 热门代币只通知不买（要自己打开才会买）",
+   "dzh": "关掉 = BNB Chain AI 热门代币只通知不买（要自己打开才会买）。不分发射台：GANG、Flap、Four 等所有 AI 发射台的币，内盘、外盘都会看",
    "den": "Off = BNB Chain AI hot tokens are alerts only"
   },
   {
@@ -1878,8 +1878,8 @@
    "max": 1,
    "zh": "池子太小不买",
    "en": "Min pool size",
-   "dzh": "池子太小容易被砸、卖不出去",
-   "den": "Small pools are easy to dump"
+   "dzh": "池子太小容易被砸、卖不出去（还在发射台内盘、没有池子的币不算这项）",
+   "den": "Small pools are easy to dump (not applied to coins still on a launchpad curve)"
   },
   {
    "k": "bsc.tokMinLiqBnb",
@@ -1922,8 +1922,8 @@
    "max": 1,
    "zh": "税太高不买",
    "en": "Max tax",
-   "dzh": "买税或卖税超过下面的数字就不买（貔貅常用高税）",
-   "den": "Skip if buy or sell tax is above this"
+   "dzh": "买税或卖税超过下面的数字就不买（貔貅常用高税）（还在发射台内盘、没有池子的币不算这项）",
+   "den": "Skip if buy or sell tax is above this (not applied to coins still on a launchpad curve)"
   },
   {
    "k": "bsc.tokMaxTax",
@@ -1978,8 +1978,8 @@
    "max": 1,
    "zh": "捆绑钱包太多不买",
    "en": "Max bundle share",
-   "dzh": "捆绑钱包合计持有超过这个比例就不买（捆绑怎么算在「安全防护」里设）",
-   "den": "Skip if bundled wallets hold more than this (definition under Safety)"
+   "dzh": "捆绑钱包合计持有超过这个比例就不买（捆绑怎么算在「安全防护」里设）（还在发射台内盘、没有池子的币不算这项）",
+   "den": "Skip if bundled wallets hold more than this (definition under Safety) (not applied to coins still on a launchpad curve)"
   },
   {
    "k": "bsc.tokMaxBundle",
@@ -2034,8 +2034,8 @@
    "max": 1,
    "zh": "前 10 大太集中不买",
    "en": "Max top-10 share",
-   "dzh": "前 10 大地址（不算池子）合计持有超过这个比例就不买",
-   "den": "Skip if the top 10 holders (excl. pool) hold more than this"
+   "dzh": "前 10 大地址（不算池子）合计持有超过这个比例就不买（还在发射台内盘、没有池子的币不算这项）",
+   "den": "Skip if the top 10 holders (excl. pool) hold more than this (not applied to coins still on a launchpad curve)"
   },
   {
    "k": "bsc.tokMaxTop10",
@@ -2090,8 +2090,8 @@
    "max": 1,
    "zh": "真实买家太少不买",
    "en": "Min real buyers",
-   "dzh": "最近 1 小时的真实买家（怎么算在「安全防护」里设）要有这么多",
-   "den": "Real buyers in the last hour (definition under Safety)"
+   "dzh": "最近 1 小时的真实买家（怎么算在「安全防护」里设）要有这么多（还在发射台内盘、没有池子的币不算这项）",
+   "den": "Real buyers in the last hour (definition under Safety) (not applied to coins still on a launchpad curve)"
   },
   {
    "k": "bsc.tokMinReal",

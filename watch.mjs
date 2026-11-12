@@ -2695,7 +2695,9 @@ async function shareMint(c, n, wAddr, maxBnb) {
 }
 const SHARE_BUSY = new Set(); 
 
-const tokConds = (o) => [ /* AI 热门代币的条件（照你的组合方式） */
+const TOK_POOL_ONLY = new Set(['bsc.tokMinLiqBnb', 'bsc.tokMaxTax', 'bsc.tokMaxBundle', 'bsc.tokMaxTop10', 'bsc.tokMinReal']); /*OPEN-1112 只有上了池子才有意义的条件：内盘的币不算这几项（不当成读不到）*/
+const tokConds = (o) => tokConds0(o).filter((x) => !(o.curve && TOK_POOL_ONLY.has(x.k)));
+const tokConds0 = (o) => [ /* AI 热门代币的条件（照你的组合方式） */
   { k: 'bsc.tokNeed', name: 'Agent 钱包在交易', unit: ' 个', op: '>=', v: o.ag }, { k: 'bsc.tokMaxAgeH', name: '是新币（没超过你设的小时数）', op: 'is', v: o.young },
   { k: 'bsc.tokMinLiqBnb', name: '池子', unit: ' BNB', op: '>=', v: o.liq }, { k: 'bsc.tokMaxTax', name: '买卖税（取高的）', unit: '%', op: '<=', v: o.tax },
   { k: 'bsc.tokMaxBundle', name: '捆绑钱包持有', unit: '%', op: '<=', v: o.bundle }, { k: 'bsc.tokMaxTop10', name: '前 10 大持有', unit: '%', op: '<=', v: o.top10 }, { k: 'bsc.tokMinReal', name: '1 小时真实买家', unit: ' 个', op: '>=', v: o.real } ];
@@ -2747,17 +2749,18 @@ async function agTokScan() {
     { const tmh = NR.num('bsc.tokMaxAgeH'); if (tmh != null) { const head = parseInt(await rpc('eth_blockNumber', []), 16); const oc = await rpc('eth_getCode', [c, '0x' + Math.max(1, head - Math.round((tmh * 3600) / BSC_BLK_S)).toString(16)]).catch(() => null); o.young = oc == null ? null : !(oc.length > 2); } } { const J = TJ(); if (J.buy === false) { nrDecLog('tok', c, sym, J); S.agTok[c] = 'skip'; continue; } } /* 「是新币」是你的条件之一 */ /* 只打新项目，CAKE、BTCB 这种老币很多 AI 在交易也不买 */
     const dep = await deployerOf(c).catch(() => ''); if (dep && (blackOn(dep) || isRepeatDev(dep))) { skip('部署者在黑名单或大量部署'); continue; }
     const price = await bnbUsd().catch(() => 0); if (!(price > 0)) continue;
-    const p = await findPair({ addr: c }).catch(() => null); if (!p) { skip('没有池子（还在发射平台曲线上，或还没开盘）', 1); continue; }
-    let liqBnb = 0; if (!p.ds) { const rs = await call(p.pair, '0x0902f1ac'); const t0 = await call(p.pair, '0x0dfe1681'); if (rs && t0) { const r0 = BigInt('0x' + rs.slice(2, 66)), r1 = BigInt('0x' + rs.slice(66, 130)); const qIs0 = ('0x' + t0.slice(26)).toLowerCase() !== c; const qr = Number(qIs0 ? r0 : r1) / 1e18; const q = String(p.quote).toLowerCase(); liqBnb = q === WBNB ? qr : qr / price; } } else { const d = await dexScreener(c).catch(() => null); liqBnb = d?.liq ? d.liq / 2 / price : 0; }
+    const p = await findPair({ addr: c }).catch(() => null); const curve = !p; /*OPEN-1112 Nancy：AI 专属开放所有发射台——还在发射台内盘（没有 DEX 池子）的币也照样判断、照样买（币安钱包自己找路由）。只有池子才有的条件（池子大小、捆绑／前 10 大／真实买家、貔貅模拟、税）在内盘阶段不适用，跟 GMGN／AVE 一样不拿来挡 */
+    o.curve = curve ? 1 : 0;
+    let liqBnb = 0; if (curve) liqBnb = null; else if (!p.ds) { const rs = await call(p.pair, '0x0902f1ac'); const t0 = await call(p.pair, '0x0dfe1681'); if (rs && t0) { const r0 = BigInt('0x' + rs.slice(2, 66)), r1 = BigInt('0x' + rs.slice(66, 130)); const qIs0 = ('0x' + t0.slice(26)).toLowerCase() !== c; const qr = Number(qIs0 ? r0 : r1) / 1e18; const q = String(p.quote).toLowerCase(); liqBnb = q === WBNB ? qr : qr / price; } } else { const d = await dexScreener(c).catch(() => null); liqBnb = d?.liq ? d.liq / 2 / price : 0; }
     o.liq = liqBnb; { const J = TJ(); if (J.buy === false) { nrDecLog('tok', c, sym, J); skip(J.why, 1); continue; } } 
-    let hp = null; try { hp = await (await fetch(`https://api.honeypot.is/v2/IsHoneypot?address=${c}&chainID=56`, { signal: AbortSignal.timeout(15000) })).json(); } catch {}
+    let hp = null; if (!curve) try { hp = await (await fetch(`https://api.honeypot.is/v2/IsHoneypot?address=${c}&chainID=56`, { signal: AbortSignal.timeout(15000) })).json(); } catch {}
     const bt = Number(hp?.simulationResult?.buyTax), st = Number(hp?.simulationResult?.sellTax);
-    if (hp?.honeypotResult?.isHoneypot === true && NR.on('risk.autoSkipHoneypot')) { skip('模拟卖出失败，是貔貅（你开著「自动买跳过貔貅」底线）'); continue; } if (NR.on('risk.needHp') && (!hp || (hp.honeypotResult?.isHoneypot !== false && hp.honeypotResult?.isHoneypot !== true) || !hp.simulationSuccess || !(bt >= 0) || !(st >= 0))) { skip('貔貅检查查不到结果', 1); continue; } { const cr = await codeRisk('bsc', c).catch(() => ''); if (cr) { skip(cr); continue; } } /* AI 热门代币也跑代码扫描（底线） */
+    if (hp?.honeypotResult?.isHoneypot === true && NR.on('risk.autoSkipHoneypot')) { skip('模拟卖出失败，是貔貅（你开著「自动买跳过貔貅」底线）'); continue; } if (!curve && NR.on('risk.needHp') && (!hp || (hp.honeypotResult?.isHoneypot !== false && hp.honeypotResult?.isHoneypot !== true) || !hp.simulationSuccess || !(bt >= 0) || !(st >= 0))) { skip('貔貅检查查不到结果', 1); continue; } { const cr = await codeRisk('bsc', c).catch(() => ''); if (cr) { skip(cr); continue; } } /* AI 热门代币也跑代码扫描（底线） */
     o.tax = Number.isFinite(bt) && Number.isFinite(st) ? Math.max(bt, st) : null;
-    let AF = null; if (['bsc.tokMaxBundle', 'bsc.tokMaxTop10', 'bsc.tokMinReal'].some((k) => NR.num(k) != null)) { const A = BA ? await Promise.race([BA.analyze(c, p.pair).catch((e) => ({ ok: false, why: e.message })), new Promise((ok) => setTimeout(() => ok({ ok: false, why: '查太久' }), AN_TIMEOUT_MS))]) : null; /* 开了捆绑／前 10 大／真实买家条件才查；查不到＝读不到（照你选的） */
+    let AF = null; if (!curve && ['bsc.tokMaxBundle', 'bsc.tokMaxTop10', 'bsc.tokMinReal'].some((k) => NR.num(k) != null)) { const A = BA ? await Promise.race([BA.analyze(c, p.pair).catch((e) => ({ ok: false, why: e.message })), new Promise((ok) => setTimeout(() => ok({ ok: false, why: '查太久' }), AN_TIMEOUT_MS))]) : null; /* 开了捆绑／前 10 大／真实买家条件才查；查不到＝读不到（照你选的） */
       if (A?.ok) { AF = A.facts; o.bundle = AF.bundlePct != null ? AF.bundlePct * 100 : null; o.top10 = AF.top10 * 100; o.real = AF.realBuyers; } else { o.bundle = o.top10 = o.real = null; } }
     const TJF = TJ(); nrDecLog('tok', c, sym, TJF); if (TJF.buy !== true) { skip(TJF.why || '没过你的条件', 1); continue; }
-    { const cs = globalThis.CUSTOM_SKIP?.({ chain: 'bsc', type: 'token', c, sym: typeof sym !== 'undefined' ? sym : '', agents: ag, buyTax: bt, sellTax: st, liqBnb, bundlePct: AF && AF.bundlePct != null ? AF.bundlePct * 100 : null, top10Pct: AF ? AF.top10 * 100 : null, realBuyers: AF ? AF.realBuyers : null }); if (cs) { skip('自订规则不打：' + cs); nrDecRes('tok', c, sym, 'none', '自订规则：' + cs); continue; } }
+    { const cs = globalThis.CUSTOM_SKIP?.({ chain: 'bsc', type: 'token', c, sym: typeof sym !== 'undefined' ? sym : '', agents: ag, buyTax: bt, sellTax: st, liqBnb, curve, bundlePct: AF && AF.bundlePct != null ? AF.bundlePct * 100 : null, top10Pct: AF ? AF.top10 * 100 : null, realBuyers: AF ? AF.realBuyers : null }); if (cs) { skip('自订规则不打：' + cs); nrDecRes('tok', c, sym, 'none', '自订规则：' + cs); continue; } }
     { const tmp = NR.num('bsc.tokMaxPos'); if (tmp != null && new Set((S.dyn || []).filter((t) => t.tok && !t.closed).map((t) => t.addr)).size >= tmp) { log(`AI 热门代币 ${sym} 符合条件，但已经持有 ${tmp} 个（你的设定），先不打`); nrDecRes('tok', c, sym, 'none', `已经持有 ${tmp} 个（你的上限）`); continue; } }
     if (AUTO_INFL.has(c)) { log(`AI 热门代币 ${sym}：另一个自动策略正在买这个币，这次不重复买`); nrDecRes('tok', c, sym, 'none', '另一个自动策略正在买'); continue; } 
     S.agTok[c] = 'buy'; save(); const TR = { b: 0, u: 0, why: [] }; /* 每个钱包的实际结果 */
@@ -2769,7 +2772,7 @@ async function agTokScan() {
       if (!sw.j && TIMEOUT_RE.test(sw.t || '')) { TR.u++; S.tokUsd[W.name] = tokDayUsd(W) + left; S.dyn = S.dyn || []; if (!addCostEx(W, c, +left.toFixed(2), 'AI 热门代币（结果不明）')) S.dyn.push({ sym, addr: c, cost: +left.toFixed(2), only: W.addr, boughtAt: Date.now(), tok: 1, pending: 1 }); /*RISK-FIX2-2*/ save(); await tg(`⚠️ [${W.name}] AI 热门代币 ${sym} 买入结果不明（送出逾时，可能已经成交），先不重复买；今天额度先照 ${left.toFixed(1)}U 算，读到余额会自动接着追踪 | ${c}`).catch(() => {}); continue; } 
       if (!sw.j?.success) { log(`[${W.name}] AI 热门代币 ${sym} 买入失败：${String(sw.j?.error?.message || sw.t).slice(0, 100)}`); TR.why.push(`[${W.name}] 买入失败：${String(sw.j?.error?.message || sw.t).slice(0, 60)}`); continue; }
       TR.b++; S.tokUsd[W.name] = tokDayUsd(W) + left; S.dyn = S.dyn || []; if (!addCostEx(W, c, +left.toFixed(2), 'AI 热门代币')) S.dyn.push({ sym, addr: c, cost: +left.toFixed(2), only: W.addr, boughtAt: Date.now(), tok: 1 }); /*RISK-FIX2-2*/ save();
-      await tg(`🛒 [${W.name}] 自动打了 AI 热门项目：${sym} | ${AGTOK.winMin ?? '-'} 分钟内 ${ag} 个 Agent ID 钱包在互动 · 每个钱包 ${left.toFixed(1)}U · 税 买 ${bt}%／卖 ${st}% · 池子约 ${liqBnb.toFixed(1)} BNB | ${c}` + nrTgWhy(TJF));
+      await tg(`🛒 [${W.name}] 自动打了 AI 热门项目：${sym} | ${AGTOK.winMin ?? '-'} 分钟内 ${ag} 个 Agent ID 钱包在互动 · 每个钱包 ${left.toFixed(1)}U · 税 买 ${bt}%／卖 ${st}% · ${curve ? '内盘（还没上池子）' : `池子约 ${liqBnb.toFixed(1)} BNB`} | ${c}` + nrTgWhy(TJF));
     }
     nrDecRes('tok', c, sym, TR.b ? 'bought' : TR.u ? 'unknown' : 'none', TR.b ? '' : TR.why.join('；')); 
   }
