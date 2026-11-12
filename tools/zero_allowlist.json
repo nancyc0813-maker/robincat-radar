@@ -18822,6 +18822,52 @@
     "MintClosed|NotOpen|mint.?not.?open"
    ],
    "reason": "MINTWHY-1112：把币安钱包预演失败的错误讯息翻成白话（只影响显示，不影响买不买）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/main\\.cjs$",
+   "match": "const TAPE_BLK_MS = \\{ bsc: 450, robinhood: 105 \\}",
+   "values": [
+    "450",
+    "105"
+   ],
+   "reason": "TAPE-1113 技术用：节点没给区块时间时，估算每笔成交显示时间用的出块间隔（链的事实），只影响成交列表显示几秒前，不是买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "parseInt\\(hb\\?\\.timestamp, 16\\) \\* 1000|parseInt\\(l\\.blockTimestamp, 16\\) \\* 1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "TAPE-1113：链上区块时间（秒）换成毫秒，只用来显示成交时间，不是时间窗"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "Number\\.isInteger\\(n\\) && n >= 0 && n <= 36 \\? n : null",
+   "values": [
+    "36"
+   ],
+   "reason": "TAPE-1113：代币小数位数合理范围检查（跟 livePx 一样），超出＝读不到、照旧估算金额，不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "const DT_LIVE_MS=30e3;/\\*技术用",
+   "values": [
+    "30e3"
+   ],
+   "reason": "LIVE-1113 技术用：详情页开着时多久重抓一次持有人／买卖统计（显示用，省 AVE 额度），不是买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "finally\\{DTLV\\.busy=0\\}\\},1000\\)",
+   "values": [
+    "1000"
+   ],
+   "reason": "LIVE-1113 技术用：每秒检查一次要不要重抓（实际重抓间隔看 DT_LIVE_MS），只影响显示"
   }
  ]
 }

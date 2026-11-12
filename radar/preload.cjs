@@ -36,7 +36,7 @@ contextBridge.exposeInMainWorld('radar', {
   aveStats: (n) => call('aveStats', S(n, 20)),
   holdHealth: () => call('holdHealth'),
   walletPnl: (f) => call('walletPnl', B(f)),
-  tape: (n, a, p) => call('tape', S(n, 20), S(a, 64), S(p, 80)),
+  tape: (n, a, p, l) => call('tape', S(n, 20), S(a, 64), S(p, 80), B(l)), /* TAPE-1113 l＝AVE 推送正在推这个币的成交 */
   /*FBM-BEGIN*/walletInfo: (n, a) => call('walletInfo', S(n, 20), S(a, 64)), /* 交易者钱包页（AVE 唯读） *//*FBM-END*/
   livePx: (n, a, p) => call('livePx', S(n, 20), S(a, 64), S(p, 80)),
   aveWsPhSess: () => call('aveWsPhSess'), /*RISK-FIX 7：给手机的 AVE 推送通行证（只能连 /avews） */
