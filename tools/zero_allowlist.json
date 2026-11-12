@@ -19413,6 +19413,12 @@
    "file": "radar/ui/index\\.html$",
    "match": "SHOW_ELEMENT,\\{acceptNode",
    "reason": "RCV2 翻译走访：略过 SCRIPT／STYLE／TEXTAREA 这几种 HTML 标签（跟原本 i18n 一样的技术清单），不是关键字黑名单"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\(n/1e3\\)\\.toFixed\\(n<1e5\\?1:0\\)",
+   "reason": "11/13 数字显示格式（千／百万换算成 K／M、几位小数），只影响画面，不是时间窗也不是买卖数字"
   }
  ]
 }
