@@ -5155,6 +5155,7 @@ function card(x,k,col){const e=en();const p=plName(x.pl);const ini=esc(String(x.
  const feast=S.net==='bsc'&&x.pl==='feast'&&(x.grp||!!(typeof SNAP!=='undefined'&&SNAP?.qfail?.bsc?.[x.c.toLowerCase()]?.why));
  const a=amt();const btn=feast?`<button class="pzB" data-pzbuy="${esc(x.c)}">Feast ↗</button>`:tm==='trade'?`<button class="pzB" data-pzbuy="${esc(x.c)}">⚡ ${a!=null?a:(e?'Buy':'买')}</button>`:`<button class="pzB v" data-pzbuy="${esc(x.c)}">AVE ↗</button>`;
  const c24=x.c24!=null&&isFinite(+x.c24)&&Math.abs(+x.c24)>=0.05/*VAL-1112 没变化（显示成 ±0.0%）就不显示，跟 AVE 一样*/?`<span class="${+x.c24>=0?'up':'dn'}">${pct(x.c24)}</span>`:'';
+ if(window.RCFX&&RCFX.card)return RCFX.card({x,k,col,e,p,xh,btn,net:S.net||'',fmt,fi,pct,age:age(x.ca)});/*RCV2 原型版式*/
  return `<div class="pzC" data-pzc="${esc(x.c)}" data-pzn="${esc(S.net||'')}"><div class="pzAv" style="${ring(x,col)}">${window.RCFX?RCFX.ring(x.pg,col):''}<s>${ini}${x.lg?`<img src="${esc(x.lg)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</s></div><div class="pzM"><div class="pzR1"><b>${esc(x.s||'?')}</b><small>${esc(x.n&&x.n!==x.s?x.n:'')}</small>${p?`<i>${esc(p)}</i>`:''}<em>${age(x.ca)}</em></div><div class="pzR2">${r2.join('')}</div>${r4?`<div class="pzR3 pzR4">${r4}</div>`:''}<div class="pzR3"><span class="pzSo">${so}<a class="k" data-pzcp="${esc(x.c)}" title="${e?'Copy contract':'复制合约'}">⧉</a></span>${r3.join('')}</div></div><div class="pzS">${window.RCFX?RCFX.spark(x.c,x.mc):''}${btn}${c24}</div></div>`}
 function paintCols(force){const g=Q('#pzCols');const e=en();const K=COLK[isOwn()?'own':'mc'];const key=S.net+'|'+L;if(g.dataset.k!==key){g.dataset.k=key;S.sig={};
   g.innerHTML=K.map(([k,zh,enn,c])=>`<section class="pzCol" data-pzcol="${k}"><div class="pzCH"><i style="background:${c}"></i><b>${e?enn:zh}</b><small></small><span class="r">${k==='soon'?`<a data-pzsb="pg" class="${S.soonBy!=='mc'?'on':''}" title="${e?'Sort by progress':'按进度排'}">%</a><a data-pzsb="mc" class="${S.soonBy==='mc'?'on':''}" title="${e?'Sort by market cap':'按市值排'}">MC</a>`:''}<a data-pzpz="${k}" title="${e?'Pause':'暂停滚动'}">❚❚</a><a data-pzf="${k}">${e?'Filter':'筛选'}</a></span><div class="pzFx" data-pzfx="${k}"></div></div><div class="pzL"></div></section>`).join('')}
@@ -5165,7 +5166,7 @@ function paintCols(force){const g=Q('#pzCols');const e=en();const K=COLK[isOwn()
   const L2=col.querySelector('.pzL');const top=L2.scrollTop;const loading=isOwn()?(!S.D||(!S.D.ok&&S.D.err==='wait')):!S.M[S.net+'|'+(hasPads(S.net)?k:'hot')];/* 读不到（上面有红字原因）＝显示「暂时没有」，不要一直「读取中」 */const h2=arr.length?arr.map(x=>card(x,k,c)).join(''):loading&&window.RCFX?RCFX.skel():`<div class="pzE">${loading?(e?'Loading…':'读取中…'):(e?'Nothing here right now':'暂时没有')}</div>`;if(window.RCFX)RCFX.list(L2,h2);else L2.innerHTML=h2;L2.scrollTop=top}}/*RCV2：逐张更新（新币滑入、换位平滑移动、数字滚动），只动画面*/
 function paintRail(){const e=en();const H=Q('#pzHotH');const hh=`<div class="pzSeg">${[['hot',e?'Hot':'热门'],['fomo','FOMO']].map(([k,l])=>`<a data-pzhot="${k}" class="${S.hot===k?'on':''}">${l}</a>`).join('')}</div><small>${S.hot==='hot'?(e?'by volume':'按成交额'):(e?'by short-term change':'按短线涨幅')}</small>`;if(H.innerHTML!==hh)H.innerHTML=hh;
  let L2=colItems('hot');if(!L2.length)L2=allItems();if(S.hot==='hot')L2=[...L2].sort((a,b)=>(+b.v||0)-(+a.v||0));else{const f=x=>x.c5!=null&&isFinite(+x.c5)?+x.c5:x.c1!=null&&isFinite(+x.c1)?+x.c1:x.c24!=null&&isFinite(+x.c24)?+x.c24:null;L2=allItems().filter(x=>f(x)!=null).sort((a,b)=>f(b)-f(a))}
- L2=L2.slice(0,10);const h=L2.length?L2.map((x,i)=>{const ch=S.hot==='hot'?x.c24:(x.c5!=null&&isFinite(+x.c5)?x.c5:x.c1!=null&&isFinite(+x.c1)?x.c1:x.c24);return `<div class="pzHr" data-pzc="${esc(x.c)}"><span>${i+1}</span><b>${esc(x.s||'?')}</b><small>${x.mc!=null?'$'+fmt(x.mc):''}</small><em class="${+ch>=0?'up':'dn'}">${ch!=null&&isFinite(+ch)?pct(ch):''}</em></div>`}).join(''):`<div class="pzE">${e?'Nothing yet':'暂时没有'}</div>`;const el=Q('#pzHot');if(el.innerHTML!==h)el.innerHTML=h;
+ L2=L2.slice(0,10);const h=L2.length?L2.map((x,i)=>{const ch=S.hot==='hot'?x.c24:(x.c5!=null&&isFinite(+x.c5)?x.c5:x.c1!=null&&isFinite(+x.c1)?x.c1:x.c24);return `<div class="pzHr" data-pzc="${esc(x.c)}"><span>${i+1}</span>${window.RCFX?RCFX.logo(x.c,x.s,x.n,x.lg):''}<b>${esc(x.s||'?')}</b><small>${x.mc!=null?'$'+fmt(x.mc):''}</small><em class="${+ch>=0?'up':'dn'}">${ch!=null&&isFinite(+ch)?pct(ch):''}</em></div>`}).join(''):`<div class="pzE">${e?'Nothing yet':'暂时没有'}</div>`;const el=Q('#pzHot');if(el.innerHTML!==h)el.innerHTML=h;
  Q('#pzSgT').textContent=e?'Signals':'信号流';Q('#pzSgS').textContent=e?'TG groups · X · smart money':'TG 群 · X · 聪明钱';
  const F=(S.SG?.feed||[]).filter(s=>(S.net==='bsc'&&s.ch==='bsc')||(S.net==='robinhood'&&s.ch==='rh')).slice(0,8);
  /* PZ-1112 每条链都有信号：TG 群／X（雷达自己收的）＋AVE 给的 KOL／聪明钱持有（看盘清单里有标的币） */
@@ -5190,7 +5191,7 @@ function aiCard(cx,x,k,col){const e=en();const nm=String(x.name||'').trim()||(x.
  if(x.um||x.pick)btn.push(`<button class="pzMb" data-mpk="${esc(x.c)}" data-n="${esc(x.name||'')}">${e?'✋ Choose how':'✋ 选打法'}</button>`);
  if(x.opened)btn.push(`<button class="pzMb" data-pzchart="${esc(x.tok||x.c)}" data-n="${esc(x.name||'')}">${e?'Chart':'看图'}</button>`);
  const tags=[];if(x.mine)tags.push(`<i class="kol">${e?'You minted':'有打到'}</i>`);if(x.opened)tags.push(`<i class="up">${e?'Trading':'已开盘'}</i>`);
- return `<div class="pzC pzAiC" data-pzmd="${esc(x.dm)}" data-pzac="${esc(x.c)}" data-tok="${esc(x.tok||(x.opened?x.c:''))}" data-op="${x.opened?1:0}" data-n="${esc(x.name||'')}"><div class="pzAv" style="${pg!=null?`background:conic-gradient(${col} ${Math.round(Math.min(100,pg)*3.6)}deg,var(--ln) 0)`:`background:${col}22`}">${window.RCFX?RCFX.ring(pg,col):''}<s>${esc(nm.slice(0,1).toUpperCase())}${x.img?`<img src="${esc(x.img)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</s></div><div class="pzM"><div class="pzR1"><b>${esc(nm)}</b><small>${esc(x.c.slice(0,6)+'…'+x.c.slice(-4))}</small><em>${aiAge(x.at)}</em></div><div class="pzR2">${r2.join('')}</div>${tags.length||vd?`<div class="pzR3">${tags.join('')}${vd}</div>`:''}${btn.length?`<div class="pzAB">${btn.join('')}</div>`:''}</div></div>`}
+ return `<div class="pzC pzAiC" data-pzmd="${esc(x.dm)}" data-pzac="${esc(x.c)}" data-tok="${esc(x.tok||(x.opened?x.c:''))}" data-op="${x.opened?1:0}" data-n="${esc(x.name||'')}"><div class="pzAv" style="${pg!=null?`background:conic-gradient(${col} ${Math.round(Math.min(100,pg)*3.6)}deg,var(--ln) 0)`:`background:${col}22`}">${window.RCFX?RCFX.ring(pg,col):''}<s>${window.RCFX?RCFX.logo(x.c,nm,'',''):esc(nm.slice(0,1).toUpperCase())}${x.img?`<img src="${esc(x.img)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</s></div><div class="pzM"><div class="pzR1"><b>${esc(nm)}</b><small>${esc(x.c.slice(0,6)+'…'+x.c.slice(-4))}</small><em>${aiAge(x.at)}</em></div><div class="pzR2">${r2.join('')}</div>${tags.length||vd?`<div class="pzR3">${tags.join('')}${vd}</div>`:''}${btn.length?`<div class="pzAB">${btn.join('')}</div>`:''}</div></div>`}
 function aiFoot(cx,k,n){const e=en();if(k==='open'||k==='done'){let P=null;try{P=mbPg(cx)}catch{}if(P&&P.err)return `<div class="pzMore"><a data-pzretry="1">${e?'Could not load — retry':'读不到，按这里重试'}</a></div>`;if(P&&(P.busy||!P.started))return `<div class="pzMore">${e?'Loading…':'读取中…'}</div>`;if(P&&!P.end)return `<div class="pzMore"><a data-pzmore="1">${e?'Load earlier':'载入更早的'}</a></div>`}
  return n?'':`<div class="pzE">${typeof SNAP==='undefined'||!SNAP?(e?'Loading…':'读取中…'):(e?'Nothing right now':'目前没有')}</div>`}
 /*AICUR-1112 🤖 AI 内盘：Agent ID 钱包在买的币（Four／Flap／GANG／AgentPad… 的 AI 专属内盘），三栏照阶段自动分；毕业后也会出现在一般代币看盘 */
@@ -5445,6 +5446,73 @@ body.rcV2 .pzAv>s img{position:absolute;inset:0}/* 头像图盖住字母（以�
 #rcLook .rcGrid span{color:var(--mute);font-size:12.5px}
 #rcLook .rcNow{font-variant-numeric:tabular-nums;color:var(--mute);font-size:12.5px}
 #rcLook .rcMeter{width:220px;height:6px;border-radius:6px;background:var(--line);overflow:hidden}#rcLook .rcMeter i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--up,#2EBD85),var(--acc,#F0B90B),var(--dn,#F6465D));transform-origin:0 50%;transition:transform .25s linear}
+/* ===== 原型版式（第二轮）：卡片四行＋右侧大字市值、产生的头像、栏标题、玻璃胶囊 ===== */
+html:not([data-theme=light]) body.rcTh-brand{--rcSymW:750;--rcMcSz:15px;--rcBtnR:12px;--rcChip:#33284D;--pzBar:rgba(22,16,36,.72);--amb1:rgba(255,170,60,.20);--amb2:rgba(150,100,255,.22);--amb3:rgba(255,92,138,.10)}
+html:not([data-theme=light]) body.rcTh-clean{--rcSymW:650;--rcMcSz:14.5px;--rcBtnR:9px;--rcChip:#2A303A;--pzBar:rgba(20,23,28,.72)}
+html:not([data-theme=light]) body.rcTh-term{--rcSymW:700;--rcMcSz:13px;--rcBtnR:3px;--rcChip:#1B232B;--pzBar:rgba(10,13,17,.82)}
+html:not([data-theme=light]) body.rcV2.pzShell header{background:var(--pzBar);border-bottom:1px solid var(--line)}
+body.rcV2 .pzC.rcC{display:grid;grid-template-columns:46px minmax(0,1fr) auto;column-gap:10px;row-gap:3px;align-content:center;align-items:center;min-height:96px;padding:9px 10px}
+body.rcTh-term .pzC.rcC{min-height:84px;padding:6px 8px;row-gap:2px;grid-template-columns:40px minmax(0,1fr) auto}
+.rcC>.rcAv{grid-column:1;grid-row:1/span 4;align-self:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.rcC .rcRing{position:relative;width:46px;height:46px}body.rcTh-term .rcC .rcRing{width:40px;height:40px}
+.rcC .rcRing>.rcRg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.rcC .rcRing>.rcLg{position:absolute;inset:5px}
+.rcLg{display:block;position:relative;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1.5px rgba(0,0,0,.35);background:var(--ln,#222)}
+.rcLg>svg,.rcLg>img{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
+.rcPg{font-style:normal;font-size:10.5px;font-weight:700;line-height:12px;font-family:var(--fNum,inherit)}
+.rcC>.pzR1,.rcC>.rcR2,.rcC>.pzR2{grid-column:2;min-width:0;height:18px;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;font-size:11.5px;color:var(--m)}
+.rcC>.pzR1>b{font-size:13.5px;font-weight:var(--rcSymW,700);color:var(--ink2);max-width:110px;overflow:hidden;text-overflow:ellipsis;flex:none;letter-spacing:.005em}
+.rcC>.pzR1>small{color:var(--m);font-size:12px;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.rcC>.pzR1>i{flex:none;max-width:84px;overflow:hidden;text-overflow:ellipsis;height:16px;line-height:16px;padding:0 5px;border-radius:5px;background:var(--rcChip,var(--b));color:var(--m2);font-size:10.5px;font-weight:600;font-style:normal}
+.rcC>.pzR1>em{margin-left:auto;flex:none;color:var(--m);font-size:11px;font-style:normal;font-family:var(--fNum,inherit)}
+.rcC .rcIc{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;display:block;flex:none}
+.rcCa{display:flex;align-items:center;gap:3px;flex:none;color:var(--m);font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11px;cursor:pointer;border-radius:4px;padding:0 2px;margin-left:-2px}
+.rcCa:hover,.rcSo:hover,.rcXh:hover{color:var(--ink2)}
+.rcXh{display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--m2);font-size:11.5px;cursor:pointer}.rcXh b{color:var(--ink2);font-weight:800;font-size:11px}
+.rcSo{display:flex;color:var(--m);cursor:pointer;flex:none}
+.rcC>.pzR2{flex-wrap:wrap;row-gap:8px;align-content:flex-start;gap:6px}
+.rcC>.pzR2>span{flex:none;display:inline-flex;gap:3px;align-items:center;height:18px}
+.rcC>.pzR2 b{color:var(--ink2);font-weight:600;font-family:var(--fNum,inherit)}
+.rcTag{flex:none;height:16px;line-height:16px;margin-top:1px;padding:0 5px;border-radius:5px;font-size:10.5px;font-weight:650;font-style:normal;font-family:var(--fNum,inherit);background:var(--rcChip,var(--b));color:var(--m2)}
+.rcTag.up{background:color-mix(in srgb,var(--up,#2EBD85) 14%,transparent);color:var(--up,#2EBD85)}.rcTag.dn{background:color-mix(in srgb,var(--dn,#F6465D) 14%,transparent);color:var(--dn,#F6465D)}
+.rcTag.kol{background:rgba(240,185,11,.14);color:#F0B90B}.rcTag.tax{background:rgba(255,91,110,.13);color:#FF8494}
+.rcC>.rcRt{grid-column:3;grid-row:1/span 3;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:92px}
+.rcMc{display:flex;align-items:baseline;gap:4px;white-space:nowrap;line-height:1.2}.rcMc small{color:var(--m);font-size:10px;font-weight:600}
+.rcMc b{font-size:var(--rcMcSz,15px);font-weight:800;font-family:var(--fNum,inherit);color:var(--ink2);letter-spacing:-.01em}
+.rcRt .rcSp{width:88px;height:16px}.rcSp.up{color:var(--up,#2EBD85)}.rcSp.dn{color:var(--dn,#F6465D)}
+body.rcV2 .rcRt .pzB{height:22px;min-width:80px;padding:0 9px;border:0;border-radius:max(3px,calc(var(--rcBtnR,10px) - 3px));font-size:11.5px;font-weight:750;font-family:var(--fNum,inherit);background:var(--accSoft,#F0B90B22);color:var(--acc,#F0B90B);box-shadow:inset 0 0 0 1px var(--accLine,#F0B90B66);display:inline-flex;align-items:center;justify-content:center;transition:transform .18s cubic-bezier(.2,1.6,.4,1),box-shadow .25s}
+body.rcV2 .rcRt .pzB.v{background:var(--rcChip,var(--b));color:var(--m2);box-shadow:none}
+.rcC>.rcRk{grid-column:2/4;display:flex;gap:9px;height:16px;align-items:center;overflow:hidden;white-space:nowrap;font-size:10.5px;color:var(--m)}
+.rcRk>span{flex:none;display:inline-flex;gap:3px;align-items:baseline}.rcRk b{font-weight:650;font-family:var(--fNum,inherit);color:var(--m2)}
+/* 热门榜头像、AI 铸造卡头像 */
+.pzHr>.rcLg{width:22px;height:22px;flex:none}
+.pzAv>s>.rcLg{position:absolute;inset:0;box-shadow:none}
+/* 栏标题（原型）：活的圆点、细字计数、透明小按钮 */
+body.rcV2 .pzCH{height:44px;padding:0 8px 0 14px;border-bottom:1px solid var(--b);background:transparent}
+body.rcV2 .pzCH>i{position:relative;flex:none}
+body.rcV2 .pzCH>i::after{content:"";position:absolute;inset:-4px;border-radius:50%;background:inherit;opacity:.25;animation:rcLive 2s ease-out infinite}
+@keyframes rcLive{0%{transform:scale(.6);opacity:.4}100%{transform:scale(1.6);opacity:0}}
+body.rcV2 .pzCH>b{font-size:13.5px;font-weight:650;color:var(--ink2)}body.rcV2 .pzCH>small{font-family:var(--fNum,inherit);font-size:11.5px;color:var(--m)}
+body.rcV2 .pzCH .r a{border:0;background:transparent;color:var(--m2);font-weight:550;border-radius:var(--rcBtnR,8px)}
+body.rcV2 .pzCH .r a:hover{background:var(--hv);color:var(--ink2)}
+html:not([data-theme=light]) body.rcV2 .pzCH .r a.on{color:var(--acc);background:var(--accSoft);border:0}
+/* 顶部选单、发射台、搜寻：玻璃质感（半透明渐层＋内亮边；不用背景模糊滤镜：测试时软体绘图的 GPU 会因此当掉，弱显卡电脑也可能一样） */
+html:not([data-theme=light]) body.rcV2 #pz .pzSeg,html:not([data-theme=light]) body.rcV2 #pz .pzSq,html:not([data-theme=light]) body.rcV2 #pz .pzCh>a,html:not([data-theme=light]) body.rcV2 #pz .pzPads>a,html:not([data-theme=light]) body.rcV2 #pz .pzQ .pzSeg{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012)),color-mix(in srgb,var(--p2) 78%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.05);border-color:var(--b)}
+html:not([data-theme=light]) body.rcV2 #pz .pzCh>a.on{background:var(--hv);border-color:var(--accLine);color:var(--ink2)}
+html:not([data-theme=light]) body.rcV2 .pzBox{background:color-mix(in srgb,var(--rcCol) 92%,transparent);border-color:var(--b);border-radius:var(--rcRP,14px)}
+/* 看盘上方留白收紧（空的错误条／拼车条不占间距） */
+body.rcV2 #pzErr:empty,body.rcV2 #pzGrp:empty{display:none}body.rcV2 .pzMain{gap:8px}body.rcV2 .pzBar{padding-top:6px}body.rcV2 .pzRail{padding-top:6px}
+/* 上方提示：一排精简玻璃胶囊 */
+#rcNotes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 14px 0 14px}
+body.pzShell #rcNotes{margin-left:98px}
+#rcNotes>#nwBar,#rcNotes>#gateAlertBar{margin:0!important;display:inline-flex!important;align-items:center;gap:8px;height:30px;padding:0 14px!important;border-radius:999px!important;font-size:12px!important;line-height:30px!important;max-width:min(760px,100%);min-width:0;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015)),color-mix(in srgb,var(--p2,#111) 80%,transparent)!important;border:1px solid var(--accLine,#f0b90b66)!important;color:var(--ink2,#eee)!important;box-shadow:0 8px 20px -12px #000c;overflow:hidden;white-space:nowrap;flex-wrap:nowrap!important}
+#rcNotes>#nwBar[style*="display: none"]{display:none!important}
+#rcNotes>#nwBar a{color:var(--acc,#F0B90B)!important}
+#rcNotes>#gateAlertBar>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;min-width:0}
+#rcNotes>#gateAlertBar.c5clip{padding-right:92px!important;position:relative;cursor:pointer}
+#rcNotes>#gateAlertBar.c5clip::after{top:0!important;line-height:30px}
+#rcNotes>#gateAlertBar.c5clip.c5open{display:block!important;height:auto;white-space:normal;border-radius:14px!important;line-height:1.6!important;padding:6px 92px 6px 14px!important}
+#rcNotes>#gateAlertBar.c5open>div{white-space:normal}
 /* 减少动态：系统设定或雷达设定任一打开 */
 html.rcRM *,html.rcRM *::before,html.rcRM *::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 html.rcRM body.rcV2 .pzC:hover{transform:none}
@@ -5492,7 +5560,7 @@ function odo(el,old,s){el._s=s;flash(el,numOf(old),numOf(s));
  let h='';const tg=[];for(let i=0;i<s.length;i++){const c=s[i],p=old[i];if(/\d/.test(c)){h+=`<span class="rcD"><span style="transform:translateY(${-(/\d/.test(p)?+p:+c)*10}%)">${DIG}</span></span>`;tg.push(+c)}else h+=`<span class="rcC">${esc(c)}</span>`}
  ST.odo++;el.innerHTML=h;el.classList.add('rcOd');void el.offsetWidth;QA('.rcD>span',el).forEach((sp,i)=>{sp.style.transform=`translateY(${-tg[i]*10}%)`});
  setTimeout(()=>{if(el._s===s){el.classList.remove('rcOd');el.textContent=s}},D_ODO)}
-const NUMSEL='.pzR2 b',FLSEL='.pzS>span,.pzR3>i.up,.pzR3>i.dn';
+const NUMSEL='.pzR2 b,.rcMc b',FLSEL='.pzS>span,.pzR3>i.up,.pzR3>i.dn,.rcTag.up,.rcTag.dn';
 function syncAttr(o,n){for(const a of [...o.attributes])if(!n.hasAttribute(a.name))o.removeAttribute(a.name);for(const a of n.attributes)if(o.getAttribute(a.name)!==a.value)o.setAttribute(a.name,a.value)}
 function morph(o,n){syncAttr(o,n);
  if(o.matches(NUMSEL)){const s=n.textContent;const old=o._s??o.textContent;if(old!==s)odo(o,old,s);return}
@@ -5510,7 +5578,7 @@ function list(box,html){
  const old=new Map();for(const el of keyed)old.set(keyOf(el),el);
  const F=new Map();let V=null;if(anim){V=box.getBoundingClientRect();for(const el of keyed){const r=el.getBoundingClientRect();if(inView(r,V))F.set(el,r)}}
  const out=[],added=[];for(const n of nw){const k=keyOf(n);const o=k?old.get(k):null;if(o&&o.tagName===n.tagName){old.delete(k);morph(o,n);out.push(o)}else{out.push(n);if(k)added.push(n)}}
- const now=performance.now();if(now-goneAt>GONE_MS)GONE.clear();goneAt=now;for(const [k,el] of old){const r=F.get(el);if(r)GONE.set(k,{el,r})}/* 离开这一栏的卡：记下位置，给跨栏飞行用 */
+ if(anim)for(const [k,el] of old){const r=F.get(el)||el.getBoundingClientRect();if(r.width&&inView(r,V))GONE.set(k,{el,r})}if(GONE.size&&!goneAt){goneAt=1;setTimeout(()=>{GONE.clear();goneAt=0},0)}/* 同一轮重画（同一个工作）里配对；下一轮就清掉 *//* 离开这一栏的卡：记下位置，给跨栏飞行用 */
  for(let i=0;i<out.length;i++){const el=out[i];if(box.children[i]!==el)box.insertBefore(el,box.children[i]||null)}
  while(box.children.length>out.length)box.lastElementChild.remove();
  box.scrollTop=st;
@@ -5528,15 +5596,62 @@ function pill(col,arr,paused,k){let p=col.querySelector(':scope>.rcPill');if(!ar
  const t=(paused?(e?'❚❚ Paused':'❚❚ 已暂停'):(e?'Paused while hovering':'滑鼠停留中，暂停更新'))+(n?(e?` · <b>${n}</b> new`:` · 有 <b>${n}</b> 个新币`):'');
  if(p.innerHTML!==t)p.innerHTML=t;if(paused)p.setAttribute('data-pzpz',k);else p.removeAttribute('data-pzpz');p.title=paused?(e?'Click to resume':'按一下继续'):'';p.classList.toggle('on',paused||n>0)}
 function ring(pg,col){pg=+pg;if(!Number.isFinite(pg)||pg<0)return '';const C=2*Math.PI*RG_R;const f=Math.min(1,pg/PCT);return `<svg class="rcRg" viewBox="0 0 46 46" aria-hidden="true"><circle class="b" cx="23" cy="23" r="${RG_R}"/><circle class="f" cx="23" cy="23" r="${RG_R}" style="stroke:${esc(col)};stroke-dasharray:${C.toFixed(2)};stroke-dashoffset:${(C*(1-f)).toFixed(2)}"/></svg>`}
-/* 卡片小走势线：只用雷达这次开着时看到的真实市值（每次资料更新记一点），不足三点不画 */
+/* 卡片小走势线：真实市值（资料里的一天／一小时／五分钟涨跌换算的起点＋雷达开着时每次更新记一点），不足三点不画 */
 const SPH=new Map();
-function spark(c,mc){c=String(c||'');mc=+mc;if(!c)return '';let h=SPH.get(c);if(!h){h=[];SPH.set(c,h);if(SPH.size>SP_MAP)SPH.delete(SPH.keys().next().value)}
+function spark(c,mc,x){c=String(c||'');mc=+mc;if(!c)return '';let h=SPH.get(c);if(!h){h=[];/* 先用资料里已有的一天／一小时／五分钟涨跌换算回当时的市值当起点（真资料），之后每次更新再记一点 */if(x&&Number.isFinite(mc)&&mc>0)for(const f of ['c24','c1','c5']){const v=x[f];if(v==null||v==='')continue;const k=1+(+v)/PCT;if(Number.isFinite(k)&&k>0)h.push(mc/k)}if(h.length<SP_MIN-1)h=[];SPH.set(c,h);if(SPH.size>SP_MAP)SPH.delete(SPH.keys().next().value)}
  if(Number.isFinite(mc)&&mc>0&&h[h.length-1]!==mc){h.push(mc);if(h.length>SP_N)h.shift()}
  if(h.length<SP_MIN)return '';const mn=Math.min(...h),mx=Math.max(...h),rg=mx-mn||mx||1;const W=64,H=16;const pts=h.map((v,i)=>[(i*W/(h.length-1)).toFixed(1),(H-1-(v-mn)/rg*(H-2)).toFixed(1)]);
  const l='M'+pts.map(p=>p.join(' ')).join('L');const up=h[h.length-1]>=h[0];
  return `<svg class="rcSp ${up?'up':'dn'}" viewBox="0 0 64 16" preserveAspectRatio="none" aria-hidden="true"><path class="a" d="${l}L${W} ${H}L0 ${H}Z"/><path class="l" d="${l}"/></svg>`}
 function skel(){let h='';for(let i=0;i<SK_N;i++)h+=`<div class="pzC rcSk" aria-hidden="true"><div class="pzAv"><s class="rcSkb"></s></div><div class="pzM"><i class="rcSkb" style="width:${40+(i*17)%35}%"></i><i class="rcSkb" style="width:${55+(i*13)%30}%"></i><i class="rcSkb" style="width:${30+(i*11)%40}%"></i></div><div class="pzS"><i class="rcSkb" style="display:block;width:64px;height:26px"></i></div></div>`;return h}
-const ST={flip:0,in:0,fly:0,odo:0,tape:0,det:0};window.RCFX={list,pill,ring,spark,skel,RM,st:ST};
+/* ===== 原型版式卡片＋产生的头像（没有 logo 的币：依合约地址决定渐层＋图形，同一个币永远同一个样子） ===== */
+const PAL=[['#FFB547','#FF6A3D'],['#7C5CFF','#3DD6FF'],['#2EE6A6','#1C8CFF'],['#FF5C8A','#FFB86B'],['#9BE15D','#00C9A7'],['#F7E26B','#F0A500'],['#5EEAD4','#6366F1'],['#FDA4AF','#C084FC'],['#38BDF8','#0EA5E9'],['#FB7185','#E11D48'],['#A3E635','#16A34A'],['#FCD34D','#F97316']];
+const MOTW=[['cat',['cat','mao','neko','猫','喵','mochi','hakimi','哈基米','kitty']],['dog',['dog','shib','wif','犬','狗','doge','inu']],['frog',['frog','pepe','ribbit','蛙']],['bot',['agent','bot','ai ','gpt','机器人']]];
+const MOTS=['flame','rocket','moon','gem','bolt','pixel','koi','sun'];
+function hsh(s){let h=2166136261;s=String(s||'').toLowerCase();for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function motif(c,sym,name){const s=(String(sym||'')+' '+String(name||'')).toLowerCase();for(const [m,ws] of MOTW)if(ws.some(w=>s.includes(w)))return m;if(/[一-鿿]/.test(String(sym||'')))return 'han';return MOTS[(hsh(c)>>>5)%MOTS.length]}
+function genSvg(c,sym,name){const h=hsh(c||sym);const [a,b]=PAL[h%PAL.length];const id='rcL'+h.toString(36);const m=motif(c,sym,name);const W='rgba(255,255,255,.95)',D='rgba(10,10,20,.82)';let g='';
+ switch(m){
+ case 'cat':g=`<path d="M10 17 11 7l7 6M30 17 29 7l-7 6" fill="${W}"/><circle cx="20" cy="22" r="10.5" fill="${W}"/><ellipse cx="16" cy="21" rx="1.8" ry="2.6" fill="${D}"/><ellipse cx="24" cy="21" rx="1.8" ry="2.6" fill="${D}"/><path d="M18.4 25.5 20 27l1.6-1.5" stroke="${D}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;break;
+ case 'dog':g=`<ellipse cx="11" cy="17" rx="4" ry="7.5" fill="${D}" opacity=".55" transform="rotate(18 11 17)"/><ellipse cx="29" cy="17" rx="4" ry="7.5" fill="${D}" opacity=".55" transform="rotate(-18 29 17)"/><circle cx="20" cy="21" r="10" fill="${W}"/><circle cx="16.3" cy="19.5" r="1.7" fill="${D}"/><circle cx="23.7" cy="19.5" r="1.7" fill="${D}"/><ellipse cx="20" cy="24.5" rx="2.6" ry="1.9" fill="${D}"/>`;break;
+ case 'frog':g=`<circle cx="14" cy="14" r="5" fill="${W}"/><circle cx="26" cy="14" r="5" fill="${W}"/><circle cx="14" cy="14" r="2.2" fill="${D}"/><circle cx="26" cy="14" r="2.2" fill="${D}"/><path d="M9 21c3 7 19 7 22 0" stroke="${W}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;break;
+ case 'flame':g=`<path d="M20 32c5.4 0 9-3.6 9-8.7 0-5.1-3.9-7.5-5.1-13.1-2.7 2.1-3.9 4.5-3.9 6.9-1.5-.9-2.7-2.9-2.7-5C13.1 14.4 11 18.5 11 22.8 11 28.4 14.6 32 20 32z" fill="${W}"/>`;break;
+ case 'rocket':g=`<path d="M20 7c5 4 6.5 10 5 17h-10C13.5 17 15 11 20 7z" fill="${W}"/><circle cx="20" cy="16.5" r="2.6" fill="${D}"/><path d="M15 21l-4 6 4.5-1M25 21l4 6-4.5-1" fill="${W}" opacity=".85"/><path d="M17.5 26.5 20 33l2.5-6.5z" fill="#FFD54A"/>`;break;
+ case 'moon':g=`<path d="M26 29.5A11 11 0 1 1 22.5 8.4 8.6 8.6 0 0 0 26 29.5z" fill="${W}"/><path d="m29 11 .9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9z" fill="${W}"/>`;break;
+ case 'gem':g=`<path d="M13 12h14l5 6-12 14L8 18z" fill="${W}"/><path d="M8 18h24M17 12l-2 6 5 14 5-14-2-6" stroke="${D}" stroke-width="1" fill="none" opacity=".45"/>`;break;
+ case 'bolt':g=`<path d="M22 6 11 22h8l-2 12 12-17h-8z" fill="${W}"/>`;break;
+ case 'pixel':{const M=['.###.','##.##','#####','#.#.#','.###.'];M.forEach((r,y)=>[...r].forEach((q,x)=>{if(q==='#')g+=`<rect x="${10+x*4}" y="${10+y*4}" width="3.6" height="3.6" rx=".6" fill="${W}"/>`}));break}
+ case 'koi':g=`<path d="M8 20c5-7 15-8 21-2l4-4v12l-4-4c-6 6-16 5-21-2z" fill="${W}"/><circle cx="14" cy="19" r="1.4" fill="${D}"/><path d="M19 15c2 2 2 8 0 10" stroke="#FF6A3D" stroke-width="2.2" fill="none" opacity=".8"/>`;break;
+ case 'sun':g=`<circle cx="20" cy="20" r="6.5" fill="${W}"/>`+[0,45,90,135,180,225,270,315].map(d=>`<rect x="19" y="6" width="2" height="5" rx="1" fill="${W}" transform="rotate(${d} 20 20)"/>`).join('');break;
+ case 'bot':g=`<rect x="10" y="13" width="20" height="16" rx="5" fill="${W}"/><path d="M20 13V8" stroke="${W}" stroke-width="2"/><circle cx="20" cy="7" r="2" fill="${W}"/><rect x="14" y="18" width="4" height="4" rx="1.2" fill="${D}"/><rect x="22" y="18" width="4" height="4" rx="1.2" fill="${D}"/>`;break;
+ case 'han':g=`<circle cx="20" cy="20" r="13" fill="none" stroke="${W}" stroke-width="1.4" stroke-dasharray="2 2" opacity=".7"/><text x="20" y="26.5" text-anchor="middle" font-size="17" font-weight="800" fill="${W}" font-family="PingFang SC,Microsoft YaHei,Noto Sans CJK SC,sans-serif">${esc([...String(sym||'?')][0])}</text>`;break;}
+ return `<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="40" height="40" fill="url(#${id})"/><ellipse cx="13" cy="8" rx="16" ry="9" fill="#fff" opacity=".16"/>${g}</svg>`}
+function logo(c,sym,name,lg){lg=/^https:\/\//.test(String(lg||''))?String(lg):'';return `<span class="rcLg">${genSvg(c,sym,name)}${lg&&!BAD.has(lg)?`<img src="${esc(lg)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</span>`}
+const ICS={copy:'<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5.5 15H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5h8.5A1.5 1.5 0 0 1 15 5v.5"/>',globe:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.6 3.5 5.4 3.5 8.5s-1.1 5.9-3.5 8.5c-2.4-2.6-3.5-5.4-3.5-8.5s1.1-5.9 3.5-8.5z"/>',send:'<path d="M20.5 3.5 10.6 13.4"/><path d="M20.5 3.5 14.2 20.5l-3.6-7.1-7.1-3.6z"/>'};
+const ico=(n,z)=>`<svg class="rcIc" width="${z}" height="${z}" viewBox="0 0 24 24" aria-hidden="true">${ICS[n]}</svg>`;
+const shortCa=c=>{const t=c.substring(0,4)+'…'+c.substring(c.length-4);return t.length<c.length?t:c};
+const okUrl=u=>/^https:\/\//.test(String(u||''));
+function card(o){const {x,k,col,e,p,xh,btn,fmt,fi,pct}=o;const c=String(x.c||'');const fin=v=>v!=null&&v!==''&&Number.isFinite(+v);
+ const out=k==='out'||k==='done';const pg=+x.pg;const hasPg=!out&&fin(x.pg)&&pg>=0;
+ const av=`<div class="rcAv"><div class="rcRing">${ring(out?PCT:hasPg?pg:0,col)}${logo(c,x.s,x.n,x.lg)}</div>${hasPg?`<i class="rcPg" style="color:${esc(col)}">${Math.floor(Math.min(PCT,pg))}%</i>`:''}</div>`;
+ const nm=x.n&&x.n!==x.s?x.n:'';
+ const r1=`<div class="pzR1"><b>${esc(x.s||'?')}</b>${nm?`<small>${esc(nm)}</small>`:''}${p?`<i>${esc(p)}</i>`:''}<em>${esc(o.age)}</em></div>`;
+ const so=[];if(okUrl(x.xl))so.push(`<a class="rcXh" data-pzurl="${esc(x.xl)}" title="${esc(x.xl)}"><b>𝕏</b>${xh?'@'+esc(xh):''}</a>`);if(okUrl(x.wl))so.push(`<a class="rcSo" data-pzurl="${esc(x.wl)}" title="${e?'Website':'官网'}">${ico('globe',13)}</a>`);if(okUrl(x.tl))so.push(`<a class="rcSo" data-pzurl="${esc(x.tl)}" title="Telegram">${ico('send',13)}</a>`);
+ const r2=`<div class="rcR2"><a class="rcCa" data-pzcp="${esc(c)}" title="${e?'Copy contract':'复制合约'}">${esc(shortCa(c))}${ico('copy',11)}</a>${so.join('')}</div>`;
+ const kv=[];if(fin(x.h))kv.push(`<span>${e?'H':'持'} <b>${fi(x.h)}</b></span>`);if(fin(x.v))kv.push(`<span>${e?'V':'量'} <b>$${fmt(x.v)}</b></span>`);if(!kv.length&&fin(x.tx))kv.push(`<span>${e?'Tx':'笔'} <b>${fi(x.tx)}</b></span>`);
+ const tg=[];const chg=(f,l)=>{const t=fin(x[f])?pct(x[f]):'';if(t&&!/^[+-]?0(\.0)?%$/.test(t))tg.push(`<i class="rcTag ${+x[f]>=0?'up':'dn'}">${l} ${t}</i>`)};
+ chg('c5','5m');if(+x.kol>0)tg.push(`<i class="rcTag kol" title="${esc((x.kn||[]).join('、'))}">KOL ${+x.kol}</i>`);if(+x.bt>0||+x.st>0)tg.push(`<i class="rcTag tax">${e?'Tax':'税'} ${Math.round(+x.bt||0)}/${Math.round(+x.st||0)}%</i>`);chg('c1','1h');chg('c24','24h');
+ const r3=kv.length||tg.length?`<div class="pzR2">${kv.join('')}${tg.join('')}</div>`:'';
+ const R=x.rk;const rk=R?[['t10',e?'Top10':'前10'],['dv',e?'Dev':'开发'],['sn',e?'Snipe':'狙击'],['rat',e?'Insider':'老鼠仓'],['bu',e?'Bundle':'捆绑']].filter(([f])=>fin(R[f])).map(([f,l])=>`<span>${l} <b>${(+R[f]).toFixed(+R[f]<PCT/10?1:0)}%</b></span>`).join(''):'';
+ const rt=`<div class="rcRt">${fin(x.mc)?`<div class="rcMc"><small>MC</small><b>$${fmt(x.mc)}</b></div>`:''}${spark(c,x.mc,x)}${btn}</div>`;
+ return `<div class="pzC rcC" data-pzc="${esc(c)}" data-pzn="${esc(o.net)}">${av}${r1}${r2}${r3}${rt}${rk?`<div class="rcRk">${rk}</div>`:''}</div>`}
+/* 上方两条提示（加密较弱说明、还没连钱包）收成一排玻璃胶囊；「设定被别的程式改了」的安全警报不收，照原样大字显示 */
+function notes(){const h=Q('header');if(!h)return;let n=Q('#rcNotes');if(!n){n=document.createElement('div');n.id='rcNotes';h.after(n)}
+ for(const id of ['gateAlertBar','nwBar']){const b=document.getElementById(id);if(!b)continue;const pillOk=id==='nwBar'||b.classList.contains('c5clip');if(pillOk&&b.parentNode!==n)n.appendChild(b);else if(!pillOk&&b.parentNode===n)n.before(b)}
+ n.style.display=[...n.children].some(x=>getComputedStyle(x).display!=='none')?'':'none'}
+setInterval(()=>{try{notes()}catch{}},SEC);
+
+const ST={flip:0,in:0,fly:0,odo:0,tape:0,det:0};window.RCFX={list,pill,ring,spark,skel,RM,st:ST,card,logo};
 /* ===== 详情页：点卡片头像与名称飞过去、面板进场、分页指示条、成交逐笔滑入、K 线最后价脉冲 ===== */
 let SRC=null;
 document.addEventListener('click',ev=>{const c=ev.target.closest&&ev.target.closest('#pz .pzC');if(!c||c.classList.contains('rcSk'))return;if(ev.target.closest('button,a,[data-pzbuy],[data-pzurl],[data-pzcp],[data-pzmint],[data-mpk]'))return;
@@ -5558,8 +5673,8 @@ function tapeIn(){const L2=Q('#dtl .fbTpL');if(!L2)return;let a='';try{a=String(
  TK={a,s:new Set(ks)}}
 let moQ=0;function dtlObs(){const d=Q('#dtl');if(!d||d.__rcO)return;d.__rcO=1;new MutationObserver(()=>{if(moQ)return;moQ=requestAnimationFrame(()=>{moQ=0;try{tabInd();tapeIn()}catch(e){console.error(e)}})}).observe(d,{childList:true,subtree:true})}
 /* ===== 动态配乐（Web Audio）：四层 loop 同时起播、用音讯时钟排程、只在小节边界交叉淡入淡出换层 =====
-   紧张度只看「正在看的币」自己的热度（每秒成交笔数、成交额、价格波动速度，各跟这个币自己最近的中位数比、取对数），不看涨跌方向；
-   快升慢降＋迟滞（进入／退出门槛不同）＋往下一次只降一层、要在退出门槛以下待满几小节；没在看详情＝维持平静层。不做任何「赚钱庆祝音」。 */
+   紧张度：有打开币＝只看「正在看的币」自己的热度（每秒成交笔数、成交额、价格波动速度，各跟这个币自己最近的中位数比、取对数），不看涨跌方向；没打开币＝看盘整体热度（boardI）；
+   快升慢降＋迟滞（进入／退出门槛不同）＋往下一次只降一层、要在退出门槛以下待满几小节。不做任何「赚钱庆祝音」。 */
 const FILES=['loop_1_calm','loop_2_build','loop_3_intense','loop_4_peak'];
 const LV_ZH=['平静','升温','激烈','最高'],LV_EN=['Calm','Build','Intense','Peak'];
 /* 技术用（只影响配乐）：每段几小节；计算间隔（毫秒、秒）；短窗秒数（笔数、成交额）；价格波动窗口秒数；上升／下降平滑时间常数（秒）；降层前要待满几小节；每层最少停几小节；交叉淡入淡出秒数；起播预留秒数；排程保险秒数；音量淡入淡出秒数；基准最多留几秒；基准最少几秒才用；整体／最强的混合比例；日志留几笔 */
@@ -5606,12 +5721,27 @@ function rawI(){const a=detAddr();if(!a){AU.parts=[0,0,0];return 0}let rows=[];t
  const mvOk=H.m.length>=A_MINS&&bm>0;const r=(x,b)=>b>0?Math.min(1,Math.log2(x/b+1)/P.k):0;const R=[r(n,bn),r(v,bv),mvOk?r(mv,bm):0];
  const W=P.w.map((w,i)=>i===P.w.length-1&&!mvOk?0:w);const sw=W.reduce((s,x)=>s+x,0);AU.parts=R;AU.base=[bn,bv,bm];if(!(sw>0))return 0;
  const wr=R.map((x,i)=>x*W[i]);return Math.min(1,Math.max(0,A_MIXA*wr.reduce((s,x)=>s+x,0)/sw+(1-A_MIXA)*Math.max(...wr)))}
+
+/* 没打开币的时候：用看盘整体热度（新开盘＋即将打满两栏：最近一段时间每个币增加的成交笔数、成交额，和新出现的币数），一样跟自己最近的中位数比 */
+const BRD={prev:new Map(),q:[],at:0,last:0,key:''};
+function boardI(){const S=window.__pzS;if(!S){AU.parts=[0,0,0];return 0}const now=Date.now();if(now-BRD.at<SEC)return BRD.last;BRD.at=now;
+ const own=!!(S.D&&S.D.ok&&S.D.cols&&(S.net==='bsc'||S.net==='robinhood'));let items=[];
+ if(own)for(const k of ['new','soon'])items=items.concat(S.D.cols[k]||[]);else for(const k of ['fresh','soon']){const R=S.M&&S.M[S.net+'|'+k];if(R&&Array.isArray(R.items))items=items.concat(R.items)}
+ const key=S.net+'|'+S.cat;if(BRD.key!==key){BRD.key=key;BRD.prev=new Map();BRD.q=[]}
+ let dtx=0,dv=0,nNew=0;const cur=new Map();
+ for(const x of items){const c=String(x.c||'');if(!c)continue;const tx=+(x.tx??x.tx24),v=+x.v24;cur.set(c,{tx,v});const p=BRD.prev.get(c);if(p){if(tx>p.tx)dtx+=tx-p.tx;if(v>p.v)dv+=v-p.v}else if(BRD.prev.size)nNew++;}
+ BRD.prev=cur;BRD.q.push({t:now,dtx,dv,nNew});while(BRD.q.length&&BRD.q[0].t<now-A_MV*SEC)BRD.q.shift();
+ let n=0,v=0,m=0;for(const q of BRD.q){n+=q.dtx;v+=q.dv;m+=q.nNew}
+ let H=HIST.get('__board|'+key);if(!H){H={n:[],v:[],m:[],at:0};HIST.set('__board|'+key,H)}H.at=now;for(const [k,x] of [['n',n],['v',v],['m',m]]){H[k].push(x);if(H[k].length>A_HIST)H[k].shift()}
+ if(H.n.length<A_MINS){AU.parts=[0,0,0];BRD.last=0;return 0}/* 刚开始：先收集一段基准，这段时间播平静层 */
+ const r=(x,b)=>Math.min(1,Math.log2(x/Math.max(b,1)+1)/P.k);const R=[r(n,med(H.n)),r(v,Math.max(med(H.v),1)),r(m,med(H.m))];const sw=P.w.reduce((s,x)=>s+x,0);AU.parts=R;if(!(sw>0)){BRD.last=0;return 0}
+ const wr=R.map((x,i)=>x*P.w[i]);BRD.last=Math.min(1,Math.max(0,A_MIXA*wr.reduce((s,x)=>s+x,0)/sw+(1-A_MIXA)*Math.max(...wr)));return BRD.last}
 function sched(to){const C=AU.ctx,now=C.currentTime,bar=AU.bar;const k=Math.ceil((now+A_GUARD-AU.t0)/bar);const tb=AU.t0+k*bar;const from=AU.cur;const h=A_XF/2;
  const a=AU.g[from].gain,b=AU.g[to].gain;a.cancelScheduledValues(now);b.cancelScheduledValues(now);a.setValueAtTime(1,tb-h);a.linearRampToValueAtTime(0,tb+h);b.setValueAtTime(0,tb-h);b.linearRampToValueAtTime(1,tb+h);
  AU.pend={to,tb,k};logA({ev:'switch',at:new Date().toISOString(),bar:k,tb:+tb.toFixed(4),now:+now.toFixed(4),from:FILES[from],to:FILES[to],I:+AU.I.toFixed(3),offBar:+Math.abs((tb-AU.t0)/bar-k).toFixed(6)})}
 function auTick(){if(!AU.ready)return;const C=AU.ctx;if(C.state!=='running')return;const now=C.currentTime;
  if(AU.pend&&now>=AU.pend.tb){AU.cur=AU.pend.to;AU.since=AU.pend.tb;AU.below=0;AU.pend=null}
- const raw=AU.test!=null&&Number.isFinite(+AU.test)?Math.min(1,Math.max(0,+AU.test)):rawI();AU.raw=raw;
+ const da=detAddr();AU.srcK=da?'coin':'board';const raw=AU.test!=null&&Number.isFinite(+AU.test)?Math.min(1,Math.max(0,+AU.test)):da?rawI():boardI();AU.raw=raw;
  const tau=raw>AU.I?A_TUP:A_TDN;AU.I+=(1-Math.exp(-A_TICK_S/tau))*(raw-AU.I);
  if(AU.pend)return;const cur=AU.cur,I=AU.I,bar=AU.bar;let up=cur;while(up<TOP&&I>=P.en[up])up++;
  let tgt=cur;if(up>cur){tgt=up;AU.below=0}else if(cur>0&&I<P.ex[cur-1]){if(!AU.below)AU.below=now;if(now-AU.below>=A_DOWNB*bar)tgt=cur-1}else AU.below=0;/* 往上可以一次跳多层；往下一次一层，而且要在退出门槛以下待满几小节 */
@@ -5641,18 +5771,18 @@ function lookPaint(force){const c=lookCard();if(!c)return;const e=en();const sig
   <div class="rcRow"><label>${e?'Volume':'音量'}</label><input type="range" min="0" max="100" step="1" data-rcf="vol" value="${Math.round(P.vol*PCT)}"><span class="rcNow" data-rcvv>${Math.round(P.vol*PCT)}%</span></div>
   <div class="rcRow"><label>${e?'Now':'现在'}</label><div class="rcMeter"><i data-rcmt></i></div><span class="rcNow" data-rcst></span></div>
   <details><summary style="cursor:pointer;color:var(--mute)">${e?'Advanced: how tension is measured':'进阶：紧张度怎么算'}</summary>
-  <p style="margin:8px 0;color:var(--mute);font-size:12.5px">${e?'Tension (0–1) only looks at the coin you have open: trades per second, volume and how fast the price moves, each compared with that coin’s own recent median (log scale). Up or down does not matter. When no coin is open the calm layer plays. Music only changes on a bar line.':'紧张度（0～1）只看你打开的那个币：每秒成交笔数、成交额、价格变动速度，各跟这个币自己最近的中位数比（取对数）；不看涨还是跌。没打开币的时候播平静层。换段只在小节线上换。'}</p>
+  <p style="margin:8px 0;color:var(--mute);font-size:12.5px">${e?'Tension (0–1) only looks at the coin you have open: trades per second, volume and how fast the price moves, each compared with that coin’s own recent median (log scale). Up or down does not matter. When no coin is open it uses the whole board (new trades, volume and new coins in the New and Final-stretch columns, compared with the board’s own recent median). Music only changes on a bar line.':'紧张度（0～1）只看你打开的那个币：每秒成交笔数、成交额、价格变动速度，各跟这个币自己最近的中位数比（取对数）；不看涨还是跌。没打开币的时候改看看盘整体热度（新开盘＋即将打满两栏的新增成交笔数、成交额、新出现的币数，也跟看盘自己最近的中位数比）。换段只在小节线上换。'}</p>
   <div class="rcGrid"><span>${e?'Weight · trades':'权重 · 成交笔数'}</span>${ni('w0',P.w[0],'any')}<span></span><span>${e?'Weight · volume':'权重 · 成交额'}</span>${ni('w1',P.w[1],'any')}<span></span><span>${e?'Weight · price speed':'权重 · 价格变动速度'}</span>${ni('w2',P.w[2],'any')}<span></span>
   <span>${e?'Full-scale (log2 of ratio)':'满格倍数（比值取 log2）'}</span>${ni('k',P.k,'any')}<span></span>
   <span style="font-weight:700">${e?'Layer':'段落'}</span><span style="font-weight:700">${e?'Enter ≥':'进入 ≥'}</span><span style="font-weight:700">${e?'Leave <':'退出 <'}</span>
   ${[0,1,2].map(i=>`<span>${lz[i+1]}</span>${ni('en'+i,P.en[i],'any')}${ni('ex'+i,P.ex[i],'any')}`).join('')}</div>
   <div style="margin-top:10px"><button class="btn g" data-rcdef="1">${e?'Restore defaults':'恢复预设'}</button> <small class="rcNow">${e?'Leave must be lower than enter; otherwise that row goes back to the default.':'退出门槛要比进入门槛低，不然那一行会回到预设。'}</small></div></details>`}
  const s=c.querySelector('[data-rcmq]');if(s)s.textContent=MQ.matches?(e?'(your system asks for reduced motion — animations are off)':'（系统设定了减少动态：动画已关）'):'';lookLive()}
-function lookLive(){const c=Q('#rcLook');if(!c||c.style.display==='none')return;const e=en();const mt=c.querySelector('[data-rcmt]');if(mt)mt.style.transform=`scaleX(${AU.I.toFixed(3)})`;const st=c.querySelector('[data-rcst]');if(st){const lz=e?LV_EN:LV_ZH;st.textContent=!P.snd?(e?'Music off':'配乐已关'):AU.err?(e?'Audio unavailable: ':'音讯无法使用：')+AU.err:!AU.ready?(e?'Loading…':'载入中…'):`${e?'Tension':'紧张度'} ${AU.I.toFixed(2)} · ${lz[AU.cur]}${AU.pend?' → '+lz[AU.pend.to]:''}${detAddr()?'':(e?' (no coin open)':'（没打开币）')}`}}
+function lookLive(){const c=Q('#rcLook');if(!c||c.style.display==='none')return;const e=en();const mt=c.querySelector('[data-rcmt]');if(mt)mt.style.transform=`scaleX(${AU.I.toFixed(3)})`;const st=c.querySelector('[data-rcst]');if(st){const lz=e?LV_EN:LV_ZH;st.textContent=!P.snd?(e?'Music off':'配乐已关'):AU.err?(e?'Audio unavailable: ':'音讯无法使用：')+AU.err:!AU.ready?(e?'Loading…':'载入中…'):`${e?'Tension':'紧张度'} ${AU.I.toFixed(2)} · ${lz[AU.cur]}${AU.pend?' → '+lz[AU.pend.to]:''}${AU.srcK==='board'?(e?' · whole board':' · 看盘整体'):''}`}}
 setInterval(()=>{try{lookLive();sndBtn()}catch{}},SEC);
 document.addEventListener('radar-lang',()=>{try{lookPaint(1);const b=Q('#more .cfgNav [data-cg="look"]');if(b)b.textContent=en()?'🎨 Look & music':'🎨 外观与配乐';sndBtn()}catch{}});
 document.addEventListener('click',ev=>{if(ev.target.closest&&ev.target.closest('[data-cg],.tabs a[data-p="more"],#uxG a'))setTimeout(()=>{try{lookPaint()}catch{}},0)});
-function boot(){applyTh();layer();sndBtn();lookPaint();wrapOpen();wrapK();dtlObs();try{window.radar?.onWinVis?.(v=>{AU.winHid=!v;try{auVol()}catch{}})}catch{}if(P.snd)auStart()}
+function boot(){applyTh();layer();try{notes()}catch{}sndBtn();lookPaint();wrapOpen();wrapK();dtlObs();try{window.radar?.onWinVis?.(v=>{AU.winHid=!v;try{auVol()}catch{}})}catch{}if(P.snd)auStart()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 setTimeout(()=>{try{wrapOpen();wrapK();dtlObs();lookPaint()}catch{}},SEC);
 })();
