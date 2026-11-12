@@ -57,6 +57,8 @@ function startMarket({ DATA, log = () => {} }) {
   const tok = (c) => (D.tokens[c] = D.tokens[c] || { c, tr: [] });
   const tsOf = (blk) => (st.headAt ? st.headAt - (st.head - blk) * st.blockMs : Date.now());
   const needInfo = new Set();
+  /*SOON-1112 Four.meme 内盘进度＝已卖出的代币 ÷ 内盘可卖代币（跟 AVE、GMGN 显示的一样）；还没读到可卖总量时才用募到的钱 ÷ 目标 */
+  const fProg = (x) => { if (x.maxO > 0 && x.offers != null) x.prog = Math.max(0, Math.min(100, ((x.maxO - x.offers) / x.maxO) * 100)); else if (x.maxF > 0) x.prog = Math.min(100, (x.funds / x.maxF) * 100); };
 
   let LK = ''; /* KQ-1104：目前这则事件的 txHash＋logIndex（同一则事件重抓不重复记） */
   function trade(c, t, buy, qAmt, price, who, q) {
@@ -69,7 +71,7 @@ function startMarket({ DATA, log = () => {} }) {
     const t0 = l.topics[0], d = l.data, a = l.address.toLowerCase(), blk = parseInt(l.blockNumber, 16), t = tsOf(blk); LK = l.transactionHash ? String(l.transactionHash).slice(2, 14) + ':' + parseInt(l.logIndex, 16) : '';
     if (a === FOUR) {
       if (t0 === T.fCreate) { const c = A(W(d, 1)); const x = tok(c); Object.assign(x, { plat: 'four', at: x.at || t, dev: A(W(d, 0)), nm: S(d, 3), sym: S(d, 4), sup: F(N(W(d, 5))) }); needInfo.add(c); }
-      else if (t0 === T.fBuy || t0 === T.fSell) { const c = A(W(d, 0)); if (!D.tokens[c]) { tok(c).plat = 'four'; needInfo.add(c); } const x = D.tokens[c]; x.funds = F(N(W(d, 7))); if (x.maxF) x.prog = Math.min(100, (x.funds / x.maxF) * 100); { const qa = F(N(W(d, 4))), ta = F(N(W(d, 3))); trade(c, t, t0 === T.fBuy, qa, ta > 0 ? qa / ta : F(N(W(d, 2))), A(W(d, 1))); } }
+      else if (t0 === T.fBuy || t0 === T.fSell) { const c = A(W(d, 0)); if (!D.tokens[c]) { tok(c).plat = 'four'; needInfo.add(c); } const x = D.tokens[c]; x.funds = F(N(W(d, 7))); x.offers = F(N(W(d, 6))); if (!(x.maxO > 0) && x.plat === 'four') needInfo.add(c); fProg(x); { const qa = F(N(W(d, 4))), ta = F(N(W(d, 3))); trade(c, t, t0 === T.fBuy, qa, ta > 0 ? qa / ta : F(N(W(d, 2))), A(W(d, 1))); } }
       else if (t0 === T.fLiq) { const c = A(W(d, 0)); const x = D.tokens[c]; if (x) { x.grad = 1; x.gradAt = t; x.prog = 100; } }
     } else if (a === FLAP) {
       if (t0 === T.pCreate) { const c = A(W(d, 3)); const x = tok(c); Object.assign(x, { plat: 'flap', at: x.at || t, dev: A(W(d, 1)), nm: S(d, 4), sym: S(d, 5), sup: 1e9, qk: 1 }); }
@@ -83,7 +85,7 @@ function startMarket({ DATA, log = () => {} }) {
     const L = [...needInfo].slice(0, 40); if (!L.length) return; L.forEach((c) => needInfo.delete(c));
     for (let i = 0; i < L.length; i += 20) { const part = L.slice(i, i + 20); let res = [];
       for (const u of RPCS.slice(0, 2)) { try { const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(part.map((c, k) => ({ jsonrpc: '2.0', id: k, method: 'eth_call', params: [{ to: FOUR_HELPER, data: '0x1f69565f' + c.slice(2).padStart(64, '0') }, 'latest'] }))), signal: AbortSignal.timeout(12000) }); const j = await r.json(); if (Array.isArray(j)) { res = []; for (const x of j) res[x.id] = x.result || ''; break; } } catch {} }
-      part.forEach((c, k) => { const r = res[k] || '', x = D.tokens[c]; if (!x || r.length < 2 + 64 * 12) return; const q = A(W(r, 2)); x.q = q === '0x0000000000000000000000000000000000000000' ? '' : q; x.qk = 1; x.maxF = F(N(W(r, 10))); x.funds = F(N(W(r, 9))); if (x.maxF > 0) x.prog = Math.min(100, (x.funds / x.maxF) * 100); if (N(W(r, 11)) > 0n) { x.grad = 1; x.prog = 100; x.gradAt = x.gradAt || Date.now(); } }); }
+      part.forEach((c, k) => { const r = res[k] || '', x = D.tokens[c]; if (!x || r.length < 2 + 64 * 12) return; const q = A(W(r, 2)); x.q = q === '0x0000000000000000000000000000000000000000' ? '' : q; x.qk = 1; x.maxF = F(N(W(r, 10))); x.funds = F(N(W(r, 9))); x.maxO = F(N(W(r, 8))); x.offers = F(N(W(r, 7))); fProg(x); if (N(W(r, 11)) > 0n) { x.grad = 1; x.prog = 100; x.gradAt = x.gradAt || Date.now(); } }); }
   }
   async function names() { /* 在补抓范围之前就建立的币，读不到名字 → 直接问合约 symbol() */
     const L = Object.values(D.tokens).filter((x) => !x.sym && !x.nmTried).slice(0, 20); if (!L.length) return; L.forEach((x) => (x.nmTried = 1));
@@ -135,6 +137,6 @@ function startMarket({ DATA, log = () => {} }) {
   const CD_CAP = 160; /* 运作：一次画几根 */
   function setQuoteUsd(q, v) { if (v > 0) quoteUsd[q] = v; }
   function quotes() { return [...new Set(Object.values(D.tokens).map((x) => x.q).filter((q) => q && q !== WBNB && !STABLE.has(q)))]; } /*BOARD124*/
-  return { older, rpc, board, candles, raw: () => ({ tokens: D.tokens, usd: (x) => xUsd(x) }), plat: (c) => D.tokens[String(c || '').toLowerCase()]?.plat || '', has: (c) => !!D.tokens[String(c || '').toLowerCase()], setQuoteUsd, quotes, qUsd, info: (c) => { const x = D.tokens[String(c || '').toLowerCase()]; return x ? { grad: !!x.grad, pool: x.pool || '' } : null; }, status: () => ({ ...st, total: Object.keys(D.tokens).length }) };
+  return { older, rpc, board, candles, raw: () => ({ tokens: D.tokens, usd: (x) => xUsd(x) }), plat: (c) => D.tokens[String(c || '').toLowerCase()]?.plat || '', has: (c) => !!D.tokens[String(c || '').toLowerCase()], setQuoteUsd, quotes, qUsd, want: (c) => { c = String(c || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(c) || needInfo.size > 200) return; if (!D.tokens[c]) tok(c).plat = 'four'; const x = D.tokens[c]; if (!x.qk || !(x.maxO > 0)) needInfo.add(c); }, /*SOON-1112 看盘「即将打满」的 Four.meme 币雷达还没读过进度 → 排进下一轮读*/ info: (c) => { const x = D.tokens[String(c || '').toLowerCase()]; return x ? { grad: !!x.grad, pool: x.pool || '' } : null; }, status: () => ({ ...st, total: Object.keys(D.tokens).length }) };
 }
 module.exports = { startMarket };

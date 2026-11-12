@@ -7579,7 +7579,8 @@
    "zh": "新发射台发现（只看）",
    "en": "New launchpad finder (view only)",
    "dzh": "选用：多扫一层。「🆕 新发射台」本来就会列出 AVE 看盘里的发行平台和 AI 热门代币的发射台；打开这个，雷达还会向公开节点「读」区块，把最近发了很多新币的合约也列出来（公开节点有用量限制，读不到时会自己重试）。不连钱包、不签名、不送交易、不会自动买",
-   "den": "Optional extra scan. “🆕 Launchpads” already lists platforms from the AVE board and launchpads behind AI hot tokens; turning this on also reads blocks from public nodes to list contracts that recently launched many tokens (public nodes have limits; it retries). No wallet, no signing, never buys"
+   "den": "Optional extra scan. “🆕 Launchpads” already lists platforms from the AVE board and launchpads behind AI hot tokens; turning this on also reads blocks from public nodes to list contracts that recently launched many tokens (public nodes have limits; it retries). No wallet, no signing, never buys",
+   "hide": 1
   },
   {
    "k": "pads.ch.bsc",
@@ -7592,7 +7593,8 @@
    "zh": "看 BNB Chain",
    "en": "Watch BNB Chain",
    "dzh": "读这条链的区块（节点在下面可以改）",
-   "den": "Read this chain's blocks (nodes editable below)"
+   "den": "Read this chain's blocks (nodes editable below)",
+   "hide": 1
   },
   {
    "k": "pads.ch.robinhood",
@@ -7605,7 +7607,8 @@
    "zh": "看 Robinhood",
    "en": "Watch Robinhood",
    "dzh": "读这条链的区块（节点在下面可以改）",
-   "den": "Read this chain's blocks (nodes editable below)"
+   "den": "Read this chain's blocks (nodes editable below)",
+   "hide": 1
   },
   {
    "k": "pads.ch.base",
@@ -7618,7 +7621,8 @@
    "zh": "看 Base",
    "en": "Watch Base",
    "dzh": "读这条链的区块（节点在下面可以改）",
-   "den": "Read this chain's blocks (nodes editable below)"
+   "den": "Read this chain's blocks (nodes editable below)",
+   "hide": 1
   },
   {
    "k": "pads.ch.eth",
@@ -7631,7 +7635,8 @@
    "zh": "看 Ethereum",
    "en": "Watch Ethereum",
    "dzh": "读这条链的区块（节点在下面可以改）",
-   "den": "Read this chain's blocks (nodes editable below)"
+   "den": "Read this chain's blocks (nodes editable below)",
+   "hide": 1
   },
   {
    "k": "pads.ch.arbitrum",
@@ -7644,7 +7649,8 @@
    "zh": "看 Arbitrum",
    "en": "Watch Arbitrum",
    "dzh": "读这条链的区块（节点在下面可以改）",
-   "den": "Read this chain's blocks (nodes editable below)"
+   "den": "Read this chain's blocks (nodes editable below)",
+   "hide": 1
   },
   {
    "k": "pads.ch.polygon",
@@ -7657,7 +7663,8 @@
    "zh": "看 Polygon",
    "en": "Watch Polygon",
    "dzh": "读这条链的区块（节点在下面可以改）",
-   "den": "Read this chain's blocks (nodes editable below)"
+   "den": "Read this chain's blocks (nodes editable below)",
+   "hide": 1
   },
   {
    "k": "pads.ch.xlayer",
@@ -7670,7 +7677,8 @@
    "zh": "看 X Layer",
    "en": "Watch X Layer",
    "dzh": "读这条链的区块（节点在下面可以改）",
-   "den": "Read this chain's blocks (nodes editable below)"
+   "den": "Read this chain's blocks (nodes editable below)",
+   "hide": 1
   },
   {
    "k": "pads.ch.monad",
@@ -7683,7 +7691,8 @@
    "zh": "看 Monad",
    "en": "Watch Monad",
    "dzh": "读这条链的区块（节点在下面可以改）",
-   "den": "Read this chain's blocks (nodes editable below)"
+   "den": "Read this chain's blocks (nodes editable below)",
+   "hide": 1
   },
   {
    "k": "pads.minTok",
@@ -7696,7 +7705,8 @@
    "zh": "判断成「新发射台」：至少发出几个新币（选填）",
    "en": "New tokens at least",
    "dzh": "选填。空白＝只照数量列清单（不判断、不发 TG）。填了（连同下面的分钟）＝同一个合约在这段时间发出这么多个新币就当成新发射台，开着 TG 通知时会通知你",
-   "den": "Optional. Empty = list by count only (no judging, no TG). Filled (with minutes below) = a contract that launches this many new tokens in that time counts as a new launchpad; TG alert if turned on"
+   "den": "Optional. Empty = list by count only (no judging, no TG). Filled (with minutes below) = a contract that launches this many new tokens in that time counts as a new launchpad; TG alert if turned on",
+   "hide": 1
   },
   {
    "k": "pads.winMin",
@@ -7709,7 +7719,8 @@
    "zh": "在几分钟内",
    "en": "Within minutes",
    "dzh": "单位 分钟。跟上面一起填才会判断",
-   "den": "Minutes. Empty = not judged"
+   "den": "Minutes. Empty = not judged",
+   "hide": 1
   },
   {
    "k": "pads.tg",
@@ -7722,7 +7733,8 @@
    "zh": "发现时也发 TG",
    "en": "Also send TG",
    "dzh": "判断成新发射台时发一则 TG（要填上面两个数字；已知的 Flap、Four.meme 不发）",
-   "den": "Send a TG message when a possible new launchpad is found (known ones like Flap, Four.meme are not sent)"
+   "den": "Send a TG message when a possible new launchpad is found (known ones like Flap, Four.meme are not sent)",
+   "hide": 1
   },
   {
    "k": "pads.ignore",
@@ -7732,7 +7744,8 @@
    "zh": "不看的合约",
    "en": "Ignore these contracts",
    "dzh": "合约地址，用逗号分开。这些合约不会被列出、也不会通知",
-   "den": "Contract addresses, comma separated. Never listed or notified"
+   "den": "Contract addresses, comma separated. Never listed or notified",
+   "hide": 1
   },
   {
    "k": "pads.rpc.bsc",
@@ -7743,7 +7756,8 @@
    "zh": "BNB Chain 节点网址",
    "en": "BNB Chain node URLs",
    "dzh": "只收 https 网址，用逗号分开（依序用，坏了换下一个）。预设是公开节点（不是官方，可能限流）。连线前会核对链编号，不对就停用那个节点。清空＝不连线",
-   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection"
+   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection",
+   "hide": 1
   },
   {
    "k": "pads.rpc.robinhood",
@@ -7754,7 +7768,8 @@
    "zh": "Robinhood 节点网址",
    "en": "Robinhood node URLs",
    "dzh": "只收 https 网址，用逗号分开（依序用，坏了换下一个）。预设是公开节点（不是官方，可能限流）。连线前会核对链编号，不对就停用那个节点。清空＝不连线",
-   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection"
+   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection",
+   "hide": 1
   },
   {
    "k": "pads.rpc.base",
@@ -7765,7 +7780,8 @@
    "zh": "Base 节点网址",
    "en": "Base node URLs",
    "dzh": "只收 https 网址，用逗号分开（依序用，坏了换下一个）。预设是公开节点（不是官方，可能限流）。连线前会核对链编号，不对就停用那个节点。清空＝不连线",
-   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection"
+   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection",
+   "hide": 1
   },
   {
    "k": "pads.rpc.eth",
@@ -7776,7 +7792,8 @@
    "zh": "Ethereum 节点网址",
    "en": "Ethereum node URLs",
    "dzh": "只收 https 网址，用逗号分开（依序用，坏了换下一个）。预设是公开节点（不是官方，可能限流）。连线前会核对链编号，不对就停用那个节点。清空＝不连线",
-   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection"
+   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection",
+   "hide": 1
   },
   {
    "k": "pads.rpc.arbitrum",
@@ -7787,7 +7804,8 @@
    "zh": "Arbitrum 节点网址",
    "en": "Arbitrum node URLs",
    "dzh": "只收 https 网址，用逗号分开（依序用，坏了换下一个）。预设是公开节点（不是官方，可能限流）。连线前会核对链编号，不对就停用那个节点。清空＝不连线",
-   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection"
+   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection",
+   "hide": 1
   },
   {
    "k": "pads.rpc.polygon",
@@ -7798,7 +7816,8 @@
    "zh": "Polygon 节点网址",
    "en": "Polygon node URLs",
    "dzh": "只收 https 网址，用逗号分开（依序用，坏了换下一个）。预设是公开节点（不是官方，可能限流）。连线前会核对链编号，不对就停用那个节点。清空＝不连线",
-   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection"
+   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection",
+   "hide": 1
   },
   {
    "k": "pads.rpc.xlayer",
@@ -7809,7 +7828,8 @@
    "zh": "X Layer 节点网址",
    "en": "X Layer node URLs",
    "dzh": "只收 https 网址，用逗号分开（依序用，坏了换下一个）。预设是公开节点（不是官方，可能限流）。连线前会核对链编号，不对就停用那个节点。清空＝不连线",
-   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection"
+   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection",
+   "hide": 1
   },
   {
    "k": "pads.rpc.monad",
@@ -7820,7 +7840,8 @@
    "zh": "Monad 节点网址",
    "en": "Monad node URLs",
    "dzh": "只收 https 网址，用逗号分开（依序用，坏了换下一个）。预设是公开节点（不是官方，可能限流）。连线前会核对链编号，不对就停用那个节点。清空＝不连线",
-   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection"
+   "den": "https URLs only, comma separated (up to 5). Defaults are public nodes (may rate-limit). The chain id is checked before use. Empty = no connection",
+   "hide": 1
   },
   {
    "k": "mca.on",

@@ -678,13 +678,14 @@ globalThis.DISC_Q = 0;
 const noLink = (x) => String(x || '').replace(/https?:\/\/\S+|www\.\S+|\b[\w-]+\.(xyz|com|io|org|net|app|online|fun|site|top|cc|me|link|vip|pro|club|live|info)\b\S*/gi, '[连结已移除]').slice(0, 160); 
 const DEX_SEL = /^0x(7ff36ab5|18cbafe5|38ed1739|8803dbee|fb3bdb41|4a25d94a|5c11d795|b6f9de95|791ac947|ded9382a|5b0d5984|e8e33700|f305d719|baa2abde|02751cec|af2979eb|04e45aaf|414bf389|c04b8d59|db3e2198|f28c0498|472b43f3|b858183f|09b81346|5ae401dc|ac9650d8|1f0464d1|3593564c|24856bc3|12aa3caf|0502b1c5|e449022e)/; /* 事实：PancakeSwap／Uniswap V2・V3、通用路由、1inch 的换币／加减流动性函式（不是铸造） */
 const INSC = new Map(); 
-const AGH = new Map(); 
+const AGH = new Map(); const AGTX = [], AGTX_MAX = 40000; /* 技术用：最近的交易（雜湊、送出的钱包、时间）最多留几笔 */ 
 const AG_SKIP = new Set(['0x55d398326f99059ff775485246999027b3197955', '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', '0x10ed43c718714eb63d5aa57b78b54704e256024e', '0x13f4ea83d0bd40e75c8222255bc855a974568dd4', '0x1a0a18ac4becddbd6389559687d1a73d8927e416', '0xca11bde05977b3631167028862be2a173976ca11', '0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d', '0xe9e7cea3dedca5984780bafc599bd69add087d56', '0xc5f0f7b66764f6ec8c8dff7ba683102295e16409', '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', '0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c', '0x2170ed0880ac9a755fd29b2688956bd959f933f8', '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82']); /* USDT、WBNB、路由、Multicall、BUSD、FDUSD、USDC、BTCB、ETH、CAKE */
 function agNote(t) { try {
-  if (!t.to || !t.from) return; const inp = (t.input || '0x').toLowerCase(); const sel = inp.slice(0, 10); const from = t.from.toLowerCase(); let tok = t.to.toLowerCase();
+  if (!t.to || !t.from) return; if (t.hash) { AGTX.push([String(t.hash), String(t.from).toLowerCase(), Date.now()]); if (AGTX.length > AGTX_MAX) AGTX.splice(0, AGTX.length - AGTX_MAX); } /*AICUR-1112 记下谁送了哪笔交易（之后只查 Agent ID 钱包那几笔的收据，看他们买到什么币）*/ const inp = (t.input || '0x').toLowerCase(); const sel = inp.slice(0, 10); const from = t.from.toLowerCase(); let tok = t.to.toLowerCase();
   if (/^0x(a9059cbb|095ea7b3|23b872dd|d0e30db0|2e1a7d4d)/.test(sel)) return;
   const pw = { '0x7ff36ab5': 1, '0xb6f9de95': 1, '0xfb3bdb41': 1, '0x38ed1739': 2, '0x5c11d795': 2, '0x8803dbee': 2 }[sel];
   if (pw) { const off = parseInt(inp.slice(10 + pw * 64, 10 + pw * 64 + 64), 16) * 2; const n = parseInt(inp.slice(10 + off, 10 + off + 64), 16); if (!(n >= 2 && n <= 5)) return; tok = '0x' + inp.slice(10 + off + 64 * n + 24, 10 + off + 64 * n + 64); }
+  if (!pw && inp.length >= 74 && /^0{24}[0-9a-f]{40}$/.test(inp.slice(10, 74)) && !/^0{24}0{20}/.test(inp.slice(10, 74))) { const at = '0x' + inp.slice(34, 74); if (at !== tok && !AG_SKIP.has(at) && !INFRA.has(at) && !/^0x0{40}$/.test(at)) { let m2 = AGH.get(at); if (!m2) { if (AGH.size <= 30000) { m2 = new Map(); AGH.set(at, m2); } } if (m2) m2.set(from, Date.now()); } } /*AICUR-1112 发射台内盘买卖（Four／Flap／GANG／AgentPad…）交易送到发射台合约，第一个参数通常是代币地址 → 也算这个代币有人在买；是不是代币后面会验证 */
   if (AG_SKIP.has(tok) || INFRA.has(tok)) return;
   let m = AGH.get(tok); if (!m) { if (AGH.size > 30000) return; m = new Map(); AGH.set(tok, m); } m.set(from, Date.now());
 } catch {} }
@@ -2558,7 +2559,7 @@ try { const { startAir } = await import('./air.mjs?v=' + Date.now()); startAir({
 try { const { startMintPick } = await import('./mintpick.mjs?v=' + Date.now()); globalThis.MINTPICK = startMintPick({ scanBack, DIR, S, save, WALLETS, rpc, rpcBatch, logsRpc, log, tg, freshDeadline, safeAddrs, revWhy, badSel, bnbUsd, previewExec, drainCheck, trackFromSim, codeOf, fullCode, estop: () => ESTOP(), manualOff: () => MANUAL_OFF(), confl: () => !!CONFL, locked: () => LOCKED(), keepBnb: () => PAID.keepBnb }); } catch (e) { log('选打法模组载入失败 ' + e.message); } /* 认不出打法的项目让你自己选 */
 try { const { startSentinel } = await import('./sentinel.mjs?v=' + Date.now()); globalThis.SENTINEL = startSentinel({ DIR, S, save, WALLETS, rpc, logsRpc, log, tgSay, nOnce, rhRpc: () => RH?.rpc || null }); } catch (e) { log('安全哨兵载入失败 ' + e.message); } /* 🛡 安全哨兵（只提醒，全部预设关） */
 try { const { startElysium } = await import('./elysium.mjs?v=' + Date.now()); globalThis.ELYSIUM = startElysium({ DIR, log, radarSet }); } catch (e) { log('Elysium 监测载入失败 ' + e.message); } /* ELY107 🌐 Elysium 只读监测：不给钱包、不签名、不送交易；开关 ely.on 预设关 */
-try { const PM = await import('./padscout.mjs?v=' + Date.now()); const { startPadScout } = PM; globalThis.PADMOD = PM; globalThis.PADSCOUT = startPadScout({ DIR, log, radarSet, tg: tgSay }); } catch (e) { log('新发射台发现载入失败 ' + e.message); } /* PADSCOUT-1112 🆕 新发射台发现：只读节点，不给钱包、不签名、不送交易；开关 pads.on 预设关 */
+try { const PM = await import('./padscout.mjs?v=' + Date.now()); globalThis.PADMOD = PM; /*SCOUT-1112 新发射台改由转接站统一扫（所有雷达共用，不用开关），这里只用名字表；不再每台各自连公开节点扫 */ } catch (e) { log('新发射台发现载入失败 ' + e.message); } /* PADSCOUT-1112 🆕 新发射台发现：只读节点，不给钱包、不签名、不送交易；开关 pads.on 预设关 */
 try { const { startMcAuto } = await import('./mcauto.mjs?v=' + Date.now()); if (MCT) globalThis.MCAUTO = startMcAuto({ DIR, WALLETS, log, tgSay, MCT }); else log('发射台自动买没启动：多链买卖模组没载入'); } catch (e) { log('发射台自动买载入失败 ' + e.message); } /* MCA-1112 各链发射台自动买：开关 mca.on 预设关；下单走 mctrade → W.baw（统一闸门） */
 try { const { startJournal } = await import('./journal.mjs?v=' + Date.now()); startJournal({ DIR, S, save, WALLETS, log, tg }); } catch (e) { log('交易日记载入失败 ' + e.message); } /* 交易日记，全部本地跑 */
 try { const { startPlugins } = await import('./plugins.mjs?v=' + Date.now()); await startPlugins({ DIR, WALLETS, log, tg, S, save, radarOff, radarSet, rpc, walletBusy: () => INFLIGHT > 0, keepBnb: () => PAID.keepBnb /* 传读取函式，设定改了马上生效 */, bnbUsd }); } catch (e) { log('外挂载入器失败 ' + e.message); } /* 量化外挂（网格、定投…），要在雷达按允许才载入 */
@@ -2779,6 +2780,41 @@ async function padLearnTick() { try {
   writeFileSync(join(DIR, 'data', 'pad_names.json.w'), JSON.stringify({ at: Date.now(), names, seen })); renameSync(join(DIR, 'data', 'pad_names.json.w'), join(DIR, 'data', 'pad_names.json')); if (k) save();
 } catch (e) { log('发射台认名字 ' + e.message); } }
 setTimeout(() => { padLearnTick(); setInterval(padLearnTick, PADL_T.ms); }, 20e3);
+/*AICUR-1112（Nancy：AI 专属要有「AI 内盘」看盘，跟一般代币一样分 新开盘／即将毕业／已毕业，链上扫到的自动归类、毕业自动搬）
+   作法：雷达本来就读每个区块（agNote），记下「谁在买哪个币」；这里每分钟整理一次：
+   ① 买家里有 Agent ID 的钱包、而且几乎都是 Agent ID 钱包（AI 专属内盘只有 Agent ID 能买）→ 算 AI 内盘的币
+   ② 验证是代币（读得到 decimals／名字）、标出发射台（padOf）、看有没有开池（有池子＝已毕业）
+   结果写 data/ai_board.json 给画面（只看，不会买；要不要买照「AI 热门代币」策略和你的条件）。不用开关，跟看盘一样一直在。 */
+const AIB_T = { ms: 60e3, winMs: 3600e3, keepMs: 6 * 3600e3, checkN: 1500, rcptN: 300, tokN: 60, listN: 150, minAg: 2, pairMs: 120e3 }; /* 显示用／技术用：多久整理一次、看最近多久的买家、多久没人买就拿掉、每次最多查几个钱包是不是 Agent、每次最多读几笔收据、每次最多新验证几个币、画面最多列几个、至少几个 Agent 钱包在买才列、多久重看一次有没有开池 */
+let AIB_BUSY = 0;
+const AIX = new Map(); /* 代币 → Map(Agent 钱包 → 时间)：从 Agent ID 钱包交易收据里看到他们收到的币 */
+const AIB_STABLE = new Set(['0x55d398326f99059ff775485246999027b3197955', '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c', '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', '0xe9e7cea3dedca5984780bafc599bd69add087d56', '0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d']); /* 事实：USDT、WBNB、USDC、BUSD、USD1（不是项目币） */
+async function aiBoardTick() { if (AIB_BUSY) return; AIB_BUSY = 1; try {
+  const now = Date.now(); S.aiB = S.aiB || {}; const B = S.aiB; const T0 = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+  /* ① 最近交易的送出钱包：没查过的先查是不是 Agent ID */
+  const want = []; const seenW = new Set(); for (let i = AGTX.length - 1; i >= 0 && want.length < AIB_T.checkN; i--) { const [, f, at] = AGTX[i]; if (now - at > AIB_T.winMs) break; if (seenW.has(f)) continue; seenW.add(f); if (!agentCache.has(f)) want.push(f); }
+  if (want.length) { const res = await rpcBatch(want.map((a) => ({ method: 'eth_call', params: [{ to: '0x' + REGISTRY, data: '0x70a08231' + wa(a) }, 'latest'] }))).catch(() => []); want.forEach((a, i) => { if (res[i] !== undefined) agentCache.set(a, !!res[i] && res[i].length >= 66 && BigInt(res[i].slice(0, 66)) > 0n); }); }
+  /* ② Agent ID 钱包的交易：读收据，看他们收到哪个币（Four／Flap／GANG／AgentPad… 不管走哪个合约都看得到） */
+  const rq = []; for (const x of AGTX) { if (x[3] || now - x[2] > AIB_T.winMs) continue; if (agentCache.get(x[1]) === true) { rq.push(x); if (rq.length >= AIB_T.rcptN) break; } else if (agentCache.get(x[1]) === false) x[3] = 1; }
+  if (rq.length) { const res = await rpcBatch(rq.map((x) => ({ method: 'eth_getTransactionReceipt', params: [x[0]] }))).catch(() => []);
+    rq.forEach((x, i) => { const r = res[i]; if (r === undefined) return; x[3] = 1; for (const l of r?.logs || []) { const tp = l?.topics; if (!Array.isArray(tp) || tp.length !== 3 || tp[0] !== T0) continue; if (('0x' + String(tp[2]).slice(26)).toLowerCase() !== x[1]) continue; const tk = String(l.address || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(tk) || AIB_STABLE.has(tk) || AG_SKIP.has(tk) || INFRA.has(tk)) continue; let m = AIX.get(tk); if (!m) { if (AIX.size > 20000) continue; m = new Map(); AIX.set(tk, m); } m.set(x[1], x[2]); } }); }
+  for (const [tk, m] of AIX) { for (const [a, t] of m) if (now - t > AIB_T.winMs) m.delete(a); if (!m.size) AIX.delete(tk); }
+  /* ③ 有 Agent 钱包在买的币：验证是代币、是新币（发射台发的）、标发射台、看有没有开池 */
+  let newN = 0;
+  for (const [c, m] of [...AIX].sort((p, q) => q[1].size - p[1].size)) { const ag = m.size; let x = B[c];
+    if (!x) { if (ag < AIB_T.minAg || newN >= AIB_T.tokN) continue; newN++;
+      const dec = await call(c, '0x313ce567').catch(() => null); if (!(dec && dec.length >= 66)) { B[c] = { bad: 1, at: now }; continue; }
+      const PD = await padOf(c).catch(() => null); if (!PD) continue; /* 读不到＝下次再查 */ if (PD.old) { B[c] = { bad: 1, at: now }; continue; } /* 很早就发的老币（像 CAKE）不是内盘币 */
+      const sym = tokStr(await call(c, '0x95d89b41').catch(() => null)) || ''; const nm = tokStr(await call(c, '0x06fdde03').catch(() => null)) || '';
+      x = B[c] = { first: now, sym: String(sym).slice(0, 24), name: String(nm).slice(0, 40), pad: PD.self ? '' : padLabel(PD), padA: PD.a || '' }; }
+    if (x.bad) continue; x.ag = ag; x.last = Math.max(...m.values());
+    if (!x.grad && (!x.pchk || now - x.pchk > AIB_T.pairMs)) { x.pchk = now; const p = await findPair({ addr: c }).catch(() => null); if (p) { x.grad = 1; x.gradAt = now; } } /* 有池子＝已经毕业（之后一般代币看盘也会收） */
+    if (x.padA) x.pad = padLabel({ a: x.padA }); }
+  for (const [c, x] of Object.entries(B)) if (now - (x.last || x.at || x.first || 0) > AIB_T.keepMs) delete B[c];
+  const list = Object.entries(B).filter(([, x]) => !x.bad && x.last).sort((a, b) => b[1].last - a[1].last).slice(0, AIB_T.listN).map(([c, x]) => ({ c, s: x.sym, n: x.name, ag: x.ag, first: x.first, last: x.last, pad: x.pad || '', grad: x.grad ? 1 : 0 }));
+  const f = join(DIR, 'data', 'ai_board.json'); writeFileSync(f + '.w', JSON.stringify({ at: now, win: AIB_T.winMs / 60e3, list })); renameSync(f + '.w', f);
+} catch (e) { log('AI 内盘看盘 ' + e.message); } finally { AIB_BUSY = 0; } }
+setTimeout(() => { aiBoardTick(); setInterval(aiBoardTick, AIB_T.ms); }, 30e3);
 async function agTokScan() {
   const TM = triMode('tok'); if (radarOff() || TM === 'off' || (TM === 'auto' && (AGTOK.usd == null || AGTOK.dayUsd == null))) return; /*TRI-1112 只观察不用填金额*/ /* 每笔／每天没填就不买 */ /* 新装好所有买入开关预设关，要自己打开 */ /* BSC 热门代币有自己的开关 */
   const now = Date.now(); S.agTok = S.agTok || {};
@@ -3317,7 +3353,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.4.18', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 一般版本只提醒；官方标「重要」的自动装（AUTOUPD-1112，可在设定关）；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.4.19', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 一般版本只提醒；官方标「重要」的自动装（AUTOUPD-1112，可在设定关）；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;

@@ -22,7 +22,7 @@ function stat() { const fresh = !!S.okAt && Date.now() - S.okAt < B2_STALE_MS; r
 function merge(j) {
   if (j.full || j.boot !== S.boot) S.m = {}; S.boot = String(j.boot || ''); S.seq = +j.seq || 0;
   for (const [ch, M] of Object.entries(j.m || {})) { if (!/^[a-z]{2,20}$/.test(ch) || !M || typeof M !== 'object') continue; const D = (S.m[ch] = S.m[ch] || {}); for (const [a, v] of Object.entries(M)) if (v && typeof v === 'object') D[a] = v; }
-  S.cols = j.cols && typeof j.cols === 'object' ? j.cols : S.cols; S.colsAt = j.colsAt || S.colsAt; S.at = +j.at || S.at; S.q = j.q || null; S.poll = j.poll || S.poll; S.tagErr = j.tagErr || {}; S.kinds = j.kinds && typeof j.kinds === 'object' ? j.kinds : null; S.backoff = +j.backoff || 0;
+  S.cols = j.cols && typeof j.cols === 'object' ? j.cols : S.cols; S.colsAt = j.colsAt || S.colsAt; S.at = +j.at || S.at; S.q = j.q || null; S.poll = j.poll || S.poll; S.tagErr = j.tagErr || {}; S.kinds = j.kinds && typeof j.kinds === 'object' ? j.kinds : null; S.backoff = +j.backoff || 0; S.scout = j.scout && typeof j.scout === 'object' ? j.scout : S.scout; /*SCOUT-1112 转接站扫到的新发射台*/
   { const keep = new Set(Object.values(S.cols).flat()); for (const M of Object.values(S.m)) for (const a of Object.keys(M)) if (!keep.has(a) && Date.now() - (+M[a].u || 0) > 6 * 3600e3 /* 技术用：记忆体里多久没更新的币拿掉 */) delete M[a]; }
   S.rev++; }
 /* 跟旧的签名看盘档合并：清单／价格以转接站为准，旧档的持有人标签（ht）、聪明钱（sm／sw）照留 */

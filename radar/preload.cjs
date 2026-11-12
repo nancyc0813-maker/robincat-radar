@@ -44,7 +44,7 @@ contextBridge.exposeInMainWorld('radar', {
   aveWsState: (s) => call('aveWsState', S(s, 10)), /* AVE-WSS：画面回报推送状态 */
   kolStats: (f) => call('kolStats', B(f)),
   signals: () => call('signals'),
-  pads: () => call('pads'), /*PADSCOUT-1112 新发射台（只看）*/
+  pads: () => call('pads'), aiBoard: () => call('aiBoard') /*AICUR-1112*/, /*PADSCOUT-1112 新发射台（只看）*/
   missed: () => call('missed'),
   backtest: (o) => call('backtest', O(o)),
   imgData: (u) => call('imgData', S(u, 2000)),

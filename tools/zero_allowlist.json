@@ -18445,6 +18445,276 @@
     "4e3"
    ],
    "reason": "KOLPIC2-1112：补查名字最多等多久就先显示地址（显示用），跟买卖无关"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "\\ !=\\ null\\ \\&\\&\\ v\\.pg\\ >=\\ 100\\)\\ \\?\\ 1\\ :\\ 0,\\ l",
+   "values": [
+    "100"
+   ],
+   "reason": "AICUR／INVBAR-1112：画面资料的技术参数（列几个币、补问几个、快取多久、毫秒换秒、进度 100%＝毕业是 AVE 资料定义、开机重试），跟买卖无关"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "INV\\.ok\\ \\&\\&\\ INV_TRY\\ <\\ 2\\ \\?\\ 1\\ :\\ 0\\ \\};\\ ",
+   "values": [
+    "2"
+   ],
+   "reason": "AICUR／INVBAR-1112：画面资料的技术参数（列几个币、补问几个、快取多久、毫秒换秒、进度 100%＝毕业是 AVE 资料定义、开机重试），跟买卖无关"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "m\\)\\ \\{\\ if\\ \\(AIX\\.size\\ >\\ 20000\\)\\ continue;\\ ",
+   "values": [
+    "20000"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "\\)\\ \\{\\ if\\ \\(AGH\\.size\\ <=\\ 30000\\)\\ \\{\\ m2\\ =\\ new",
+   "values": [
+    "30000"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "p\\)\\ \\|\\|\\ tp\\.length\\ !==\\ 3\\ \\|\\|\\ tp\\[0\\]\\ !=",
+   "values": [
+    "3"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "6\\ \\*\\ 3600e3,\\ checkN:\\ 1500,\\ rcptN:\\ 300",
+   "values": [
+    "1500"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "0,\\ tokN:\\ 60,\\ listN:\\ 150,\\ minAg:\\ 2,\\ ",
+   "values": [
+    "150"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "\\ listN:\\ 150,\\ minAg:\\ 2,\\ pairMs:\\ 12",
+   "values": [
+    "2"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "heckN:\\ 1500,\\ rcptN:\\ 300,\\ tokN:\\ 60,\\ ",
+   "values": [
+    "300"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": ",\\ rcptN:\\ 300,\\ tokN:\\ 60,\\ listN:\\ 150",
+   "values": [
+    "60"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "sage\\ \\|\\|\\ e\\)\\.slice\\(0,\\ 80\\)\\ \\};\\ \\}\\ \\}\\);",
+   "values": [
+    "80"
+   ],
+   "reason": "AICUR／INVBAR-1112：画面资料的技术参数（列几个币、补问几个、快取多久、毫秒换秒、进度 100%＝毕业是 AVE 资料定义、开机重试），跟买卖无关"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\ L2=L2\\.slice\\(0,10\\);const\\ h=L2",
+   "values": [
+    "10"
+   ],
+   "reason": "AICUR／KOLN-1112：画面显示用（多久刷新、最多列几个发射台／热门几名），跟买卖无关"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": ">b\\[1\\]\\-a\\[1\\]\\)\\.slice\\(0,12\\);",
+   "values": [
+    "12"
+   ],
+   "reason": "AICUR／KOLN-1112：画面显示用（多久刷新、最多列几个发射台／热门几名），跟买卖无关"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "B_NEW\\ =\\ 4,\\ AIB_MS\\ =\\ 10\\ \\*\\ 60e3;\\ /\\*\\ ",
+   "values": [
+    "10"
+   ],
+   "reason": "AICUR／INVBAR-1112：画面资料的技术参数（列几个币、补问几个、快取多久、毫秒换秒、进度 100%＝毕业是 AVE 资料定义、开机重试），跟买卖无关"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "\\ =\\ 4,\\ AIB_MS\\ =\\ 10\\ \\*\\ 60e3;\\ /\\*\\ 技术用：画面最",
+   "values": [
+    "60e3"
+   ],
+   "reason": "AICUR／INVBAR-1112：画面资料的技术参数（列几个币、补问几个、快取多久、毫秒换秒、进度 100%＝毕业是 AVE 资料定义、开机重试），跟买卖无关"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "ig:\\{\\}\\};const\\ AIC_MS=15e3;/\\*\\ 技术用：多久向雷",
+   "values": [
+    "15e3"
+   ],
+   "reason": "AICUR／KOLN-1112：画面显示用（多久刷新、最多列几个发射台／热门几名），跟买卖无关"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": ",\\ minAg:\\ 2,\\ pairMs:\\ 120e3\\ \\};\\ /\\*\\ 显示用／技",
+   "values": [
+    "120e3"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "\\ \\{\\ ms:\\ 60e3,\\ winMs:\\ 3600e3,\\ keepMs:\\ 6\\ ",
+   "values": [
+    "3600e3"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "3600e3,\\ keepMs:\\ 6\\ \\*\\ 3600e3,\\ checkN:\\ 15",
+   "values": [
+    "3600e3"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "TX\\ =\\ \\[\\],\\ AGTX_MAX\\ =\\ 40000;\\ /\\*\\ 技术用：最近的",
+   "values": [
+    "40000"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "const\\ AIB_T\\ =\\ \\{\\ ms:\\ 60e3,\\ winMs:\\ 360",
+   "values": [
+    "60e3"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "\\ win:\\ AIB_T\\.winMs\\ /\\ 60e3,\\ list\\ \\}\\)\\);\\ ",
+   "values": [
+    "60e3"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "Ms:\\ 3600e3,\\ keepMs:\\ 6\\ \\*\\ 3600e3,\\ c",
+   "values": [
+    "6"
+   ],
+   "reason": "AICUR-1112：AI 内盘看盘的技术／显示参数（多久整理、看最近多久、最多查几个钱包／收据／币、列几个、几个 Agent 钱包才列、多久看一次开池、记忆体上限、Transfer 事件固定 3 个 topic），只决定画面列什么，不会买卖"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/main\\.cjs$",
+   "match": "INVBAR-1112 技术用：刚开机第一次读不到",
+   "values": [
+    "5 秒"
+   ],
+   "reason": "INVBAR-1112：注解描述重试时间，不是规则"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "watch\\.mjs$",
+   "match": "now - \\(x\\.last \\|\\| x\\.at \\|\\|",
+   "values": [
+    "0"
+   ],
+   "reason": "AICUR-1112：没有时间就当很旧（拿掉），显示用"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "Math\\.floor\\(\\(\\+x\\.first \\|\\| 0\\) / 1000\\)",
+   "values": [
+    "1000"
+   ],
+   "reason": "AICUR-1112：毫秒换秒（技术用）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "AIB_C\\.set\\(c, \\{ at: Date\\.now\\(\\) - AIB_MS \\+ 60e3",
+   "values": [
+    "60e3"
+   ],
+   "reason": "AICUR-1112：读不到的币 1 分钟后再试（技术用）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "sort\\(\\(a,b\\)=>\\(b\\.ag\\|\\|0\\)-\\(a\\.ag\\|\\|0\\)\\)\\.slice\\(0,10\\)",
+   "values": [
+    "10"
+   ],
+   "reason": "AICUR-1112：热门 AI 内盘列前几名（显示用）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "可切换按市值\\*/arr=arr\\.slice\\(0,80\\)",
+   "values": [
+    "80"
+   ],
+   "reason": "SOON-1112：每栏最多画几个（显示用，跟原本一样）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/market\\.cjs$",
+   "match": "needInfo\\.size > 200",
+   "values": [
+    "200"
+   ],
+   "reason": "SOON-1112：排队读进度的上限（记忆体／节点次数，技术用）"
   }
  ]
 }
