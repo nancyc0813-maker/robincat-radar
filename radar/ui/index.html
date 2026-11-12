@@ -5826,7 +5826,7 @@ function list(box,html){
  const kids=[...box.children];const st=box.__st??0;
  const anim=!RM()&&!document.hidden&&box.isConnected&&!detOpen();
  const old=new Map();for(const el of kids){const k=keyOf(el);if(k)old.set(k,el)}
- const out=[];for(const n of nw){const k=keyOf(n);const o=k?old.get(k):null;if(o===n){old.delete(k);out.push(o);continue}if(o&&o.tagName===n.tagName){old.delete(k);const lv=anim&&seen(box,o,st);if(!lv||!rollable(o,n)){/* 效能：没有要滚的数字（或在画面外）→ 直接换成新节点，不逐一比对 */for(const f of ['__oy','__oh','__ox','__ow','__ix'])n[f]=o[f];out.push(n);continue}LIVE=true;morph(o,n);o.__html=n.__html;out.push(o)}else out.push(n)}
+ const out=[];for(const n of nw){const k=keyOf(n);const o=k?old.get(k):null;if(o===n){old.delete(k);out.push(o);continue}if(o&&o.tagName===n.tagName){old.delete(k);const lv=anim&&seen(box,o,st);LIVE=!!(lv&&rollable(o,n));morph(o,n);o.__html=n.__html;out.push(o)}/* 11/13 效能：同一张卡一律只改有变的字（以前没要滚的数字就整张换新节点，整张卡要重新排版；看盘每秒几十张） */else out.push(n)}
  if(anim)for(const [k,el] of old)if(seen(box,el,st)&&box.__r)GONE.set(k,{el,r:{left:box.__r.left+(el.__ox||0),top:box.__r.top+el.__oy-st,width:el.__ow,height:el.__oh}});/* 离开这一栏的卡：记下位置，给跨栏飞行用 */
  let i=0;for(const el of out){if(box.children[i]!==el)box.insertBefore(el,box.children[i]||null);i++}
  while(box.children.length>out.length)box.lastElementChild.remove();
