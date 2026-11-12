@@ -1100,7 +1100,7 @@ async function autoMint(c, fname, W = WALLETS[0], val = 0n) {
   if (W.noAid) return `ℹ️ ${W.name} 这个钱包还没有 Agent ID（币安 App 查过），AI 专属铸造跳过`; /*AID-13*/
   const p = await W.baw(['contract-call', 'preview', '--binanceChainId', '56', '--from', W.addr, '--to', c, '--value', val.toString(), '--inputData', d]);
   const sim = p.j?.data?.simulationResult, rid = p.j?.data?.requestId;
-  if (!p.j?.success || !rid) return '❌ 预演失败，没有铸：' + (p.j?.error?.message || '').slice(0, 120);
+  if (!p.j?.success || !rid) { const em = String(p.j?.error?.message || p.t || '').replace(/\s+/g, ' '); const known = /f947691f|NoAgentId/i.test(em) ? '这个钱包没有 Agent ID（这个币只给有 Agent ID 的钱包铸）' : /MintClosed|NotOpen|mint.?not.?open/i.test(em) ? '这个币还没开放或已经关闭铸造' : /MaxPerWallet|LimitExceeded|exceed/i.test(em) ? '这个钱包已经铸到上限' : /insufficient|balance/i.test(em) ? '钱包 BNB 不够付铸造费＋gas' : ''; return '❌ 预演失败，没有铸：' + (known ? known + '（' : '') + (em.slice(0, 120) || '币安钱包没有回原因') + (known ? '）' : ''); } /*MINTWHY-1112 预演失败要写原因（以前错误讯息空白时只显示「没有铸：」）*/
   { const fg = flapGuard(c, d, sim); if (fg) return '⛔ ' + fg + '，没有铸'; }
   const losing = (sim?.balanceChanges || []).filter((b) => String(b.owner).toLowerCase() === W.addr && Number(b.change) < 0 && !(String(b.contractAddress).toLowerCase().startsWith('0xeeee') && -Number(b.change) <= Number(val) && val > 0n)); /* 风控：扣的 BNB 不能比说好的多 */
   if (sim?.allowanceChanges?.length || sim?.authorityChanges?.length || losing.length) return '⚠️ 预演显示有授权或会扣你的资产，安全起见没有铸';
@@ -3353,7 +3353,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.4.24', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 一般版本只提醒；官方标「重要」的自动装（AUTOUPD-1112，可在设定关）；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.4.25', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 一般版本只提醒；官方标「重要」的自动装（AUTOUPD-1112，可在设定关）；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;

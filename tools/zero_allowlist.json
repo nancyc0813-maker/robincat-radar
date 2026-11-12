@@ -18813,6 +18813,15 @@
     "60e3"
    ],
    "reason": "GAP-1112：读不到的币多久后再试（技术用）"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "watch\\.mjs$",
+   "match": "MintClosed\\|NotOpen",
+   "values": [
+    "MintClosed|NotOpen|mint.?not.?open"
+   ],
+   "reason": "MINTWHY-1112：把币安钱包预演失败的错误讯息翻成白话（只影响显示，不影响买不买）"
   }
  ]
 }
