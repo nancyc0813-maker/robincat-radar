@@ -18749,6 +18749,70 @@
     "1000"
    ],
    "reason": "SOON24-1112：毫秒换秒（技术用）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "if \\(CRQ\\.size < 60\\)",
+   "values": [
+    "60"
+   ],
+   "reason": "GAP-1112：风险排队上限（记忆体，技术用）"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/main\\.cjs$",
+   "match": "每张 10 个 AVE 额度",
+   "values": [
+    "10 个"
+   ],
+   "reason": "GAP-1112：注解说明 AVE 计费，不是规则"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/main\\.cjs$",
+   "match": "背景排队、30 分钟快取",
+   "values": [
+    "30 分钟"
+   ],
+   "reason": "GAP-1112：注解描述快取时间"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/main\\.cjs$",
+   "match": "CRF\\.get\\(hn \\+ .\\|. \\+ x\\.c\\) \\|\\| 0\\)",
+   "values": [
+    "0"
+   ],
+   "reason": "GAP-1112：没有失败纪录＝很久以前（技术用）"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\^\\(i\\|home\\|search\\|intent",
+   "values": [
+    "^(i|home|search|intent|hashtag|share|explore|messages|notifi"
+   ],
+   "reason": "GAP-1112：X 网址里不是帐号名的路径（事实），显示用"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/ui/index\\.html$",
+   "match": "String\\(x\\.xl\\|\\|..\\)\\.match",
+   "values": [
+    "^https:\\/\\/(?:www\\.|mobile\\.)?(?:x|twitter)\\.com\\/([A-Za-z0-"
+   ],
+   "reason": "GAP-1112：从推特网址取帐号名（显示用）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "CRF_MS = 5 \\* 60e3",
+   "values": [
+    "5",
+    "60e3"
+   ],
+   "reason": "GAP-1112：读不到的币多久后再试（技术用）"
   }
  ]
 }
