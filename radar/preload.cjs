@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('radar', {
   aveStats: (n) => call('aveStats', S(n, 20)),
   holdHealth: () => call('holdHealth'),
   walletPnl: (f) => call('walletPnl', B(f)),
+  pxBar: () => call('pxBar'), /* LIVE-1113 底部价格列 */
   tape: (n, a, p, l) => call('tape', S(n, 20), S(a, 64), S(p, 80), B(l)), /* TAPE-1113 l＝AVE 推送正在推这个币的成交 */
   /*FBM-BEGIN*/walletInfo: (n, a) => call('walletInfo', S(n, 20), S(a, 64)), /* 交易者钱包页（AVE 唯读） *//*FBM-END*/
   livePx: (n, a, p) => call('livePx', S(n, 20), S(a, 64), S(p, 80)),
@@ -49,6 +50,9 @@ contextBridge.exposeInMainWorld('radar', {
   backtest: (o) => call('backtest', O(o)),
   imgData: (u) => call('imgData', S(u, 2000)),
   candles: (n, p, tf) => call('candles', S(n, 20), S(p, 80), S(tf, 10)),
+  klineHist: (n, a, p, tf, before, meta) => call('klineHist', S(n, 20), S(a, 64), S(p, 80), S(tf, 10), N(before), B(meta)), /* KH-1113 K 线历史：[{t 毫秒,o,h,l,c,v 美金}]；meta＝true 回 {src,pool,bars} */
+  okxMkt: (act, k, s2, p2) => call('okxMkt', ['save', 'clear'].includes(act) ? act : 'status', S(k, 100), S(s2, 200), S(p2, 100)), /* OKX-1113 OKX 资料金钥：status／save／clear（金钥不会回传） */
+  srcStat: () => call('srcStat'), /* NODE-1113 资料来源状态 */
   login: (i) => call('login', N(i)),
   netCheck: () => call('netCheck'), /*NET123 检查网路（只读）*/
   copyGuide: (x) => call('copyGuide', S(x, 600)),

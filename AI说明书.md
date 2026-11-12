@@ -237,6 +237,7 @@ Agent 钱包数：引擎一轮最多看 4000 笔铸造交易／4000 个钱包（
 | 看盘资料来源（HOT126）：看盘清单（转接站 `/aveboard2`）和价格推送（`/avews` 的价格）不用钱包也拿得到（访客通行证，只能读这两样）；详情、持有人、K 线、成交照旧要绑定。热门分页＝AVE 热门榜原本的顺序（点表头才改排序）。AVE 连不上时看盘顶端红字写原因，先显示本机链上资料（同样的分栏和排序） | 无 | 转接站变数 `GUEST_IP_RPM`（每个 IP 每分钟几次，营运设定） |
 | ⛏ 其他链／自有网络（GitHub 观察，GHM-1104）：贴 GitHub 项目网址，雷达轮流看最新提交、最新版本／标签，有新动态标红点；只读公开资料、只提醒 | `mine.ghMy`（你加的项目）、`mine.ghNotify`（新版本／标签通知）、`mine.ghNotifyCommit`（新提交通知），通知都预设关 | `data/gh_mine.json`；官方推荐清单＝签名过的 remote `mineGh[]`（`repo`／`url`、`name`、`note`） |
 | ⭐ 自选、🔔 价格提醒、🔔 通知中心、用名字找币、设定搜寻、⌨️ 快捷键（PL-1104）：只显示和提醒，不买、不卖、不挡单 | `px.watch`（自选＋你自己填的提醒数字，空着＝不提醒）、`px.sysNote`（电脑系统通知，预设关） | `data/radar_settings.json` |
+| 🔌 资料来源（NODE-1113／OKX-1113／KH-1113）：自己的节点（看盘、成交、K 线读链先问它，公开节点备用；查事件被拒的节点自动先不问）、OKX 行情备用（AVE 慢／读不到时；自己的 OKX 金钥加密存本机，每月次数到上限自动停）、K 线历史 `klineHist`（GeckoTerminal → AVE → OKX → 读链）。只显示，不影响买卖 | `rpc.bsc.url`／`rpc.bsc.wss`／`rpc.rh.url`／`rpc.rh.wss`（空白＝只用公开节点；手机看不到也改不到）、`okx.mkt.on`（预设关）、`okx.mkt.cap`（每月每一级最多几次） | `data/radar_settings.json`、`data/okx_mkt_key.bin`（加密金钥，AI 不准读）、`data/okx_mkt_usage.json` |
 
 - 雷达视窗这边的新功能都在 `radar/next.cjs`（main.cjs 只接 4 个小钩子）；每周检讨的计算在 `weekly.mjs`；排程在 `journal.mjs`。
 - 官方挖矿清单（remote.json `mine[]`）多了这些栏位（都是选填，格式不对就当没填）：`id`、`scope`（`ai`／`gen`）、`kind`（`interact`／`stake`／`lp`／`checkin`／`agent`／`other`）、`cost`（`free`／`deposit`）、`costUsd`、`chain`（`bsc`／`rh`／`eth`／`base`／`arb`／`sol`／`other`）、`status`（`live`／`soon`／`ended`）、`rewardTok`、`approve`（1／0）、`verified`（1）、`startAt`（开始时间，画面显示倒数）、`risk`（`{ src, level: red／yellow／info, text }`，只显示）、`riskUrl`。

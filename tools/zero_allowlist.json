@@ -18868,6 +18868,279 @@
     "1000"
    ],
    "reason": "LIVE-1113 技术用：每秒检查一次要不要重抓（实际重抓间隔看 DT_LIVE_MS），只影响显示"
+  },
+  {
+   "rule": "^(CMP|COMMENT_NUM|OBJNUM|TIMEWIN)$",
+   "file": "radar\\/klinehist\\.cjs$",
+   "values": [
+    "1000",
+    "10800",
+    "120e3",
+    "2",
+    "20e3",
+    "21600",
+    "259200",
+    "2592000",
+    "30 次",
+    "30e3",
+    "3600",
+    "43200",
+    "604800",
+    "8 个",
+    "86400"
+   ],
+   "reason": "KH-1113 K 线历史（只拿来画图，不影响买卖）：周期秒数表（1 分～月线）、GeckoTerminal 令牌桶与快取时间、毫秒换秒、至少 2 根才画——全部是技术用的运作常数，不是买卖门槛"
+  },
+  {
+   "rule": "^(CMP|COMMENT_NUM|FALLBACK0|NUMSTR|SLICE|TIMEWIN)$",
+   "file": "radar\\/okxmkt\\.cjs$",
+   "values": [
+    "'501'",
+    "'8453'",
+    "0",
+    "1.0001",
+    "10 万",
+    "100",
+    "1000",
+    "10e3",
+    "20e3",
+    "24",
+    "300",
+    "3600e3",
+    "5e3",
+    "6000",
+    "60e3",
+    "8",
+    "80",
+    "90000"
+   ],
+   "reason": "OKX-1113 OKX 行情（只显示）：OKX 官方链编号（501 Solana、8453 Base）、快取时间、逾时、每秒请求数、每月次数保护上限（免费 10 万次的九成，防止被收费；玩家可改 okx.mkt.cap）、占比单位判断（1.0001）、字串截断、密码长度——技术用，不影响买卖"
+  },
+  {
+   "rule": "^(CMP|COMMENT_NUM|FALLBACK0|KWLIST|NUMSTR|SLICE|TIMEWIN)$",
+   "file": "radar\\/rpcpool\\.cjs$",
+   "values": [
+    "'13'",
+    "'2.0'",
+    "0",
+    "10",
+    "100",
+    "10e3",
+    "12000",
+    "126",
+    "127",
+    "16",
+    "160",
+    "1e7",
+    "2",
+    "20",
+    "2000",
+    "3 秒",
+    "300",
+    "30e3",
+    "32005",
+    "4",
+    "400",
+    "5e6",
+    "60",
+    "60e3",
+    "65536",
+    "8",
+    "80",
+    "8000",
+    "9",
+    "90e3",
+    "fetch failed|ECONN|ENOTFOUND|socket|network|http 5\\d\\d|429"
+   ],
+   "reason": "NODE-1113 节点池＋小型 WebSocket 用户端（只读）：JSON-RPC 版本字串、WebSocket 协定常数（13、126、127、65536、帧标头位元）、节点错误码（-32005、HTTP 400/429）、断路器暂停时间、逾时、网址长度上限、错误讯息截断——技术用，不影响买卖"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "PXB_MS = 4000",
+   "values": [
+    "4000"
+   ],
+   "reason": "LIVE-1113 底部价格列（只显示）最快几毫秒问一次币安／DexScreener，技术用"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar\\/main\\.cjs$",
+   "match": "LIVE-1113 底部价格列",
+   "values": [
+    "60 秒"
+   ],
+   "reason": "LIVE-1113 注解说明以前引擎每 60 秒写一次余额档（描述旧行为，不是门槛）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/main\\.cjs$",
+   "match": "n < 0x110000 \\? String\\.fromCodePoint",
+   "values": [
+    "0x110000"
+   ],
+   "reason": "LIVE-1113 新闻标题 HTML 实体还原：Unicode 码位上限（规格常数）"
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar\\/main\\.cjs$",
+   "match": "maxMs \\|\\| 15e3",
+   "values": [
+    "15e3"
+   ],
+   "reason": "OKX-1113 等 AVE／OKX 行情最多几毫秒（技术用逾时，只影响显示）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/main\\.cjs$",
+   "match": "\\+\\+n === 2\\) res\\(\\{\\}\\)",
+   "values": [
+    "2"
+   ],
+   "reason": "OKX-1113 AVE 和 OKX 两个来源都回了才结束（来源数量）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar\\/main\\.cjs$",
+   "match": "String\\(er\\?\\.message \\|\\| er\\)\\.slice\\(0, 80\\)",
+   "values": [
+    "80"
+   ],
+   "reason": "KH-1113／OKX-1113 错误讯息截断长度（显示用）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "tokOrOkx\\(net, addr, 8000",
+   "values": [
+    "8000"
+   ],
+   "reason": "OKX-1113 详情即时更新最多等 8 秒（跟原本 tokenQuick 同一个逾时）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/market\\.cjs$",
+   "match": "RP\\.rpc\\('bsc', method, params, 12000",
+   "values": [
+    "12000"
+   ],
+   "reason": "NODE-1113 读链逾时毫秒（跟原本相同），技术用"
+  },
+  {
+   "rule": "TIMEWIN|CMP",
+   "file": "radar\\/market\\.cjs$",
+   "match": "SEEN_MAX = 20000|k\\.length > 2\\) \\{ if \\(SEEN",
+   "values": [
+    "20000",
+    "2"
+   ],
+   "reason": "NODE-1113 事件去重记几则／键是否为空，技术用"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/v4\\.cjs$",
+   "match": "method, params, 15000\\)",
+   "values": [
+    "15000"
+   ],
+   "reason": "NODE-1113 读链逾时毫秒（跟原本相同），技术用"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar\\/ui\\/index\\.html$",
+   "match": "\\+v\\.at>\\(\\+PXBV\\?\\.at\\|\\|0\\)",
+   "values": [
+    "0"
+   ],
+   "reason": "LIVE-1113 底部价格列：比较两份价格哪个新（时间戳，没有＝最旧），只影响显示"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/ui\\/index\\.html$",
+   "match": "sec<60\\?",
+   "values": [
+    "60"
+   ],
+   "reason": "LIVE-1113 最后成交 60 秒内显示「几秒前」（时间单位换算，只影响显示）"
+  },
+  {
+   "rule": "OBJNUM|CMP",
+   "file": "relay\\/worker\\.js$",
+   "match": "status: (400|429|502)|dr\\.status (===|!==) (503|200)",
+   "values": [
+    "400",
+    "429",
+    "502",
+    "503",
+    "200"
+   ],
+   "reason": "SHARE-1113 HTTP 状态码（协定常数）"
+  },
+  {
+   "rule": "CMP|TIMEWIN",
+   "file": "relay\\/worker\\.js$",
+   "match": "AVE_SHARE_MAX_[SBN] = ",
+   "values": [
+    "48",
+    "20",
+    "6000",
+    "3600"
+   ],
+   "reason": "SHARE-1113 转接站共用快取：最多占多少记忆体（48MB，Durable Object 上限 128MB）／最多几笔，技术用"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar\\/main\\.cjs$",
+   "match": "rows: L\\.filter\\(\\(r\\) => !r\\.f\\)\\.slice\\(0, 60\\)",
+   "values": [
+    "60"
+   ],
+   "reason": "OKX-1113 成交明细一次显示几笔（跟读链／AVE 成交同样 60 笔），只影响显示"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/ui\\/index\\.html$",
+   "match": "Date\\.now\\(\\)-DTLV\\.pt>=1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "LIVE-1113 详情页最后成交秒数每秒重画一次（画面更新频率），只影响显示"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/ui\\/index\\.html$",
+   "match": "\\(Date\\.now\\(\\)-la\\)\\/1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "LIVE-1113 毫秒换秒（显示几秒前）"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar\\/ui\\/index\\.html$",
+   "match": "\\+V\\.at>\\(\\+B\\.at\\|\\|0\\)",
+   "values": [
+    "0"
+   ],
+   "reason": "LIVE-1113 底部价格列：比较两份价格哪个新（没有时间＝最旧），只影响显示"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar\\/market\\.cjs$",
+   "match": "RP\\.order\\('bsc', 'eth_call'\\)\\.slice\\(0, 2\\)",
+   "values": [
+    "2"
+   ],
+   "reason": "NODE-1113 批次读合约最多试前 2 个节点（原本 RPCS.slice(0, 2) 的同一个技术常数，只改成用节点池的顺序）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/v4\\.cjs$",
+   "match": "C\\.rpcs\\.length < 8\\) \\{ C\\.rpcs\\.push\\(u\\); RP\\.addPub",
+   "values": [
+    "8"
+   ],
+   "reason": "NODE-1113 每条链最多几个公开节点（原本就有的技术上限，只多加进节点池）"
   }
  ]
 }

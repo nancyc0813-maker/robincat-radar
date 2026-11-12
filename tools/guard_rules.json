@@ -75,7 +75,8 @@
   "rpc-live.boxa.club": "Elysium 社群节点（ELY107：只读 eth_chainId／eth_blockNumber／eth_getLogs／eth_call；不是官方；玩家可在设定改）",
   "ave.ai": "只给玩家点开的连结（ELY107：https://ave.ai/token/<合约>-elysium，浏览器打开，雷达不送资料）",
   "proofmine.fun": "Pol · Proof of Liquidity 官网（POL-MINE：只用来让你按「看项目」打开网页；雷达不从这个网站读资料，参与／领回只走链上合约、经过统一动作闸门）",
-  "www.binance.com": "PROXY122：只给 resolveProxy 问电脑系统「币安钱包程式 baw 连 www.binance.com 要不要走代理」（读系统代理／PAC 设定），雷达主程式本身不会连这个网址；真正连线的是币安官方的 baw"
+  "www.binance.com": "PROXY122：只给 resolveProxy 问电脑系统「币安钱包程式 baw 连 www.binance.com 要不要走代理」（读系统代理／PAC 设定），雷达主程式本身不会连这个网址；真正连线的是币安官方的 baw",
+  "web3.okx.com": "OKX-1113 OKX OnchainOS 行情 API（玩家自己填金钥、预设关才会连；只读价格／K 线／成交／持有人，只拿来显示，不碰钱包、不下单）"
  },
  "allow": [
   {
