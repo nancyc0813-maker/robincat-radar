@@ -667,7 +667,7 @@ function qbAsk(net,u,after){const en=L==='en';let m=document.getElementById('qbA
 function qbRefresh(){try{hbBar();hbRender()}catch{}try{if(DTA&&$('#dtl')?.style.display!=='none')dtTrade(...DTA)}catch{}try{if(typeof fmRender==='function')fmRender()}catch{}qbFix()}
 function qbUnit(net,u,after){const Q=QB[net];if(!Q)return;Q.sets=Q.sets||{};Q.u=u;Q.v=(Q.sets[u]||[]).slice();qbSave();qbRefresh();after&&after();if(!(Q.v.length===3&&Q.v.every(x=>x>0)))qbAsk(net,u)}
 function qbFix(){document.querySelectorAll('button.qbB,[data-sqb],[data-sgb]').forEach(b=>{const tx=b.textContent.trim();if(/^⚡\s*(undefined|NaN)?\s*(BNB|ETH|USDG|U)?$/.test(tx)){b.textContent=L==='en'?'⚡ Set amount':'⚡ 设金额';b.title=L==='en'?'Set your quick-buy amounts first':'先设定快速买金额（填你自己的金额）';b.classList.add('qbNo')}});/*UXP2-QBNO 同一列只留第一颗*/document.querySelectorAll('button.qbNo').forEach(b=>{const f=b.parentElement&&b.parentElement.querySelector('button.qbNo');const h=!!(f&&f!==b);if((b.style.display==='none')!==h)b.style.display=h?'none':''})}
-{let qf=0;new MutationObserver(()=>{if(qf)return;qf=requestAnimationFrame(()=>{qf=0;qbFix()})}).observe(document.body,{childList:true,subtree:true})}
+{let qf=0;new MutationObserver((ms)=>{if(qf||window.rcMutSkip&&rcMutSkip(ms))return;qf=requestAnimationFrame(()=>{qf=0;qbFix()})}).observe(document.body,{childList:true,subtree:true})}
 document.addEventListener('click',(e)=>{const b=e.target.closest?.('button.qbNo');if(b){e.preventDefault();e.stopImmediatePropagation();const net=b.dataset.sgn==='robinhood'||(b.closest('#hbCols,#fmL,#fmB')&&typeof CH!=='undefined'&&CH==='robinhood')?'robinhood':(DTA&&b.closest('#dtT')?DTA[0]:(typeof CH!=='undefined'&&/^(robinhood|rh)/.test(CH)?'robinhood':'bsc'));qbAsk(net,QB[net].u);return}const a=e.target.closest?.('[data-hu]');if(a){qbUnit(a.dataset.hn||'bsc',a.dataset.hu)}},true);
 
 
@@ -877,7 +877,7 @@ setTimeout(()=>{try{Promise.resolve(window.radar?.uiLang?.(L)).catch(()=>{})}cat
 if(DICT['AVE 注册 ↗']==null)DICT['AVE 注册 ↗']='AVE sign-up ↗';DICT['提供。想在 AVE 上看盘交易：']='. To trade on AVE: ';/*I18N-FIX-AVE*/
 const T2S_A="丟並佇佔來倉個們偵備傳價優兌內兩冊別刪則剛創動勵區卻參問啟單嚴國圍圖執報場塊塵壞夠夾學實審寫寬寶將專尋對導層屬帳帶幣幫幾庫廠廢張強彈後從復態慮戰戲戶掃掛換搶擇擊擋據擠擬敗數斷於時暫會東條棄標樣機檔檢檻權歡歸殺決沒淨減測湊準滿漲濾瀏為無熱燒爭爾狀獎獨現產當發監盤確碼礎稅種稱穩筆節範簡簽紀約級細組結絕給統經維網線編緩縮總績繞繼續罵聰聲聽腦與舊萬蓋處號補裝裡複見規視覽觀訂計訊討記設許註詞詢試話誌認語誤說調請論證議護讀變讓負貨貴買費貼資賣賺購贔蹤較載輔輕輪輯輸轉迴這連進遊運過達遠選還邊邏釣鈴銘錄錢錯鍵鎖鏈鐘鑄鑰長門閉開間關隊階際隨險難電靜響頁項順須預領頭頻顆題額類顯風餘馬騙驗驟魚麼點齊龍",T2S_B="丢并伫占来仓个们侦备传价优兑内两册别删则刚创动励区却参问启单严国围图执报场块尘坏够夹学实审写宽宝将专寻对导层属帐带币帮几库厂废张强弹后从复态虑战戏户扫挂换抢择击挡据挤拟败数断于时暂会东条弃标样机档检槛权欢归杀决没净减测凑准满涨滤浏为无热烧争尔状奖独现产当发监盘确码础税种称稳笔节范简签纪约级细组结绝给统经维网线编缓缩总绩绕继续骂聪声听脑与旧万盖处号补装里复见规视览观订计讯讨记设许注词询试话志认语误说调请论证议护读变让负货贵买费贴资卖赚购赑踪较载辅轻轮辑输转回这连进游运过达远选还边逻钓铃铭录钱错键锁链钟铸钥长门闭开间关队阶际随险难电静响页项顺须预领头频颗题额类显风余马骗验骤鱼么点齐龙";const T2S=new Map([...T2S_A].map((c,i)=>[c,[...T2S_B][i]]));const toS=(x)=>String(x).replace(/[\u4e00-\u9fff]/g,(c)=>T2S.get(c)||c); /* 引擎的消息有些是繁体，画面统一显示简体 */
 function TT(s){if(s==null)return s;if(L!=='en')return toS(s);const s0=toS(String(s));/*I18N-FIX：引擎消息先转简体再查字典*/const k=s0.trim();if(DICT[k]!=null)return s0.replace(k,DICT[k]);return s0.replace(/^✅ 强制打 (.+?) 成功(?:（(.+?)）)?，已加入持仓$/,(m,n,w)=>`✅ Force mint ${n} succeeded${w?' ('+w+')':''} — added to Holdings`).replace(/^❌ 强制打 (.+?) 没打成：/,'❌ Force mint $1 failed: ').replace(/看起来已经铸完了（名额没了）|已经铸完（名额没了）/,'sold out (no spots left)').replace(/没打成功（预演没过、钱包登出或余额不够，详细看[纪记]录）/,'did not go through (simulation failed, wallet logged out or not enough balance — see the live log)').replace(/一份就要约 ([\d.]+)U，超过这次预算 ([\d.]+)U/,'one share costs about $1U, over this budget of $2U').replace(/还看不懂这个合约怎么铸造（正在学别人的打法），这次没打/,"can't read how this contract mints yet (still learning from other wallets)").replace(/官方暂停所有买入中，强制打不执行/,'all buying is paused by the official notice').replace(/另一个雷达正在用同一个钱包，强制打不执行/,'another radar is using the same wallet').replace(/「手动买卖」没打开，强制打不执行/,'“Manual trading” is off').replace(/钱包 BNB 不够（要约 ([\d.]+) BNB，还要留手续费）/,'not enough BNB in the wallet (needs about $1 BNB plus gas)').replace(/读不到 BNB 价格，这次没打/,"couldn't read the BNB price")/*V102-UPDEN 一键更新消息英文*/.replace(/^✅ 已更新到 v([\d.]+)（(\d+) 个档案，设定都保留）。(?:雷达会自动重开一次。)?引擎会自动重启载入。\n\n✋ [\s\S]*$/,'✅ Updated to v$1 ($2 files, settings kept). The engine restarts automatically.\n\n✋ Some files you (or your AI) had changed were replaced by the official version. Your old copies are backed up under data/ — open data/my_changes.md and paste it to your AI to add your features back.').replace(/^目前已[經经]是最新版$/,'Already on the latest version').replace(/^⚠️ 下[載载]新版清单失[敗败]，等一下再[試试]$/,'⚠️ Could not download the update list — try again in a moment').replace(/^⚠️ 下[載载] (\S+) 失[敗败]，等一下再[試试]（还没改动任何档案）$/,'⚠️ Downloading $1 failed — try again in a moment (nothing was changed)').replace(/^⚠️ (\S+) 校验不符（GitHub 刚更新、快取还没同步），稍后再试（还没改动任何档案）$/,"⚠️ $1 does not match the signed list yet (GitHub cache not synced) — try again later (nothing was changed)").replace(/^⛔ 新版 (\S+) 语法检查没过，已取消（还没改动任何档案）$/,'⛔ The new $1 failed the syntax check — cancelled (nothing was changed)').replace(/^⛔ 新版签名不对（不是官方发的），为了安全已拒绝更新$/,'⛔ The update signature is wrong (not official) — refused for safety').replace(/^⛔ 新版签名验证失败，已拒绝更新$/,'⛔ Update signature check failed — refused').replace(/^⛔ 新版清单不比目前的新（可能是降级攻击），已拒绝$/,'⛔ The update list is not newer than yours (possible downgrade) — refused').replace(/^✅ 已更新到 v([\d.]+)（(\d+) 个档案，设定都保留）。(?:雷达会自动重开一次。)?引擎会自动重启载入。$/,'✅ Updated to v$1 ($2 files, settings kept). The engine restarts automatically.').replace(/^目前已[經经]是最新版 v([\d.]+)$/,'Already on the latest version v$1').replace(/下[載载]新版失[敗败]，等一下再[試试]/,'Download failed — try again in a moment').replace(/新版资料不完整（缺官方签名清单），为了安全没有更新/,'Update data is incomplete (no official signature list) — not updated, for safety').replace(/^頻道項目$|^频道项目$/,'Channel project').replace(/^鑄造項目$|^铸造项目$/,'Mint project').replace(/进度要 (\d+)%、AI 钱包要 (\d+) 个/,'Needs $1% progress & $2 AI wallets').replace(/同一[個个]部署者 (\S+?) ?24 ?小[時时]内?[內内]?部署了 ?(\d+) ?[個个]项?[項项]?目/,'Same deployer $1 launched $2 projects in 24h').replace(/同名[［\[「]?([^\]］」]+)[\]］」]? ?24 ?小[时時]内已经出现过 ?(\d+) ?个合约（这是第 ?(\d+) ?个，像在钓自动铸造）/,'Same name [$1] already seen in $2 contract(s) in 24h (this is #$3 — looks like bait for auto-minters)').replace(/部署者在官方黑名单/,'Deployer is on the official blacklist').replace(/总盘太小（(.+?)，要 ([\d.]+) BNB 以上）/,'Total size too small ($1, needs $2 BNB+)').replace(/，?可能是定点钓鱼/,' — possible targeted bait').replace(/^已铸完$/,'Sold out').replace(/(\d) ?份 ×/g,'$1 shares ×').replace(/，/g,', ').replace(/(\d+) ?小时真实买家 (\d+) 个（要 (\d+) 个[^）]*）/,'$2 real buyers in $1h (need $3)').replace(/(\d+) 分钟内真人钱包 (\d+) 个（要 (\d+) 个）/,'$2 real minters in $1 min (need $3)').replace(/捆绑钱包持有 ([\d.]+)%（上限 (\d+)%）/,'Bundled wallets hold $1% (max $2%)').replace(/前 10 大持有 (\d+)%（上限 (\d+)%）/,'Top-10 hold $1% (max $2%)').replace(/部署者自己持有 ([\d.]+)%（上限 (\d+)%）/,'Deployer holds $1% (max $2%)').replace(/同名有好几个币（仿盘），跳过/,'Copycat: several tokens share this name').replace(/流动性 \$(\d+)，要 \$(\d+) 以上/,'Liquidity $$$1, need $$$2+').replace(/新开钱包占 (\d+)%（上限 (\d+)%[^）]*）/,'Fresh wallets $1% (max $2%)').replace(/找不到一般人自己铸造的交易（可能要白名单或签名）/,'No public self-mint found (allowlist/signature?)').replace(/一次(铸造要)?约 ([\d.]+)U（超过设定 ([\d.]+)U）/,'~$2U per mint (over your $3U)').replace(/^还没检查$/,'Not checked yet').replace(/^符合条件$/,'Eligible').replace(/^已打$/,'Bought').replace(/照規則不打|照规则不打/g,'skipped by rules').replace(/，?先不打.*$/,' — skipped for now').replace(/讀不到進度|读不到进度/,'progress unreadable').replace(/黑名單|黑名单/,'blacklist').replace(/貔貅/g,'honeypot').replace(/；/g,'; ').replace(/(\d+) 个 AI 钱包/,'$1 AI wallets').replace(/(\d+) 个群/,'$1 groups').replace(/(\d+) 分$/,'$1 min').replace(/(\d+) 小时$/,'$1 h').replace(/(\d+) 天$/,'$1 d').replace(/同一个部署者(?: (\S+))? (?:([\d.]+) 小时内|最近)部署了 (\d+) 个项目/,(m,a,h,n)=>`Same deployer${a?' '+a:''} launched ${n} projects ${h?'in the last '+h+' h':'recently'}`).replace(/^⚠️ 更新后引擎没有启动成功：/,'⚠️ After the update the engine did not start: ')}/*I18N-FIX*/
-function i18n(root){try{document.documentElement.lang=L==='en'?'en':'zh'}catch{}(root||document).querySelectorAll?.('[placeholder],[title]').forEach(el=>{if(el.dataset.noi18n)return;for(const at of ['placeholder','title']){const v=el.getAttribute(at);if(v==null)continue;const z0=el['__zh_'+at];if(z0==null||(v!==z0&&v!==(DICT[z0]??z0))){if(!/[\u4e00-\u9fff]/.test(v)){el['__zh_'+at]=null;continue}el['__zh_'+at]=v}el.setAttribute(at,L==='en'?(DICT[el['__zh_'+at]]??el['__zh_'+at]):el['__zh_'+at])}});const w=document.createTreeWalker(root||document.body,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentNode&&/^(SCRIPT|STYLE|TEXTAREA)$/.test(n.parentNode.nodeName)?2:1});let n;while(n=w.nextNode()){if(n.__zh==null){if(!/[\u4e00-\u9fff]/.test(n.nodeValue))continue;n.__zh=n.nodeValue}n.nodeValue=L==='en'?TT(n.__zh):n.__zh}
+function i18n(root){try{document.documentElement.lang=L==='en'?'en':'zh'}catch{}(root||document).querySelectorAll?.('[placeholder]:not(.pzL *):not(#pzHot *):not(#pzSg *),[title]:not(.pzL *):not(#pzHot *):not(#pzSg *)').forEach(el=>{if(el.dataset.noi18n)return;for(const at of ['placeholder','title']){const v=el.getAttribute(at);if(v==null)continue;const z0=el['__zh_'+at];if(z0==null||(v!==z0&&v!==(DICT[z0]??z0))){if(!/[\u4e00-\u9fff]/.test(v)){el['__zh_'+at]=null;continue}el['__zh_'+at]=v}el.setAttribute(at,L==='en'?(DICT[el['__zh_'+at]]??el['__zh_'+at]):el['__zh_'+at])}});const w=document.createTreeWalker(root||document.body,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,{acceptNode:n=>n.nodeType===1?(/^(SCRIPT|STYLE|TEXTAREA)$/.test(n.nodeName)||n.classList.contains('pzL')||n.id==='pzHot'||n.id==='pzSg'||n.id==='rcFly'?2:3):1});/*RCV2 效能：整棵跳过新看盘卡片（卡片自己照语言产生文字）*/let n;while(n=w.nextNode()){if(n.__zh==null){if(!/[\u4e00-\u9fff]/.test(n.nodeValue))continue;n.__zh=n.nodeValue}n.nodeValue=L==='en'?TT(n.__zh):n.__zh}
  (root||document).querySelectorAll('[placeholder]').forEach(e=>{if(e.dataset.noi18n)return;const cur=e.placeholder;if(e.__zh==null||(cur!==e.__zh&&cur!==TT(e.__zh)))e.__zh=cur;e.placeholder=L==='en'?TT(e.__zh):e.__zh});document.documentElement.lang=L==='en'?'en':'zh-CN';document.title=L==='en'?'RobinCat Radar':'罗宾猫雷达';const b=document.getElementById('lang');if(b)b.textContent=L==='en'?'中文':'EN'}
 /*I18N-FIX：切换语言不重载时，把只在换分页／定时才重画的区块马上重画（每一个都包 try，缺哪个函式就略过） */
 function i18nRerender(){const f=(fn)=>{try{const r=fn();if(r&&typeof r.catch==='function')r.catch(()=>{})}catch{}};f(()=>fmSBPaint());f(()=>renderMineBoard());f(()=>mkRender('ai'));f(()=>mkRender('gen'));f(()=>{renderHG.force=1;renderHG()});f(()=>loadJournal().then(()=>{try{renderPanStats()}catch{}}));f(()=>renderSig());f(()=>renderXK());f(()=>renderSent());f(()=>renderAir());f(()=>window.renderAIF?.(true));f(()=>window.renderMineHold?.());f(()=>window.uxLangPaint?.());f(()=>window.pxLangPaint?.());document.querySelectorAll('.pxSS .pxIn').forEach(i=>{i.placeholder=L==='en'?'🔍 Search settings (e.g. stop loss, TG, node)':'🔍 搜寻设定（例如：止损、TG、节点、钱包）'});f(()=>i18n())}
@@ -2688,7 +2688,7 @@ async function smpSellAll(btn){const en=smpEn();const c=btn.dataset.smps,nm=btn.
  const ok=await ask((en?'Sell all of ':'全部卖出 ')+(nm||c.slice(0,8))+'？\n'+(en?'Every connected wallet that holds it sells all of it. BNB Chain sells back to BNB, Robinhood back to ETH.':'所有持有这个币的钱包，全部卖掉。BNB Chain 卖回 BNB，Robinhood 卖回 ETH。')+'\n'+(en?'Want to sell only part? Switch to Pro.':'只想卖一部分？切到「专业」用比例按钮。'),{ok:en?'Sell all':'确定全部卖出'});if(!ok)return;
  return qsSell(net,c,nm,btn,100,1)} /* 100＝全部（这颗按钮的意思），走原本的卖单 */
 document.addEventListener('click',e=>{const b=e.target.closest?.('.smpSell');if(!b)return;e.preventDefault();e.stopPropagation();smpSellAll(b).catch(()=>{})},true);
-{let q=0;new MutationObserver(()=>{if(q||!document.body.classList.contains('smpOn'))return;q=1;requestAnimationFrame(()=>{q=0;try{smpInject()}catch{}})}).observe(document.body,{childList:true,subtree:true})}
+{let q=0;new MutationObserver((ms)=>{if(q||!document.body.classList.contains('smpOn')||window.rcMutSkip&&rcMutSkip(ms))return;q=1;requestAnimationFrame(()=>{q=0;try{smpInject()}catch{}})}).observe(document.body,{childList:true,subtree:true})}
 /* ── 止盈止损：两个勾选（详情右栏） ── */
 function smpTpHTML(){/*UI127 止盈止损小卡清单（+X% 卖 Y%、-Z% 全卖、＋新增一条）；读写同一组设定键 tpsl.on／tpsl.tp／tpsl.sl／tpsl.trail，不改逻辑*/const en=smpEn();const T=tpslGet();const v=(x)=>x==null||x===''||!(+x>0)?'':esc(String(x));const has=T.tp.length||T.sl||T.trail;const on=T.on&&has;
  const rows=T.tp.map(([u,p])=>smpTpRow('tp',u,p)).join('')+(T.sl?smpTpRow('sl',T.sl):'')+(T.trail?smpTpRow('tr',T.trail):'');
@@ -4365,7 +4365,7 @@ function nwPaint(){const no=nwNo();
 function nwTick(){try{if(walOK()){NW.force=0}nwBar();nwPaint()}catch(e){console.error(e)}}
 document.addEventListener('click',e=>{if(!nwNo())return;const el=e.target.closest?.(NW_SEL+',[data-nw="1"]');if(!el||el.closest('#gate'))return;e.preventDefault();e.stopImmediatePropagation();nwGo()},true);/* 下单入口在没连钱包时一律导向连钱包，按了不会跳任何下单确认 */
 setInterval(nwTick,1000);
-try{new MutationObserver(()=>{if(NW.raf||!(nwNo()||NW.any))return;NW.raf=requestAnimationFrame(()=>{NW.raf=0;nwTick()})}).observe(document.body,{childList:true,subtree:true})}catch{}
+try{new MutationObserver((ms)=>{if(NW.raf||!(nwNo()||NW.any)||window.rcMutSkip&&rcMutSkip(ms))return;NW.raf=requestAnimationFrame(()=>{NW.raf=0;nwTick()})}).observe(document.body,{childList:true,subtree:true})}catch{}
 setTimeout(()=>{const o=window.tr118Open;if(typeof o==='function'&&!o.__nw){const f=function(){if(nwAveLock()){try{t(nwAveTxt('mk'))}catch{}return}return o.apply(this,arguments)};f.__nw=1;window.tr118Open=f}},0);/* 交易者小卡（AVE）：没连钱包不去查，直接说「连钱包后解锁」 */
 </script>
 <script>/*MCFIX123-C 切链时关掉目前的代币详情（以前 BNB 详情会盖在新链清单上，而且切到别的链后 BNB 看盘的刷新都停了，详情的 K 线就停在读取中）；详情标题列的「在 AVE 看盘／交易」改成一般按钮，不浮动、不盖住链徽章与合约*/
@@ -5353,21 +5353,21 @@ window.__pzS=S;window.__pzTick=tick;/* 测试用 */
 
 <style id="rcV2css">/*RCV2-CSS 新外观（老板认可的互动原型）：三种风格＋动画质感。只换画面，不动任何买卖。
   风格只在深色模式套用（白天模式照旧）；动画只动 transform／opacity（进度环用描边位移，是唯一例外，图很小）。*/
-html:not([data-theme=light]) body.rcTh-brand{
+html.rcDk body.rcTh-brand{
  --bg:#100C1A;--pzBar:#140F22;--p:#171126;--p2:#1E1730;--b:rgba(255,214,120,.10);--b2:rgba(255,214,120,.06);--ln:#33284D;--hv:#271E3D;--ink2:#FFF7EA;--m:#9688AD;--m2:#C8BCD9;--gt:rgba(255,194,61,.13);--pop:#1E1730;--sb:#40345E;--sbh:#5A4B80;
  --card:#171126;--card2:#1E1730;--line:rgba(255,214,120,.13);--ink:#FFF7EA;--mute:#9688AD;--fmPane:#130E20;--fmHov:#271E3D;--green:#3CE3A0;--red:#FF5C8A;
  --acc:#FFC23D;--acc2:#FF8A3D;--accInk:#1D1203;--accSoft:rgba(255,194,61,.13);--accLine:rgba(255,194,61,.42);--up:#3CE3A0;--dn:#FF5C8A;
  --rcCol:#160F25;--rcCard:#1E1730;--rcCardH:#271E3D;--rcCardB:rgba(255,214,120,.08);--rcR:16px;--rcRP:20px;--rcGap:7px;
  --rcShadow:0 1px 0 rgba(255,255,255,.05) inset,0 14px 34px -20px rgba(0,0,0,.9);--rcShadowH:0 22px 44px -18px rgba(0,0,0,.9),0 0 0 1px rgba(255,194,61,.35),0 0 30px -6px rgba(255,160,60,.35);
  --amb1:rgba(255,170,60,.16);--amb2:rgba(150,100,255,.18);--amb3:rgba(255,92,138,.08);--rcSheen:linear-gradient(160deg,rgba(255,255,255,.035),transparent 40%)}
-html:not([data-theme=light]) body.rcTh-clean{
+html.rcDk body.rcTh-clean{
  --bg:#0E1014;--pzBar:#121519;--p:#14171C;--p2:#191D23;--b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.045);--ln:#2A303A;--hv:#20252D;--ink2:#F2F4F7;--m:#7E8796;--m2:#A9B1BE;--gt:rgba(43,212,143,.12);--pop:#191D23;--sb:#2A303A;--sbh:#353C48;
  --card:#14171C;--card2:#191D23;--line:rgba(255,255,255,.09);--ink:#F2F4F7;--mute:#7E8796;--fmPane:#111317;--fmHov:#20252D;--green:#2BD48F;--red:#FF5B6E;
  --acc:#2BD48F;--acc2:#1FB879;--accInk:#04150D;--accSoft:rgba(43,212,143,.12);--accLine:rgba(43,212,143,.32);--up:#2BD48F;--dn:#FF5B6E;
  --rcCol:#121519;--rcCard:#191D23;--rcCardH:#20252D;--rcCardB:transparent;--rcR:14px;--rcRP:16px;--rcGap:7px;
  --rcShadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 30px -18px rgba(0,0,0,.8);--rcShadowH:0 18px 40px -16px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.06);
  --amb1:rgba(43,212,143,.07);--amb2:rgba(90,169,255,.05);--amb3:transparent;--rcSheen:none}
-html:not([data-theme=light]) body.rcTh-term{
+html.rcDk body.rcTh-term{
  --bg:#05070A;--pzBar:#080B0E;--p:#0A0D11;--p2:#0E1216;--b:rgba(151,252,228,.09);--b2:rgba(151,252,228,.06);--ln:#1B232B;--hv:#141A20;--ink2:#E6F2EF;--m:#6F8580;--m2:#9AB0AB;--gt:rgba(94,240,207,.10);--pop:#0E1216;--sb:#1B232B;--sbh:#24303A;
  --card:#0A0D11;--card2:#0E1216;--line:rgba(151,252,228,.12);--ink:#E6F2EF;--mute:#6F8580;--fmPane:#07090C;--fmHov:#141A20;--green:#3EE6A8;--red:#FF4D6A;
  --acc:#5EF0CF;--acc2:#2FD3AE;--accInk:#021511;--accSoft:rgba(94,240,207,.10);--accLine:rgba(94,240,207,.35);--up:#3EE6A8;--dn:#FF4D6A;
@@ -5375,18 +5375,18 @@ html:not([data-theme=light]) body.rcTh-term{
  --rcShadow:none;--rcShadowH:0 0 0 1px rgba(94,240,207,.35),0 0 24px -8px rgba(94,240,207,.35);
  --amb1:rgba(94,240,207,.04);--amb2:rgba(111,182,255,.03);--amb3:transparent;--rcSheen:none;
  --fNum:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Mono",Menlo,Consolas,"Microsoft YaHei",monospace}
-html:not([data-theme=light]) body.rcV2{background:var(--bg)}
+html.rcDk body.rcV2{background:var(--bg)}
 /* 环境光（只在深色） */
 #rcAmb{position:fixed;inset:0;pointer-events:none;z-index:-1;display:none;background:radial-gradient(900px 500px at 12% -10%,var(--amb1,transparent),transparent 60%),radial-gradient(800px 600px at 95% 10%,var(--amb2,transparent),transparent 60%),radial-gradient(700px 500px at 50% 110%,var(--amb3,transparent),transparent 60%)}
-html:not([data-theme=light]) body.rcV2 #rcAmb{display:block}
+html.rcDk body.rcV2 #rcAmb{display:block}
 body.rcTh-term #rcAmb::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 3px)}
-html:not([data-theme=light]) body.rcV2 .up{color:var(--up)}html:not([data-theme=light]) body.rcV2 .dn{color:var(--dn)}
-html:not([data-theme=light]) body.rcV2.pzShell header nav.uxG>a.gon{color:var(--acc)!important;background:var(--gt)!important}
-html:not([data-theme=light]) body.rcV2 .pzB{border-color:var(--acc);color:var(--acc);background:var(--accSoft)}
-html:not([data-theme=light]) body.rcV2 .pzC:hover .pzB:not(.v){background:var(--acc);color:var(--accInk);box-shadow:0 0 16px -2px var(--accLine)}
-html:not([data-theme=light]) body.rcTh-brand .pzC:hover .pzB:not(.v){background:linear-gradient(90deg,var(--acc),var(--acc2))}
-html:not([data-theme=light]) body.rcV2 .pzCH .r a.on,html:not([data-theme=light]) body.rcV2 .pzAmt,html:not([data-theme=light]) body.rcV2 .pzAmt input{border-color:var(--accLine);color:var(--acc)}
-html:not([data-theme=light]) body.rcV2 .pzPads a.on{border-color:var(--accLine);background:var(--accSoft);color:var(--ink2)}
+html.rcDk body.rcV2 .up{color:var(--up)}html.rcDk body.rcV2 .dn{color:var(--dn)}
+html.rcDk body.rcV2.pzShell header nav.uxG>a.gon{color:var(--acc)!important;background:var(--gt)!important}
+html.rcDk body.rcV2 .pzB{border-color:var(--acc);color:var(--acc);background:var(--accSoft)}
+html.rcDk body.rcV2 .pzC:hover .pzB:not(.v){background:var(--acc);color:var(--accInk);box-shadow:0 0 16px -2px var(--accLine)}
+html.rcDk body.rcTh-brand .pzC:hover .pzB:not(.v){background:linear-gradient(90deg,var(--acc),var(--acc2))}
+html.rcDk body.rcV2 .pzCH .r a.on,html.rcDk body.rcV2 .pzAmt,html.rcDk body.rcV2 .pzAmt input{border-color:var(--accLine);color:var(--acc)}
+html.rcDk body.rcV2 .pzPads a.on{border-color:var(--accLine);background:var(--accSoft);color:var(--ink2)}
 body.rcTh-term .pzR2 b,body.rcTh-term .pzS>span,body.rcTh-term .pzR1>em,body.rcTh-term .pzHr>em,body.rcTh-term .pzHr>small{font-family:var(--fNum)}
 body.rcTh-term .pzC{padding:7px 10px}
 /* 栏位与卡片 */
@@ -5459,10 +5459,10 @@ body.rcV2 .pzAv>s img{position:absolute;inset:0}/* 头像图盖住字母（以�
 #rcLook .rcNow{font-variant-numeric:tabular-nums;color:var(--mute);font-size:12.5px}
 #rcLook .rcMeter{width:220px;height:6px;border-radius:6px;background:var(--line);overflow:hidden}#rcLook .rcMeter i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--up,#2EBD85),var(--acc,#F0B90B),var(--dn,#F6465D));transform-origin:0 50%;transition:transform .25s linear}
 /* ===== 原型版式（第二轮）：卡片四行＋右侧大字市值、产生的头像、栏标题、玻璃胶囊 ===== */
-html:not([data-theme=light]) body.rcTh-brand{--rcSymW:750;--rcMcSz:15px;--rcBtnR:12px;--rcChip:#33284D;--pzBar:rgba(22,16,36,.72);--amb1:rgba(255,170,60,.20);--amb2:rgba(150,100,255,.22);--amb3:rgba(255,92,138,.10)}
-html:not([data-theme=light]) body.rcTh-clean{--rcSymW:650;--rcMcSz:14.5px;--rcBtnR:9px;--rcChip:#2A303A;--pzBar:rgba(20,23,28,.72)}
-html:not([data-theme=light]) body.rcTh-term{--rcSymW:700;--rcMcSz:13px;--rcBtnR:3px;--rcChip:#1B232B;--pzBar:rgba(10,13,17,.82)}
-html:not([data-theme=light]) body.rcV2.pzShell header{background:var(--pzBar);border-bottom:1px solid var(--line)}
+html.rcDk body.rcTh-brand{--rcSymW:750;--rcMcSz:15px;--rcBtnR:12px;--rcChip:#33284D;--pzBar:rgba(22,16,36,.72);--amb1:rgba(255,170,60,.20);--amb2:rgba(150,100,255,.22);--amb3:rgba(255,92,138,.10)}
+html.rcDk body.rcTh-clean{--rcSymW:650;--rcMcSz:14.5px;--rcBtnR:9px;--rcChip:#2A303A;--pzBar:rgba(20,23,28,.72)}
+html.rcDk body.rcTh-term{--rcSymW:700;--rcMcSz:13px;--rcBtnR:3px;--rcChip:#1B232B;--pzBar:rgba(10,13,17,.82)}
+html.rcDk body.rcV2.pzShell header{background:var(--pzBar);border-bottom:1px solid var(--line)}
 body.rcV2 .pzC.rcC{display:grid;grid-template-columns:46px minmax(0,1fr) auto;column-gap:10px;row-gap:3px;align-content:center;align-items:center;min-height:96px;padding:9px 10px}
 body.rcTh-term .pzC.rcC{min-height:84px;padding:6px 8px;row-gap:2px;grid-template-columns:40px minmax(0,1fr) auto}
 .rcC>.rcAv{grid-column:1;grid-row:1/span 4;align-self:center;display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -5507,11 +5507,11 @@ body.rcV2 .pzCH>i::after{content:"";position:absolute;inset:-4px;border-radius:5
 body.rcV2 .pzCH>b{font-size:13.5px;font-weight:650;color:var(--ink2)}body.rcV2 .pzCH>small{font-family:var(--fNum,inherit);font-size:11.5px;color:var(--m)}
 body.rcV2 .pzCH .r a{border:0;background:transparent;color:var(--m2);font-weight:550;border-radius:var(--rcBtnR,8px)}
 body.rcV2 .pzCH .r a:hover{background:var(--hv);color:var(--ink2)}
-html:not([data-theme=light]) body.rcV2 .pzCH .r a.on{color:var(--acc);background:var(--accSoft);border:0}
+html.rcDk body.rcV2 .pzCH .r a.on{color:var(--acc);background:var(--accSoft);border:0}
 /* 顶部选单、发射台、搜寻：玻璃质感（半透明渐层＋内亮边；不用背景模糊滤镜：测试时软体绘图的 GPU 会因此当掉，弱显卡电脑也可能一样） */
-html:not([data-theme=light]) body.rcV2 #pz .pzSeg,html:not([data-theme=light]) body.rcV2 #pz .pzSq,html:not([data-theme=light]) body.rcV2 #pz .pzCh>a,html:not([data-theme=light]) body.rcV2 #pz .pzPads>a,html:not([data-theme=light]) body.rcV2 #pz .pzQ .pzSeg{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012)),color-mix(in srgb,var(--p2) 78%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.05);border-color:var(--b)}
-html:not([data-theme=light]) body.rcV2 #pz .pzCh>a.on{background:var(--hv);border-color:var(--accLine);color:var(--ink2)}
-html:not([data-theme=light]) body.rcV2 .pzBox{background:color-mix(in srgb,var(--rcCol) 92%,transparent);border-color:var(--b);border-radius:var(--rcRP,14px)}
+html.rcDk body.rcV2 #pz .pzSeg,html.rcDk body.rcV2 #pz .pzSq,html.rcDk body.rcV2 #pz .pzCh>a,html.rcDk body.rcV2 #pz .pzPads>a,html.rcDk body.rcV2 #pz .pzQ .pzSeg{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012)),color-mix(in srgb,var(--p2) 78%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.05);border-color:var(--b)}
+html.rcDk body.rcV2 #pz .pzCh>a.on{background:var(--hv);border-color:var(--accLine);color:var(--ink2)}
+html.rcDk body.rcV2 .pzBox{background:color-mix(in srgb,var(--rcCol) 92%,transparent);border-color:var(--b);border-radius:var(--rcRP,14px)}
 /* 看盘上方留白收紧（空的错误条／拼车条不占间距） */
 body.rcV2 #pzErr:empty,body.rcV2 #pzGrp:empty{display:none}body.rcV2 .pzMain{gap:8px}body.rcV2 .pzBar{padding-top:6px}body.rcV2 .pzRail{padding-top:6px}
 /* 上方提示：一排精简玻璃胶囊 */
@@ -5659,6 +5659,8 @@ body.rcV2 .pzC:hover::after{content:"";opacity:1;animation:rcGlow .25s ease-out 
 #rcDetSnd .rcEq i:nth-child(2){animation-delay:-.4s}#rcDetSnd .rcEq i:nth-child(3){animation-delay:-.7s}
 #rcDetSnd .rcHint{position:absolute;right:0;top:calc(100% + 8px);z-index:30;padding:6px 12px;border-radius:10px;background:var(--acc,#F0B90B);color:var(--accInk,#111);font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 10px 24px -10px #000c;pointer-events:none}
 #rcDetSnd .rcHint::before{content:"";position:absolute;right:40px;top:-5px;border:5px solid transparent;border-top:0;border-bottom-color:var(--acc,#F0B90B)}
+/* 效能：卡片栏的版面／样式变动不外溢到整页 */
+body.rcV2 .pzL,body.rcV2 #pzHot,body.rcV2 #pzSg{contain:layout style}
 /* 减少动态：系统设定或雷达设定任一打开 */
 html.rcRM *,html.rcRM *::before,html.rcRM *::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 html.rcRM body.rcV2 .pzC:hover{transform:none}
@@ -5690,8 +5692,11 @@ let P=(()=>{try{return sane(JSON.parse(localStorage.getItem(PK)||'{}')||{})}catc
 function save(){try{localStorage.setItem(PK,JSON.stringify(P))}catch{}}
 const MQ=matchMedia('(prefers-reduced-motion: reduce)');
 const RM=()=>!!P.rm||MQ.matches;
-function applyTh(){const b=document.body;if(!b)return;b.classList.add('rcV2');for(const [k] of THS)b.classList.toggle('rcTh-'+k,P.th===k);document.documentElement.classList.toggle('rcRM',RM());if(!Q('#rcAmb')){const a=document.createElement('div');a.id='rcAmb';b.prepend(a)}}
+function applyTh(){const b=document.body;if(!b)return;b.classList.add('rcV2');{const h=document.documentElement;const dk=h.dataset.theme!=='light';if(h.classList.contains('rcDk')!==dk)h.classList.toggle('rcDk',dk)}for(const [k] of THS)b.classList.toggle('rcTh-'+k,P.th===k);document.documentElement.classList.toggle('rcRM',RM());if(!Q('#rcAmb')){const a=document.createElement('div');a.id='rcAmb';b.prepend(a)}}
 try{MQ.addEventListener('change',()=>{applyTh();lookPaint()})}catch{}
+try{new MutationObserver(()=>applyTh()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']})}catch{}
+/* 效能：卡片里面的变动（数字滚动、涟漪、换字）不用叫醒全页的观察器；清单本身加减卡片照样通知 */
+const MUT_IN='.pzC,.pzHr,.pzSg,#rcFly,.rcOd,.rcInd,#fmSB';window.rcMutSkip=ms=>{for(const r of ms){const t=r.target;if(!t||t.nodeType!==1||!t.closest(MUT_IN))return false}return true};
 function layer(){let f=Q('#rcFly');if(!f){f=document.createElement('div');f.id='rcFly';document.body.appendChild(f)}return f}
 /* ===== 卡片逐张更新：同一个币留同一张卡（换位平滑移动、数字滚动），新币滑入，跨栏飞行 ===== */
 const keyOf=el=>el&&el.nodeType===1?(el.getAttribute('data-pzc')||el.getAttribute('data-pzaic')||el.getAttribute('data-pzac')||el.getAttribute('data-pzsg')||null):null;
@@ -5742,7 +5747,7 @@ function list(box,html){
  let i=0;for(const el of out){if(box.children[i]!==el)box.insertBefore(el,box.children[i]||null);i++}
  while(box.children.length>out.length)box.lastElementChild.remove();
  box.__anim=anim;MQ2.add(box);if(!mRaf)mRaf=requestAnimationFrame(measure)}
-function measure(){mRaf=0;const L=[...MQ2];MQ2.clear();const jobs=[],xh=[];
+function measure(){mRaf=0;try{if(typeof NW!=='undefined'&&(NW.any||nwNo()))nwTick()}catch{}const L=[...MQ2];MQ2.clear();const jobs=[],xh=[];
  for(const box of L){if(!box.isConnected)continue;const r=box.getBoundingClientRect();const st=box.scrollTop,vh=box.clientHeight;const first=!box.__r;box.__r=r;box.__st=st;box.__vh=vh;let nIn=0;let ix=0;
   for(const el of box.children){const k=keyOf(el);if(!k)continue;const oy=el.offsetTop,oh=el.offsetHeight;const vis=oy+oh>=st&&oy<=st+vh;
    if(box.__anim&&!RM()){if(el.__oy!=null){const dy=el.__oy-oy;if(dy&&vis&&Math.abs(dy)<vh*2)jobs.push(['m',el,dy])}else{const g=GONE.get(k);if(g){GONE.delete(k);jobs.push(['f',el,g,{left:r.left+el.offsetLeft,top:r.top+oy-st,width:el.offsetWidth,height:oh}])}else if(vis&&nIn<IN_MAX){nIn++;jobs.push([first?'s':'n',el,nIn])}}
