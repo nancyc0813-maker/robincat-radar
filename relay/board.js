@@ -63,7 +63,7 @@ function put(S, p, now) { if (!p) return; const M = (S.m[p[0]] = S.m[p[0]] || {}
 /* 一个 AVE 呼叫：先过额度计（当月累计；到 AVE_MONTH_STOP_CU 才拒绝），AVE 回 429／额度用尽 → 整个看盘退避 */
 async function aveCall(o, path, cu, body) {
   const env = o.env; const S = o.b2; if (S.backoff > Date.now()) throw new Error('backoff');
-  const mq = new URLSearchParams({ cu: String(cu), w: '_board', bg: '0', grps: String(envN(env, 'AVE_GLOBAL_RPS') ?? ''), mstop: String(envN(env, 'AVE_MONTH_STOP_CU') ?? ''), mwarn: String(envN(env, 'AVE_MONTH_WARN_CU') ?? '') });
+  const mq = new URLSearchParams({ cu: String(cu), w: '_board', bg: '0', grps: String(envN(env, 'AVE_GLOBAL_RPS') ?? ''), mstop: String(envN(env, 'AVE_MONTH_STOP_CU') ?? ''), mwarn: String(envN(env, 'AVE_MONTH_WARN_CU') ?? ''), k: 'board_' + (String(path).match(/^\/v2\/(tokens\/(trending|platform|price)|tokens)/)?.[1] || 'other').replace(/\//g, '_') }); /*PCSTAT-1112*/
   const meter = env.ROOM.get(env.ROOM.idFromName('ave-meter')); let m = null; for (let i = 0; i < 20; i++) { m = await (await meter.fetch('https://do/_meter?' + mq)).json(); if (m.deny !== 'busy') break; await new Promise((ok) => setTimeout(ok, 120)); } /* 全体速度（AVE_GLOBAL_RPS，AVE 每秒上限）满了就排队等一下，不丢这一份清单 */ S.q = { mcu: m.mcu ?? null, warn: m.mwarn ? 1 : 0, stop: m.deny === 'month cap' ? 1 : 0 };
   if (m.deny === 'month cap') { S.backoff = Date.now() + (envN(env, 'AVE_BOARD_BACKOFF_S') ?? 0) * 1000; throw new Error('month cap'); } if (m.deny) throw new Error(m.deny);
   const refund = () => meter.fetch('https://do/_meter_refund?' + new URLSearchParams({ cu: String(cu), w: '_board' })).catch(() => {});
