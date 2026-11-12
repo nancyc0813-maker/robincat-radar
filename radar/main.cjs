@@ -1362,6 +1362,7 @@ function createWindow() {
   win = new BrowserWindow({ width: 1320, height: 840, minWidth: 1100, minHeight: 680, title: '罗宾猫雷达', icon: ICON, backgroundColor: '#0b0d11', autoHideMenuBar: true, show: false, /*BLACKFIX117-SHOW 画好第一帧才显示，不先给一片黑*/
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false } }); /* 11/3 手机版：视窗缩到右下角也要能回手机 */
   win.loadFile(path.join(__dirname, 'ui', 'index.html'));
+  /*RCV2-VIS 视窗最小化／隐藏时告诉画面（动态配乐淡出暂停用；backgroundThrottling 关着时画面自己收不到「看不到」）。只送 0／1，不带任何资料*/ { const w1 = win; for (const ev of ['minimize', 'restore', 'hide', 'show']) w1.on(ev, () => { try { if (!w1.isDestroyed()) w1.webContents.send('winVis', ev === 'minimize' || ev === 'hide' ? 0 : 1); } catch {} }); }
   /*BLACKFIX117-WD*/ { const w0 = win; let shown = 0; const show = () => { if (shown || w0.isDestroyed()) return; shown = 1; if (!BF_HIDDEN) w0.show(); }; w0.once('ready-to-show', show); setTimeout(show, BF_SHOW_MAX_MS);
     const wc = w0.webContents; let unT = null, unAsked = 0; const R = { n: 0, t0: Date.now() };
     const reload = (why) => { if (w0.isDestroyed()) return; if (Date.now() - R.t0 > BF_WIN_MS) { R.n = 0; R.t0 = Date.now(); } R.n++; bfLog(`视窗重载（${why}）第 ${R.n} 次`); const d = R.n <= 3 ? 1500 : 30e3; /* 一直坏就放慢，不要狂重载 */ setTimeout(() => { try { if (!w0.isDestroyed()) { BF_SNAP_AT = 0; wc.reloadIgnoringCache(); } } catch (e) { bfLog('重载失败 ' + e.message); } }, d); };
