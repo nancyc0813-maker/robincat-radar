@@ -5437,7 +5437,7 @@ body.rcV2 .pzAv>s img{position:absolute;inset:0}/* 头像图盖住字母（以�
 .fbTpR.rcRiB::before,.fbTpR.rcRiS::before{content:"";position:absolute;inset:0;opacity:0;animation:rcRow 1.2s ease-out 1;pointer-events:none}
 .fbTpR.rcRiB::before{background:var(--up,#2EBD85)}.fbTpR.rcRiS::before{background:var(--dn,#F6465D)}
 @keyframes rcRow{0%{opacity:.16}100%{opacity:0}}
-.rcKp .i{fill:currentColor}.rcKp .o{fill:none;stroke:currentColor;stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:rcKp 1s ease-out infinite}
+.rcKp .i{fill:currentColor}.rcKp .o{fill:none;stroke:currentColor;stroke-width:1.5;opacity:.45}/* 效能：最后价只留静态光圈，不做无限动画 */
 @keyframes rcKp{0%{transform:scale(1);opacity:.85}100%{transform:scale(3.2);opacity:0}}
 /* 喇叭键 */
 #rcSnd{min-width:40px;display:inline-flex;align-items:center;justify-content:center}#rcSnd svg{display:block}
@@ -5502,7 +5502,7 @@ body.rcV2 .rcRt .pzB.v{background:var(--rcChip,var(--b));color:var(--m2);box-sha
 /* 栏标题（原型）：活的圆点、细字计数、透明小按钮 */
 body.rcV2 .pzCH{height:44px;padding:0 8px 0 14px;border-bottom:1px solid var(--b);background:transparent}
 body.rcV2 .pzCH>i{position:relative;flex:none}
-body.rcV2 .pzCH>i::after{content:"";position:absolute;inset:-4px;border-radius:50%;background:inherit;opacity:.25;animation:rcLive 2s ease-out infinite}
+body.rcV2 .pzCH>i{box-shadow:0 0 0 3px color-mix(in srgb,currentColor 0%,transparent),0 0 8px 1px rgba(255,255,255,.12)}/* 效能：不做无限动画（每帧都要重算样式） */
 @keyframes rcLive{0%{transform:scale(.6);opacity:.4}100%{transform:scale(1.6);opacity:0}}
 body.rcV2 .pzCH>b{font-size:13.5px;font-weight:650;color:var(--ink2)}body.rcV2 .pzCH>small{font-family:var(--fNum,inherit);font-size:11.5px;color:var(--m)}
 body.rcV2 .pzCH .r a{border:0;background:transparent;color:var(--m2);font-weight:550;border-radius:var(--rcBtnR,8px)}
@@ -5705,7 +5705,7 @@ document.addEventListener('error',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&
 function dropBad(root){for(const im of root.querySelectorAll('.pzAv img,.rcLg img'))if(BAD.has(im.getAttribute('src')))im.remove()}
 function numOf(s){const m=String(s??'').replace(/[,$\s+%]/g,'').match(/^(-?[\d.]+)([KMB]?)/i);if(!m)return NaN;const i='KMB'.indexOf((m[2]||'').toUpperCase());return +m[1]*(i<0?1:10**(3*(i+1)))}
 /* 效能（PERF4）：动画一律用 Web Animations，不读版面（以前 void offsetWidth 每个数字都会逼浏览器重排一次版面） */
-function flash(el,a,b){if(RM()||!el||!Number.isFinite(a)||!Number.isFinite(b)||a===b)return;const c=b>a?'var(--up,#2EBD85)':'var(--dn,#F6465D)';el.animate([{color:c,textShadow:`0 0 10px ${c}`},{textShadow:'0 0 0 transparent'}],{duration:D_FLASH,easing:'ease-out'})}
+let FL_N=0;function flash(el,a,b){if(RM()||!el||!Number.isFinite(a)||!Number.isFinite(b)||a===b||FL_N>=ODO_MAX)return;FL_N++;setTimeout(()=>FL_N--,D_FLASH);const c=b>a?'var(--up,#2EBD85)':'var(--dn,#F6465D)';el.animate([{color:c,textShadow:`0 0 10px ${c}`},{textShadow:'0 0 0 transparent'}],{duration:D_FLASH,easing:'ease-out'})}
 const DIG='<i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i>';
 let ODO_N=0;/* 正在滚的数字个数（上限 ODO_MAX，技术用） */
 /* 效能：滚完不还原成纯文字；位数一样的下一次只移动既有数字（不新增／删除节点，不会叫醒全页的 MutationObserver） */
@@ -5746,11 +5746,11 @@ function list(box,html){
  if(anim)for(const [k,el] of old)if(seen(box,el,st)&&box.__r)GONE.set(k,{el,r:{left:box.__r.left+(el.__ox||0),top:box.__r.top+el.__oy-st,width:el.__ow,height:el.__oh}});/* 离开这一栏的卡：记下位置，给跨栏飞行用 */
  let i=0;for(const el of out){if(box.children[i]!==el)box.insertBefore(el,box.children[i]||null);i++}
  while(box.children.length>out.length)box.lastElementChild.remove();
- box.__anim=anim;MQ2.add(box);if(!mRaf)mRaf=requestAnimationFrame(measure)}
+ box.__anim=anim;if(!anim){box.__stale=1;return}MQ2.add(box);if(!mRaf)mRaf=requestAnimationFrame(measure)}/* 效能：看不到就不量版面 */
 function measure(){mRaf=0;try{if(typeof NW!=='undefined'&&(NW.any||nwNo()))nwTick()}catch{}const L=[...MQ2];MQ2.clear();const jobs=[],xh=[];
- for(const box of L){if(!box.isConnected)continue;const r=box.getBoundingClientRect();const st=box.scrollTop,vh=box.clientHeight;const first=!box.__r;box.__r=r;box.__st=st;box.__vh=vh;let nIn=0;let ix=0;
+ for(const box of L){if(!box.isConnected)continue;const r=box.getBoundingClientRect();const st=box.scrollTop,vh=box.clientHeight;const first=!box.__r;const stale=!!box.__stale;box.__stale=0;box.__r=r;box.__st=st;box.__vh=vh;let nIn=0;let ix=0;
   for(const el of box.children){const k=keyOf(el);if(!k)continue;const oy=el.offsetTop,oh=el.offsetHeight;const vis=oy+oh>=st&&oy<=st+vh;
-   if(box.__anim&&!RM()){if(el.__oy!=null){const dy=el.__oy-oy;if(dy&&vis&&Math.abs(dy)<vh*2)jobs.push(['m',el,dy])}else{const g=GONE.get(k);if(g){GONE.delete(k);jobs.push(['f',el,g,{left:r.left+el.offsetLeft,top:r.top+oy-st,width:el.offsetWidth,height:oh}])}else if(vis&&nIn<IN_MAX){nIn++;jobs.push([first?'s':'n',el,nIn])}}
+   if(box.__anim&&!RM()&&!stale){if(el.__oy!=null){const dy=el.__oy-oy;if(dy&&vis&&Math.abs(dy)<vh*2)jobs.push(['m',el,dy])}else{const g=GONE.get(k);if(g){GONE.delete(k);jobs.push(['f',el,g,{left:r.left+el.offsetLeft,top:r.top+oy-st,width:el.offsetWidth,height:oh}])}else if(vis&&nIn<IN_MAX){nIn++;jobs.push([first?'s':'n',el,nIn])}}
     if(box.__rank&&el.__ix!=null&&el.__ix!==ix&&vis)jobs.push(['r',el,el.__ix>ix])}
    if(vis&&el.__xc!==el.__html){el.__xc=el.__html;const sp=el.querySelector('.rcXh>span');if(sp)xh.push([sp,sp.scrollWidth>sp.clientWidth+1||sp.classList.contains('rcCut')])}
    el.__oy=oy;el.__oh=oh;el.__ox=el.offsetLeft;el.__ow=el.offsetWidth;el.__ix=ix;ix++}}
@@ -5761,7 +5761,7 @@ function measure(){mRaf=0;try{if(typeof NW!=='undefined'&&(NW.any||nwNo()))nwTic
   else if(j[0]==='f')fly(j[2],el,j[3]);
   else if(j[0]==='s')el.animate([{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'none'}],{duration:D_IN,delay:j[2]*(D_IN/IN_MAX),easing:EZ,fill:'backwards'});
   else if(j[0]==='n'){ST.in++;newMark(el);el.animate([{opacity:0,transform:'translateY(-14px) scale(.97)'},{opacity:1,transform:'none'}],{duration:D_IN,easing:EZ})}
-  else if(j[0]==='r'){const a=document.createElement('i');a.className='rcRkA '+(j[2]?'up':'dn');a.textContent=j[2]?'▲':'▼';el.appendChild(a);a.animate([{opacity:0,transform:'translateY(4px)'},{opacity:1,transform:'none',offset:RK_IN},{opacity:1,offset:RK_OUT},{opacity:0}],{duration:D_FLASH*2,easing:'ease-out'}).onfinish=()=>a.remove();el.animate([{backgroundColor:j[2]?'color-mix(in srgb,var(--up,#2EBD85) 16%,transparent)':'color-mix(in srgb,var(--dn,#F6465D) 16%,transparent)'},{backgroundColor:'transparent'}],{duration:D_FLASH*2,easing:'ease-out'})}}}
+  else if(j[0]==='r'){const a=document.createElement('i');a.className='rcRkA '+(j[2]?'up':'dn');a.textContent=j[2]?'▲':'▼';el.appendChild(a);a.animate([{opacity:0,transform:'translateY(4px)'},{opacity:1,transform:'none',offset:RK_IN},{opacity:1,offset:RK_OUT},{opacity:0}],{duration:D_FLASH*2,easing:'ease-out'}).onfinish=()=>a.remove()}}}/* 效能：名次变动只用箭头（透明度／位移），不动背景色 */
 function newMark(el){el.classList.add('rcNew');setTimeout(()=>el.classList.remove('rcNew'),D_FLASH*2)}
 function fly(g,el,r2){const r=g.r;if(!r2.width||!r.width)return;const c=g.el;c.classList.add('rcFlyC');Object.assign(c.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'});layer().appendChild(c);el.style.opacity='0';
  const dx=r2.left-r.left,dy=r2.top-r.top,sx=r2.width/r.width;
@@ -5850,7 +5850,7 @@ function indOne(C,isel){const on=C.querySelector(':scope>'+isel.split(',').map(x
  if(!C.classList.contains('rcSegH'))C.classList.add('rcSegH');
  const t=`translate(${on.offsetLeft}px,${on.offsetTop}px) scale(${on.offsetWidth/PCT},${on.offsetHeight/PCT})`;
  if(!I){I=document.createElement('i');I.className='rcInd';I.style.transition='none';I.style.transform=C.__t||t;C.prepend(I);requestAnimationFrame(()=>{I.style.transition='';I.style.transform=t})}
- else if(I.style.transform!==t)I.style.transform=t;I.style.opacity='1';C.__t=t}
+ else if(C.__t!==t)I.style.transform=t;if(I.style.opacity!=='1')I.style.opacity='1';C.__t=t}
 let IND_V=0;
 function indAll(){if(RM()){QA('.rcInd').forEach(i=>i.style.transition='none')}for(const [cs,is] of SEGS)for(const C of QA(cs))try{indOne(C,is)}catch{}}
 document.addEventListener('click',ev=>{if(ev.target.closest&&ev.target.closest('#pz,#dtl'))requestAnimationFrame(indAll)},true);
@@ -5879,7 +5879,7 @@ function flyEl(src,dst,uni){const r=src.r,r2=dst.getBoundingClientRect();if(!r.w
 function detailIn(was){const s=SRC;SRC=null;if(RM())return;const W=Q('#dtl .wel');if(was&&W)W.animate([{opacity:0,transform:'translateY(10px) scale(.99)'},{opacity:1,transform:'none'}],{duration:D_PANEL,easing:EZ});
  if(!s||performance.now()-s.at>CLICK_MS)return;let n=0;const go=()=>{const H=Q('#dtH .fdNm');const ic=H&&H.firstElementChild,b=H&&H.querySelector('b');const ri=ic&&ic.getBoundingClientRect();if(!ri||!ri.width){if(n++<FLY_POLL)requestAnimationFrame(go);return}ST.det++;if(s.av)flyEl(s.av,ic,0);if(s.nm&&b)flyEl(s.nm,b,1)};requestAnimationFrame(go)}
 function wrapOpen(){try{const o0=window.openToken;if(typeof o0!=='function'||o0.__rc)return;const w=function(){AU.away=0;const dl=Q('#dtl');const was=!dl||getComputedStyle(dl).display==='none';const r=o0.apply(this,arguments);try{detailIn(was)}catch(e){console.error(e)}return r};w.__rc=1;window.openToken=w}catch(e){console.error(e)}}
-function wrapK(){try{const f0=window.fdSvgX;if(typeof f0!=='function'||f0.__rc)return;const w=function(cs,y){let s=f0.apply(this,arguments);try{const M=window.__cdM;const n=cs.length,last=cs[n-1];if(M&&last&&!RM()){const x=M.OX+(n-1)*M.bw+M.bw/2,yy=y(last.c);const col=last.c>=last.o?'var(--up,#2ebd85)':'var(--dn,#f6465d)';s+=`<g class="rcKp" style="color:${col}" pointer-events="none"><circle class="o" cx="${x}" cy="${yy}" r="3"/><circle class="i" cx="${x}" cy="${yy}" r="2.5"/></g>`}}catch{}return s};w.__rc=1;window.fdSvgX=w}catch(e){console.error(e)}}
+function wrapK(){try{const f0=window.fdSvgX;if(typeof f0!=='function'||f0.__rc)return;const w=function(cs,y){let s=f0.apply(this,arguments);try{const M=window.__cdM;const n=cs.length,last=cs[n-1];if(M&&last&&!RM()){const x=M.OX+(n-1)*M.bw+M.bw/2,yy=y(last.c);const col=last.c>=last.o?'var(--up,#2ebd85)':'var(--dn,#f6465d)';s+=`<g class="rcKp" style="color:${col}" pointer-events="none"><circle class="o" cx="${x}" cy="${yy}" r="5"/><circle class="i" cx="${x}" cy="${yy}" r="2.5"/></g>`}}catch{}return s};w.__rc=1;window.fdSvgX=w}catch(e){console.error(e)}}
 function tabInd(){const T=Q('#dtl .fdTabs');if(!T)return;const on=T.querySelector(':scope>a.on');let i=T.querySelector(':scope>.rcTi');if(!on||!on.offsetWidth){if(i)i.style.opacity='0';return}
  if(!i){i=document.createElement('i');i.className='rcTi';T.appendChild(i);T.classList.add('rcTiOn');if(T.__last){i.style.transform=T.__last;void i.offsetWidth}}
  const t=`translateX(${on.offsetLeft}px) scaleX(${on.offsetWidth/PCT})`;if(i.style.transform!==t){i.style.transform=t;T.__last=t}i.style.opacity='1'}
