@@ -18407,6 +18407,44 @@
     "20"
    ],
    "reason": "KOLPIC-1112：头像显示大小（像素，显示用），跟买卖无关"
+  },
+  {
+   "rule": "TIMEWIN|OBJNUM|CMP|SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "KOLW_N = 6 /\\* 技术用",
+   "values": [
+    "6",
+    "30",
+    "60e3",
+    "4e3"
+   ],
+   "reason": "KOLPIC2-1112：补查 KOL 名字／头像的技术参数（每个币最多查几个、快取多久、最多等多久），只影响显示，跟买卖无关"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/main\\.cjs$",
+   "match": "KOLPIC2-1112：AVE 持有人资料里 KOL",
+   "value": "30 分钟",
+   "reason": "KOLPIC2-1112：注解描述快取时间，不是规则"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "KOLW_TTL = 30 \\* 60e3",
+   "values": [
+    "30",
+    "60e3"
+   ],
+   "reason": "KOLPIC2-1112：同一个钱包的名字／头像快取多久（显示用），跟买卖无关"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "KOLW_MS = 4e3",
+   "values": [
+    "4e3"
+   ],
+   "reason": "KOLPIC2-1112：补查名字最多等多久就先显示地址（显示用），跟买卖无关"
   }
  ]
 }
