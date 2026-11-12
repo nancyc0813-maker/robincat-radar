@@ -18877,6 +18877,263 @@
     "1000"
    ],
    "reason": "LIVE-1113 技术用：每秒检查一次要不要重抓（实际重抓间隔看 DT_LIVE_MS），只影响显示"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "aset\\.cdt\\]\\|\\|\\['',''\\];\\ if\\(cs\\.length>=2\\)\\{CDK",
+   "reason": "LWK-1113：K 线至少两根才画图（画图的技术条件），只影响画面",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "cs\\&\\&cs\\.length>1\\?\\(cs\\[1\\]\\.t\\-cs\\[0\\]\\.t\\):300e3;",
+   "reason": "A5（11/13）：K 线标签笔数／标记用的时间换算（秒→毫秒）与预设 K 棒间隔，只影响画面显示",
+   "values": [
+    "300e3"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "ue;nT\\+\\+;\\ let\\ tt=\\+r\\.t;if\\(tt>0\\&\\&tt<1e12\\)tt",
+   "reason": "A5（11/13）：K 线标签笔数／标记用的时间换算（秒→毫秒）与预设 K 棒间隔，只影响画面显示",
+   "values": [
+    "1e12"
+   ]
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "let\\ tt=\\+r\\.t;if\\(tt>0\\&\\&tt<1e12\\)tt\\*=1000;if",
+   "reason": "A5（11/13）：K 线标签笔数／标记用的时间换算（秒→毫秒）与预设 K 棒间隔，只影响画面显示",
+   "values": [
+    "1000"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "nhard:\\-2,down:\\-1,flat:0,up:1,uphot:2\\};\\ c",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "住了就退回上涨／下跌）；单纯来回震荡不算\\ \\*/\\ if\\(cur===2\\&\\&L<2\\&",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "上涨／下跌）；单纯来回震荡不算\\ \\*/\\ if\\(cur===2\\&\\&L<2\\&\\&up>=",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": ">=o\\.u1\\*k\\)L=Math\\.max\\(L,1\\);if\\(cur===\\-2\\&\\&L>",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\*k\\)L=Math\\.max\\(L,1\\);if\\(cur===\\-2\\&\\&L>\\-2\\&\\&dn",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\.cs\\)\\)\\{cs=CDK\\.cs;sec=CDSEC\\[CDK\\.tf\\]\\|\\|300\\}\\}",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "300"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\.mu\\.samp\\*SEC,keep:P\\.mu\\.keep\\*SEC,w1:60\\*SE",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "EC,keep:P\\.mu\\.keep\\*SEC,w1:60\\*SEC,w5:300\\*S",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "300"
+   ]
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "atio\\.\\ Crossfades\\ start\\ on\\ a\\ beat\\.':'σ＝这个",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60 秒"
+   ]
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\{e\\?'Weight\\ of\\ 60\\ s\\ change\\ \\(0–1\\)':'60\\ 秒涨跌",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60 秒"
+   ]
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": ">\\$\\{e\\?'Sharp\\ pump/dump\\ ≥\\ \\(σ,\\ 60\\ s\\)':'急拉／急",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60 秒"
+   ]
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "态配乐（11/13\\ 重做：音乐跟着「正在看的币」的涨跌方向走）＋短音效\\ ====",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60 秒"
+   ]
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "声音）：进入\\ 上涨／猛涨\\ 门槛、进入\\ 下跌／急跌\\ 门槛（都是\\ σ\\ 的倍数）、60",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60 秒"
+   ]
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "效（每一种：自己的开关、音量、▶\\ 试听；大单音量照「这笔是这个币成交中位数的几倍",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "3 秒"
+   ]
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "RIGHT_N,GC_MS,MK_MAX,TIP_N\\]=\\[120,4,1000,",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "1000"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "inherit'\\?undefined:T\\.font,fontSize:11,at",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "11"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "rderColor:T\\.line,scaleMargins:\\{top:\\.08,b",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    ".08"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\.line,scaleMargins:\\{top:\\.08,bottom:\\.24\\}\\}",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    ".24"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "=>tLocal\\(t,k===0\\?'y':k===1\\?'m':k===2\\?'d'",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "priceFormat:\\{type:'custom',minMove:1e\\-12",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "1e-12"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\(\\)\\.applyOptions\\(\\{scaleMargins:\\{top:\\.8,bo",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    ".8"
+   ]
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/ui/index\\.html$",
+   "match": "C\\(b,T\\)\\{return\\ b\\.close>=b\\.open\\?T\\.up\\+'66':",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "'66'"
+   ]
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/ui/index\\.html$",
+   "match": "urn\\ b\\.close>=b\\.open\\?T\\.up\\+'66':T\\.dn\\+'66'\\}",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "'66'"
+   ]
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/ui/index\\.html$",
+   "match": "f\\ CDSEC!=='undefined'\\&\\&CDSEC\\[tf\\]\\)\\|\\|300;c",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "300"
+   ]
+  },
+  {
+   "rule": "JSON_NUM",
+   "file": "radar/ui/audio/loops\\.json$",
+   "reason": "配乐音档资料（每段几小节、取样点数、取样率、秒数），只给画面无缝循环用，不是买卖数字"
   }
  ]
 }
