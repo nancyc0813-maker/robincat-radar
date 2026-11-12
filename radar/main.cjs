@@ -1118,7 +1118,16 @@ async function padsGet() { const scout = readJSON(path.join(DATA, 'padscout.json
   if (scout && Array.isArray(scout.found) && !PADNAME_BUSY && aveOK()) { PADNAME_BUSY = 1; try { let k = 0; for (const f of scout.found) { const key = f.ch + '|' + f.a; if (names[key] !== undefined || f.known || k >= 3) continue; const C = mcChain(f.ch); const t = Array.isArray(f.sample) ? f.sample[f.sample.length - 1] : ''; if (!C || !/^0x[0-9a-f]{40}$/.test(String(t))) continue; k++;
       const j = await aveGet('/v2/tokens/' + t + '-' + C.ave, 5).catch(() => null); if (!j || j.status !== 1) continue; const d = j.data?.token || j.data || {}; names[key] = String(d.issue_platform || '').replace(/[\u0000-\u001f<>"'`]/g, '').trim().slice(0, 30); }
     if (k) { const tmp = PADNAME_F + '.w' + process.pid; try { fs.writeFileSync(tmp, JSON.stringify(names)); fs.renameSync(tmp, PADNAME_F); } catch {} } } finally { PADNAME_BUSY = 0; } }
-  const P = padAveLoad(); return { scout, names, ave: { since: P.since, list: Object.values(P.m).sort((a, b) => b.first - a.first) } }; }
+  const P = padAveLoad(); return { scout, names, padn: readJSON(path.join(DATA, 'pad_names.json'), null), ave: { since: P.since, list: Object.values(P.m).sort((a, b) => b.first - a.first) } }; }
+/*PADNAME-1112 发射台自动认名字（Nancy：用户不用自己填）：① AVE 看盘清单（BNB Chain）每个币都有发行平台（issue_platform）→ 每个平台留几个最新的样本币写 data/pads_sample.json，引擎用链上纪录对出「哪个合约＝哪个平台」；
+   ② 转接站的发射台名单（作者查好的，GET /padnames）→ data/pads_names_relay.json。只用来显示名字；「只买／不买勾选的发射台」存的是合约地址，名字不影响买卖 */
+const PADN_T = { ms: 5 * 60e3, per: 3, relayMs: 3 * 3600e3, to: 15e3 }; /* 技术用：多久整理一次样本、每个平台留几个样本币、多久问一次转接站名单、逾时 */
+const padNmClean = (x) => [...String(x || '').replace(/[\u0000-\u001f\u007f<>"'`]/g, '').trim()].slice(0, 30).join('');
+function padSample() { try { aveBoard(); const M = B124?._S?.m?.bsc; if (!M) return; const by = {}; for (const [a0, v] of Object.entries(M)) { const a = String(a0).toLowerCase(); const pl = padNmClean(v?.pl); if (!pl || !/^0x[0-9a-f]{40}$/.test(a)) continue; (by[pl] = by[pl] || []).push([a, +v.ca || 0]); }
+  const bsc = {}; for (const [pl, L] of Object.entries(by)) bsc[pl] = L.sort((x, y) => y[1] - x[1]).slice(0, PADN_T.per).map((x) => x[0]); if (!Object.keys(bsc).length) return; const f = path.join(DATA, 'pads_sample.json'), tmp = f + '.w' + process.pid; fs.writeFileSync(tmp, JSON.stringify({ at: Date.now(), bsc })); fs.renameSync(tmp, f); } catch {} }
+async function padNamesRelay() { try { const R = aveRelay(); if (!R) return; const r = await fetch(R + '/padnames', { signal: AbortSignal.timeout(PADN_T.to), redirect: 'error' }); if (!r.ok) return; const j = await r.json(); const bsc = {};
+  for (const [a, n] of Object.entries(j?.bsc || {}).slice(0, 2000)) { const nm = padNmClean(n).slice(0, 24); if (/^0x[0-9a-f]{40}$/.test(a) && nm) bsc[a] = nm; } const f = path.join(DATA, 'pads_names_relay.json'), tmp = f + '.w' + process.pid; fs.writeFileSync(tmp, JSON.stringify({ at: Date.now(), bsc })); fs.renameSync(tmp, f); } catch {} }
+setTimeout(() => { padSample(); setInterval(padSample, PADN_T.ms); }, 60e3); setTimeout(() => { padNamesRelay(); setInterval(padNamesRelay, PADN_T.relayMs); }, 30e3);
 ipcMain.handle('pads', () => padsGet().catch((e) => ({ err: String(e?.message || e).slice(0, 120) })));
 const MC_LIST_MS = MC_T.detMs; /* 技术用：清单在记忆体留多久（跟详情同一个快取时间） */ const mcListCu = (q) => (/trending/.test(q) ? 5 : 10); /* AVE 文件的单位数（计量用） */
 const mcListTag = (q) => (q.match(/tag=([a-z0-9_]+)/) || [])[1] || 'trend_' + ((q.match(/chain=([a-z]+)/) || [])[1] || 'x');

@@ -2225,6 +2225,47 @@
    "uen": "h"
   },
   {
+   "k": "bsc.tokPadMode",
+   "g": "tok",
+   "opts": [
+    {
+     "v": 1,
+     "zh": "只买勾选的发射台",
+     "en": "Only the launchpads I tick"
+    },
+    {
+     "v": 2,
+     "zh": "不买勾选的发射台",
+     "en": "Not the launchpads I tick"
+    }
+   ],
+   "zh": "发射台",
+   "en": "Launchpads",
+   "dzh": "空白（请选择）＝所有发射台都买（预设）。雷达在链上看每个币是哪个发射台发的，名字自动配好；要限制的话选「只买／不买勾选的」，再在下面勾",
+   "den": "Empty = all launchpads (default). The radar reads each token’s launchpad on-chain and names it automatically; to limit, pick “only / not the ones I tick” and tick below"
+  },
+  {
+   "k": "bsc.tokPadList",
+   "g": "tok",
+   "type": "text",
+   "zh": "勾选发射台",
+   "en": "Tick launchpads",
+   "dzh": "雷达抓到过的发射台都会列在这里（名字自动配）。新发现的会自动加进清单",
+   "den": "Every launchpad the radar has seen is listed here (names filled in automatically). New ones are added as they appear"
+  },
+  {
+   "k": "bsc.tokPadMissBuy",
+   "g": "tok",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "发射台读不到时照买",
+   "en": "Buy even if the launchpad can’t be read",
+   "dzh": "只在你选了「只买／不买勾选的发射台」时有用：读不到这个币是哪个发射台发的（节点没回、币太早发）→ 开着＝照买，关着＝不买（预设）",
+   "den": "Only matters with “only / not the ticked launchpads”: launchpad unreadable → on = buy anyway, off = don’t buy (default)"
+  },
+  {
    "k": "gen.auto",
    "g": "gen",
    "type": "bool",

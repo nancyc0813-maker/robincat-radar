@@ -442,6 +442,13 @@ api.panel({ title: '我的面板', items: [
 - 资料：`data/elysium.json`（画面／手机读）；每个新代币写一行判断记录（✅ 从 0 地址铸出　✅／❌ 在不在排除清单 → 显示／不显示）。
 - 「在 AVE 打开」：先复制合约，再打开 `https://ave.ai/token/<合约小写>-elysium`（合约先验 `0x`＋40 位）。交易在用户自己的 AVE 钱包完成，雷达不经手。`radar/main.cjs` 的 `openOfficial` 只把「网域刚好是 `ave.ai`、路径以 `/token/` 开头」当官方（不跳陌生网址提醒），理由：这是固定格式的看币页，网址由雷达自己用验过的合约组出来；`ave.ai` 其他路径、子网域、长得像的网域（例如 `evil-ave.ai`、`ave.ai.evil.com`）照样跳提醒。「还没装 AVE？下载」用 `repo.cjs` 的 `REF_AVE_URL`。
 
+## 五之一之一之一、🚀 AI 热门代币标出发射台（PADNAME-1112）
+- AI 热门代币（bsc.tok）是在链上看 Agent ID 钱包跟哪个币互动，**不靠发射台名单**，所有发射台都抓得到。
+- 每个币用 `padOf(c)` 往回找第一次「从 0 地址铸造」（加起来 ≥ totalSupply 才算第一次）→ 那笔交易呼叫的合约（tx.to）＝发射台；收到铸造的合约（rcv）也记。结果快取在 `S.padOf`。
+- 名字三层（用户不用填）：padscout `KNOWN` 内建 < 自动学（main.cjs 把 AVE 看盘清单每个平台的样本币写 `data/pads_sample.json`，引擎 `padLearnTick` 用 padOf 对出合约＝平台，投票存 `S.padVote`）< 转接站 `GET /padnames`（relay/worker.js 的 `PAD_NAMES`，作者维护，改完部署转接站即可，不用发雷达更新）→ `data/pads_names_relay.json`。合并结果写 `data/pad_names.json`（画面勾选清单读这个）。
+- 设定：`bsc.tokPadMode`（空白＝全部发射台，预设；1＝只买勾选的；2＝不买勾选的）、`bsc.tokPadList`（勾选的合约地址，'self'＝自己部署；画面用勾的）、`bsc.tokPadMissBuy`（读不到发射台时照买，预设关＝不买）。名字只用来显示；勾选存地址，同名的新合约也算。
+- 判断日志／TG 的币名后面会带「｜发射台名字」。
+
 ## 五之一之二、🆕 新发射台发现（PADSCOUT-1112）与 🚀 各链发射台自动买（MCA-1112）
 
 - 新发射台发现：`padscout.mjs`（引擎模组，官方内建、只读）。跟 Elysium 一样拿不到钱包／baw／闸门，JSON-RPC 只准 `eth_chainId`、`eth_blockNumber`、`eth_getLogs`、`eth_getCode`、`eth_call`。原理：同一个合约在玩家填的时间内收到很多个「新币」的第一笔铸造（往回看确认之前没有转帐；LP 凭证排除）＝疑似发射台。设定 `pads.*`（`pads.on`、`pads.ch.<链>`、`pads.minTok`＋`pads.winMin`（没填＝不连线不判断）、`pads.tg`、`pads.ignore`、`pads.rpc.<链>`）。另外雷达视窗把 AVE 清单的「发行平台」记在 `data/pads_ave.json`。只看、只通知，**不准**在这个功能加买卖。

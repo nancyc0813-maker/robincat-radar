@@ -13,6 +13,13 @@ import { b2Handle, b2Add } from './board.js'; /*BOARD124 转接站自己抓 AVE 
    ② 本人：电脑雷达附上「钱包签的邀请绑定」（EIP-712），这里还原出签名的钱包，必须是名单里的钱包
    改自己电脑上的程式跳过邀请码画面，在这里还是过不了 */
 import OFFI from '../repo.cjs'; import { invDo, invReady } from './invite.js'; /* V120-INV 邀请机器人搬进转接站 */ /* NEW-100：官方来源只写在 repo.cjs（打包时一起包进来） */
+/*PADNAME-1112 发射台合约 → 名字（作者查好的名单；雷达每 3 小时拿一次，只用来显示）。新增发射台改这里再部署转接站，不用发雷达更新 */
+const PAD_NAMES = { bsc: {
+  '0x5c952063c7fc8610ffdb798152d69f0b9550762b': 'Four.meme',
+  '0xe2ce6ab80874fa9fa2aae65d277dd6b8e65c9de0': 'Flap',
+  '0x091d0cbd1e3b7d8b2a6fd8e0795b784eddffb590': 'ToshX',
+  '0x8296fa2d430dcf25233a39cc3306ee503967a6bb': 'ToshX',
+} };
 const OFFICIAL_PUB = OFFI.PUBKEY;
 const INV_URL = OFFI.DATA_RAW + 'invites.json';
 const enc = new TextEncoder();
@@ -317,6 +324,7 @@ export default {
     if (u.pathname === '/points.json') return mirrorGet(env, 'points'); /* V105-2：积分镜像 */
     if (u.pathname === '/xwatch.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_xpub'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：X 监测改由转接站查 */
     if (u.pathname === '/xwatch.json') return mirrorGet(env, 'xwatch'); /* V105-2：X 监测镜像 */
+    if (u.pathname === '/padnames') return new Response(JSON.stringify(PAD_NAMES), { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=600' } }); /*PADNAME-1112 发射台名单（作者查好的；雷达只拿来显示名字，买卖勾选存的是合约地址） */
     if (u.pathname === '/bind/status') return bindStat(u, env); /* V105-1 */
     if (u.pathname === '/avews') return aveWsRoute(req, env); /* AVE-WSS（11/4）：即时推送（WebSocket） */
     if (u.pathname === '/fb') { const k = String(req.headers.get('x-fb-key') || ''), K = String(env.FB_KEY || ''); let d = K.length >= 32 && k.length === K.length ? 0 : 1; for (let i = 0; i < K.length && i < k.length; i++) d |= K.charCodeAt(i) ^ k.charCodeAt(i); if (d || !invReady(env)) return J({ err: 'no' }, 403); /*FB-1112 作者读反馈：要 Cloudflare 秘密变数 FB_KEY（没设＝一律拒绝）*/

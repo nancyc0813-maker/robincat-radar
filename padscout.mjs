@@ -41,7 +41,7 @@ const ZERO_T = '0x' + '0'.repeat(64);
 const A40 = /^0x[0-9a-f]{40}$/;
 const SEL = { name: '0x06fdde03', symbol: '0x95d89b41' };
 /* 已知的发射台（只用来贴名字，不影响发现；不在这里的一样会被发现，只是名字要等 AVE 回来才有） */
-const KNOWN = { bsc: { '0xe2ce6ab80874fa9fa2aae65d277dd6b8e65c9de0': 'Flap', '0x5c952063c7fc8610ffdb798152d69f0b9550762b': 'Four.meme' } };
+export const KNOWN = { bsc: { '0xe2ce6ab80874fa9fa2aae65d277dd6b8e65c9de0': 'Flap', '0x5c952063c7fc8610ffdb798152d69f0b9550762b': 'Four.meme' } };
 
 export function padRpcList(s) {
   const out = [];
@@ -55,6 +55,7 @@ export function padRpcList(s) {
   }
   return out;
 }
+/*PADNAME-1112：发射台名字由雷达自动配（引擎写 data/pad_names.json：内建＋自动学到＋转接站名单），这里只拿来显示 */
 export function padIgnore(s) { const a = new Set(); for (const x of String(s || '').split(/[\s,，;；]+/).filter(Boolean)) { const v = x.toLowerCase(); if (A40.test(v)) a.add(v); } return a; }
 
 export async function padCall(url, method, params, ms = PC.timeoutMs) {
@@ -85,6 +86,7 @@ export function startPadScout(D) {
   const SCH = (() => { try { return JSON.parse(readFileSync(join(DIR, 'radar', 'settings_schema.json'), 'utf8')).items || []; } catch { return []; } })();
   const txt = (k) => { let z = {}; try { z = radarSet() || {}; } catch {} const v = z[k]; if (v === undefined || v === null) { const d = SCH.find((i) => i.k === k)?.def; return d == null ? '' : String(d); } return typeof v === 'object' ? '' : String(v).trim(); };
 
+  let PNF = { at: 0, m: new Map() }; const padNamesFile = () => { if (Date.now() - PNF.at > 30e3) { PNF.at = Date.now(); try { const j = JSON.parse(readFileSync(join(DIR, 'data', 'pad_names.json'), 'utf8')); PNF.m = new Map(Object.entries(j?.names || {}).filter(([a, n]) => A40.test(a) && typeof n === 'string').map(([a, n]) => [a, cleanS(n).slice(0, 24)])); } catch {} } return PNF.m; }; /* 只有 BNB Chain 有自动配名字 */
   /* 每条链的状态 */
   const C = {}; for (const [k, id, nm] of PAD_CHAINS) C[k] = { k, id, nm, rpcKey: null, rpcs: [], cur: -1, ok: new Set(), bad: {}, next: null, head: null, fails: 0, wait: 0, st: { code: 'off', msg: '' }, cand: new Map(), code: new Map(), skipped: 0, since: 0 };
   /* 已发现的发射台（重开读回来，不重复通知） */
@@ -97,7 +99,7 @@ export function startPadScout(D) {
   function view(force) {
     const now = Date.now(); if (!force && now - lastW < PC.writeMs) return; lastW = now;
     const ch = {}; for (const x of Object.values(C)) ch[x.k] = { on: on('pads.ch.' + x.k) ? 1 : 0, nm: x.nm, st: x.st, head: x.head, next: x.next, rpc: x.rpcs.map(host), rpcNow: x.cur >= 0 ? host(x.rpcs[x.cur]) : '', cand: x.cand.size, skipped: x.skipped, since: x.since };
-    const o = { v: 1, at: now, on: on('pads.on') ? 1 : 0, minTok: num('pads.minTok'), winMin: num('pads.winMin'), ch, found: FOUND, log: logs.slice(-PC.logKeep) };
+    const UN = padNamesFile(); const o = { v: 1, at: now, on: on('pads.on') ? 1 : 0, minTok: num('pads.minTok'), winMin: num('pads.winMin'), ch, found: FOUND.map((f) => (f.ch === 'bsc' && !f.known && UN.has(f.a) ? { ...f, known: UN.get(f.a) } : f)), log: logs.slice(-PC.logKeep) };
     try { writeFileSync(F + '.w', JSON.stringify(o)); renameSync(F + '.w', F); } catch {}
   }
   function reset(x, code, msg) { x.cur = -1; x.ok = new Set(); x.bad = {}; x.next = null; x.head = null; x.fails = 0; x.wait = 0; x.cand.clear(); x.skipped = 0; x.since = 0; x.st = { code, msg }; }
@@ -161,7 +163,7 @@ export function startPadScout(D) {
       if (!(await isContract(x, u, a))) continue; /* 收到铸造的是一般钱包＝不是发射台 */
       if (x.notPad?.has(a)) continue; if (await lpLike(u, [...cd.toks.keys()].slice(-3))) { (x.notPad = x.notPad || new Set()).add(a); say(`${x.nm} ${a}：收到的是流动性凭证（LP，有 token0）→ 是 DEX 手续费／流动性合约，不是发射台`); continue; } /* Uniswap／Pancake 的 feeTo 会收到很多不同 LP 的铸造，不能当发射台 */
       const sample = [...cd.toks.keys()].slice(-PC.sample); const m = await meta(u, sample[sample.length - 1]);
-      const known = KNOWN[x.k]?.[a] || '';
+      const known = (x.k === 'bsc' ? padNamesFile().get(a) : '') || KNOWN[x.k]?.[a] || '';
       const f = { ch: x.k, a, n, first: now, last: now, sample, known, tokN: m.n, tokS: m.s };
       FOUND.unshift(f); if (FOUND.length > PC.keep) FOUND = FOUND.slice(0, PC.keep);
       const line = `${x.nm} ${known ? `已知发射台 ${known}` : '疑似新发射台'} ${a}：✅ 合约 ✅ ${winMin} 分钟内发出 ${n} 个新币（你设至少 ${minTok} 个）${known ? '' : ' → 通知（只看，不买）'}`;
