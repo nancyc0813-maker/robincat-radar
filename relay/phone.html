@@ -1735,12 +1735,12 @@ function card(x,net,z){const e=x.e||{};const pg=fin(e.pg)?+e.pg:fin(x.prog)?+x.p
  return `<div class="tr rcPC" role="button" tabindex="0" ${openAttr(x.c,x.sym,net)} style="--rn:${Math.max(rn,2)};--rt:${Math.max(r4?rn-1:rn,2)}">${av}${r1}${r2}${r3}${r4}<div class="rcR">${+x.mc>0?`<b><small>市值</small>$${kf(x.mc)}</b>`:''}${cg}${spark(x.sp)}${zap}</div></div>`}
 try{const r0=rowTok;rowTok=function(x,net,z){try{return card(x,net,z)}catch(e){return r0.apply(this,arguments)}}}catch{}
 /* ===== K 线：TradingView Lightweight Charts（只在 K 线页载入；关掉就销毁） ===== */
-const LW_URL='/vendor/lw-5.3.0.js';let LWP=null;function lwLoad(){if(window.LightweightCharts)return Promise.resolve(true);if(LWP)return LWP;LWP=new Promise(r=>{const s=document.createElement('script');s.src=LW_URL;s.onload=()=>r(!!window.LightweightCharts);s.onerror=()=>{LWP=null;r(false)};document.head.appendChild(s)});return LWP}
+const LW_URL='/vendor/lw-5.3.0.js';const GAP_C='#5d6470';let LWP=null;function lwLoad(){if(window.LightweightCharts)return Promise.resolve(true);if(LWP)return LWP;LWP=new Promise(r=>{const s=document.createElement('script');s.src=LW_URL;s.onload=()=>r(!!window.LightweightCharts);s.onerror=()=>{LWP=null;r(false)};document.head.appendChild(s)});return LWP}
 const cvv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const KC={el:null,ch:null,cs:null,vs:null,mk:null,key:'',n:0,t0:0,last:null};window.__rcK={th(){if(KC.ch){kill();try{drawK()}catch{}}},KC};
 function kill(){try{KC.ch&&KC.ch.remove()}catch{}KC.ch=null;KC.cs=null;KC.vs=null;KC.mk=null;KC.key='';KC.n=0}
 const pad2=n=>String(n).padStart(2,'0');const tl=(s,m)=>{const d=new Date(s*SEC);return m==='d'?(d.getMonth()+1)+'/'+d.getDate():m==='y'?String(d.getFullYear()):pad2(d.getHours())+':'+pad2(d.getMinutes())};
-function bars(cs){const o=[],v=[];let last=-1;for(const k of cs){const t=Math.floor((typeof tms==='function'?tms(k[0]):k[0])/SEC);if(!(t>last)||!(+k[4]>0))continue;last=t;o.push({time:t,open:+k[1],high:+k[2],low:+k[3],close:+k[4]});v.push({time:t,value:+k[5]>0?+k[5]:0})}return [o,v]}
+function bars(cs){const o=[],v=[];let last=-1;for(const k of cs){const t=Math.floor((typeof tms==='function'?tms(k[0]):k[0])/SEC);if(!(t>last)||!(+k[4]>0))continue;last=t;const gp=k[6]===1;o.push({time:t,open:+k[1],high:+k[2],low:+k[3],close:+k[4],...(gp?{color:GAP_C,wickColor:GAP_C,borderColor:GAP_C}:{})});/* 电脑补的平盘（没成交的那几根）画灰色，跟以前手机一样 */v.push({time:t,value:+k[5]>0?+k[5]:0})}return [o,v]}
 function lwDraw(){const cv=Q('#kc');if(!cv||!DT)return;let box=Q('#rcK');if(!box){box=document.createElement('div');box.id='rcK';box.innerHTML='<div class="lg"></div><div class="em"></div>';cv.after(box);kill()}
  const em=box.querySelector('.em'),lg=box.querySelector('.lg');const cs=DT.cs||[];
  if(!window.LightweightCharts){lwLoad().then(ok=>{if(ok&&DT)drawK()});cv.classList.remove('rcHide');box.style.display='none';return}
