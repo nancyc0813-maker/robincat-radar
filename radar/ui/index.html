@@ -5466,11 +5466,11 @@ html.rcDk body.rcV2.pzShell header{background:var(--pzBar);border-bottom:1px sol
 body.rcV2 .pzC.rcC{display:grid;grid-template-columns:46px minmax(0,1fr) auto;column-gap:10px;row-gap:3px;align-content:center;align-items:center;min-height:96px;padding:9px 10px}
 body.rcTh-term .pzC.rcC{min-height:84px;padding:6px 8px;row-gap:2px;grid-template-columns:40px minmax(0,1fr) auto}
 .rcC>.rcAv{grid-column:1;grid-row:1/span 4;align-self:center;display:flex;flex-direction:column;align-items:center;gap:2px}
-.rcC .rcRing{position:relative;width:46px;height:46px}body.rcTh-term .rcC .rcRing{width:40px;height:40px}
+.rcC .rcRing{position:relative;width:46px;height:46px;border-radius:50%}body.rcTh-term .rcC .rcRing{width:40px;height:40px}
 .rcC .rcRing>.rcRg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-.rcC .rcRing>.rcLg{position:absolute;inset:5px}
+.rcC .rcRing>.rcLg{position:absolute;inset:3px;box-shadow:0 0 0 2px var(--rcCard,#151515)}
 .rcLg{display:block;position:relative;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1.5px rgba(0,0,0,.35);background:var(--ln,#222)}
-.rcLg>i.rcGen{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}.rcLg>svg,.rcLg>img{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
+.rcLg{background-size:cover;background-position:center}.rcLg>svg,.rcLg>img{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
 .rcPg{font-style:normal;font-size:10.5px;font-weight:700;line-height:12px;font-family:var(--fNum,inherit)}
 .rcC>.pzR1,.rcC>.rcR2,.rcC>.pzR2{grid-column:2;min-width:0;height:18px;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;font-size:11.5px;color:var(--m)}
 .rcC>.pzR1>b{font-size:13.5px;font-weight:var(--rcSymW,700);color:var(--ink2);max-width:110px;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:2.4em;letter-spacing:.005em}
@@ -5481,7 +5481,7 @@ body.rcTh-term .pzC.rcC{min-height:84px;padding:6px 8px;row-gap:2px;grid-templat
 .rcCa{display:flex;align-items:center;gap:3px;flex:none;color:var(--m);font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11px;cursor:pointer;border-radius:4px;padding:0 2px;margin-left:-2px}
 .rcCa:hover,.rcSo:hover,.rcXh:hover{color:var(--ink2)}
 .rcXh{display:flex;align-items:center;gap:3px;min-width:14px;flex:0 1 auto;overflow:hidden;white-space:nowrap;color:var(--m2);font-size:11.5px;cursor:pointer}.rcXh b{color:var(--ink2);font-weight:800;font-size:11px;flex:none}.rcXh>span{min-width:0;overflow:hidden;text-overflow:ellipsis}.rcXh>span.rcCut{display:none}
-.rcSo{display:flex;color:var(--m);cursor:pointer;flex:none}
+.rcSo{display:flex;color:var(--m);cursor:pointer;flex:none;font-size:11px;line-height:1}
 .rcC>.pzR2{flex-wrap:wrap;row-gap:8px;align-content:flex-start;gap:6px}
 .rcC>.pzR2>span{flex:none;display:inline-flex;gap:3px;align-items:center;height:18px}
 .rcC>.pzR2 b{color:var(--ink2);font-weight:600;font-family:var(--fNum,inherit)}
@@ -5782,7 +5782,7 @@ function spark(c,mc,x){c=String(c||'');mc=+mc;if(!c)return '';let h=SPH.get(c);i
  if(Number.isFinite(mc)&&mc>0&&h[h.length-1]!==mc){h.push(mc);if(h.length>SP_N)h.shift()}
  if(h.length<SP_MIN)return '';const mn=Math.min(...h),mx=Math.max(...h),rg=mx-mn||mx||1;const W=64,H=16;const pts=h.map((v,i)=>[(i*W/(h.length-1)).toFixed(1),(H-1-(v-mn)/rg*(H-2)).toFixed(1)]);
  const l='M'+pts.map(p=>p.join(' ')).join('L');const up=h[h.length-1]>=h[0];
- return `<svg class="rcSp ${up?'up':'dn'}" viewBox="0 0 64 16" preserveAspectRatio="none" aria-hidden="true"><path class="a" d="${l}L${W} ${H}L0 ${H}Z"/><path class="l" d="${l}"/></svg>`}
+ return `<svg class="rcSp ${up?'up':'dn'}" viewBox="0 0 64 16" preserveAspectRatio="none" aria-hidden="true"><path class="l" d="${l}"/></svg>`}
 function skel(){let h='';for(let i=0;i<SK_N;i++)h+=`<div class="pzC rcSk" aria-hidden="true"><div class="pzAv"><s class="rcSkb"></s></div><div class="pzM"><i class="rcSkb" style="width:${40+(i*17)%35}%"></i><i class="rcSkb" style="width:${55+(i*13)%30}%"></i><i class="rcSkb" style="width:${30+(i*11)%40}%"></i></div><div class="pzS"><i class="rcSkb" style="display:block;width:64px;height:26px"></i></div></div>`;return h}
 /* ===== 原型版式卡片＋产生的头像（没有 logo 的币：依合约地址决定渐层＋图形，同一个币永远同一个样子） ===== */
 const PAL=[['#FFB547','#FF6A3D'],['#7C5CFF','#3DD6FF'],['#2EE6A6','#1C8CFF'],['#FF5C8A','#FFB86B'],['#9BE15D','#00C9A7'],['#F7E26B','#F0A500'],['#5EEAD4','#6366F1'],['#FDA4AF','#C084FC'],['#38BDF8','#0EA5E9'],['#FB7185','#E11D48'],['#A3E635','#16A34A'],['#FCD34D','#F97316']];
@@ -5816,18 +5816,18 @@ function genCls(c,sym,name){const k=String(c||sym).toLowerCase()+'|'+String(sym|
  o={cls,rule};LGU.set(k,o);LGP.push([o,u]);if(!LGB){LGB=1;setTimeout(lgPng,SEC/4)}return cls}
 function lgPng(){const B=LGP.splice(0,IN_MAX);if(!B.length){LGB=0;return}let n=B.length;const done=()=>{if(--n===0)setTimeout(lgPng,SEC/4)};
  for(const [o,u] of B){const im=new Image();im.onload=()=>{try{const z=RG_R*4;const cv=document.createElement('canvas');cv.width=cv.height=z;cv.getContext('2d').drawImage(im,0,0,z,z);if(o.rule.style.backgroundImage.includes('svg'))o.rule.style.backgroundImage=`url("${cv.toDataURL('image/png')}")`}catch{}done()};im.onerror=done;im.src=u}}
-function logo(c,sym,name,lg){lg=/^https:\/\//.test(String(lg||''))?String(lg):'';return `<span class="rcLg"><i class="rcGen ${genCls(c,sym,name)}"></i>${lg&&!BAD.has(lg)?`<img src="${esc(lg)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</span>`}
+function logo(c,sym,name,lg){lg=/^https:\/\//.test(String(lg||''))?String(lg):'';return `<span class="rcLg ${genCls(c,sym,name)}">${lg&&!BAD.has(lg)?`<img src="${esc(lg)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</span>`}
 const ICS={copy:'<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5.5 15H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5h8.5A1.5 1.5 0 0 1 15 5v.5"/>',globe:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.6 3.5 5.4 3.5 8.5s-1.1 5.9-3.5 8.5c-2.4-2.6-3.5-5.4-3.5-8.5s1.1-5.9 3.5-8.5z"/>',send:'<path d="M20.5 3.5 10.6 13.4"/><path d="M20.5 3.5 14.2 20.5l-3.6-7.1-7.1-3.6z"/>'};
 const ico=(n,z)=>`<svg class="rcIc" width="${z}" height="${z}" viewBox="0 0 24 24" aria-hidden="true">${ICS[n]}</svg>`;
 const shortCa=c=>{const t=c.substring(0,4)+'…'+c.substring(c.length-4);return t.length<c.length?t:c};
 const okUrl=u=>/^https:\/\//.test(String(u||''));
 function card(o){const {x,k,col,e,p,xh,btn,fmt,fi,pct}=o;const c=String(x.c||'');const fin=v=>v!=null&&v!==''&&Number.isFinite(+v);
  const out=k==='out'||k==='done';const pg=+x.pg;const hasPg=!out&&fin(x.pg)&&pg>=0;
- const av=`<div class="rcAv"><div class="rcRing">${ring(out?PCT:hasPg?pg:0,col)}${logo(c,x.s,x.n,x.lg)}</div>${hasPg?`<i class="rcPg" style="color:${esc(col)}">${Math.floor(Math.min(PCT,pg))}%</i>`:''}</div>`;
+ const rp=out?PCT:hasPg?Math.min(PCT,Math.max(0,pg)):0;const av=`<div class="rcAv"><div class="rcRing" style="background:conic-gradient(${esc(col)} ${(rp*3.6).toFixed(1)}deg,var(--ln,#2a2a2a) 0)">${logo(c,x.s,x.n,x.lg)}</div>${hasPg?`<i class="rcPg" style="color:${esc(col)}">${Math.floor(Math.min(PCT,pg))}%</i>`:''}</div>`;
  const nm=x.n&&x.n!==x.s?x.n:'';
  const r1=`<div class="pzR1"><b>${esc(x.s||'?')}</b>${nm?`<small>${esc(nm)}</small>`:''}${p?`<i>${esc(p)}</i>`:''}<em>${esc(o.age)}</em></div>`;
- const so=[];if(okUrl(x.xl))so.push(`<a class="rcXh" data-noi18n="1" data-pzurl="${esc(x.xl)}" title="${esc(xh?'@'+xh:x.xl)}"><b>𝕏</b>${xh?'<span>@'+esc(xh)+'</span>':''}</a>`);if(okUrl(x.wl))so.push(`<a class="rcSo" data-noi18n="1" data-pzurl="${esc(x.wl)}" title="${e?'Website':'官网'}">${ico('globe',13)}</a>`);if(okUrl(x.tl))so.push(`<a class="rcSo" data-noi18n="1" data-pzurl="${esc(x.tl)}" title="Telegram">${ico('send',13)}</a>`);
- const r2=`<div class="rcR2"><a class="rcCa" data-noi18n="1" data-pzcp="${esc(c)}" title="${e?'Copy contract':'复制合约'}">${esc(shortCa(c))}${ico('copy',11)}</a>${so.join('')}</div>`;
+ const so=[];if(okUrl(x.xl))so.push(`<a class="rcXh" data-noi18n="1" data-pzurl="${esc(x.xl)}" title="${esc(xh?'@'+xh:x.xl)}"><b>𝕏</b>${xh?'<span>@'+esc(xh)+'</span>':''}</a>`);if(okUrl(x.wl))so.push(`<a class="rcSo" data-noi18n="1" data-pzurl="${esc(x.wl)}" title="${e?'Website':'官网'}">🌐</a>`);if(okUrl(x.tl))so.push(`<a class="rcSo" data-noi18n="1" data-pzurl="${esc(x.tl)}" title="Telegram">✈</a>`);
+ const r2=`<div class="rcR2"><a class="rcCa" data-noi18n="1" data-pzcp="${esc(c)}" title="${e?'Copy contract':'复制合约'}">${esc(shortCa(c))} ⧉</a>${so.join('')}</div>`;
  const kv=[];if(fin(x.h))kv.push(`<span>${e?'H':'持'} <b>${fi(x.h)}</b></span>`);if(fin(x.v)&&+x.v>0)kv.push(`<span>${e?'V':'量'} <b>$${fmt(x.v)}</b></span>`);if(!kv.length&&fin(x.tx))kv.push(`<span>${e?'Tx':'笔'} <b>${fi(x.tx)}</b></span>`);
  const tg=[];const chg=(f,l)=>{const t=fin(x[f])?pct(x[f]):'';if(t&&!/^[+-]?0(\.0)?%$/.test(t))tg.push(`<i class="rcTag ${+x[f]>=0?'up':'dn'}">${l} ${t}</i>`)};
  chg('c5','5m');if(+x.kol>0)tg.push(`<i class="rcTag kol" data-noi18n="1" title="${esc((x.kn||[]).join('、'))}">KOL ${+x.kol}</i>`);if(+x.bt>0||+x.st>0)tg.push(`<i class="rcTag tax">${e?'Tax':'税'} ${Math.round(+x.bt||0)}/${Math.round(+x.st||0)}%</i>`);chg('c1','1h');chg('c24','24h');
