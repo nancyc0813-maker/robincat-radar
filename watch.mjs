@@ -3317,7 +3317,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.4.14', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 一般版本只提醒；官方标「重要」的自动装（AUTOUPD-1112，可在设定关）；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.4.15', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 一般版本只提醒；官方标「重要」的自动装（AUTOUPD-1112，可在设定关）；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;
@@ -3342,7 +3342,8 @@ const OFFI_PUB = OFFI.PUBKEY; /* PUBKEY_PLACEHOLDER（还没设）→ 下面验�
 /* 一键更新的档名检查：要是正规写法（posix 正规化后一模一样）、不分大小写比对；不能碰 data/、.sign*、node_modules、.git、config.json；解析后一定要在雷达资料夹里面 */
 function updPathBad(f) { f = String(f || ''); if (!/^[\w\-.\/一-龥]+$/.test(f) || f.includes('\\') || f.startsWith('/')) return true; const n = posix.normalize(f); if (n !== f || n.startsWith('../') || n === '..' || n.split('/').some((x) => x === '..' || x === '.' || x === '')) return true; const lo = n.toLowerCase(); const top = lo.split('/')[0]; if (['data', 'node_modules', '.git'].includes(top) || top.startsWith('.sign') || lo === 'config.json' || lo.endsWith('/config.json')) return true; const abs = resolve(DIR, n), root = resolve(DIR); return !(abs.startsWith(root + sep) && abs.length > root.length + 1); }
 async function doUpdateAll(v) {
-  const RAW = `https://raw.githubusercontent.com/${UPD.repo}/main/`;
+  let ref = 'main'; try { const r0 = await fetch(`https://api.github.com/repos/${UPD.repo}/commits/main`, { headers: { accept: 'application/vnd.github.sha' }, signal: AbortSignal.timeout(15000) }); const t0 = r0.ok ? (await r0.text()).trim() : ''; if (/^[0-9a-f]{40}$/.test(t0)) ref = t0; } catch {} /*UPDSHA-1112 用户回报：发版后几分钟内更新常「校验不符」（GitHub 快取 main 分支不同步，拿到新清单＋旧档案）→ 先问到最新那一次发布的编号，清单和档案都从同一次发布下载（内容固定、不会被快取混到）；问不到才照旧用 main */
+  const RAW = `https://raw.githubusercontent.com/${UPD.repo}/${ref}/`;
   const get = async (f) => { const r = await fetch(RAW + f.split('/').map(encodeURIComponent).join('/') + '?t=' + Date.now(), { signal: AbortSignal.timeout(60000) }); if (!r.ok) throw new Error(f + ' ' + r.status); return Buffer.from(await r.arrayBuffer()); };
   let man, sig; try { man = await get('radar/official.json'); sig = Buffer.from((await get('radar/official.sig')).toString('utf8').trim(), 'base64'); } catch { return '⚠️ 下载新版清单失败，等一下再试'; }
   const { createPublicKey, verify } = await import('node:crypto');

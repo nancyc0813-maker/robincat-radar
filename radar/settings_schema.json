@@ -7578,8 +7578,8 @@
    "max": 1,
    "zh": "新发射台发现（只看）",
    "en": "New launchpad finder (view only)",
-   "dzh": "打开后雷达只向节点「读」区块：同一个合约在你填的时间内发出很多个新币，就当成疑似发射台，列在看盘「🆕 新发射台」。不连钱包、不签名、不送交易、不会自动买。关着＝完全不连线",
-   "den": "When on, the radar only READS blocks: a contract that issues many new tokens within your window is listed as a possible launchpad (Board → 🆕 Launchpads). No wallet, no signing, no trades, never auto-buys. Off = no connection"
+   "dzh": "选用：多扫一层。「🆕 新发射台」本来就会列出 AVE 看盘里的发行平台和 AI 热门代币的发射台；打开这个，雷达还会向公开节点「读」区块，把最近发了很多新币的合约也列出来（公开节点有用量限制，读不到时会自己重试）。不连钱包、不签名、不送交易、不会自动买",
+   "den": "Optional extra scan. “🆕 Launchpads” already lists platforms from the AVE board and launchpads behind AI hot tokens; turning this on also reads blocks from public nodes to list contracts that recently launched many tokens (public nodes have limits; it retries). No wallet, no signing, never buys"
   },
   {
    "k": "pads.ch.bsc",
@@ -7693,10 +7693,10 @@
    "max": 100000,
    "unit": "个",
    "uen": "tokens",
-   "zh": "至少发出几个新币才算",
+   "zh": "判断成「新发射台」：至少发出几个新币（选填）",
    "en": "New tokens at least",
-   "dzh": "同一个合约在下面的时间内发出至少这么多个新币（往回看确认之前没有转帐，才算新币）才列出来。空白＝不判断（不会列出任何东西）",
-   "den": "A contract must issue at least this many brand-new tokens within the window below. Empty = not judged (nothing listed)"
+   "dzh": "选填。空白＝只照数量列清单（不判断、不发 TG）。填了（连同下面的分钟）＝同一个合约在这段时间发出这么多个新币就当成新发射台，开着 TG 通知时会通知你",
+   "den": "Optional. Empty = list by count only (no judging, no TG). Filled (with minutes below) = a contract that launches this many new tokens in that time counts as a new launchpad; TG alert if turned on"
   },
   {
    "k": "pads.winMin",
@@ -7708,7 +7708,7 @@
    "uen": "min",
    "zh": "在几分钟内",
    "en": "Within minutes",
-   "dzh": "单位 分钟。空白＝不判断",
+   "dzh": "单位 分钟。跟上面一起填才会判断",
    "den": "Minutes. Empty = not judged"
   },
   {
@@ -7721,7 +7721,7 @@
    "need": "pads.on",
    "zh": "发现时也发 TG",
    "en": "Also send TG",
-   "dzh": "发现疑似新发射台时发一则 TG（已知的 Flap、Four.meme 不发）",
+   "dzh": "判断成新发射台时发一则 TG（要填上面两个数字；已知的 Flap、Four.meme 不发）",
    "den": "Send a TG message when a possible new launchpad is found (known ones like Flap, Four.meme are not sent)"
   },
   {

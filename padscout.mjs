@@ -24,6 +24,9 @@ const PC = {
   tokMax: 3000,          /* 技术用：每个候选合约最多记几个新币（超过只留最近的） */
   candMax: 5000,         /* 技术用：每条链最多追几个候选合约（超过丢最久没动的） */
   sample: 5,
+  listWinMin: 60,       /* 显示用：没填「几分钟内发出几个」时，清单列最近几分钟的发币合约（跟 AVE 一样只列出来、不判断、不通知） */
+  listMinN: 2,          /* 显示用：清单只列发了 2 个以上新币的合约（只发 1 个的多半是一般合约） */
+  listTop: 20,          /* 显示用：每条链清单最多列几个 */
   newLb: 2000,          /* 技术用：确认「是不是新币」往回看几块（这段时间里有更早的转帐＝旧币，例如借贷凭证、跨链包装币） */
   newPerTick: 12,       /* 技术用：每轮最多确认几个币是不是新的（节点额度） */
   newMax: 20000,        /* 技术用：「是不是新币」快取最多几个 */             /* 显示用：每个发射台画面上列几个最近的新币 */
@@ -98,11 +101,11 @@ export function startPadScout(D) {
 
   function view(force) {
     const now = Date.now(); if (!force && now - lastW < PC.writeMs) return; lastW = now;
-    const ch = {}; for (const x of Object.values(C)) ch[x.k] = { on: on('pads.ch.' + x.k) ? 1 : 0, nm: x.nm, st: x.st, head: x.head, next: x.next, rpc: x.rpcs.map(host), rpcNow: x.cur >= 0 ? host(x.rpcs[x.cur]) : '', cand: x.cand.size, skipped: x.skipped, since: x.since };
-    const UN = padNamesFile(); const o = { v: 1, at: now, on: on('pads.on') ? 1 : 0, minTok: num('pads.minTok'), winMin: num('pads.winMin'), ch, found: FOUND.map((f) => (f.ch === 'bsc' && !f.known && UN.has(f.a) ? { ...f, known: UN.get(f.a) } : f)), log: logs.slice(-PC.logKeep) };
+    const top = []; for (const x of Object.values(C)) if (Array.isArray(x.top)) top.push(...x.top); const ch = {}; for (const x of Object.values(C)) ch[x.k] = { on: on('pads.ch.' + x.k) ? 1 : 0, nm: x.nm, st: x.st, head: x.head, next: x.next, rpc: x.rpcs.map(host), rpcNow: x.cur >= 0 ? host(x.rpcs[x.cur]) : '', cand: x.cand.size, skipped: x.skipped, since: x.since };
+    const UN = padNamesFile(); const o = { v: 1, at: now, on: on('pads.on') ? 1 : 0, minTok: num('pads.minTok'), winMin: num('pads.winMin'), ch, top, listWinMin: PC.listWinMin, found: FOUND.map((f) => (f.ch === 'bsc' && !f.known && UN.has(f.a) ? { ...f, known: UN.get(f.a) } : f)), log: logs.slice(-PC.logKeep) };
     try { writeFileSync(F + '.w', JSON.stringify(o)); renameSync(F + '.w', F); } catch {}
   }
-  function reset(x, code, msg) { x.cur = -1; x.ok = new Set(); x.bad = {}; x.next = null; x.head = null; x.fails = 0; x.wait = 0; x.cand.clear(); x.skipped = 0; x.since = 0; x.st = { code, msg }; }
+  function reset(x, code, msg) { x.top = []; x.cur = -1; x.ok = new Set(); x.bad = {}; x.next = null; x.head = null; x.fails = 0; x.wait = 0; x.cand.clear(); x.skipped = 0; x.since = 0; x.st = { code, msg }; }
 
   async function pick(x) {
     for (let i = 0; i < x.rpcs.length; i++) { const k = x.cur < 0 ? i : (x.cur + i) % x.rpcs.length; const u = x.rpcs[k]; if (x.bad[u]) continue; if (x.ok.has(u)) { x.cur = k; return u; }
@@ -150,8 +153,16 @@ export function startPadScout(D) {
     }
   }
 
+  async function listTop(x, u) { /* 列清单：最近一段时间收到最多「新币第一次铸造」的合约，照数量排；只显示，不判断、不通知 */
+    const now = Date.now(), win = PC.listWinMin * 60e3, ign = padIgnore(txt('pads.ignore')); const budget = { n: PC.newPerTick }; x.newTok = x.newTok || new Map(); const out = [];
+    const C2 = [...x.cand.entries()].map(([a, cd]) => { for (const [t, v] of cd.toks) if (now - v.at > win) cd.toks.delete(t); return [a, cd]; }).filter(([a, cd]) => { if (!cd.toks.size) { x.cand.delete(a); return false; } return cd.toks.size >= PC.listMinN && !ign.has(a) && !x.notPad?.has(a); }).sort((p, q) => q[1].toks.size - p[1].toks.size).slice(0, PC.listTop * 2);
+    for (const [a, cd] of C2) { if (out.length >= PC.listTop) break;
+      let nNew = 0; for (const [t, v] of cd.toks) { let k = x.newTok.get(t); if (k === undefined) { if (budget.n <= 0) continue; budget.n--; k = await isNew(u, t, v.b); x.newTok.set(t, k); if (x.newTok.size > PC.newMax) x.newTok.delete(x.newTok.keys().next().value); } if (k === true) nNew++; }
+      if (nNew < PC.listMinN) continue; if (!(await isContract(x, u, a))) continue; if (await lpLike(u, [...cd.toks.keys()].slice(-3))) { (x.notPad = x.notPad || new Set()).add(a); continue; }
+      const sample = [...cd.toks.keys()].slice(-PC.sample); const known = (x.k === 'bsc' ? padNamesFile().get(a) : '') || KNOWN[x.k]?.[a] || ''; out.push({ ch: x.k, a, n: nNew, sample, known, last: cd.last }); }
+    x.top = out; }
   async function judge(x, u) {
-    const minTok = num('pads.minTok'), winMin = num('pads.winMin'); if (minTok == null || winMin == null) return; /* 没填＝不判断（不用程式里的数字代替） */
+    const minTok = num('pads.minTok'), winMin = num('pads.winMin'); if (minTok == null || winMin == null) return listTop(x, u); /* 没填＝不判断、不通知（不用程式里的数字代替）；只照数量列出来给你看（PADS2-1112，Nancy：自动开、不用填） */
     const now = Date.now(), win = winMin * 60e3, ign = padIgnore(txt('pads.ignore')); const budget = { n: PC.newPerTick }; x.newTok = x.newTok || new Map();
     for (const [a, cd] of x.cand) { for (const [t, v] of cd.toks) if (now - v.at > win) cd.toks.delete(t); if (!cd.toks.size) { x.cand.delete(a); continue; }
       const n = padCount(cd.toks, now, win); const old = FOUND.find((f) => f.ch === x.k && f.a === a);
@@ -176,7 +187,7 @@ export function startPadScout(D) {
     if (!on('pads.on')) { if (Object.values(C).some((x) => x.st.code !== 'off')) { for (const x of Object.values(C)) reset(x, 'off', ''); say('关了 → 不连线'); view(true); } return; }
     const L = Object.values(C).filter((x) => on('pads.ch.' + x.k)); for (const x of Object.values(C)) if (!L.includes(x) && x.st.code !== 'off') reset(x, 'off', '');
     if (!L.length) { view(); return; }
-    if (num('pads.minTok') == null || num('pads.winMin') == null) { for (const x of L) if (x.st.code !== 'nonum') { reset(x, 'nonum', '还没填「至少发出几个新币」和「在几分钟内」→ 不连线、不判断'); } view(); return; } /* 没填数字＝不判断，也就不用连线 */
+    /* PADS2-1112：没填数字也照样连线，只列清单（不判断、不通知） */
     const x = L[rr++ % L.length]; await tickChain(x); view();
   }
   let busy = 0, stopped = 0;
