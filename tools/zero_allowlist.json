@@ -19214,6 +19214,88 @@
     "4"
    ],
    "reason": "PACE-1113 统计格子数（放行／被拒／重试被拒／重试放行）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "AVEB_STALE_MS = 600e3",
+   "values": [
+    "600e3"
+   ],
+   "reason": "V3T-1113 看盘的 1h／24h 买卖金额多久没被 AVE 清单更新就改读链（只影响显示），技术用"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "Math\\.ceil\\(3600e3 \\/ TAPE_BLK_MS",
+   "values": [
+    "3600e3"
+   ],
+   "reason": "V3T-1113「1 小时」买卖金额的 1 小时（栏位定义，跟 AVE 1h 同一个窗），换成区块数"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/main\\.cjs$",
+   "match": "1n << 255n \\? [xv] - \\(1n << 256n\\)",
+   "values": [
+    "255n",
+    "256n"
+   ],
+   "reason": "V3T-1113 int256 有号数解码（协定常数）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/main\\.cjs$",
+   "match": "H1C\\.size > 100\\)",
+   "values": [
+    "100"
+   ],
+   "reason": "V3T-1113 快取最多几个池子，技术用"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "Math\\.floor\\(x\\.at \\/ 1000\\)",
+   "values": [
+    "1000"
+   ],
+   "reason": "RH3-1113 毫秒换秒"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/main\\.cjs$",
+   "match": "\\+x\\.prog < 100\\); out\\.cols\\.soon",
+   "values": [
+    "100"
+   ],
+   "reason": "RH3-1113 内盘进度满格＝100%（还没打满才放即将打满栏，跟 AVE 一样），只影响显示"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar\\/main\\.cjs$",
+   "match": "CRF\\.get\\(hn \\+ '\\|' \\+ a\\) \\|\\| 0\\) < CRF_MS\\)\\) need\\.push\\(a\\)",
+   "values": [
+    "0"
+   ],
+   "reason": "RISK2-1113 读不到的币多久再试（没记录＝可以试），跟原本卡片风险同一个写法"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar\\/main\\.cjs$",
+   "match": "\\+d\\.departedAt \\|\\| 0\\) < FEAST_T\\.recentS",
+   "values": [
+    "0"
+   ],
+   "reason": "原本的 Feast 已上外盘时间（没有＝不算最近），这次没改，只是附近文字变了"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay\\/board\\.js$",
+   "match": "LU_BUMP_MS = 300e3",
+   "values": [
+    "300e3"
+   ],
+   "reason": "V3T-1113 lu 多久才推给用户一次（流量用），技术用"
   }
  ]
 }

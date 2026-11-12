@@ -52,7 +52,8 @@ contextBridge.exposeInMainWorld('radar', {
   candles: (n, p, tf) => call('candles', S(n, 20), S(p, 80), S(tf, 10)),
   klineHist: (n, a, p, tf, before, meta) => call('klineHist', S(n, 20), S(a, 64), S(p, 80), S(tf, 10), N(before), B(meta)), /* KH-1113 K 线历史：[{t 毫秒,o,h,l,c,v 美金}]；meta＝true 回 {src,pool,bars} */
   okxMkt: (act, k, s2, p2) => call('okxMkt', ['save', 'clear'].includes(act) ? act : 'status', S(k, 100), S(s2, 200), S(p2, 100)), /* OKX-1113 OKX 资料金钥：status／save／clear（金钥不会回传） */
-  srcStat: () => call('srcStat'), /* NODE-1113 资料来源状态 */
+  srcStat: () => call('srcStat'),
+  cardRisk: (n, list) => call('cardRisk', S(n, 20), A(list, 60).map((x) => S(x, 64))), /* RISK2-1113 画面看得到的卡：回 {地址: {t10,dv,sn,rat,bu}}，没查过的排进背景 */ /* NODE-1113 资料来源状态 */
   login: (i) => call('login', N(i)),
   netCheck: () => call('netCheck'), /*NET123 检查网路（只读）*/
   copyGuide: (x) => call('copyGuide', S(x, 600)),
