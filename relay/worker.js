@@ -195,7 +195,7 @@ async function aveProxy0(req, u, env) { /* AVE-WSS：外面包了一层 aveProxy
   const w = S.id === 'owner' ? 'owner' : String(S.id).slice(0, 64), code = S.id === 'owner' ? '' : String(S.c || '').slice(0, 16); const bg = u.searchParams.get('bg') === '1'; /* OPS-RT6：计量键只来自通行证（作者固定 owner），不能自己填 */
   /* H8-D2：全部用量记在同一个 Durable Object（全球一致）：总额度、每个钱包每天的额度（AVE_USER_DAY_CU）、每个钱包每秒几次（AVE_USER_RPS）、送到 AVE 的总速度；背景查询让你点的先 */
   const ev = (k) => String(envNum(env, k) ?? ''); /* 额度全部是 wrangler.toml [vars] 的营运设定；没设＝那一项不限 */
-  const mq = new URLSearchParams({ cu: String(rule[2]), w, code, bg: bg ? '1' : '0', ucap: ev('AVE_USER_DAY_CU'), urps: ev('AVE_USER_RPS'), ccap: ev('AVE_CODE_DAY_CU'), grps: ev('AVE_GLOBAL_RPS'), cap: ev('AVE_DAY_CU'), bgpct: ev('AVE_BG_STOP_PCT'), mstop: ev('AVE_MONTH_STOP_CU'), mwarn: ev('AVE_MONTH_WARN_CU') }); /*BOARD124*/
+  const mq = new URLSearchParams({ cu: String(rule[2]), w, code, bg: bg ? '1' : '0', ucap: ev('AVE_USER_DAY_CU'), urps: AVEB_IN.has(u) ? '' : ev('AVE_USER_RPS'), ccap: ev('AVE_CODE_DAY_CU'), grps: ev('AVE_GLOBAL_RPS'), cap: ev('AVE_DAY_CU'), bgpct: ev('AVE_BG_STOP_PCT'), mstop: ev('AVE_MONTH_STOP_CU'), mwarn: ev('AVE_MONTH_WARN_CU') }); /*BOARD124*/
   const m = await (await env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter?' + mq)).json();
   if (['daily cap', 'user cap', 'code cap', 'bg paused', 'month cap' /*BOARD124*/].includes(m.deny)) return J({ err: m.deny }, 429); if (m.deny) return new Response(JSON.stringify({ err: m.deny }), { status: 429, headers: { ...SEC, 'content-type': 'application/json', 'retry-after': '2' } });
   const refund = () => env.ROOM.get(env.ROOM.idFromName('ave-meter')).fetch('https://do/_meter_refund?' + new URLSearchParams({ cu: String(rule[2]), w, code })).catch(() => {}); /*CONFLICT116-6：AVE 没成功就把这次扣的额度退回*/
@@ -278,13 +278,14 @@ async function aveWsRoute(req, env) { if (req.headers.get('Upgrade') !== 'websoc
    快取只用来合并同一瞬间的重复请求（时间见 AVE_OK），不拿旧资料冒充即时资料 */
 const AVE_INFL = new Map(); const AVE_Q_TRIES = 6, AVE_Q_WAIT_MS = 250; /* 技术用：全体速度满了最多排队几次／每次等多久 */
 /*BUNDLE-1112（Nancy 同意）：雷达看盘一个分页要十几份 AVE 清单 → 打包成一个请求（GET /aveb?ps=[...]），转接站在里面照 /ave 一样逐份处理（同样的通行证、额度计量、快取、同时请求合并），Cloudflare 请求次数大约变成十分之一 */
+const AVEB_IN = new WeakSet(); /* 打包里面的单项（转接站自己产生的网址物件，外面送不进来）：不占用户每秒次数，你点的 K 线／详情不会被清单挤掉 */
 const AVEB_MAX = 24, AVEB_PAR = 2; /* 技术用：一包最多几份（Cloudflare 每个请求的子请求上限）／一次同时问 AVE 几份（留速度给前景的 K 线、详情） */
 async function aveBundle(req, u, env) {
   let ps; try { ps = JSON.parse(String(u.searchParams.get('ps') || '[]')); } catch { return J({ err: 'bad' }, 400); }
   if (!Array.isArray(ps) || !ps.length || ps.length > AVEB_MAX || ps.some((x) => typeof x !== 'string' || x.length > 300)) return J({ err: 'bad' }, 400);
   if (!(await sessOf(req, env))) return J({ err: 'session' }, 401);
   const bg = u.searchParams.get('bg') === '1'; const out = {};
-  const Q = [...new Set(ps)]; let qi = 0; const runOne = async (p) => { try { const u2 = new URL(u.origin + '/ave'); u2.searchParams.set('p', p); if (bg) u2.searchParams.set('bg', '1'); const r = await aveProxy(req, u2, env); if (r.status === 200) { try { out[p] = JSON.parse(await r.text()); } catch { out[p] = { __err: 'html' }; } } else { let e = ''; try { e = String((await r.json())?.err || ''); } catch {} out[p] = { __err: e || 'http ' + r.status, __st: r.status }; } } catch (e) { out[p] = { __err: String(e?.message || e).slice(0, 80) }; } };
+  const Q = [...new Set(ps)]; let qi = 0; const runOne = async (p) => { try { const u2 = new URL(u.origin + '/ave'); u2.searchParams.set('p', p); if (bg) u2.searchParams.set('bg', '1'); AVEB_IN.add(u2); const r = await aveProxy(req, u2, env); if (r.status === 200) { try { out[p] = JSON.parse(await r.text()); } catch { out[p] = { __err: 'html' }; } } else { let e = ''; try { e = String((await r.json())?.err || ''); } catch {} out[p] = { __err: e || 'http ' + r.status, __st: r.status }; } } catch (e) { out[p] = { __err: String(e?.message || e).slice(0, 80) }; } };
   await Promise.all(Array.from({ length: Math.min(AVEB_PAR, Q.length) }, async () => { while (qi < Q.length) await runOne(Q[qi++]); })); /* 一次只问几份（不把 AVE 每秒次数占满，你点的 K 线／详情先过） */
   return J({ ok: 1, r: out });
 }
