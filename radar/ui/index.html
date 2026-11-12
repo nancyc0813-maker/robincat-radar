@@ -5513,6 +5513,98 @@ body.pzShell #rcNotes{margin-left:98px}
 #rcNotes>#gateAlertBar.c5clip::after{top:0!important;line-height:30px}
 #rcNotes>#gateAlertBar.c5clip.c5open{display:block!important;height:auto;white-space:normal;border-radius:14px!important;line-height:1.6!important;padding:6px 92px 6px 14px!important}
 #rcNotes>#gateAlertBar.c5open>div{white-space:normal}
+/* ===== 第三轮：详情页照原型（顶部大头像＋数据格、K 线工具列、分页表格、右栏买卖卡与代币资讯格）；AI 铸造卡新版式。只换外观，按钮与资料照旧 ===== */
+body.rcV2 #dtl .wel.fdW{background:var(--bg);border-color:var(--b)}
+body.rcV2 #dtl .fdTop{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0)),var(--rcCol,var(--p));border-bottom:1px solid var(--b);align-items:center}
+body.rcV2 #dtl .fdTop .fbBack{width:34px;height:34px;flex:none;border-radius:var(--rcBtnR,9px);border:1px solid var(--b);background:var(--p2);display:flex;align-items:center;justify-content:center;font-size:0;color:var(--m2)}
+body.rcV2 #dtl .fdTop .fbBack::before{content:"‹";font-size:22px;line-height:1;margin-top:-2px}
+body.rcV2 #dtl .fdTop .fbBack:hover{color:var(--ink2);background:var(--hv)}
+body.rcV2 #dtH .fdNm{align-items:center;gap:12px}
+body.rcV2 #dtH .fdNm>.fmIc{width:58px!important;height:58px!important;flex:none;border-radius:50%;position:relative;overflow:hidden;color:transparent;box-shadow:0 0 0 2px var(--acc,#F0B90B),0 0 24px -4px var(--acc,#F0B90B)}
+body.rcV2 #dtH .fdNm>.fmIc>.rcLg{position:absolute;inset:0;box-shadow:none;z-index:0}
+body.rcV2 #dtH .fdNm>.fmIc>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+body.rcV2 #dtH .fdNm>div>b:first-child{font-size:21px;font-weight:800;color:var(--ink2);letter-spacing:.01em}
+body.rcV2 #dtH .fdNm>div>small:not(.fbMeta){font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11.5px;color:var(--m)}
+body.rcV2 #dtH .fdCh{border-radius:5px;background:var(--accSoft,#F0B90B22);color:var(--acc,#F0B90B);border:0;font-weight:700;font-size:11px;padding:1px 7px}
+body.rcV2 #dtH .btn.s{height:26px;padding:0 10px;border-radius:var(--rcBtnR,8px);background:var(--p2);border:1px solid var(--b);color:var(--m2);font-size:12px}
+body.rcV2 #dtH .btn.s:hover{color:var(--ink2);background:var(--hv)}
+body.rcV2 #fdPills{gap:0}
+body.rcV2 #fdPills .fdPl{background:transparent!important;border:0!important;border-left:1px solid var(--b)!important;border-radius:0!important;padding:2px 16px!important;min-width:0;display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+body.rcV2 #fdPills .fdPl:first-child{border-left:0!important}
+body.rcV2 #fdPills .fdPl small{font-size:11px;color:var(--m)}
+body.rcV2 #fdPills .fdPl b{font-size:15px;font-weight:700;font-family:var(--fNum,inherit);color:var(--ink2);white-space:nowrap}
+body.rcV2 #fdPills .fdPl.big b{font-size:24px;font-weight:800;letter-spacing:-.01em}
+body.rcV2 #dtl .rcNa{display:none!important}
+/* 左边主区：K 线卡＋分页表格卡 */
+body.rcV2 #dtl .fdMain{background:transparent}
+body.rcV2 #dtl #dtCh{--cdH:clamp(260px,calc(100vh - 560px),460px);background:var(--rcCol,var(--p));border:1px solid var(--b);border-radius:var(--rcRP,14px);padding:10px!important}
+body.rcV2 #dtl #nwAveMk{display:inline-flex;align-items:center;gap:6px;width:auto;max-width:100%;padding:4px 12px;border-radius:999px;border:1px solid var(--accLine,#F0B90B66);background:var(--accSoft,#F0B90B18);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.rcV2 #dtCh>#cdTf.hbSeg,body.rcV2 #dtCh .fdPhTf{display:inline-flex!important;width:auto;gap:2px!important;height:32px!important;padding:3px;border-radius:calc(var(--rcBtnR,9px) + 2px);background:var(--p2);border:1px solid var(--b)}
+body.rcV2 #dtCh>#cdTf.hbSeg a{height:24px;line-height:24px;padding:0 10px!important;border-radius:var(--rcBtnR,8px)!important;border:0!important;background:transparent!important;color:var(--m2)!important;font-weight:550;font-size:12px!important}
+body.rcV2 #dtCh>#cdTf.hbSeg a.on{background:var(--hv)!important;color:var(--ink2)!important;box-shadow:inset 0 0 0 1px var(--b),0 2px 6px rgba(0,0,0,.3)}
+body.rcV2 #dtCh #cdBox,body.rcV2 #dtCh .fdPhBox{border-color:var(--b)!important;border-radius:var(--rcR,12px)!important;background:var(--bg)!important}
+body.rcV2 #dtCh #cdBox>svg{background:transparent!important}
+body.rcV2 #dtCh #cdNote{color:var(--m)}
+body.rcV2 #dtl #fbOvl{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 2px}
+body.rcV2 #dtl #fbOvl .fbOvT{color:var(--m);font-size:12px;margin-right:2px}
+body.rcV2 #dtl #fbOvl label.fbCk{height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--b);background:var(--p2);display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--m2)}
+body.rcV2 #dtl #fbOvl label.fbCk:hover{color:var(--ink2);border-color:var(--b2)}
+body.rcV2 #dtl .fdTabs{border-bottom:1px solid var(--b);margin-top:12px}
+body.rcV2 #dtl .fdTabs>a{font-size:13.5px;font-weight:600;color:var(--m2);padding:9px 14px}
+body.rcV2 #dtl .fdTabs>a.on{color:var(--ink2)}
+body.rcV2 #dtl .fdPanes{background:var(--rcCol,var(--p));border:1px solid var(--b);border-top:0;border-radius:0 0 var(--rcRP,14px) var(--rcRP,14px);padding:10px 12px 12px!important}
+body.rcV2 #dtTape .fbTpC{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+body.rcV2 #dtTape .fbTpC>a{height:26px;line-height:24px;padding:0 11px;border-radius:999px;border:1px solid var(--b);background:transparent;color:var(--m2);font-size:12px}
+body.rcV2 #dtTape .fbTpC>a.on{background:var(--hv);border-color:var(--b2);color:var(--ink2);font-weight:650}
+body.rcV2 #dtTape .fbTpC>a.z{opacity:.45}
+body.rcV2 #dtTape .fbTpH{color:var(--m);font-size:11.5px;border-bottom:1px solid var(--b);padding-bottom:6px;margin-top:8px}
+body.rcV2 #dtTape .fbTpR{border-bottom:1px solid var(--b2);min-height:34px;align-items:center}
+body.rcV2 #dtTape .fbTpR:hover{background:var(--hv)}
+body.rcV2 #dtTape .fbTpR>span.r,body.rcV2 #dtTape .fbTpR>b.r{font-family:var(--fNum,inherit)}
+body.rcV2 #dtTape .fbWl{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--m2)}
+/* 右栏：买卖卡、自动卖、关于、代币资讯格 */
+body.rcV2 #dtl .fdSide{background:transparent}
+body.rcV2 #dtl .fdSide>.fdBx{background:var(--rcCol,var(--p))!important;border:1px solid var(--b)!important;border-radius:var(--rcRP,14px)!important;box-shadow:var(--rcShadow,none)}
+body.rcV2 #dtl .fdSide .fdBx .fdBx{background:transparent!important;border:0!important}
+body.rcV2 .fdTr .fdTrT{display:flex;gap:3px;padding:3px;border-radius:calc(var(--rcBtnR,9px) + 2px);background:var(--p2);border:1px solid var(--b)}
+body.rcV2 .fdTr .fdTrT>a{flex:1;height:32px;padding:0!important;display:flex;align-items:center;justify-content:center;border-radius:var(--rcBtnR,8px);border:0!important;background:transparent!important;color:var(--m2);font-weight:750}
+body.rcV2 .fdTr .fdTrT>a.b.on{background:color-mix(in srgb,var(--up,#2EBD85) 16%,transparent)!important;color:var(--up,#2EBD85);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--up,#2EBD85) 45%,transparent)}
+body.rcV2 .fdTr .fdTrT>a.s.on{background:color-mix(in srgb,var(--dn,#F6465D) 16%,transparent)!important;color:var(--dn,#F6465D);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dn,#F6465D) 45%,transparent)}
+body.rcV2 .fdTr .fbBig{border-radius:var(--rcR,12px);background:var(--p2);border:1px solid var(--b)}
+body.rcV2 .fdTr .fbBig:focus-within{border-color:var(--accLine,#F0B90B66);box-shadow:0 0 0 3px var(--accSoft,#F0B90B22)}
+body.rcV2 .fdTr .fbBig input{font-size:22px;font-weight:750;font-family:var(--fNum,inherit);color:var(--ink2)}
+body.rcV2 .fdTr .fdLmS>a.on{color:var(--ink2);box-shadow:inset 0 -2px 0 var(--acc,#F0B90B)}
+body.rcV2 .fdTr .u127i,body.rcV2 .fdTr .fdAmt [data-dq]{border-radius:var(--rcBtnR,8px)!important;background:var(--p2)!important;border:1px solid var(--b)!important;color:var(--ink2)!important;font-family:var(--fNum,inherit);font-weight:650}
+body.rcV2 .fdTr .fdTrP .btn[class*="Go"]{height:44px;border-radius:var(--rcR,12px)!important;border:0!important;font-size:15px;font-weight:800;background:linear-gradient(90deg,var(--up,#2EBD85),color-mix(in srgb,var(--up,#2EBD85) 72%,#fff))!important;color:#04150D!important;box-shadow:0 10px 24px -12px var(--up,#2EBD85);transition:transform .18s cubic-bezier(.2,1.6,.4,1)}
+body.rcV2 .fdTr .fdTrP .btn[class*="Sell"][class*="Go"],body.rcV2 .fdTr .fdTrP.s .btn[class*="Go"]{background:linear-gradient(90deg,var(--dn,#F6465D),color-mix(in srgb,var(--dn,#F6465D) 72%,#fff))!important;color:#2A0509!important;box-shadow:0 10px 24px -12px var(--dn,#F6465D)}
+body.rcV2 .fdTr .fdTrP .btn[class*="Go"]:active{transform:scale(.97)}
+body.rcV2 .fdTr .fdTrN{color:var(--m)}
+body.rcV2 #fbInfoBx .fbIH b,body.rcV2 #fbHoldBx .fbIH b,body.rcV2 #fbAbout .fbAbH b,body.rcV2 #smpTp .smpH b{font-size:14px;font-weight:700;color:var(--ink2)}
+body.rcV2 #fbInfoBx .fbIG{gap:0!important;border-top:1px solid var(--b2);margin:8px -13px -11px;grid-template-columns:repeat(3,minmax(0,1fr))}
+body.rcV2 #fbInfoBx .fbIG>div{display:flex;flex-direction:column-reverse;align-items:flex-start;justify-content:flex-end;gap:2px;padding:10px 13px;background:transparent!important;border:0!important;border-right:1px solid var(--b2)!important;border-bottom:1px solid var(--b2)!important;border-radius:0!important;text-align:left}
+body.rcV2 #fbInfoBx .fbIG>div:nth-child(3n){border-right:0!important}
+body.rcV2 #fbInfoBx .fbIG>div>b{font-size:16px;font-weight:750;font-family:var(--fNum,inherit);color:var(--ink2)}
+body.rcV2 #fbInfoBx .fbIG>div>small{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--m)}
+body.rcV2 #fdChg .tf>span{border-radius:var(--rcBtnR,8px)!important;background:var(--p2)!important;border:1px solid var(--b)!important;font-family:var(--fNum,inherit)}
+/* AI 铸造卡（新版式：头像＋进度环｜名称／地址／年龄｜数据｜状态＋按钮） */
+body.rcV2 .pzC.pzAiC{display:grid;grid-template-columns:46px minmax(0,1fr);column-gap:10px;align-items:center;min-height:86px;padding:9px 10px}
+body.rcV2 .pzAiC>.pzAv{grid-column:1;align-self:center}
+body.rcV2 .pzAiC>.pzM{grid-column:2;gap:3px}
+body.rcV2 .pzAiC .pzR1{height:18px}
+body.rcV2 .pzAiC .pzR1>b{font-size:13.5px;font-weight:var(--rcSymW,700);color:var(--ink2)}
+body.rcV2 .pzAiC .pzR1>small{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11px;color:var(--m)}
+body.rcV2 .pzAiC .pzR1>em{color:var(--m);font-size:11px;font-family:var(--fNum,inherit)}
+body.rcV2 .pzAiC .pzR2{font-size:11.5px;color:var(--m);gap:8px}
+body.rcV2 .pzAiC .pzR2 b{color:var(--ink2);font-family:var(--fNum,inherit);font-weight:650}
+body.rcV2 .pzAiC .pzR3{gap:5px}
+body.rcV2 .pzAiC .pzR3>i,body.rcV2 .pzAiC .pzVd{height:16px;line-height:16px;padding:0 6px;border-radius:5px;font-size:10.5px;font-weight:650;font-style:normal;background:var(--rcChip,var(--b))}
+body.rcV2 .pzAiC .pzVd.ok,body.rcV2 .pzAiC .pzVd.dn,body.rcV2 .pzAiC .pzR3>i.up{background:color-mix(in srgb,var(--up,#2EBD85) 14%,transparent);color:var(--up,#2EBD85)}
+body.rcV2 .pzAiC .pzVd.wt{background:rgba(240,185,11,.14);color:#F0B90B}
+body.rcV2 .pzAiC .pzR3>i.kol{background:rgba(164,147,255,.15);color:#A493FF}
+body.rcV2 .pzAiC .pzAB{margin-top:2px}
+body.rcV2 .pzAiC .pzMb{height:22px;padding:0 9px;border-radius:max(3px,calc(var(--rcBtnR,10px) - 3px));border:0;background:var(--rcChip,var(--b));color:var(--m2);font-size:11.5px;font-weight:700}
+body.rcV2 .pzAiC .pzMb.y{background:var(--accSoft,#F0B90B22);color:var(--acc,#F0B90B);box-shadow:inset 0 0 0 1px var(--accLine,#F0B90B66)}
+body.rcV2 .pzAiC:hover .pzMb.y{background:var(--acc,#F0B90B);color:var(--accInk,#111)}
 /* 减少动态：系统设定或雷达设定任一打开 */
 html.rcRM *,html.rcRM *::before,html.rcRM *::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 html.rcRM body.rcV2 .pzC:hover{transform:none}
@@ -5671,7 +5763,12 @@ function tapeIn(){const L2=Q('#dtl .fbTpL');if(!L2)return;let a='';try{a=String(
  const key=r=>{const c=r.children;return (r.getAttribute('data-fbw')||'')+'|'+(c[1]?.textContent||'')+'|'+(c[2]?.textContent||'')+'|'+(c[3]?.textContent||'')};const ks=rows.map(key);
  if(TK.a===a&&TK.s.size&&!RM()&&!document.hidden){const nw=rows.filter((r,i)=>!TK.s.has(ks[i])&&!r.__rcIn);if(nw.length&&nw.length<=ROW_MAX)for(const r of nw){ST.tape++;r.__rcIn=1;r.classList.add(r.querySelector('b.up')?'rcRiB':'rcRiS');r.animate([{opacity:0,transform:'translateX(-10px)'},{opacity:1,transform:'none'}],{duration:D_ROW,easing:EZ})}}
  TK={a,s:new Set(ks)}}
-let moQ=0;function dtlObs(){const d=Q('#dtl');if(!d||d.__rcO)return;d.__rcO=1;new MutationObserver(()=>{if(moQ)return;moQ=requestAnimationFrame(()=>{moQ=0;try{tabInd();tapeIn()}catch(e){console.error(e)}})}).observe(d,{childList:true,subtree:true})}
+/* 详情页：没资料的数据格不画（显示「-」的那格收起来）；没有 logo 的币头像用产生的图 */
+function detFix(){const d=Q('#dtl');if(!d||getComputedStyle(d).display==='none')return;const na=t=>!t||/(^|\s)[-—]$/.test(t);
+ for(const p of QA('#fdPills .fdPl'))p.classList.toggle('rcNa',na((p.querySelector('b')?.textContent||'').trim()));
+ const cs=QA('#fbInfoBx .fbIG>div');for(const c of cs)c.classList.toggle('rcNa',na((c.querySelector('b')?.textContent||'').trim()));const ib=Q('#fbInfoBx');if(ib)ib.classList.toggle('rcNa',cs.length>0&&cs.every(c=>c.classList.contains('rcNa')));
+ const ic=Q('#dtH .fdNm>.fmIc');if(ic&&!ic.querySelector(':scope>.rcLg')){let a='';try{a=String(window.__dtD?.addr||FDV?.addr0||'')}catch{}ic.insertAdjacentHTML('afterbegin',logo(a,(Q('#dtH .fdNm b')?.textContent||'').trim(),'',''))}}
+let moQ=0;function dtlObs(){const d=Q('#dtl');if(!d||d.__rcO)return;d.__rcO=1;new MutationObserver(()=>{if(moQ)return;moQ=requestAnimationFrame(()=>{moQ=0;try{tabInd();tapeIn();detFix()}catch(e){console.error(e)}})}).observe(d,{childList:true,subtree:true})}
 /* ===== 动态配乐（Web Audio）：四层 loop 同时起播、用音讯时钟排程、只在小节边界交叉淡入淡出换层 =====
    紧张度：有打开币＝只看「正在看的币」自己的热度（每秒成交笔数、成交额、价格波动速度，各跟这个币自己最近的中位数比、取对数），不看涨跌方向；没打开币＝看盘整体热度（boardI）；
    快升慢降＋迟滞（进入／退出门槛不同）＋往下一次只降一层、要在退出门槛以下待满几小节。不做任何「赚钱庆祝音」。 */
