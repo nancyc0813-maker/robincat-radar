@@ -4,6 +4,9 @@
 import { DurableObject } from 'cloudflare:workers';
 import { ICONS } from './icons.js';
 import PHONE from './phone.html';
+import PH_LW from './vendor/lw-5.3.0.min.js.bin'; /*PH-V2 手机 K 线：TradingView Lightweight Charts（Apache-2.0，署名在 K 线上与 vendor/NOTICE）*/
+import PA0O from './audio/m_flat.ogg'; import PA0M from './audio/m_flat.m4a'; import PA1O from './audio/m_up.ogg'; import PA1M from './audio/m_up.m4a'; import PA2O from './audio/m_uphot.ogg'; import PA2M from './audio/m_uphot.m4a'; import PA3O from './audio/m_down.ogg'; import PA3M from './audio/m_down.m4a'; import PA4O from './audio/m_downhard.ogg'; import PA4M from './audio/m_downhard.m4a'; import PA5O from './audio/sfx_pump.ogg'; import PA5M from './audio/sfx_pump.m4a'; import PA6O from './audio/sfx_dump.ogg'; import PA6M from './audio/sfx_dump.m4a'; import PA7O from './audio/sfx_ath.ogg'; import PA7M from './audio/sfx_ath.m4a'; import PA8O from './audio/sfx_whale.ogg'; import PA8M from './audio/sfx_whale.m4a'; import PA9O from './audio/sfx_smart.ogg'; import PA9M from './audio/sfx_smart.m4a'; /*PH-V2 手机 K 线页配乐与音效（ogg；iPhone 解不了 ogg 就用 m4a）*/
+const PH_AUDIO = { 'm_flat.ogg': PA0O, 'm_flat.m4a': PA0M, 'm_up.ogg': PA1O, 'm_up.m4a': PA1M, 'm_uphot.ogg': PA2O, 'm_uphot.m4a': PA2M, 'm_down.ogg': PA3O, 'm_down.m4a': PA3M, 'm_downhard.ogg': PA4O, 'm_downhard.m4a': PA4M, 'sfx_pump.ogg': PA5O, 'sfx_pump.m4a': PA5M, 'sfx_dump.ogg': PA6O, 'sfx_dump.m4a': PA6M, 'sfx_ath.ogg': PA7O, 'sfx_ath.m4a': PA7M, 'sfx_whale.ogg': PA8O, 'sfx_whale.m4a': PA8M, 'sfx_smart.ogg': PA9O, 'sfx_smart.m4a': PA9M };
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { keccak_256 } from '@noble/hashes/sha3';
 import { b2Handle, b2Add } from './board.js'; /*BOARD124 转接站自己抓 AVE 看盘（relay/board.js）*/
@@ -360,6 +363,8 @@ export default {
     { const im = u.pathname.match(/^\/icon-(180|192|512)\.png$/); if (im) { const b = atob(ICONS[im[1]]); const a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return new Response(a, { headers: { ...SEC, 'content-type': 'image/png', 'cache-control': 'max-age=86400' } }); } }
     if (u.pathname === '/icon.svg') return new Response(ICON, { headers: { ...SEC, 'content-type': 'image/svg+xml', 'cache-control': 'max-age=86400' } });
     if (u.pathname === '/health') return new Response('ok', { headers: SEC });
+    { const am = u.pathname.match(/^\/audio\/([a-z0-9_]+\.(ogg|m4a))$/); if (am && PH_AUDIO[am[1]]) return new Response(PH_AUDIO[am[1]], { headers: { ...SEC, 'content-type': am[2] === 'ogg' ? 'audio/ogg' : 'audio/mp4', 'cache-control': 'public, max-age=31536000, immutable' } }); } /*PH-V2 音档打包在转接站（同网域，CSP 不用改）；手机快取一年（网址带版本号，换档就换网址），每支手机每个档只抓一次，不会每次都算转接站请求数*/
+    if (u.pathname === '/vendor/lw-5.3.0.js') return new Response(PH_LW, { headers: { ...SEC, 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'public, max-age=31536000, immutable' } }); /*PH-V2 K 线程式库（档名带版本号，快取一年）*/
     const m = u.pathname.match(/^\/ws\/([^/]+)$/);
     if (m) {
       const role = u.searchParams.get('r');

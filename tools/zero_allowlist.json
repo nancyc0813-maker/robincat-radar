@@ -19492,6 +19492,290 @@
    "file": "radar/ui/index\\.html$",
    "match": "\\(n/1e3\\)\\.toFixed\\(n<1e5\\?1:0\\)",
    "reason": "11/13 数字显示格式（千／百万换算成 K／M、几位小数），只影响画面，不是时间窗也不是买卖数字"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "t\\(String\\(u\\|\\|''\\)\\)\\&\\&String\\(u\\)\\.length<200\\?S",
+   "reason": "PH-V2 给手机的看盘卡片补栏位（同一份 b3 资料的显示用截断与格式），不是买卖数字",
+   "values": [
+    "200"
+   ]
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\.slice\\(0,42\\),tg:\\(x\\.tg\\|\\|\\[\\]\\)\\.slice\\(0,3\\)\\}\\)\\)",
+   "reason": "PH-V2 给手机的看盘卡片补栏位（同一份 b3 资料的显示用截断与格式），不是买卖数字",
+   "values": [
+    "3"
+   ]
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "机卡片跟电脑看盘同样的栏位：用电脑新看盘（b3）已经有的资料补上（持有人、24h",
+   "reason": "PH-V2 给手机的看盘卡片补栏位（同一份 b3 资料的显示用截断与格式），不是买卖数字",
+   "values": [
+    "24h"
+   ]
+  },
+  {
+   "rule": "JSON_NUM",
+   "file": "relay/audio/loops\\.json$",
+   "reason": "手机配乐音档资料（小节、取样点数、取样率、秒数），只给无缝循环用"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "relay/phone\\.html$",
+   "match": "3\\ 跟电脑一样：AVE\\ 的\\ 240\\ 推送跟\\ 6h\\ 格子对不齐\\*/",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "6h"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "nhard:\\-2,down:\\-1,flat:0,up:1,uphot:2\\};\\ c",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "住了就退回上涨／下跌）；单纯来回震荡不算\\ \\*/\\ if\\(cur===2\\&\\&L<2\\&",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "上涨／下跌）；单纯来回震荡不算\\ \\*/\\ if\\(cur===2\\&\\&L<2\\&\\&up>=",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": ">=o\\.u1\\*k\\)L=Math\\.max\\(L,1\\);if\\(cur===\\-2\\&\\&L>",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "\\*k\\)L=Math\\.max\\(L,1\\);if\\(cur===\\-2\\&\\&L>\\-2\\&\\&dn",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/phone\\.html$",
+   "match": "\\)\\.replace\\(/\\\\\\.0\\$/,''\\)\\+'M':a>=1e3\\?\\(n/1e3\\)\\.",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "1e3"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "st\\ ageTxt=m=>m==null\\?'':m<1\\?'刚刚':m<60\\?Ma",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "60"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": ":m<1\\?'刚刚':m<60\\?Math\\.round\\(m\\)\\+'分':m<1440\\?",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "1440"
+   ]
+  },
+  {
+   "rule": "KWLIST",
+   "file": "relay/phone\\.html$",
+   "match": "'\\)\\)return\\ 'Bankr';return\\ p\\.replace\\(/\\\\\\.\\(c",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "\\.(com|ai|fun|sh|xyz)$"
+   ]
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/phone\\.html$",
+   "match": "\\.\\(com\\|ai\\|fun\\|sh\\|xyz\\)\\$/,''\\)\\.slice\\(0,10\\)\\};",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "10"
+   ]
+  },
+  {
+   "rule": "MINMAX",
+   "file": "relay/phone\\.html$",
+   "match": "ym,net\\)\\}\\ style=\"\\-\\-rn:\\$\\{Math\\.max\\(rn,2\\)\\};\\-",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "MINMAX",
+   "file": "relay/phone\\.html$",
+   "match": "\\(rn,2\\)\\};\\-\\-rt:\\$\\{Math\\.max\\(r4\\?rn\\-1:rn,2\\)\\}\">",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "ansparent'\\},textColor:ink,fontSize:10,at",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "10"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": ":\\{borderColor:ln,scaleMargins:\\{top:\\.12,b",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    ".12"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "or:ln,scaleMargins:\\{top:\\.12,bottom:\\.24\\}\\}",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    ".24"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "e,secondsVisible:false,rightOffset:3,tic",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "3"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "Formatter:\\(t,k\\)=>tl\\(t,k===0\\?'y':k<=2\\?'d'",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "priceFormat:\\{type:'custom',minMove:1e\\-12",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "1e-12"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "\\(\\)\\.applyOptions\\(\\{scaleMargins:\\{top:\\.8,bo",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    ".8"
+   ]
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "relay/phone\\.html$",
+   "match": "olor:\\(o\\[i\\]\\.close>=o\\[i\\]\\.open\\?up:dn\\)\\+'66'\\}",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "'66'"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "\\.usd>=mn\\)\\)continue;let\\ t=\\+x\\.t;if\\(t>1e12\\)",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "1e12"
+   ]
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/phone\\.html$",
+   "match": ";let\\ ROWK=new\\ Set\\(\\);const\\ ROWK_MAX=2000,",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2000"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "const\\ r\\ of\\ R\\)\\{let\\ t=\\+r\\.t;if\\(t>0\\&\\&t<1e12\\)",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "1e12"
+   ]
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "relay/phone\\.html$",
+   "match": ",'15m':900,'1h':3600\\}\\)\\[DT\\&\\&DT\\.tf\\]\\|\\|300;c",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "300"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "\\.mu\\.samp\\*SEC,keep:P\\.mu\\.keep\\*SEC,w1:60\\*SE",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "60"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "EC,keep:P\\.mu\\.keep\\*SEC,w1:60\\*SEC,w5:300\\*S",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "300"
+   ]
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "relay/phone\\.html$",
+   "match": "新外观（跟电脑雷达同一套）：三种风格、看盘卡片跟电脑同样的栏位、K\\ 线页（Tra",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "10%"
+   ]
   }
  ]
 }

@@ -76,6 +76,12 @@ type = "Text"
 globs = ["**/*.html"]
 fallthrough = true
 
+# PH-V2：手机 K 线页配乐／音效（relay/audio/*.ogg、*.m4a）和 K 线程式库（relay/vendor/*.js.bin）当二进位资料打包进转接站
+[[rules]]
+type = "Data"
+globs = ["**/*.ogg", "**/*.m4a", "**/*.js.bin"]
+fallthrough = true
+
 [[durable_objects.bindings]]
 name = "ROOM"
 class_name = "Room"

@@ -1,0 +1,32 @@
+{
+ "m_flat": {
+  "bars": 4,
+  "samples": 331164,
+  "sr": 44100,
+  "seconds": 7.50939
+ },
+ "m_down": {
+  "bars": 4,
+  "samples": 331164,
+  "sr": 44100,
+  "seconds": 7.50939
+ },
+ "m_up": {
+  "bars": 4,
+  "samples": 331164,
+  "sr": 44100,
+  "seconds": 7.50939
+ },
+ "m_uphot": {
+  "bars": 4,
+  "samples": 331164,
+  "sr": 44100,
+  "seconds": 7.50939
+ },
+ "m_downhard": {
+  "bars": 4,
+  "samples": 331164,
+  "sr": 44100,
+  "seconds": 7.50939
+ }
+}

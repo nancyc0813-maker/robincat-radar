@@ -1147,7 +1147,7 @@ window.addEventListener('resize', () => { if (DT) drawK(); if (TAB === 'board' |
    只在代币详情开着时订阅：价格 p、成交 x、K 线 k（池子＋周期）；关掉详情就退订。推送断了 → 照旧问电脑（livePx／tape，每秒／每 15 秒），K 线下面标示资料来源。 */
 const PAW = { ws: null, st: 'off', auth: 0, sig: '', acc: new Set(), want: [], px: new Map(), kb: new Map(), kv: new Map(), tx: new Map(), deny: 0, retry: 0, busy: 0, renew: 0, idleAt: 0 };
 const PAW_RETRY = [1e3, 3e3, 10e3, 30e3] /* 技术用：断线重连等待 */, PAW_IDLE = 30e3 /* 技术用：详情关掉多久后关连线 */, PAW_DENY = 5 * 60e3 /* 技术用：拿不到通行证／被拒后多久再试 */, PAW_FAIL_MAX = 3 /*V101-2 技术用：还没验过就被关几次算被拒 */, PAW_TX_KEEP = 60 /* 技术用：每个币留几笔推送成交 */, PAW_KV_KEEP = 64 /* 技术用：每个 K 线订阅记几根小周期的量 */;
-const PAW_IV = { '1m': '1', '5m': '5', '15m': '15', '1h': '60', '3h': '60', '6h': '240', '12h': '240', '1d': '1440', '3d': '1440', '1w': '1440', '1M': '1440' }; /* 跟电脑同一张对照（AVE 没有的周期用能整除的小周期合并进同一根） */
+const PAW_IV = { '1m': '1', '5m': '5', '15m': '15', '1h': '60', '3h': '60', '6h': '60' /*AUD2-1113 跟电脑一样：AVE 的 240 推送跟 6h 格子对不齐*/, '12h': '240', '1d': '1440', '3d': '1440', '1w': '1440', '1M': '1440' }; /* 跟电脑同一张对照（AVE 没有的周期用能整除的小周期合并进同一根） */
 const pawCh = (n) => (n === 'rh' ? 'robinhood' : 'bsc'); const pawId = (n, a) => String(a || '').toLowerCase().replace(/_[a-z0-9]+$/, '') + '-' + pawCh(n);
 function pawKeys(D) { if (!D || !D.d || D.d.err) return []; const L = ['p|' + pawId(D.net, D.c), 'x|' + pawId(D.net, D.c)]; const pl = D.d.pool || ''; if (/^0x[0-9a-f]{40}/i.test(pl) && PAW_IV[D.tf]) L.unshift('k|' + pawId(D.net, pl) + '|' + PAW_IV[D.tf]); return L.filter((k) => /\|0x[0-9a-f]{40}-(bsc|robinhood)(\||$)/.test(k)); }
 const pawLive = (D) => PAW.st === 'on' && pawKeys(D).some((k) => PAW.acc.has(k));
@@ -1604,5 +1604,250 @@ document.addEventListener('click',(e)=>{const t=e.target;
  const av=t.closest?.('#shb [data-trave]');if(av){e.stopPropagation();const u=av.dataset.trave;if(okU(u))window.open(u,'_blank','noopener');return}},true);
 })();
 </script><!--/tr118PhJs-->
+<style id="rcPhV2">/*PH-V2 手机新外观（跟电脑雷达同一套）：三种风格、看盘卡片跟电脑同样的栏位、K 线页（TradingView 图）配乐／音效键。只换画面与声音，不碰下单。*/
+html.rcTh-brand{--bg:#100C1A;--card:#1E1730;--card2:#271E3D;--line:rgba(255,214,120,.13);--ink:#FFF7EA;--mute:#9688AD;--green:#3CE3A0;--red:#FF5C8A;--gold:#FFC23D;--acc:#FFC23D;--accInk:#1D1203;--accSoft:rgba(255,194,61,.13);--accLine:rgba(255,194,61,.42);--hd:rgba(22,16,36,.96);--chip:#33284D;--amb1:rgba(255,170,60,.18);--amb2:rgba(150,100,255,.2)}
+html.rcTh-clean{--bg:#0E1014;--card:#191D23;--card2:#20252D;--line:rgba(255,255,255,.09);--ink:#F2F4F7;--mute:#7E8796;--green:#2BD48F;--red:#FF5B6E;--gold:#F0B90B;--acc:#2BD48F;--accInk:#04150D;--accSoft:rgba(43,212,143,.12);--accLine:rgba(43,212,143,.32);--hd:rgba(20,23,28,.97);--chip:#2A303A;--amb1:rgba(43,212,143,.07);--amb2:rgba(90,169,255,.05)}
+html.rcTh-term{--bg:#05070A;--card:#0E1216;--card2:#141A20;--line:rgba(151,252,228,.12);--ink:#E6F2EF;--mute:#6F8580;--green:#3EE6A8;--red:#FF4D6A;--gold:#F0B90B;--acc:#5EF0CF;--accInk:#021511;--accSoft:rgba(94,240,207,.10);--accLine:rgba(94,240,207,.35);--hd:rgba(10,13,17,.97);--chip:#1B232B;--amb1:rgba(94,240,207,.04);--amb2:rgba(111,182,255,.03)}
+html.rcPh,html.rcPh body{background:var(--bg)}
+html.rcPh{background:radial-gradient(600px 380px at 10% -10%,var(--amb1),transparent 60%),radial-gradient(520px 420px at 100% 0%,var(--amb2),transparent 60%),var(--bg);min-height:100%}/* 环境光画在页面底色（不另开固定图层） */
+html.rcPh body{background:transparent}
+html.rcPh header.top,html.rcPh .dth{background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none}/* 顶栏不透明：卷动时不透出底下的卡片 */
+#dt .dth{flex-wrap:wrap;row-gap:6px}#dt .dth .nm{flex:1 1 0;min-width:0}
+#dt .dth #rcPhSnd{order:9;flex:1 1 100%;justify-content:flex-end;padding:0 4px 2px}/* 配乐／音效键放在标题第二排（窄手机也不会把名称挤掉） */
+html.rcPh select{-webkit-appearance:none;appearance:none;background:var(--card2);color:var(--ink);border-color:var(--line);padding-right:22px;background-image:linear-gradient(45deg,transparent 50%,var(--mute) 50%),linear-gradient(135deg,var(--mute) 50%,transparent 50%);background-position:calc(100% - 12px) 55%,calc(100% - 8px) 55%;background-size:4px 4px;background-repeat:no-repeat}
+@media (max-height:760px){html.rcPh .bhd{position:static}}
+html.rcPh input:not([type=checkbox]):not([type=range]),html.rcPh select,html.rcPh textarea{font-size:16px!important}/* iPhone：输入框字小于 16px 一点就会自动放大画面 *//* 矮的手机（SE、横屏）：看盘的筛选列跟着卷走，卡片才有空间（AVE／GMGN 手机版也是） */
+html.rcPh .card{background:var(--card);border-color:var(--line)}
+html.rcTh-term body{font-family:ui-monospace,"SF Mono",Menlo,Consolas,"PingFang SC",monospace}
+html.rcTh-term .card{border-radius:6px}
+/* 看盘卡片（跟电脑同样栏位） */
+#bList .tr.rcPC{width:auto;display:grid;grid-template-columns:44px minmax(0,1fr) auto;column-gap:10px;row-gap:3px;align-items:center;padding:9px 12px;margin:0 10px 7px;border:1px solid var(--line);border-radius:14px;background:var(--card);min-height:0}
+html.rcTh-term #bList .tr.rcPC{border-radius:5px;margin:0 6px 4px}
+.rcPC>.rcAv{grid-column:1;grid-row:1/span var(--rn,3);align-self:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.rcPC .rcRing{position:relative;width:44px;height:44px;border-radius:50%}
+.rcPC .rcRing>.lg{position:absolute;inset:3px;width:auto;height:auto;border-radius:50%;box-shadow:0 0 0 2px var(--card);font-size:15px}
+.rcPC .rcPg{font-style:normal;font-size:10.5px;font-weight:700;line-height:12px;color:var(--acc)}
+.rcPC>.r1,.rcPC>.r2,.rcPC>.r3,.rcPC>.r4{grid-column:2;min-width:0;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute);line-height:17px}
+.rcPC>.r1{white-space:nowrap;overflow:hidden}
+.rcPC>.r1 b{font-size:15px;font-weight:750;color:var(--ink);flex:0 0 auto;max-width:42vw;overflow:hidden;text-overflow:ellipsis}
+.rcPC>.r1 i{font-style:normal;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding:0 5px;border-radius:5px;background:var(--chip);color:var(--ink);opacity:.8;font-size:10.5px;line-height:16px}
+.rcPC>.r1 em{font-style:normal;margin-left:auto;flex:none;font-size:11px}
+.rcPC>.r2{flex-wrap:wrap;column-gap:9px;row-gap:1px}.rcPC>.r2 b{color:var(--ink);font-weight:600}
+.rcPC>.r3{flex-wrap:wrap;gap:4px}.rcPC>.r3 i{font-style:normal;height:17px;line-height:17px;padding:0 5px;border-radius:5px;background:var(--chip);color:var(--ink);opacity:.85;font-size:10.5px;font-weight:650}
+.rcPC>.r3 i.up{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green);opacity:1}.rcPC>.r3 i.dn{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red);opacity:1}.rcPC>.r3 i.kol{background:rgba(240,185,11,.15);color:#F0B90B;opacity:1}.rcPC>.r3 i.bad{background:rgba(255,91,110,.15);color:#FF8494;opacity:1}
+.rcPC>.r4{grid-column:2/4;flex-wrap:wrap;column-gap:9px;font-size:11px}.rcPC>.r4 b{color:var(--ink);font-weight:600}
+.rcPC>.rcR{grid-column:3;grid-row:1/span var(--rt,3);display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:84px}
+.rcPC>.rcR>b{font-size:15px;font-weight:800;color:var(--ink);white-space:nowrap}.rcPC>.rcR>b small{font-size:10px;color:var(--mute);font-weight:600;margin-right:3px}
+.rcPC>.rcR>.cg{font-size:13px;font-weight:800}
+.rcPC>.rcR>.sp,.rcPC>.rcR>svg{width:70px;height:16px}
+.rcPC>.rcR>.rz{position:static;margin:0;height:28px;min-width:64px;border-radius:9px;background:var(--accSoft);color:var(--acc);border:1px solid var(--accLine);display:inline-flex;align-items:center;justify-content:center;gap:3px;font-weight:750;font-size:12px}
+/* K 线页标题：🔊 配乐／🔔 音效（明显） */
+#rcPhSnd{flex:none;display:flex;gap:6px;align-items:center}
+#rcPhSnd button{height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--mute);font-size:12.5px;font-weight:750;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;transition:transform .18s cubic-bezier(.2,1.6,.4,1)}
+#rcPhSnd button:active{transform:scale(.94)}
+#rcPhSnd button.on{border-color:var(--accLine);background:var(--accSoft);color:var(--ink)}
+#rcPhSnd .eq{display:inline-flex;gap:2px;align-items:flex-end;height:10px}#rcPhSnd .eq i{width:2px;height:10px;border-radius:1px;background:var(--acc);transform-origin:50% 100%;transform:scaleY(.35);animation:rcPhEq 1s ease-in-out infinite}
+#rcPhSnd .eq i:nth-child(2){animation-delay:-.4s}#rcPhSnd .eq i:nth-child(3){animation-delay:-.7s}@keyframes rcPhEq{50%{transform:scaleY(1)}}
+@media (max-width:380px){#rcPhSnd button{padding:0 8px;font-size:12px}#dt .dth .ib[data-a="share"]{display:none}}
+#rcPhHint{position:fixed;z-index:40;right:12px;top:calc(env(safe-area-inset-top) + 62px);padding:7px 12px;border-radius:10px;background:var(--acc);color:var(--accInk);font-size:13px;font-weight:700;box-shadow:0 10px 24px -10px #000c;pointer-events:none}
+/* TradingView K 线 */
+#dt #kc.rcHide{display:none}
+#rcK{position:relative;height:300px;margin:6px 10px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+@media (orientation:landscape) and (max-height:500px){#rcK{height:62vh;height:62svh}}
+#rcK .lg{position:absolute;left:8px;top:5px;z-index:3;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--mute);pointer-events:none;width:auto;height:auto;background:none!important;border-radius:0}
+#rcK .lg b{color:var(--ink);font-weight:650}#rcK .lg .up{color:var(--green)}#rcK .lg .dn{color:var(--red)}
+#rcK .em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;color:var(--mute);font-size:13px}
+/* 更多 → 外观与配乐 */
+#rcPhTh .ths{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+#rcPhTh .ths button{padding:9px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card2);font-weight:700;font-size:14px}
+#rcPhTh .ths button.on{border-color:var(--acc);color:var(--acc);background:var(--accSoft)}
+#rcPhTh label.rw{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px}#rcPhTh label.rv{white-space:nowrap}
+#rcPhTh .ev{display:grid;grid-template-columns:1fr 92px 36px;align-items:center;gap:8px;margin-top:8px;font-size:13.5px}
+#rcPhTh .ev label{display:flex;align-items:center;gap:6px;min-width:0}
+#rcPhTh input[type=range]{width:100%;accent-color:var(--acc)}
+#rcPhTh .pv{height:30px;border-radius:9px;border:1px solid var(--line);background:var(--card2);font-size:12px}
+#rcPhTh h5{margin:14px 0 2px;font-size:14px}
+@media (prefers-reduced-motion: reduce){#rcPhSnd .eq i{animation:none}}
+</style>
+<script>/*PH-V2-BEGIN 手机新外观＋看盘卡片＋TradingView K 线＋配乐／音效（跟电脑雷达同一套状态机与音档）。
+  只换画面与声音：不碰下单、不读写任何买卖设定；你的选择存在这支手机（localStorage rcPhV2）。
+  声音只在打开代币 K 线页时有；iPhone 规定要先点一下画面才能出声，所以在你点代币（或点 🔊）的那一下建立音讯。看盘页完全静音，也不建立音讯。*/
+(function(){
+const Q=(s,r=document)=>r.querySelector(s);const SEC=10**3,PCT=100;
+const AV='1';/* 音档版本（换音档就改这里，手机才会重新下载；同一版快取一年，不会每次都算转接站请求） */
+const THS=[['brand','罗宾猫潮流'],['clean','极简金融'],['term','专业终端']];
+const SFX=['pump','dump','ath','whale','smart','kol','fbuy','fsell'];
+const SFX_ZH={pump:'急拉',dump:'急砸',ath:'创新高',whale:'大单／巨鲸',smart:'聪明钱买入',kol:'KOL 买入',fbuy:'我关注的钱包买入',fsell:'我关注的钱包卖出'};
+const SFX_SRC={kol:['smart',1.12],fbuy:['smart',1],fsell:['smart',.85]};/* KOL／关注钱包还没有专属音档：用聪明钱的声音换音高 */
+/* 以下跟电脑雷达 radar/ui/index.html 一字不差（同一套配乐状态机与预设值） */
+const MS=['downhard','down','flat','up','uphot'];const MS_LV={downhard:-2,down:-1,flat:0,up:1,uphot:2};
+const MS_ZH={flat:'平稳',up:'上涨',uphot:'猛涨／新高',down:'下跌',downhard:'急跌'},MS_EN={flat:'Calm',up:'Rising',uphot:'Pumping / new high',down:'Falling',downhard:'Dumping'};
+/*MUSM-BEGIN 纯计算（测试脚本也会抽出来跑）：输入时间（毫秒）、价格、这一秒新成交笔数 → 输出状态 */
+const MAD_K=1.4826;/* 统计常数：中位绝对偏差换成标准差 */
+function med(a){if(!a.length)return NaN;const s=[...a].sort((x,y)=>x-y);const h=s.length>>1;return s.length%2?s[h]:(s[h-1]+s[h])/2}
+function muSM(o){const S={st:'flat',since:-Infinity,cand:null,candAt:0,P:[],M:Array.isArray(o.seed)?o.seed.filter(Number.isFinite).slice(-o.sigKeep):[],N:[],T:[],hi:o.hi>0?o.hi:-Infinity,t0:null,lastSamp:-Infinity,sig0:o.sig0>0?o.sig0:0,log:[],m:null};
+ const lnr=(a,b)=>a>0&&b>0?Math.log(a/b):NaN;
+ function pAt(t){const P=S.P;if(!P.length||t<P[0].t)return o.hist?o.hist(t):NaN;let lo=0,hi=P.length-1;while(lo<hi){const m=(lo+hi+1)>>1;if(P[m].t<=t)lo=m;else hi=m-1}return P[lo].p}
+ function sig(){/* σ＝一分钟涨跌（有正负）离中位数的中位绝对偏差×1.4826：一路涨／一路跌时不会把趋势本身算成波动；K 线历史当起始样本，急拉急砸只占少数 */let v=NaN;if(S.M.length>=o.sigN){const c=med(S.M);v=MAD_K*med(S.M.map(x=>Math.abs(x-c)))}return Math.min(o.sigMax||Infinity,Math.max(o.sigMin,Number.isFinite(v)&&v>0?v:S.sig0||o.sigMin))}/* σ 上下限：太平静的币不会被一点点杂讯吓到，波动极大的新币涨一大段也听得出来 */
+ function feed(t,p,n){if(S.t0==null)S.t0=t;if(p>0&&Number.isFinite(p))S.P.push({t,p});while(S.P.length>1&&S.P[0].t<t-o.keep)S.P.shift();S.T.push({t,n:+n||0});while(S.T.length&&S.T[0].t<t-o.w1)S.T.shift();
+  const pn=S.P.length?S.P[S.P.length-1].p:NaN;if(!(pn>0))return S.st;
+  const rate=S.T.reduce((s,x)=>s+x.n,0);
+  if(t-S.lastSamp>=o.samp){S.lastSamp=t;const pa=pAt(t-o.w1);const r=lnr(pn,pa);if(Number.isFinite(r)&&S.P[0].t<=t-o.w1){S.M.push(r);if(S.M.length>o.sigKeep)S.M.shift()}if(t-S.t0>=o.w1){S.N.push(rate);if(S.N.length>o.sigKeep)S.N.shift()}}
+  const sg=sig();const p1=pAt(t-o.w1),p5=pAt(t-o.w5);const r1=Number.isFinite(lnr(pn,p1))?lnr(pn,p1)/sg:0,r5=Number.isFinite(lnr(pn,p5))?lnr(pn,p5)/(sg*Math.sqrt(o.w5/o.w1)):0;
+  const m=o.a*r1+(1-o.a)*r5;const base=med(S.N);const busy=Number.isFinite(base)&&base>0&&rate>=o.hotI*base;
+  const warm=t-S.t0>=o.warm;const newHi=warm&&pn>S.hi;if(pn>S.hi)S.hi=pn;
+  const cur=MS_LV[S.st],k=o.exitK;const up=Math.max(m,Math.min(r1,r5>=o.u1?r1:m)),dn=Math.min(m,Math.max(r1,r5<=-o.d1?r1:m));
+  let L=0;if((m>=o.u2&&r1>=o.u1)||(r1>=o.u2&&r5>=o.u1)||(m>=o.u1&&newHi&&busy))L=2;else if(m>=o.u1)L=1;else if((m<=-o.d2&&r1<=-o.d1)||(r1<=-o.d2&&r5<=-o.d1))L=-2;else if(m<=-o.d1)L=-1;/* 猛涨／急跌：最近一分钟还在同方向猛动（停住了就退回上涨／下跌）；单纯来回震荡不算 */
+  if(cur===2&&L<2&&up>=o.u2*k&&r1>=o.u1*k)L=2;if(cur>=1&&L<1&&m>=o.u1*k)L=Math.max(L,1);if(cur===-2&&L>-2&&dn<=-o.d2*k&&r1<=-o.d1*k)L=-2;if(cur<=-1&&L>-1&&m<=-o.d1*k)L=Math.min(L,-1);
+  const nm=MS[L+2];S.m={t,pn,m:+m.toFixed(3),r1:+r1.toFixed(3),r5:+r5.toFixed(3),sg:+sg.toFixed(5),rate,base:Number.isFinite(base)?base:null,newHi};
+  if(nm!==S.st){if(S.cand!==nm){S.cand=nm;S.candAt=t}if(t-S.candAt>=o.holdIn&&t-S.since>=o.minHold){S.log.push({t,from:S.st,to:nm,m:S.m.m,r1:S.m.r1,r5:S.m.r5});if(S.log.length>o.logN)S.log.shift();S.st=nm;S.since=t;S.cand=null}}else S.cand=null;
+  return S.st}
+ return {feed,S,pAt,sig}}
+/*MUSM-END*/
+function PD(){const [u1,u2,d1,d2,a,exitK,hotI,holdIn,minHold,sigMin,sigMax,sigN,samp,sigKeep,keep,wk,mk,vol,svol,ev]=[2,4,2,4,.5,.6,2,5,8,.001,.03,6,15,160,1200,10,3,.5,.7,.7];
+ const E={};for(const k of SFX)E[k]={on:1,vol:ev};return {th:'brand',rm:0,snd:1,vol,sfx:1,svol,wk,mk,mu:{u1,u2,d1,d2,a,exitK,hotI,holdIn,minHold,sigMin,sigMax,sigN,samp,sigKeep,keep},ev:E}}
+function sane(o){const d=PD();o=o&&typeof o==='object'?o:{};const n01=(v,f)=>{v=+v;return Number.isFinite(v)&&v>=0&&v<=1?v:f};const pos=(v,f)=>{v=+v;return Number.isFinite(v)&&v>0?v:f};const r={...d};
+ r.th=THS.some(t=>t[0]===o.th)?o.th:d.th;r.rm=o.rm?1:0;r.snd=o.snd===0||o.snd===false?0:1;r.vol=n01(o.vol,d.vol);r.sfx=o.sfx===0||o.sfx===false?0:1;r.svol=n01(o.svol,d.svol);r.wk=pos(o.wk,d.wk);r.mk=pos(o.mk,d.mk);
+ const mu=o.mu||{};r.mu={};for(const k in d.mu)r.mu[k]=k==='a'||k==='exitK'||k==='sigMin'||k==='sigMax'?n01(mu[k],d.mu[k]):pos(mu[k],d.mu[k]);if(!(r.mu.sigMax>r.mu.sigMin)){r.mu.sigMin=d.mu.sigMin;r.mu.sigMax=d.mu.sigMax}if(!(r.mu.u2>r.mu.u1)){r.mu.u1=d.mu.u1;r.mu.u2=d.mu.u2}if(!(r.mu.d2>r.mu.d1)){r.mu.d1=d.mu.d1;r.mu.d2=d.mu.d2}
+ const ev=o.ev||{};r.ev={};for(const k of SFX){const x=ev[k]||{};r.ev[k]={on:x.on===0||x.on===false?0:1,vol:n01(x.vol,d.ev[k].vol)}}return r}
+const PK='rcPhV2';
+let P=(()=>{try{return sane(JSON.parse(localStorage.getItem(PK)||'{}'))}catch{return PD()}})();
+function save(){try{localStorage.setItem(PK,JSON.stringify(P))}catch{}}
+addEventListener('storage',e=>{if(e.key!==PK)return;try{P=sane(JSON.parse(e.newValue||'{}'));applyTh();sync();btn();thPaint()}catch{}});
+function applyTh(){const h=document.documentElement;h.classList.add('rcPh');for(const [k] of THS)h.classList.toggle('rcTh-'+k,P.th===k);const m=Q('meta[name="theme-color"]');if(m)m.setAttribute('content',getComputedStyle(h).getPropertyValue('--bg').trim()||'#0a0b0d');try{if(window.__rcK)__rcK.th()}catch{}}
+/* ===== 看盘卡片：跟电脑同样的栏位（持有、量、笔数、5m／1h／24h、1h 买%、KOL、税、前10／开发／狙击／老鼠仓／捆绑）；有资料才显示 ===== */
+const fin=v=>v!=null&&v!==''&&Number.isFinite(+v);const PC_EPS=.05;/* 技术用（只影响显示）：小于这个百分比当没变化 */
+const kf=n=>{n=+n;const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':a>=1e3?(n/1e3).toFixed(a<1e5?1:0).replace(/\.0$/,'')+'K':String(Math.round(n))};
+const pc1=v=>(+v>=0?'+':'')+(Math.abs(+v)>=PCT?Math.round(+v):(+v).toFixed(1))+'%';
+const ageTxt=m=>m==null?'':m<1?'刚刚':m<60?Math.round(m)+'分':m<1440?Math.round(m/60)+'小时':Math.round(m/1440)+'天';
+const platN=p=>{p=String(p||'').toLowerCase();if(!p)return '';if(p.includes('four'))return 'four.meme';if(p.includes('flap'))return 'Flap';if(p.includes('gang'))return 'GANG';if(p.includes('pons'))return 'Pons';if(p.includes('bankr'))return 'Bankr';return p.replace(/\.(com|ai|fun|sh|xyz)$/,'').slice(0,10)};
+function card(x,net,z){const e=x.e||{};const pg=fin(e.pg)?+e.pg:fin(x.prog)?+x.prog:null;const rp=pg==null?0:Math.min(PCT,Math.max(0,pg));
+ const av=`<div class="rcAv"><div class="rcRing" style="background:conic-gradient(var(--acc) ${(rp*3.6).toFixed(1)}deg,var(--line) 0)">${logo(x.sym,x.c,x.img)}</div>${pg!=null?`<i class="rcPg">${Math.floor(rp)}%</i>`:''}</div>`;
+ const so=[e.xl?'𝕏':'',e.tl?'✈':'',e.wl?'🌐':''].filter(Boolean).join(' ');
+ const r1=`<div class="r1"><b>${esc(x.sym||'?')}</b>${platN(x.plat)?`<i>${esc(platN(x.plat))}</i>`:''}${so?`<span>${so}</span>`:''}<em>${esc(ageTxt(x.age))}</em></div>`;
+ const kv=[];const h=e.h,v=fin(e.v)?e.v:x.a24?.v,tx=fin(e.tx)?e.tx:x.a24?.t;if(fin(h))kv.push(`<span>持有 <b>${kf(h)}</b></span>`);if(fin(v))kv.push(`<span>量 <b>$${+v===0?'0':kf(v)}</b></span>`);if(fin(tx))kv.push(`<span>笔数 <b>${kf(tx)}</b></span>`);
+ const tg=[];if(+e.bt>0||+e.st>0)tg.push(`<i class="bad">税 ${Math.round(+e.bt||0)}/${Math.round(+e.st||0)}%</i>`);const ch=(val,l)=>{if(!fin(val)||Math.abs(+val)<PC_EPS)return;tg.push(`<i class="${+val>=0?'up':'dn'}">${l} ${pc1(val)}</i>`)};ch(fin(e.c5)?e.c5:x.c5,'5m');ch(fin(e.c1)?e.c1:x.h1,'1h');
+ const b1=+e.b1||0,s1=+e.s1||0;if(b1+s1>0)tg.push(`<i>1h 买 ${Math.round(b1/(b1+s1)*PCT)}%</i>`);if(+x.kol>0)tg.push(`<i class="kol">KOL ${+x.kol}</i>`);if(+x.sm>0)tg.push(`<i class="up">🧠 ${+x.sm}</i>`);if(x.hp)tg.push('<i class="bad">貔貅</i>');if(x.wash)tg.push('<i class="bad">刷量</i>');
+ const R=Array.isArray(e.rk)?e.rk:null;const rk=R?[['前10',R[0]],['开发',R[1]],['狙击',R[2]],['老鼠仓',R[3]],['捆绑',R[4]]].filter(([,v])=>fin(v)).map(([l,v])=>`<span>${l} <b>${(+v).toFixed(+v<10?1:0)}%</b></span>`).join(''):'';
+ const c24=fin(e.c24)?e.c24:x.c24;const cg=fin(c24)&&Math.abs(+c24)>=PC_EPS?`<span class="cg ${+c24>=0?'up':'dn'}">${pc1(c24)}</span>`:'';
+ const zap=z&&!x.hp?`<button class="rz" data-a="rzap" data-c="${esc(x.c)}" data-s="${esc(x.sym)}" data-net="${net}" data-k="${z.k}" aria-label="一键买 ${esc(z.v)} ${esc(z.u)}">${IC.zap}<small>${esc(z.v)}</small></button>`:'';
+ const r2=kv.length?`<div class="r2">${kv.join('')}</div>`:'',r3=tg.length?`<div class="r3">${tg.join('')}</div>`:'',r4=rk?`<div class="r4">${rk}</div>`:'';const rn=1+(r2?1:0)+(r3?1:0)+(r4?1:0);
+ return `<div class="tr rcPC" role="button" tabindex="0" ${openAttr(x.c,x.sym,net)} style="--rn:${Math.max(rn,2)};--rt:${Math.max(r4?rn-1:rn,2)}">${av}${r1}${r2}${r3}${r4}<div class="rcR">${+x.mc>0?`<b><small>市值</small>$${kf(x.mc)}</b>`:''}${cg}${spark(x.sp)}${zap}</div></div>`}
+try{const r0=rowTok;rowTok=function(x,net,z){try{return card(x,net,z)}catch(e){return r0.apply(this,arguments)}}}catch{}
+/* ===== K 线：TradingView Lightweight Charts（只在 K 线页载入；关掉就销毁） ===== */
+const LW_URL='/vendor/lw-5.3.0.js';let LWP=null;function lwLoad(){if(window.LightweightCharts)return Promise.resolve(true);if(LWP)return LWP;LWP=new Promise(r=>{const s=document.createElement('script');s.src=LW_URL;s.onload=()=>r(!!window.LightweightCharts);s.onerror=()=>{LWP=null;r(false)};document.head.appendChild(s)});return LWP}
+const cvv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const KC={el:null,ch:null,cs:null,vs:null,mk:null,key:'',n:0,t0:0,last:null};window.__rcK={th(){if(KC.ch){kill();try{drawK()}catch{}}},KC};
+function kill(){try{KC.ch&&KC.ch.remove()}catch{}KC.ch=null;KC.cs=null;KC.vs=null;KC.mk=null;KC.key='';KC.n=0}
+const pad2=n=>String(n).padStart(2,'0');const tl=(s,m)=>{const d=new Date(s*SEC);return m==='d'?(d.getMonth()+1)+'/'+d.getDate():m==='y'?String(d.getFullYear()):pad2(d.getHours())+':'+pad2(d.getMinutes())};
+function bars(cs){const o=[],v=[];let last=-1;for(const k of cs){const t=Math.floor((typeof tms==='function'?tms(k[0]):k[0])/SEC);if(!(t>last)||!(+k[4]>0))continue;last=t;o.push({time:t,open:+k[1],high:+k[2],low:+k[3],close:+k[4]});v.push({time:t,value:+k[5]>0?+k[5]:0})}return [o,v]}
+function lwDraw(){const cv=Q('#kc');if(!cv||!DT)return;let box=Q('#rcK');if(!box){box=document.createElement('div');box.id='rcK';box.innerHTML='<div class="lg"></div><div class="em"></div>';cv.after(box);kill()}
+ const em=box.querySelector('.em'),lg=box.querySelector('.lg');const cs=DT.cs||[];
+ if(!window.LightweightCharts){lwLoad().then(ok=>{if(ok&&DT)drawK()});cv.classList.remove('rcHide');box.style.display='none';return}
+ cv.classList.add('rcHide');box.style.display='';
+ if(!cs.length){if(KC.ch)kill();em.style.display='';em.textContent=!DT.d?'读取中…':/报价币/.test(DT.kErr||'')?DT.kErr:DT.d.hasTr===false?'⚠️ 还没有成交：这个币还没有人买卖，所以没有 K 线':'K 线暂时读不到（资料源忙），换个周期或稍后再看';lg.innerHTML='';return}
+ em.style.display='none';const LW=window.LightweightCharts;const up=cvv('--green')||'#2ebd85',dn=cvv('--red')||'#f6465d',ink=cvv('--mute')||'#888',ln=cvv('--line')||'#333';
+ if(!KC.ch||!box.contains(KC.el)){kill();const el=document.createElement('div');el.style.cssText='position:absolute;inset:0';box.prepend(el);KC.el=el;
+  KC.ch=LW.createChart(el,{autoSize:true,layout:{background:{type:'solid',color:'transparent'},textColor:ink,fontSize:10,attributionLogo:true},grid:{vertLines:{color:'rgba(127,127,127,.08)'},horzLines:{color:'rgba(127,127,127,.08)'}},rightPriceScale:{borderColor:ln,scaleMargins:{top:.12,bottom:.24}},timeScale:{borderColor:ln,timeVisible:true,secondsVisible:false,rightOffset:3,tickMarkFormatter:(t,k)=>tl(t,k===0?'y':k<=2?'d':'t')},localization:{timeFormatter:t=>{const d=new Date(t*SEC);return (d.getMonth()+1)+'/'+d.getDate()+' '+tl(t)},priceFormatter:v=>fmtP(v)},crosshair:{mode:0},handleScale:{axisPressedMouseMove:true},kineticScroll:{touch:true}});
+  KC.cs=KC.ch.addSeries(LW.CandlestickSeries,{upColor:up,downColor:dn,borderUpColor:up,borderDownColor:dn,wickUpColor:up,wickDownColor:dn,priceFormat:{type:'custom',minMove:1e-12,formatter:v=>fmtP(v)}});
+  KC.vs=KC.ch.addSeries(LW.HistogramSeries,{priceScaleId:'',priceFormat:{type:'volume'},lastValueVisible:false,priceLineVisible:false});KC.vs.priceScale().applyOptions({scaleMargins:{top:.8,bottom:0}});
+  KC.mk=LW.createSeriesMarkers?LW.createSeriesMarkers(KC.cs,[]):null;
+  KC.ch.subscribeCrosshairMove(p=>{try{leg(p&&p.time!=null?p.seriesData.get(KC.cs):null)}catch{}})}
+ const [o,v]=bars(cs);if(!o.length)return;const vc=v.map((x,i)=>({...x,color:(o[i].close>=o[i].open?up:dn)+'66'}));const key=DT.c+'|'+DT.tf;
+ const same=KC.key===key&&KC.t0===o[0].time&&(o.length===KC.n||o.length===KC.n+1);
+ if(same){for(let i=Math.max(0,KC.n-1);i<o.length;i++){KC.cs.update(o[i]);KC.vs.update(vc[i])}}else{KC.cs.setData(o);KC.vs.setData(vc);if(KC.key!==key){const n=o.length;KC.ch.timeScale().setVisibleLogicalRange({from:Math.max(0,n-60),to:n+3})}}
+ KC.key=key;KC.t0=o[0].time;KC.n=o.length;KC.last=o[o.length-1];leg(null);marks(o);
+ const kn=Q('#kn');if(kn){const hi=Math.max(...o.slice(-60).map(b=>b.high)),lo=Math.min(...o.slice(-60).map(b=>b.low));kn.textContent=((typeof TFS!=='undefined'&&TFS.find(x=>x[0]===DT.tf))||['',''])[1]+' K 线 · 最高 '+fmtP(hi)+' · 最低 '+fmtP(lo)+(DT.lvOk?' · 每秒更新':'')+(typeof pawSrc==='function'?pawSrc():'')}}
+function leg(b){const box=Q('#rcK .lg');if(!box)return;b=b||KC.last;if(!b)return;const u=b.close>=b.open;const ch=b.open>0?(b.close/b.open-1)*PCT:0;const h=`<span>开 <b>${fmtP(b.open)}</b></span><span>高 <b>${fmtP(b.high)}</b></span><span>低 <b>${fmtP(b.low)}</b></span><span>收 <b class="${u?'up':'dn'}">${fmtP(b.close)}</b></span><span class="${u?'up':'dn'}">${ch>=0?'+':''}${ch.toFixed(2)}%</span>`;if(box.__h!==h){box.innerHTML=h;box.__h=h}}
+/* 有标签的交易者标在 K 线上（开关跟「图表叠加层」同一组，记在这支手机） */
+const MK_COL={me:'#2ebd85',kol:'#f0b90b',smart:'#3b82f6',whale:'#a855f7',dev:'#f6465d'},MK_LB={me:'我',kol:'K',smart:'聪',whale:'鲸',dev:'D'};
+function marks(o){if(!KC.mk)return;let OV={me:1,kol:1,smart:1,whale:1,dev:0,min:''};try{Object.assign(OV,JSON.parse(localStorage.getItem('fbPhOv')||'{}'))}catch{}let R0=[];try{R0=typeof pawTape==='function'?pawTape(DT):(DT.tape?.rows||[])}catch{}
+ const me=new Set((Array.isArray(ST?.wallets)?ST.wallets:[]).map(w=>String(w?.addr||'').toLowerCase()).filter(Boolean));const mn=+OV.min>0?+OV.min:0;const iv=o.length>1?o[1].time-o[0].time:300;const G=new Map();
+ for(const x of R0){const tg=new Set(x.tg||[]);if(x.w&&me.has(String(x.w).toLowerCase()))tg.add('me');const k=['me','kol','smart','whale','dev'].find(z=>OV[z]&&tg.has(z));if(!k||mn&&!(+x.usd>=mn))continue;let t=+x.t;if(t>1e12)t=Math.floor(t/SEC);if(!(t>0))continue;let i=-1;for(let j=o.length-1;j>=0;j--)if(o[j].time<=t){i=j;break}if(i<0||t>o[o.length-1].time+iv)continue;const g=i+':'+(x.b?1:0);const a=G.get(g);if(a)a.n++;else G.set(g,{i,b:x.b,k,n:1})}
+ const M=[...G.values()].map(g=>({time:o[g.i].time,position:g.b?'belowBar':'aboveBar',shape:g.b?'arrowUp':'arrowDown',color:MK_COL[g.k],text:MK_LB[g.k]+(g.n>1?'×'+g.n:'')})).sort((a,b)=>a.time-b.time);try{KC.mk.setMarkers(M)}catch{}}
+try{const d1=drawK;drawK=function(){const r=d1.apply(this,arguments);try{lwDraw()}catch(e){console.error(e)}return r}}catch{}
+try{const c1=closeTok;closeTok=function(){kill();const b=Q('#rcK');if(b)b.remove();const r=c1.apply(this,arguments);sync();return r}}catch{}
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('#rcK a[href]');if(!a)return;e.preventDefault();try{window.open('https://www.tradingview.com/','_blank','noopener')}catch{}},true);/* 图上的 TradingView 标志＝授权要求的署名连结 */
+/* ===== 声音（跟电脑同一套状态机与音档） ===== */
+/* 技术用（只影响声音）：起播预留、淡出、淡出后几秒暂停、暂停后几秒关掉音讯、计算间隔、日志留几笔、开始后几秒才判断创新高、提示显示几秒、每段几小节与取样点（跟 audio/loops.json 一样）、AAC 编码开头补的取样 */
+const [GUARD_S,FADE_S,SUS_S,CLOSE_S,TICK_S,LOGN,WARM_S,HINT_S,LOOP_BARS,LOOP_N,LOOP_SR,AAC_PRE]=[.08,1.2,1.4,10,1,80,30,4,4,331164,44100,1024];
+const AU={ctx:null,mg:null,dk:null,sg:null,src:{},g:{},t0:0,loopDur:0,cur:'flat',ready:0,loading:0,det:false,unl:0,err:'',fmt:'',susT:0,clsT:0,sm:null,smA:'',log:[],sfxLog:[],nCtx:0,test:null};window.__rcPh=AU;
+const BUF=new Map();
+const canOgg=(()=>{try{return !!new Audio().canPlayType('audio/ogg; codecs="vorbis"')}catch{return false}})();/* iPhone 多半不支援 ogg → 用 m4a */
+function buf(name){if(BUF.has(name))return BUF.get(name);const exts=canOgg?['ogg','m4a']:['m4a','ogg'];const p=(async()=>{for(const ext of exts){try{const r=await fetch('/audio/'+name+'.'+ext+'?v='+AV);if(!r.ok)continue;const ab=await r.arrayBuffer();const C=AU.ctx;if(!C)throw new Error('no ctx');const b=await new Promise((ok,no)=>{const pr=C.decodeAudioData(ab,ok,no);if(pr&&pr.catch)pr.catch(no)});AU.fmt=ext;return b}catch(e){}}throw new Error('decode '+name)})();p.catch(()=>BUF.delete(name));BUF.set(name,p);return p}
+function kline(){try{return !!(DT&&DT.c&&Q('#dt.on'))&&!document.hidden}catch{return false}}
+function want(){return AU.det&&(!!P.snd||!!P.sfx)&&AU.unl}
+function mkCtx(){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('no AudioContext');const C=new AC();AU.ctx=C;AU.nCtx++;const cp=C.createDynamicsCompressor();cp.connect(C.destination);const dk=C.createGain();dk.connect(cp);const mg=C.createGain();mg.gain.value=0;mg.connect(dk);const sg=C.createGain();sg.gain.value=0;sg.connect(cp);Object.assign(AU,{mg,dk,sg,src:{},g:{},ready:0});
+ try{const s=C.createBufferSource();s.buffer=C.createBuffer(1,1,C.sampleRate||LOOP_SR);s.connect(C.destination);s.start(0)}catch{}/* iPhone：在使用者点击的当下播一段无声，解锁声音 */
+ AU.log.push({ev:'ctx',n:AU.nCtx,state:C.state})}
+async function musicStart(){const C=AU.ctx;if(!C||AU.ready||AU.loading||!P.snd)return;AU.loading=1;try{const L=await Promise.all(MS.map(s=>buf('m_'+s)));if(AU.ctx!==C||!P.snd||!want())return;
+  const span=LOOP_N/LOOP_SR;AU.loopDur=span;const t0=C.currentTime+GUARD_S*2;AU.t0=t0;
+  MS.forEach((s,i)=>{const b=L[i];const off=b.length-LOOP_N>=AAC_PRE?AAC_PRE/b.sampleRate:0;/* m4a 解码没去掉编码器开头补的空白时，从补的后面开始 */const x=C.createBufferSource();x.buffer=b;x.loop=true;x.loopStart=off;x.loopEnd=Math.min(b.duration,off+span);const g=C.createGain();g.gain.value=s===AU.cur?1:0;x.connect(g);g.connect(AU.mg);x.start(t0,off);AU.src[s]=x;AU.g[s]=g});
+  AU.ready=1;AU.log.push({ev:'music-start',fmt:AU.fmt,state:AU.cur})}catch(e){AU.err=String(e&&e.message||e)}finally{AU.loading=0;sync();btn()}}
+function musicStop(){for(const s in AU.src){try{AU.src[s].stop()}catch{}try{AU.src[s].disconnect()}catch{}}AU.src={};AU.g={};AU.ready=0}
+function xfade(to){const C=AU.ctx;if(!C||!AU.ready||to===AU.cur){AU.cur=to;return}const now=C.currentTime;const bar=AU.loopDur/LOOP_BARS;const k=Math.ceil((now+GUARD_S-AU.t0)/bar);const tb=AU.t0+k*bar;const from=AU.cur;
+ for(const s of MS){const g=AU.g[s]&&AU.g[s].gain;if(!g)continue;g.cancelScheduledValues(now);const v=g.value;g.setValueAtTime(v,now);g.setValueAtTime(v,tb);g.linearRampToValueAtTime(s===to?1:0,tb+bar)}
+ AU.cur=to;AU.log.push({ev:'switch',from,to,at:new Date().toISOString(),bar:k});if(AU.log.length>LOGN)AU.log.shift()}
+function sync(){const C=AU.ctx;const on=want();clearTimeout(AU.susT);
+ if(on){clearTimeout(AU.clsT);AU.clsT=0;if(!C)return;/* 没有音讯＝还没点过画面：等下一次点击（iPhone 规定） */if(C.state==='suspended')C.resume().catch(()=>{});const now=C.currentTime;
+  if(P.snd){if(!AU.ready)musicStart();AU.mg.gain.cancelScheduledValues(now);AU.mg.gain.setTargetAtTime(P.vol*P.vol,now,FADE_S/4)}else{AU.mg.gain.cancelScheduledValues(now);AU.mg.gain.setTargetAtTime(0,now,FADE_S/6);if(AU.ready)AU.susT=setTimeout(()=>{if(!P.snd)musicStop()},FADE_S*SEC)}
+  AU.sg.gain.cancelScheduledValues(now);AU.sg.gain.setTargetAtTime(P.sfx?P.svol*P.svol:0,now,FADE_S/8)}
+ else if(C){const now=C.currentTime;AU.mg.gain.cancelScheduledValues(now);AU.mg.gain.setTargetAtTime(0,now,FADE_S/4);AU.sg.gain.cancelScheduledValues(now);AU.sg.gain.setTargetAtTime(0,now,FADE_S/6);
+  AU.susT=setTimeout(()=>{if(want()||AU.ctx!==C)return;if(!P.snd)musicStop();if(C.state==='running')C.suspend().catch(()=>{});AU.log.push({ev:'suspend'});
+   if(!AU.clsT)AU.clsT=setTimeout(()=>{AU.clsT=0;if(want()||AU.ctx!==C)return;musicStop();AU.ctx=null;C.close().catch(()=>{});AU.log.push({ev:'close'})},CLOSE_S*SEC)},SUS_S*SEC)}}
+/* 使用者点击（iPhone 规定要在点击当下）：K 线页开着、声音有开 → 建立／恢复音讯。放在冒泡阶段：点代币那一下，K 线页已经打开了 */
+function gesture(){AU.det=kline();if(!AU.det||!(P.snd||P.sfx))return;AU.unl=1;try{if(!AU.ctx)mkCtx();if(AU.ctx.state!=='running')AU.ctx.resume().catch(()=>{})}catch(e){AU.err=String(e&&e.message||e)}sync();btn()}
+for(const ev of ['click','touchend'])document.addEventListener(ev,()=>{try{gesture()}catch{}},{passive:true});
+document.addEventListener('visibilitychange',()=>{try{tick()}catch{}});addEventListener('pagehide',()=>{try{const C=AU.ctx;if(C){musicStop();AU.ctx=null;C.close()}}catch{}});
+/* 价格：成交明细最新一笔（新版电脑会给价格）＞ K 线最后一根（每秒链上价更新） */
+const rk=r=>[r.t,r.w,r.usd,r.b].join('|');let ROWK=new Set();const ROWK_MAX=2000,A_FRESH=120;/* 技术用 */
+function rows(){try{return (typeof pawTape==='function'?pawTape(DT):(DT.tape&&DT.tape.rows))||[]}catch{return []}}
+function curPrice(R){let best=null;for(const r of R){let t=+r.t;if(t>0&&t<1e12)t*=SEC;if(+r.p>0&&t>0&&(!best||t>best.t))best={t,p:+r.p}}if(best&&Date.now()-best.t<A_FRESH*SEC)return best.p;const cs=DT&&DT.cs||[];const l=cs[cs.length-1];return l&&+l[4]>0?+l[4]:best?best.p:NaN}
+function smFor(){const cs=DT&&DT.cs||[];const sec=({'1m':60,'5m':300,'15m':900,'1h':3600})[DT&&DT.tf]||300;const C=cs.map(k=>({t:typeof tms==='function'?tms(k[0]):k[0],c:+k[4],h:+k[2]}));const mv=[];for(let i=1;i<C.length;i++){const r=Math.log(C[i].c/C[i-1].c);if(Number.isFinite(r))mv.push(r/Math.sqrt(sec/60))}
+ const hi=C.length?Math.max(...C.map(c=>c.h||0)):0;const hist=t=>{let p=NaN;for(const c of C){if(c.t<=t)p=c.c;else break}return p};
+ const sm=muSM({...P.mu,holdIn:P.mu.holdIn*SEC,minHold:P.mu.minHold*SEC,samp:P.mu.samp*SEC,keep:P.mu.keep*SEC,w1:60*SEC,w5:300*SEC,warm:WARM_S*SEC,sig0:med(mv.map(Math.abs)),seed:mv,hi,hist,logN:LOGN});sm.csN=C.length;return sm}
+function tick(){const d0=kline();if(d0!==AU.det){AU.det=d0;sync();btn();if(d0)hint()}if(!d0){AU.sm=null;AU.smA='';return}
+ const R=rows();const a=DT.c;if(AU.smA!==a||!AU.sm||(AU.sm.csN===0&&(DT.cs||[]).length)){const fresh=AU.smA!==a;AU.sm=smFor();AU.smA=a;if(fresh){ROWK=new Set(R.map(rk));SX.a='';if(AU.ready)xfade('flat');else AU.cur='flat'}}
+ let n=0;for(const r of R){const k=rk(r);if(!ROWK.has(k)){ROWK.add(k);n++}}if(ROWK.size>ROWK_MAX)ROWK=new Set(R.map(rk));
+ const p=AU.test&&AU.test.p>0?AU.test.p:curPrice(R);const st=AU.sm.feed(Date.now(),p,n);if(st!==AU.cur){if(AU.ready&&P.snd)xfade(st);else AU.cur=st}
+ try{sfxScan(R)}catch{}btn()}
+setInterval(()=>{try{tick()}catch(e){}},TICK_S*SEC);
+/* 音效：每一种自己的开关、音量；大单音量跟单笔大小；同类冷却；响的时候音乐压低 */
+const [S_CD,S_DUCK,S_REL,S_MINR,S_LOGN,S_V0,S_VK]=[3,.5,.15,10,60,.55,.15];/* 技术用（只影响音效） */
+const SXT={};const SX={a:''};
+function sfxPlay(n,why,scale,preview){const now=Date.now();const E=P.ev[n];if(!preview){if(!P.sfx||!E||!E.on||!AU.det)return false;if(SXT[n]&&now-SXT[n]<S_CD*SEC)return false;SXT[n]=now}
+ const C=AU.ctx;AU.sfxLog.push({n,why:why||'',preview:!!preview,state:C?C.state:'none'});if(AU.sfxLog.length>S_LOGN)AU.sfxLog.shift();if(!C)return true;const [fn,rate]=SFX_SRC[n]||[n,1];
+ buf('sfx_'+fn).then(b=>{if(AU.ctx!==C||C.state!=='running')return;const s=C.createBufferSource();s.buffer=b;s.playbackRate.value=rate;const g=C.createGain();g.gain.value=(E?E.vol:1)*(scale||1)*(preview?P.svol*P.svol:1);s.connect(g);g.connect(preview?C.destination:AU.sg);const t=C.currentTime;s.start(t);if(AU.ready){const d=AU.dk.gain;d.cancelScheduledValues(t);d.setTargetAtTime(S_DUCK,t,S_REL/6);d.setTargetAtTime(1,t+b.duration/rate+S_REL,S_REL)}}).catch(()=>{});return true}
+AU.sfx=sfxPlay;
+function sfxScan(R){if(!P.sfx||!DT)return;const a=DT.c;if(SX.a!==a){SX.a=a;SX.seen=new Set(R.map(rk));SX.armP=1;SX.armD=1;return}
+ const sz=R.map(r=>+r.usd).filter(x=>x>0);const md=sz.length>=S_MINR?med(sz):NaN;
+ for(const r of R){const k=rk(r);if(SX.seen.has(k))continue;SX.seen.add(k);const u=+r.usd||0;const tg=new Set(r.tg||[]);
+  if(Number.isFinite(md)&&md>0&&u>=P.wk*md)sfxPlay('whale',`$${Math.round(u)}`,Math.min(1,Math.max(S_V0,S_V0+S_VK*Math.log2(u/(P.wk*md)))));
+  if(r.b&&tg.has('kol'))sfxPlay('kol','KOL');else if(r.b&&tg.has('smart'))sfxPlay('smart','smart');if(tg.has('fol'))sfxPlay(r.b?'fbuy':'fsell','follow')}
+ if(SX.seen.size>ROWK_MAX)SX.seen=new Set(R.map(rk));
+ const M=AU.sm&&AU.sm.S.m;if(M){const r1=M.r1;if(r1>=P.mk&&SX.armP){SX.armP=0;sfxPlay('pump',r1+'σ')}else if(r1<P.mk/2)SX.armP=1;if(-r1>=P.mk&&SX.armD){SX.armD=0;sfxPlay('dump',r1+'σ')}else if(-r1<P.mk/2)SX.armD=1;if(M.newHi)sfxPlay('ath',String(M.pn))}}
+function preview(n){try{AU.unl=1;if(!AU.ctx)mkCtx();if(AU.ctx.state!=='running')AU.ctx.resume().catch(()=>{});sfxPlay(n,'preview',1,1);clearTimeout(AU.susT);AU.susT=setTimeout(()=>sync(),(SUS_S+2)*SEC)}catch(e){}}
+/* K 线页标题：🔊 配乐／🔔 音效（预设开；跟「更多 → 外观与配乐」同一组） */
+function btn(){const h=Q('#dt.on .dth');if(!h)return;let g=Q('#rcPhSnd');if(!g||!h.contains(g)){g=document.createElement('div');g.id='rcPhSnd';const ref=h.querySelector('[data-a="copy"]');h.insertBefore(g,ref||null);
+  g.addEventListener('click',ev=>{const b=ev.target.closest('[data-rcds]');if(!b)return;ev.stopPropagation();if(b.dataset.rcds==='m')P.snd=P.snd?0:1;else P.sfx=P.sfx?0:1;save();try{localStorage.setItem('rcPhHint','1')}catch{}const x=Q('#rcPhHint');if(x)x.remove();gesture();sync();btn();thPaint()})}
+ const play=!!(P.snd&&AU.det&&AU.ctx&&AU.ctx.state==='running'&&AU.ready);const k=[P.snd,P.sfx,play].join();if(g.__k===k)return;g.__k=k;
+ g.innerHTML=`<button type="button" data-rcds="m" class="${P.snd?'on':''}" aria-pressed="${!!P.snd}">${P.snd?'🔊':'🔇'} 配乐${play?'<span class="eq"><i></i><i></i><i></i></span>':''}</button><button type="button" data-rcds="s" class="${P.sfx?'on':''}" aria-pressed="${!!P.sfx}">${P.sfx?'🔔':'🔕'} 音效</button>`}
+function hint(){if(!P.snd)return;let s='';try{s=localStorage.getItem('rcPhHint')||''}catch{}if(s)return;try{localStorage.setItem('rcPhHint','1')}catch{}const d=document.createElement('div');d.id='rcPhHint';d.textContent='上面的「🔊 配乐」「🔔 音效」可以关';document.body.appendChild(d);setTimeout(()=>d.remove(),HINT_S*SEC)}
+try{const p0=paintTok;paintTok=function(){const r=p0.apply(this,arguments);try{btn()}catch{}return r}}catch{}
+/* 更多 → 🎨 外观与配乐 */
+function thCard(){const rg=(f,v)=>`<input type="range" min="0" max="100" step="1" data-rcf="${f}" value="${Math.round(v*PCT)}">`;
+ return `<div class="card" id="rcPhTh"><h4>🎨 外观与配乐</h4><p class="note">只改这支手机的画面和声音，不影响任何买卖。声音只在打开代币 K 线时才有。</p><div class="ths">${THS.map(([k,n])=>`<button data-rcth="${k}" class="${P.th===k?'on':''}">${n}</button>`).join('')}</div>
+ <h5>🔊 配乐</h5><label class="rw"><input type="checkbox" data-rcf="snd" ${P.snd?'checked':''}> 跟着打开的币涨跌变化（平稳／上涨／猛涨／下跌／急跌）</label><label class="rw rv">音量 ${rg('vol',P.vol)}</label>
+ <h5>🔔 音效</h5><label class="rw"><input type="checkbox" data-rcf="sfx" ${P.sfx?'checked':''}> 全部音效（总开关）</label><label class="rw rv">总音量 ${rg('svol',P.svol)}</label>
+ ${SFX.map(k=>`<div class="ev"><label><input type="checkbox" data-rcf="evon.${k}" ${P.ev[k].on?'checked':''}> ${SFX_ZH[k]}</label>${rg('evv.'+k,P.ev[k].vol)}<button class="pv" data-rcpv="${k}" aria-label="试听">▶</button></div>`).join('')}</div>`}
+function thPaint(){const c=Q('#rcPhTh');if(c)c.outerHTML=thCard()}
+try{const pmx=pgMore;pgMore=function(){const h=pmx.apply(this,arguments);return h.includes('id="rcPhTh"')?h:thCard()+h}}catch{}/* 简单／专业模式都显示 */
+document.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('[data-rcth]');if(b){P.th=b.dataset.rcth;save();applyTh();thPaint();return}const pv=ev.target.closest&&ev.target.closest('[data-rcpv]');if(pv)preview(pv.dataset.rcpv)});
+document.addEventListener('change',ev=>{const t=ev.target;const f=t.dataset&&t.dataset.rcf;if(!f)return;const o=JSON.parse(JSON.stringify(P));const v=+t.value;
+ if(f==='snd')o.snd=t.checked?1:0;else if(f==='sfx')o.sfx=t.checked?1:0;else if(f==='vol')o.vol=v/PCT;else if(f==='svol')o.svol=v/PCT;else if(f.startsWith('evon.'))o.ev[f.slice(5)].on=t.checked?1:0;else if(f.startsWith('evv.'))o.ev[f.slice(4)].vol=v/PCT;P=sane(o);save();sync();btn()});
+applyTh();
+})();
+/*PH-V2-END*/</script>
+
 </body>
 </html>
