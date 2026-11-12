@@ -6768,6 +6768,17 @@
    "uen": "%"
   },
   {
+   "k": "board.soonMaxH",
+   "g": "label",
+   "zh": "「即将打满」只放开盘几小时内的币",
+   "en": "\"Final stretch\" only shows coins this many hours old",
+   "dzh": "空着＝24 小时（跟 AVE、GMGN 一样）；填 0＝不限；只影响看盘显示，不影响买卖",
+   "den": "Empty = 24 hours (same as AVE / GMGN); 0 = no limit; display only, never used for buying or selling",
+   "unit": "小时",
+   "min": 0,
+   "max": 100000
+  },
+  {
    "k": "smart.related",
    "g": "smart",
    "type": "bool",

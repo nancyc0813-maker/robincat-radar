@@ -18733,6 +18733,22 @@
     "0.05"
    ],
    "reason": "VAL-1112：四舍五入显示成 0.0% 的不显示（显示用）"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/main\\.cjs$",
+   "match": "SOON24-1112 即将打满只放开盘 N 小时内的币",
+   "value": "20 小时",
+   "reason": "SOON24-1112：注解描述 AVE／GMGN 画面观察，不是规则"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "if \\(lim > 0\\) \\{ const now = Date\\.now\\(\\) / 1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "SOON24-1112：毫秒换秒（技术用）"
   }
  ]
 }
