@@ -18822,6 +18822,15 @@
     "MintClosed|NotOpen|mint.?not.?open"
    ],
    "reason": "MINTWHY-1112：把币安钱包预演失败的错误讯息翻成白话（只影响显示，不影响买不买）"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "^/\\*RCV2\\-CSS\\ 新外观",
+   "values": [
+    "40%"
+   ],
+   "reason": "RCV2（新外观）：<style> 里的 CSS 样式数值（渐层位置百分比等），被当成画面文字扫到；只影响外观，不是买卖数字"
   }
  ]
 }
