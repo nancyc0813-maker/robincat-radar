@@ -995,11 +995,11 @@ function kbNext(tS,sec){if(sec===2592000){const d=new Date(kbStart(tS,sec)*1000)
 setInterval(async()=>{if(!CDL||CDLbusy||document.hidden)return;const dl=$('#dtl');if(!dl||dl.style.display==='none')return;const a=$('[data-cdt].on'),box=$('#cdBox');if(!a||!box)return;const tf=a.dataset.cdt,C=CDL;const addr=String(C.addr||C.pool||'').toLowerCase();/* 用这个视窗自己的币地址（不是上一个币） */
  const same=()=>CDL===C&&$('#cdBox')&&$('[data-cdt].on')?.dataset.cdt===tf&&CDK&&CDK.pool===C.pool&&CDK.tf===tf;/* 每次等完都再确认周期没换 */
  CDLbusy=1;try{const now=Date.now();
-  if(!CDK||CDK.pool!==C.pool||CDK.tf!==tf||now-CDK.at>(CDK.dead?15e3:(typeof AVW!=='undefined'&&AVW.live(awKey('k',C.net,C.pool||addr,AVW_IV[tf]))?AVW_REFETCH:60e3))){const cs=await rCandles(C.net,C.pool,tf,!!(CDK&&CDK.pool===C.pool&&CDK.tf===tf)).catch(()=>null);if(!cs||cs.length<1||CDL!==C||$('[data-cdt].on')?.dataset.cdt!==tf)return;const fresh=!CDK||CDK.pool!==C.pool||CDK.tf!==tf;CDK={pool:C.pool,tf,at:now,cs:cs.slice(-200),f:null,dead:!fresh&&CDK.dead};if(fresh||CDK.dead||!$('#cdBox').querySelector('svg')){$('#cdBox').innerHTML=svgCandles(CDK.cs);if(CDK.dead)return}}
+  if(!CDK||CDK.pool!==C.pool||CDK.tf!==tf||now-CDK.at>(CDK.dead?15e3:(typeof AVW!=='undefined'&&AVW.live(awKey('k',C.net,C.pool||addr,AVW_IV[tf]))?AVW_REFETCH:60e3))){const cs=await rCandles(C.net,C.pool,tf,!!(CDK&&CDK.pool===C.pool&&CDK.tf===tf)).catch(()=>null);if(!cs||cs.length<1||CDL!==C||$('[data-cdt].on')?.dataset.cdt!==tf)return;const fresh=!CDK||CDK.pool!==C.pool||CDK.tf!==tf;CDK={pool:C.pool,tf,at:now,cs:cs.slice(-200),f:null,dead:!fresh&&CDK.dead};if(fresh||CDK.dead||!cdHas($('#cdBox'))){cdPut($('#cdBox'),CDK.cs);if(CDK.dead)return}}
   const aw=typeof AVW!=='undefined'?AVW.lp(C.net,addr,C.pool,tf):null;if(aw)CDK.dead=false;/* AVE-WSS：有推送就用推送的价，没有才读链上 */if(CDK.dead)return;const K0=CDK;const lp=aw&&!aw.idle?aw:await window.radar.livePx?.(C.net,addr,C.pool).catch(()=>null);if(!same()||CDK!==K0)return;
   if(!lp&&!aw){CDK.dead=true;return}const cs=CDK.cs,last=cs[cs.length-1];let px=0;if(+lp?.usd>0)px=+lp.usd;else if(lp?.nat>0){if(!CDK.f)CDK.f=last.c/lp.nat;px=lp.nat*CDK.f}else if(aw)px=last.c;/* 有美金价直接用；没有才用这次重抓的最后一根做比例（每次重抓都重算） */if(!(px>0)||!isFinite(px))return;
   const sec=CDSEC[tf]||300;let ch=false;if(now>=kbNext(last.t/1000,sec)*1000){const b=kbStart(now/1000,sec)*1000;cs.push({t:b,o:last.c,h:Math.max(last.c,px),l:Math.min(last.c,px),c:px,v:0});if(cs.length>200)cs.shift();ch=true}else if(px!==last.c){last.c=px;last.h=Math.max(last.h,px);last.l=Math.min(last.l,px);ch=true}
-  if(aw&&aw.bar&&awBar(cs,aw,sec))ch=true;if(ch)$('#cdBox').innerHTML=svgCandles(cs)}catch{}finally{CDLbusy=0}},1000);
+  if(aw&&aw.bar&&awBar(cs,aw,sec))ch=true;if(ch)cdPut($('#cdBox'),cs)}catch{}finally{CDLbusy=0}},1000);
 /* AVE-WSS（11/4）：AVE 即时推送（经转接站 /avews；AVE 金钥只在转接站，不在你电脑）。只用在画面显示：详情的 K 线／即时成交／价格、看盘画面上看得到的币的价格；不参与买卖判断。
    要资料的地方一直呼叫 AVW.need(种类, 链, 地址, 周期, 优先)（p＝价格、x＝成交、k＝K 线），几秒没再呼叫就自动退订（没人看就不占 AVE 订阅）。
    推送断了／被拒 → AVW.st 不是 'on'，原本的定时查询（REST、链上读取）自动接手；没有 AVE（SNAP.aveOn 0）→ chartFrame 照旧用 DexScreener。
@@ -1070,8 +1070,8 @@ setTimeout(()=>{
  if(typeof fdPills==='function'&&!fdPills._aw){const o=fdPills;fdPills=function(x){try{AVW.pill={...x};AVW.pillK=awId(FDV?.net||CH,FDV?.addr0||'')}catch{}return o.apply(this,arguments)};fdPills._aw=1}
 },0);
 function cdPool(pool){let v=String(pool||'').toLowerCase().replace(/_[a-z0-9]+$/,'');if(/^0x[0-9a-f]{40,64}$/.test(v))return v;v=String((typeof FDV!=='undefined'&&FDV.addr0)||window.__dtD?.addr||'').toLowerCase();return /^0x[0-9a-f]{40}$/.test(v)?v:''}
-function cdWire(net,pool,addr){pool=cdPool(pool);CDL={net,pool,addr:String(addr||pool).toLowerCase()};CDK=null;let _sq=0;$$('[data-cdt]').forEach(a=>a.onclick=async()=>{const en=L==='en';const my=++_sq;$$('[data-cdt]').forEach(x=>x.classList.toggle('on',x===a));{const bx=$('#cdBox');if(bx.querySelector('svg'))bx.style.opacity='.45';else bx.innerHTML=`<div style="color:var(--mute);padding:30px;text-align:center">${en?'Loading…':'读取中…'}</div>`}const cs=await rCandles(net,pool,a.dataset.cdt).catch(()=>[])||[];if(!$('#cdBox')||my!==_sq||CDL?.pool!==pool)return;$('#cdBox').style.opacity='';const n=TFN[a.dataset.cdt]||['',''];
- $('#cdBox').innerHTML=cs.length>=2?svgCandles(cs):`<div style="color:var(--mute);padding:30px;text-align:center;background:#0a0c10;border:1px solid var(--line);border-radius:10px">${CDERR.get(pfKey(net,pool,a.dataset.cdt))?.err==='ave'?(aveWhyTxt(CDERR.get(pfKey(net,pool,a.dataset.cdt)).why)+` <a class="lnk" style="cursor:pointer" onclick="$('[data-cdt].on')?.click()">${en?'Retry':'重试'}</a>`):CDERR.get(pfKey(net,pool,a.dataset.cdt))?(en?'The quote token price is still loading — the chart appears shortly':'报价币价钱还在读，K 线稍后出现'):/*AVE110-CDTXT*/cs.length?(en?'Only one candle so far — the token is too new for this timeframe':'这个币太新，这个周期只有一根 K 棒，换短一点的周期看'):(cdHasTrades()?(SNAP?.aveStatus&&!SNAP.aveStatus.ok&&SNAP.aveStatus.why?(aveWhyTxt(SNAP.aveStatus.why)+(en?' — try another timeframe or retry.':'。换别的周期或按「重试」。')):(en?'This timeframe is not indexed yet. The token does trade — try another timeframe or retry.':'这个周期资料源还没收录。这个币是有成交的 —— 换别的周期或按「重试」。'))/*AVE110-CDTXT2 写真正原因*/+` <a class="lnk" style="cursor:pointer" onclick="$('[data-cdt].on')?.click()">${en?'Retry':'重试'}</a>`:(SNAP?.aveOn?(en?'⚠️ No trades yet — nobody has bought or sold this token, so there is no chart. Be careful with tokens nobody trades.':'⚠️ 还没有成交：这个币还没有人买卖，所以没有 K 线。没人交易的币要特别小心。'):(en?'No data for this timeframe yet (or the source is busy)':'这个周期还没有资料（或资料源忙，稍后再试）')))}</div>`;const nt=$('#cdNote');if(nt)nt.textContent=en?n[1]+' candles':n[0]+' K 线'})}
+function cdWire(net,pool,addr){pool=cdPool(pool);CDL={net,pool,addr:String(addr||pool).toLowerCase()};CDK=null;let _sq=0;$$('[data-cdt]').forEach(a=>a.onclick=async()=>{const en=L==='en';const my=++_sq;$$('[data-cdt]').forEach(x=>x.classList.toggle('on',x===a));{const bx=$('#cdBox');if(cdHas(bx))bx.style.opacity='.45';else bx.innerHTML=`<div style="color:var(--mute);padding:30px;text-align:center">${en?'Loading…':'读取中…'}</div>`}const cs=await rCandles(net,pool,a.dataset.cdt).catch(()=>[])||[];if(!$('#cdBox')||my!==_sq||CDL?.pool!==pool)return;$('#cdBox').style.opacity='';const n=TFN[a.dataset.cdt]||['',''];
+ if(cs.length>=2){CDK=null;cdPut($('#cdBox'),cs)}else $('#cdBox').innerHTML=`<div style="color:var(--mute);padding:30px;text-align:center;background:#0a0c10;border:1px solid var(--line);border-radius:10px">${CDERR.get(pfKey(net,pool,a.dataset.cdt))?.err==='ave'?(aveWhyTxt(CDERR.get(pfKey(net,pool,a.dataset.cdt)).why)+` <a class="lnk" style="cursor:pointer" onclick="$('[data-cdt].on')?.click()">${en?'Retry':'重试'}</a>`):CDERR.get(pfKey(net,pool,a.dataset.cdt))?(en?'The quote token price is still loading — the chart appears shortly':'报价币价钱还在读，K 线稍后出现'):/*AVE110-CDTXT*/cs.length?(en?'Only one candle so far — the token is too new for this timeframe':'这个币太新，这个周期只有一根 K 棒，换短一点的周期看'):(cdHasTrades()?(SNAP?.aveStatus&&!SNAP.aveStatus.ok&&SNAP.aveStatus.why?(aveWhyTxt(SNAP.aveStatus.why)+(en?' — try another timeframe or retry.':'。换别的周期或按「重试」。')):(en?'This timeframe is not indexed yet. The token does trade — try another timeframe or retry.':'这个周期资料源还没收录。这个币是有成交的 —— 换别的周期或按「重试」。'))/*AVE110-CDTXT2 写真正原因*/+` <a class="lnk" style="cursor:pointer" onclick="$('[data-cdt].on')?.click()">${en?'Retry':'重试'}</a>`:(SNAP?.aveOn?(en?'⚠️ No trades yet — nobody has bought or sold this token, so there is no chart. Be careful with tokens nobody trades.':'⚠️ 还没有成交：这个币还没有人买卖，所以没有 K 线。没人交易的币要特别小心。'):(en?'No data for this timeframe yet (or the source is busy)':'这个周期还没有资料（或资料源忙，稍后再试）')))}</div>`;const nt=$('#cdNote');if(nt)nt.textContent=en?n[1]+' candles':n[0]+' K 线'})}
 function cdHasTrades(){try{const D=window.__dtD;const p=D?.p;const a=D?.addr||FDV?.addr0;const x=(typeof PL!=='undefined'&&a)?(PL[a]||Object.values(PL).find(y=>String(y.c).toLowerCase()===String(a).toLowerCase())):null;const t=p?.txns?.h24;if(t&&((+t.buys||0)+(+t.sells||0))>0)return true;if((+p?.vol?.h24||0)>0)return true;if(x&&(((x.tx?.h24?.b||0)+(x.tx?.h24?.s||0))>0||(+x.vol?.h24||0)>0||x.la>0))return true}catch{}return false}
 function cdIv(cs){const a=$('[data-cdt].on')?.dataset.cdt;if(a&&CDSEC[a])return CDSEC[a]*1000;let m=Infinity;for(let i=1;i<cs.length;i++){const d=cs[i].t-cs[i-1].t;if(d>0&&d<m)m=d}return isFinite(m)?m:300e3}
 function cdTL(d,iv,sp){const en=L==='en',lc=en?'en-US':'zh-CN';const md=d.toLocaleDateString(lc,{month:'2-digit',day:'2-digit'}),hm=d.toLocaleTimeString(lc,{hour12:false,hour:'2-digit',minute:'2-digit'});if(iv>=2592000e3*0.9)return d.toLocaleDateString(lc,{year:'2-digit',month:'2-digit'});if(iv>=86400e3)return md;if(sp>=86400e3)return md+' '+hm;return hm}
@@ -1085,10 +1085,10 @@ const PF_TTL=20e3/*技术用：前端 K 线快取 20 秒*/,PF_DWELL=300/*技术�
 const PFC=new Map(),PFI=new Map(),CDERR=new Map();
 function pfKey(net,pool,tf){return net+'|'+String(pool||'').toLowerCase().replace(/_[a-z0-9]+$/,'')+'|'+tf}
 function rCandles(net,pool,tf,fresh){const k=pfKey(net,pool,tf);const c=PFC.get(k);if(!fresh&&c&&Date.now()-c.at<PF_TTL)return Promise.resolve(c.v);if(PFI.has(k))return PFI.get(k);
- const p=Promise.resolve().then(()=>window.radar.candles?.(net,pool,tf)).then(v=>{if(v&&!Array.isArray(v)&&v.err)CDERR.set(k,v);else CDERR.delete(k);/*AVE110-CDERR 记整个原因*/v=Array.isArray(v)?v:[];if(v.length){PFC.set(k,{at:Date.now(),v});if(PFC.size>120)PFC.delete(PFC.keys().next().value)}return v}).finally(()=>PFI.delete(k));PFI.set(k,p);return p}
+ const p=Promise.resolve().then(async()=>{/*LWK-1113 主程式有 klineHist（GeckoTerminal 先、AVE 备援）就先用；读不到再走原本的 candles*/if(window.radar.klineHist){try{const a=(typeof CDL!=='undefined'&&CDL&&CDL.net===net&&CDL.addr)?CDL.addr:pool;const h=await window.radar.klineHist(net,a,pool,tf);if(Array.isArray(h)&&h.length)return h}catch{}}return window.radar.candles?.(net,pool,tf)}).then(v=>{if(v&&!Array.isArray(v)&&v.err)CDERR.set(k,v);else CDERR.delete(k);/*AVE110-CDERR 记整个原因*/v=Array.isArray(v)?v:[];if(v.length){PFC.set(k,{at:Date.now(),v});if(PFC.size>120)PFC.delete(PFC.keys().next().value)}return v}).finally(()=>PFI.delete(k));PFI.set(k,p);return p}
 function rCandlesSeed(net,pools,tf,v){if(!Array.isArray(v)||!v.length)return;for(const pl of pools)if(pl&&/^0x[0-9a-f]{40,64}/i.test(pl))PFC.set(pfKey(net,pl,tf),{at:Date.now(),v})}
 function pfEarly(net,addr,ex,seq){const a=String(addr).toLowerCase();
- rCandles(net,a,'5m').then(cs=>{if(seq!==FDV.seq||!cs||!cs.length)return;const ph=$('#dtCh .fdPhBox');if(!ph||$('#dtCh #cdBox'))return;ph.innerHTML=svgCandles(cs.slice(-200));ph.dataset.pf='1'}).catch(()=>{});
+ rCandles(net,a,'5m').then(cs=>{if(seq!==FDV.seq||!cs||!cs.length)return;const ph=$('#dtCh .fdPhBox');if(!ph||$('#dtCh #cdBox'))return;cdPut(ph,cs.slice(-200));ph.dataset.pf='1'}).catch(()=>{});
  if(window.radar.tokenQuick)Promise.resolve().then(()=>window.radar.tokenQuick(net,a)).then(q=>{if(seq!==FDV.seq||FDV.done===seq||!q||!q.pair)return;const p=q.pair,x=PL[addr]||null;
   FDV.ho={sym:p.base?.symbol||FDV.ho?.sym,quote:p.quote?.symbol||'',img:p.img||FDV.ho?.img||'',dex:p.dex||''};fmSet($('#dtH'),fdHead(net,addr,FDV.ho));
   fdPills({mc:p.mcap||p.fdv||x?.mc,price:p.price||x?.price,c24:p.chg?.h24,v24:p.vol?.h24,liq:p.liq||x?.liq,h:q.ex?.holders??x?.ave?.h,t10:null});if(p.chg)fmSet($('#fdChg'),fdChgTiles(p.chg))}).catch(()=>{})}
@@ -1193,7 +1193,7 @@ async function openToken0(net,addr,ex={}){const en=L==='en';$('#dtl').style.disp
  const held=ex.cost?`<div class="dg"><div><small>${en?'My cost':'我的成本'}</small><b>${(+ex.cost).toFixed(2)}U</b></div><div><small>${en?'Value now':'现值'}</small><b>${ex.val!==''&&ex.val!=null?(+ex.val).toFixed(2)+'U':'-'}</b></div><div><small>${en?'P/L':'盈亏'}</small><b class="${ex.val>=ex.cost?'up':'dn'}">${ex.val!==''&&ex.val!=null?((ex.val/ex.cost-1)*100).toFixed(0)+'%':'-'}</b></div></div>`:'';
  $('#dtB').innerHTML=`${d.aveT&&(d.aveT.head||d.aveT.sum)?`<div style="margin:0 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#0a0c10;font-size:13px;line-height:1.7">📖 <b>${esc(d.aveT.head||(en?'What this token is about':'这个币在炒什么'))}</b>${d.aveT.plat?` <span class="htg" style="color:var(--mute)">${esc(d.aveT.plat)}</span>`:''}${d.aveT.sum?`<details style="margin-top:4px"><summary style="cursor:pointer;color:var(--mute);font-size:12px">${en?'Community summary (AVE AI)':'社区在讨论什么（AVE AI 整理）'}</summary><div style="white-space:pre-wrap;color:var(--mute);font-size:12.5px;margin-top:4px">${esc(d.aveT.sum)}</div></details>`:''}</div>`:''}<div class="dg"><div><small>${en?'Price':'价格'}</small><b>$${fP(p.price)}</b></div><div><small>${en?'Liquidity':'流动性'}</small><b>$${fU(p.liq)}</b></div><div><small>${en?'Market cap':'市值'}</small><b>$${fU(p.mcap)}</b></div><div><small>FDV</small><b>$${fU(p.fdv)}</b></div><div><small>${en?'24h volume':'24 小时成交'}</small><b>$${fU(p.vol?.h24)}</b></div><div><small>${en?'Pool age':'池子开了'}</small><b>${age==null?'-':p.created&&Date.now()-p.created<3600e3?Math.max(1,Math.round((Date.now()-p.created)/60e3))+(en?' min':' 分钟'):age<48?age+(en?' h':' 小时'):Math.round(age/24)+(en?' d':' 天')}</b></div></div>
  <div style="color:var(--mute);font-size:11px;margin:4px 0 0">${p.src==='ave'?(en?'Live data: AVE':'即时数据：AVE'):(en?'Data: DexScreener':'数据：DexScreener')}</div><div class="tf"><span>5M ${pc(p.chg?.m5)}</span><span>1H ${pc(p.chg?.h1)}</span>${p.chg?.h4!=null?`<span>4H ${pc(p.chg.h4)}</span>`:`<span>6H ${pc(p.chg?.h6)}</span>`}<span>24H ${pc(p.chg?.h24)}</span></div>
- <div class="hbSeg" id="cdTf" style="margin:10px 0 6px;flex-wrap:wrap">${[['1m','1分','1m'],['5m','5分','5m'],['15m','15分','15m'],['1h','1小时','1h'],['3h','3小时','3h'],['6h','6小时','6h'],['12h','12小时','12h'],['1d','1天','1D'],['3d','3天','3D'],['1w','1周','1W'],['1M','1月','1M']].map(x=>`<a data-cdt="${x[0]}" class="${x[0]==='5m'?'on':''}">${en?x[2]:x[1]}</a>`).join('')}</div><div id="cdBox">${d.candles.length?svgCandles(d.candles):''}</div>${d.candles.length?`<div style="color:var(--mute);font-size:11.5px;margin:4px 0 0" id="cdNote">${en?'5-minute candles':'5 分钟 K 线'}</div>`:`<div style="color:var(--mute);padding:14px;text-align:center;background:#0a0c10;border:1px solid var(--line);border-radius:10px">${en?'Chart source is busy — try again in a minute':'K 线资料源忙，稍后再开一次'}</div>`}
+ <div class="hbSeg" id="cdTf" style="margin:10px 0 6px;flex-wrap:wrap">${[['1m','1分','1m'],['5m','5分','5m'],['15m','15分','15m'],['1h','1小时','1h'],['3h','3小时','3h'],['6h','6小时','6h'],['12h','12小时','12h'],['1d','1天','1D'],['3d','3天','3D'],['1w','1周','1W'],['1M','1月','1M']].map(x=>`<a data-cdt="${x[0]}" class="${x[0]==='5m'?'on':''}">${en?x[2]:x[1]}</a>`).join('')}</div><div id="cdBox"></div>${d.candles.length?`<div style="color:var(--mute);font-size:11.5px;margin:4px 0 0" id="cdNote">${en?'5-minute candles':'5 分钟 K 线'}</div>`:`<div style="color:var(--mute);padding:14px;text-align:center;background:#0a0c10;border:1px solid var(--line);border-radius:10px">${en?'Chart source is busy — try again in a minute':'K 线资料源忙，稍后再开一次'}</div>`}
  <div style="margin:12px 0 4px;font-size:13px">${en?'24h trades':'24 小时买卖'}：<span class="up">${en?'buys':'买'} ${b24}</span> · <span class="dn">${en?'sells':'卖'} ${s24}</span>${d.aveT&&d.aveT.buyers!=null?` <small style="color:var(--mute)">（${en?'by':'买家'} ${d.aveT.buyers}${en?' buyers / ':' 人／卖家 '}${d.aveT.sellers??'-'}${en?' sellers':' 人'}）</small>`:''}</div><div style="display:flex;height:8px;border-radius:5px;overflow:hidden;background:#222"><i style="width:${b24+s24?b24/(b24+s24)*100:50}%;background:#2ebd85"></i><i style="flex:1;background:#f6465d"></i></div>
  ${dtRiskHtml(d,en)}
  <div id="dtTape" class="box" style="margin-top:10px;padding:12px 14px"><b style="font-size:13px">📜 ${en?'Live trades':'即时成交'}</b> <small style="color:var(--mute)">${en?'loading…':'读取中…'}</small></div>
@@ -2893,16 +2893,20 @@ function fbOvlPaint(){const el=$('#fbOvl');if(!el)return;const en=fbEn(),O=FB.ov
 /* 成交：合并后的列（AVE 推送＋雷达读链） */
 function fbRows(){const r=FB.tapeR;const net=FB.tapeNet||FDV.net||CH;const a=String(window.__dtD?.addr||FDV?.addr0||'').toLowerCase();let m=null;try{m=typeof awTape==='function'?awTape(net,a,r):null}catch{}return ((m||r)?.rows)||[]}
 /* K 线标记：有标签的交易者买卖标在对应 K 棒；同一根多笔叠起来＋数字 */
-function fbMarks(force){const svg=$('#dtCh #cdBox svg');const M2=window.__cdM;if(!svg||!M2||!M2.cs?.length)return;const rows=fbRows();const O=FB.ov;const Wm=fbWhoMap();const en=fbEn();const mn=+O.min>0?+O.min:0;
- const key=[rows.length,rows[0]?.t,M2.cs.length,M2.cs.at(-1)?.t,JSON.stringify(O),M2.W,Wm.size].join('|');if(!force&&svg.__fbk===key&&svg.querySelector('#fbMk'))return;svg.__fbk=key;svg.querySelector('#fbMk')?.remove();
- const t0=M2.cs[0].t,iv=M2.cs.length>1?(M2.cs[1].t-M2.cs[0].t):300e3;const y=(v)=>8+(M2.H-70)*(1-(v-M2.lo)/M2.rg);const G=new Map();let n=0;
- for(const r of rows){const T=fbTagsOf(r,Wm);if(mn&&!(+r.usd>=mn))continue;if(O.fol&&!T.s.has('fol'))continue;const kind=O.me&&T.s.has('me')?'me':O.kol&&T.s.has('kol')?'kol':O.sm&&T.s.has('sm')?'sm':O.wh&&(T.s.has('wh')||T.s.has('bw'))?'wh':O.fol&&T.s.has('fol')?'fol':'';if(!kind)continue;
-  const tt=+r.t;if(!(tt>0))continue;let i=-1;for(let j=M2.cs.length-1;j>=0;j--)if(M2.cs[j].t<=tt){i=j;break}if(i<0||tt>M2.cs.at(-1).t+iv)continue;const k=i+':'+(r.b?1:0);let g=G.get(k);if(!g)G.set(k,g={i,b:r.b,L:[]});g.L.push({r,T,kind});n++}
- const ns='http://www.w3.org/2000/svg';const g=document.createElementNS(ns,'g');g.id='fbMk';let s='';
+function fbMarks(force){const box=$('#dtCh #cdBox');const lw=!!(box&&box.__lw&&box.contains(box.__lw.el));const svg=lw?null:$('#dtCh #cdBox svg');const M2=window.__cdM;const rows=fbRows();const O=FB.ov;const Wm=fbWhoMap();const en=fbEn();const mn=+O.min>0?+O.min:0;
+ /*A5（11/13）：「K 线上 N 笔有标签的交易」跟着成交明细算（以前 K 线不是雷达画的、或第一次还没成交时写了「没有成交资料」就停住） */
+ const cs=M2&&M2.cs&&M2.cs.length&&(lw||svg)?M2.cs:null;
+ const key=[rows.length,rows[0]?.t,cs?cs.length:0,cs?cs.at(-1)?.t:0,JSON.stringify(O),M2?.W,Wm.size,lw?1:0].join('|');const hold=lw?box.__lw:svg;if(!force&&hold&&hold.__fbk===key&&(lw||svg.querySelector('#fbMk')))return;if(hold)hold.__fbk=key;if(svg)svg.querySelector('#fbMk')?.remove();
+ const iv=cs&&cs.length>1?(cs[1].t-cs[0].t):300e3;const G=new Map();let n=0,nT=0;
+ for(const r of rows){const T=fbTagsOf(r,Wm);if(mn&&!(+r.usd>=mn))continue;if(O.fol&&!T.s.has('fol'))continue;const kind=O.me&&T.s.has('me')?'me':O.kol&&T.s.has('kol')?'kol':O.sm&&T.s.has('sm')?'sm':O.wh&&(T.s.has('wh')||T.s.has('bw'))?'wh':O.fol&&T.s.has('fol')?'fol':'';if(!kind)continue;nT++;
+  let tt=+r.t;if(tt>0&&tt<1e12)tt*=1000;if(!(tt>0)||!cs)continue;let i=-1;for(let j=cs.length-1;j>=0;j--)if(cs[j].t<=tt){i=j;break}if(i<0||tt>cs.at(-1).t+iv)continue;const k=i+':'+(r.b?1:0);let g=G.get(k);if(!g)G.set(k,g={i,b:r.b,L:[]});g.L.push({r:{...r,t:tt},T,kind});n++}
+ const nn=$('#fbOvN');if(nn)nn.textContent=rows.length?(en?`${cs?n:nT} tagged trades on chart`:`K 线上 ${cs?n:nT} 笔有标签的交易`):(en?'No trade data for this token yet':'这个币还没有成交资料');
+ if(!cs)return;if(lw){try{window.LWK&&LWK.marks(G,cs,en)}catch(e){console.error(e)}return}
+ const y=(v)=>8+(M2.H-70)*(1-(v-M2.lo)/M2.rg);const ns='http://www.w3.org/2000/svg';const g=document.createElementNS(ns,'g');g.id='fbMk';let s='';
  for(const v of G.values()){const c=M2.cs[v.i];const x=M2.OX+v.i*M2.bw+M2.bw/2;const yy=v.b?Math.min(M2.H-62,y(c.l)+14):Math.max(10,y(c.h)-14);const top=v.L[0];const col=FB_TG[top.kind][2];const lb=top.kind==='me'?(en?'Me':'我'):top.kind==='kol'?(top.T.nm||'K').slice(0,1).toUpperCase():top.kind==='sm'?'🧠':top.kind==='wh'?'🐋':'★';
   const tip=v.L.slice(0,6).map(z=>`${z.T.nm||z.T.lb||fbSh(z.r.w)} · ${z.r.b?(en?'Buy':'买'):(en?'Sell':'卖')} $${fU(+z.r.usd||0)} · ${new Date(+z.r.t).toLocaleTimeString(en?'en-US':'zh-CN',{hour12:false})}`).join('\n')+(v.L.length>6?`\n+${v.L.length-6}`:'');
   s+=`<g class="fbMk" data-fbw="${esc(top.r.w||'')}" style="cursor:pointer"><title>${esc(tip)}</title><circle cx="${x}" cy="${yy}" r="8" fill="#0a0c10" stroke="${col}" stroke-width="2"/><text x="${x}" y="${yy+3.5}" text-anchor="middle" font-size="${lb.length>1?8:9}" font-weight="700" fill="${col}">${esc(lb)}</text><circle cx="${x+6}" cy="${yy+(v.b?7:-7)}" r="3" fill="${v.b?'#2ebd85':'#f6465d'}"/>${v.L.length>1?`<text x="${x+10}" y="${yy-6}" font-size="9" font-weight="700" fill="${col}">${v.L.length}</text>`:''}</g>`}
- g.innerHTML=s;svg.appendChild(g);const nn=$('#fbOvN');if(nn)nn.textContent=rows.length?(en?`${n} tagged trades on chart`:`K 线上 ${n} 笔有标签的交易`):(en?'No trade data for this token yet':'这个币还没有成交资料')}
+ g.innerHTML=s;svg.appendChild(g)}
 document.addEventListener('click',e=>{const m=e.target.closest('#dtCh .fbMk');if(m&&m.dataset.fbw){tr118Open(m.dataset.fbw,e)/*TRADER118 小卡*/}},true);
 /* 交易分页：照 AVE「交易历史」筛选 chips＋交易者标签 */
 const FB_TF=[['all',['全部','All']],['b',['买入','Buys']],['s',['卖出','Sells']],['fol',['已关注','Following']],['sm',['聪明钱','Smart money']],['kol',['KOL','KOL']],['rat',['老鼠仓','Insiders']],['sn',['狙击','Snipers']],['dv',['DEV','DEV']],['bu',['捆绑','Bundles']]];
@@ -2916,7 +2920,7 @@ function fbTape(){const el=$('#dtTape');if(!el)return;const en=fbEn();const rows
  <div class="fbTpL">${L2.length?L2.map(({r,T})=>`<div class="fbTpR" data-fbw="${esc(r.w||'')}"><span>${ago(r)}</span><b class="${r.b?'up':'dn'}">${r.b?(en?'Buy':'买入'):(en?'Sell':'卖出')}</b><span class="r">${r.p?'$'+fP(+r.p):'—'}</span><b class="r ${r.b?'up':'dn'}">${r.usd?'$'+fU(+r.usd):'—'}</b><a class="fbWl" title="${esc(r.w||'')}">${esc(T.nm||T.lb||fbSh(r.w))}</a><span class="fbTgs">${fbTagLine(T,en)}</span></div>`).join(''):`<div class="fdLoad">${rows.length?(en?'No trades match this filter':'没有符合这个筛选的成交'):(en?'No trades in the last few minutes':'最近几分钟没有成交')}</div>`}</div>`;
  el.innerHTML=h;el.classList.add('fbTape')}
 document.addEventListener('click',e=>{const c=e.target.closest('#dtTape [data-fbtpf]');if(c){FB.tapeF=c.dataset.fbtpf;fbTape();return}const w=e.target.closest('#dtTape .fbTpR,#fdPHold [data-fbw],#fdPDisc [data-fbw]');if(w&&w.dataset.fbw){tr118Open(w.dataset.fbw,e)/*TRADER118 小卡*/}});
-setTimeout(()=>{const o=tapePaint;tapePaint=function(r,net){FB.tapeR=r;FB.tapeNet=net;const res=o.apply(this,arguments);try{fbTape();fbMarks()}catch(e){console.error(e)}return res};tapePaint._aw=o._aw},80);
+setTimeout(()=>{const o=tapePaint;tapePaint=function(r,net){FB.tapeR=r;FB.tapeNet=net;const res=o.apply(this,arguments);try{fbTape();fbMarks()}catch(e){console.error(e)}try{window.LWK&&LWK.trades(fbRows())}catch(e){console.error(e)}/*LWK-1113 每笔成交即时更新最后一根 K 棒*/return res};tapePaint._aw=o._aw},80);
 /* LIVE-1113 详情页数字要会动（GMGN／AVE 是即时的）：价格、市值跟着最新一笔成交（成交已经每秒读，不多花额度）；持有人、买卖笔数、成交量每 DT_LIVE_MS 重抓一次 AVE（约 5 单位；没绑 AVE 就不抓） */
 const DT_LIVE_MS=30e3;/*技术用：详情开着时多久重抓一次持有人／买卖统计*/const DTLV={k:'',t:0,at:0,busy:0};
 function dtLiveKey(){return awId(FDV?.net||CH,FDV?.addr0||'')}
@@ -2966,7 +2970,7 @@ function fbBuyBox(net,addr,name){const P=$('#dtT .fdTr [data-fdp="b"]');if(!P)re
  let go=P.querySelector('.fbBuyGo');if(!go){go=document.createElement('button');go.className='btn fbBuyGo';const am=P.querySelector('.fdAmt');(am||big).after(go)}
  go.textContent=(en?'Buy ':'买入 ')+sym;go.title=en?'Same as the ⚡ buttons (same checks and confirmation), with the amount you typed':'跟按 ⚡ 一样（同样的检查与确认），金额用你填的';
  go.onclick=()=>{const v=+$('#fbBuyAmt').value;if(!(v>0)){t(en?'Type an amount first':'先填金额');$('#fbBuyAmt').focus();return}qbBuy(net,addr,sym,go,0,v)}}
-/* K 线重画后补标记 */setInterval(()=>{try{if($('#dtl')?.style.display!=='none'&&$('#dtCh #cdBox svg'))fbMarks()}catch{}},700);
+/* K 线重画后补标记 */setInterval(()=>{try{if($('#dtl')?.style.display!=='none'&&cdHas($('#dtCh #cdBox')))fbMarks()}catch{}},700);
 /* 持有人资料晚到（tokenDetailMore）→ 右栏／持有者分页重画 */
 {const f0=typeof fdMore==='function'?fdMore:null;if(f0)fdMore=function(){const r=f0.apply(this,arguments);setTimeout(()=>{try{fbSide();fbMarks(1)}catch{}},50);return r}}
 
@@ -5666,6 +5670,33 @@ body.rcV2 .pzC:hover::after{content:"";opacity:1;animation:rcGlow .25s ease-out 
 #rcDetSnd .rcHint::before{content:"";position:absolute;right:40px;top:-5px;border:5px solid transparent;border-top:0;border-bottom-color:var(--acc,#F0B90B)}
 /* 效能：卡片栏的版面／样式变动不外溢到整页 */
 body.rcV2 .pzL,body.rcV2 #pzHot,body.rcV2 #pzSg{contain:layout style}
+/* A1 详情顶部（11/13 老板实机：名称贴在最上缘被切掉）：名称区改两行（第一行 名称／报价币＋复制＋链＋加自选；第二行 发射台·年龄＋合约），整排置中、上下留白；画面窄（≤1365 或放大 125%／150%）时数据格换到第二排，不会被切 */
+body.rcV2 #dtl .fdTop{flex-wrap:nowrap;padding:12px 16px;gap:14px;min-height:78px;align-items:center;row-gap:10px}
+body.rcV2 #dtl .fdTop>#dtH{flex:0 1 auto;max-width:44%;min-width:0;overflow:visible;display:flex;align-items:center;gap:10px;padding:2px 0}
+body.rcV2 #dtH .fdNm{min-width:0;flex:0 1 auto;align-items:center}
+body.rcV2 #dtH .fdNm>.fmIc{width:48px!important;height:48px!important}
+body.rcV2 #dtH .fdNm>.fmIc>.rcLg>b{font-size:20px}
+body.rcV2 #dtH .fdNm>div{display:flex!important;flex-direction:row!important;flex-wrap:wrap;align-items:center!important;column-gap:8px;row-gap:5px;min-width:0}
+body.rcV2 #dtH .fdNm>div>b:first-child{order:1;font-size:19px;line-height:24px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;display:block}
+body.rcV2 #dtH .fdNm>div>.fbHi{order:2;margin:0}
+body.rcV2 #dtH .fdNm>div>.fdCh{order:3;margin:0!important}
+body.rcV2 #dtH .fdNm>div>#pxStar{order:4;margin:0!important;height:24px}
+body.rcV2 #dtH .fdNm>div::before{content:"";order:5;flex-basis:100%;height:0}
+body.rcV2 #dtH .fdNm>div>small.fbMeta{order:6;margin:0!important}
+body.rcV2 #dtH .fdNm>div>small:not(.fbMeta){order:7;max-width:300px;margin:0}
+body.rcV2 #dtH>#dtAveB{flex:none;white-space:nowrap}
+body.rcV2 #dtl #fdPills{flex:1 1 auto;min-width:0;order:0;flex-basis:auto;overflow-x:auto;scrollbar-width:none;justify-content:flex-end}
+body.rcV2 #dtl #fdPills::-webkit-scrollbar{display:none}
+body.rcV2 #fdPills .fdPl{padding:2px 12px!important}
+body.rcV2 #dtl .fdTop>#rcDetSnd{margin-left:0}
+body.rcV2 #fdPills .fdPl{flex:none}
+body.rcV2 #dtl .fdTop.rcWrap{flex-wrap:wrap}body.rcV2 #dtl .fdTop.rcWrap>#dtH{max-width:none;flex:1 1 0}body.rcV2 #dtl .fdTop.rcWrap #fdPills{order:9;flex:1 1 100%;justify-content:flex-start}body.rcV2 #dtl .fdTop.rcWrap #fdPills .fdPl:first-child{padding-left:0!important}
+body.rcV2 #dtl #nwAveMk,body.rcV2 #dtl #fbOvl,body.rcV2 #dtl #dtCh,body.rcV2 #dtl .fdTabs{flex-shrink:0}/* 视窗矮（放大 150%）时上面几条不被压扁，整栏照常卷动 */
+/* LWK-1113 TradingView 图 */
+#dtCh #cdBox>div.rcLwC,#dtCh .fdPhBox>div.rcLwC{display:block!important;position:absolute;inset:0;height:auto!important}
+.rcLwL{position:absolute;left:10px;top:6px;z-index:3;display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;font-family:var(--fNum,inherit);color:var(--m,#8b93a7);pointer-events:none;background:transparent!important;height:auto!important;border:0!important;justify-content:flex-start!important}
+.rcLwL b{color:var(--ink2,#e6e6e6);font-weight:650}.rcLwL .up,.rcLwL b.up{color:var(--up,#2ebd85)}.rcLwL .dn,.rcLwL b.dn{color:var(--dn,#f6465d)}
+.rcLwT{position:absolute;z-index:4;display:none;white-space:pre;max-width:240px;padding:6px 9px;border-radius:8px;font-size:11.5px;line-height:1.5;color:var(--ink2,#eee);background:var(--pop,#1b1f27)!important;border:1px solid var(--b,#333)!important;box-shadow:0 8px 24px -8px #000c;pointer-events:none;height:auto!important;justify-content:flex-start!important}
 /* 减少动态：系统设定或雷达设定任一打开 */
 html.rcRM *,html.rcRM *::before,html.rcRM *::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 html.rcRM body.rcV2 .pzC:hover{transform:none}
@@ -5874,10 +5905,13 @@ function tapeIn(){const L2=Q('#dtl .fbTpL');if(!L2)return;let a='';try{a=String(
 /* 详情页：没资料的数据格不画（显示「-」的那格收起来）；没有 logo 的币头像用产生的图 */
 /* 详情顶部从头到尾都用新版：旧的读取流程把顶部重画成别的样子（小头像）时，马上换回新版顶部（加自选、AVE 键会自己补回来） */
 function headFix(){const h=Q('#dtH');if(!h||h.querySelector('.fdNm'))return;const W=Q('#dtl .fdW');if(!W||W.classList.contains('fdMint'))return;let F=null;try{F=FDV}catch{}if(!F||!F.ho||!F.addr0||typeof fdHead!=='function')return;if(!String(h.textContent||'').toLowerCase().includes(String(F.addr0).toLowerCase())&&!/读取中|Loading/.test(h.textContent||''))return;h.innerHTML=fdHead(F.net,F.addr0,F.ho);h.__h=h.innerHTML;detFix()}
-function detFix(){const d=Q('#dtl');if(!d||getComputedStyle(d).display==='none')return;const na=t=>!t||/(^|\s)[-—]$/.test(t);
+function detFix(){const d=Q('#dtl');if(!d||getComputedStyle(d).display==='none')return;topWrap();const na=t=>!t||/(^|\s)[-—]$/.test(t);
  for(const p of QA('#fdPills .fdPl'))p.classList.toggle('rcNa',na((p.querySelector('b')?.textContent||'').trim()));
  const cs=QA('#fbInfoBx .fbIG>div');for(const c of cs)c.classList.toggle('rcNa',na((c.querySelector('b')?.textContent||'').trim()));const ib=Q('#fbInfoBx');if(ib)ib.classList.toggle('rcNa',cs.length>0&&cs.every(c=>c.classList.contains('rcNa')));
  const ic=Q('#dtH .fdNm>.fmIc');if(ic&&!ic.querySelector(':scope>.rcLg')){let a='';try{a=String(window.__dtD?.addr||FDV?.addr0||'')}catch{}ic.insertAdjacentHTML('afterbegin',logo(a,(Q('#dtH .fdNm b')?.textContent||'').trim(),'',''))}}
+/* A1：数据格放不下（视窗窄或放大）→ 换到第二排；先排一排量看看，放得下就留一排 */
+function topWrap(){const T=Q('#dtl .fdTop'),P=Q('#fdPills');if(!T||!P)return;if(T.classList.contains('rcWrap'))T.classList.remove('rcWrap');let w=0;for(const c of P.children)if(c.offsetParent)w+=c.offsetWidth;const need=w>P.clientWidth+1;/* 数据格靠右排，超出的部分在左边量不到 scrollWidth → 自己加总 */if(need)T.classList.add('rcWrap')}
+addEventListener('resize',()=>{try{if(detOpen())topWrap()}catch{}});
 let moT=0;function dtlObs(){const d=Q('#dtl');if(!d||d.__rcO)return;d.__rcO=1;new MutationObserver(rs=>{if(moT)return;if(!rs.some(r=>!(r.target.closest&&r.target.closest('#cdBox,.fdPhBox'))))return;/* K 线每秒重画不用管 */moT=setTimeout(()=>{moT=0;try{headFix();tabInd();tapeIn();detFix();detSnd()}catch(e){console.error(e)}},MO_MS)}).observe(d,{childList:true,subtree:true})}
 /* ===== 动态配乐（Web Audio）：四层 loop 同时起播、用音讯时钟排程、只在小节边界交叉淡入淡出换层 =====
    紧张度：有打开币＝只看「正在看的币」自己的热度（每秒成交笔数、成交额、价格波动速度，各跟这个币自己最近的中位数比、取对数），不看涨跌方向；只在打开代币详情时播放（看盘页不放）；
@@ -6020,6 +6054,72 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 setTimeout(()=>{try{wrapOpen();wrapK();dtlObs();lookPaint()}catch{}},SEC);
 })();
 /*RCV2-END*/</script>
+<script>/*LWK-1113 详情页 K 线改用 TradingView Lightweight Charts™（Apache-2.0，档案在 radar/ui/vendor，授权与署名见 vendor/NOTICE-lightweight-charts.txt；图上留 TradingView 标志连结＝授权要求的署名）。
+  只换画法：资料照旧（历史＝主程式 klineHist（GeckoTerminal→AVE）或原本的 candles；最后一根＝每秒链上价＋成交明细即时更新），不碰任何买卖、不连外网（程式库是本地档）。
+  图只在详情开着时存在：关掉详情、换币、换周期都会销毁旧图；看盘页不载入程式库。*/
+(function(){
+const SRC='vendor/lightweight-charts.standalone.production.min.js';
+/* 技术用（只影响画面）：一进来显示几根、右边留几根空白、多久检查一次要不要销毁（毫秒）、标记最多几个、提示框最多列几笔 */
+const [VIS_N,RIGHT_N,GC_MS,MK_MAX,TIP_N]=[120,4,1000,300,6];
+let LP=null;const CH=new Set();
+function load(){if(window.LightweightCharts)return Promise.resolve(true);if(LP)return LP;LP=new Promise(res=>{const s=document.createElement('script');s.src=SRC;s.onload=()=>res(!!window.LightweightCharts);s.onerror=()=>{LP=null;res(false)};document.head.appendChild(s)});return LP}
+const cv=v=>{try{return getComputedStyle(document.body).getPropertyValue(v).trim()}catch{return ''}};
+function theme(){const lt=document.documentElement.dataset.theme==='light';return {lt,bg:cv('--bg')||(lt?'#ffffff':'#0b0d11'),ink:cv('--m2')||cv('--mute')||'#9aa3b2',grid:lt?'rgba(0,0,0,.06)':'rgba(255,255,255,.045)',line:cv('--b')||cv('--line')||'rgba(255,255,255,.1)',up:cv('--up')||cv('--green')||'#2ebd85',dn:cv('--dn')||cv('--red')||'#f6465d',acc:cv('--acc')||'#F0B90B',font:cv('--fNum')||'inherit'}}
+const enL=()=>{try{return L==='en'}catch{return false}};
+const tfNow=()=>document.querySelector('#dtl [data-cdt].on')?.dataset.cdt||'5m';
+const pad=n=>String(n).padStart(2,'0');
+function tLocal(sec,mode){const d=new Date(sec*1000);const md=pad(d.getMonth()+1)+'-'+pad(d.getDate()),hm=pad(d.getHours())+':'+pad(d.getMinutes());if(mode==='y')return String(d.getFullYear());if(mode==='m')return d.getFullYear()+'-'+pad(d.getMonth()+1);if(mode==='d')return md;if(mode==='t')return hm;return d.getFullYear()+'-'+md+' '+hm}
+const fp=v=>{try{return fP(v)}catch{return String(v)}};
+const fu=v=>{try{return fU(v)}catch{return String(Math.round(v))}};
+function bars(cs){const o=[],v=[];let last=-1;for(const c of cs){const t=Math.floor(+c.t/1000);if(!(t>last)||!(+c.c>0))continue;last=t;o.push({time:t,open:+c.o,high:+c.h,low:+c.l,close:+c.c});v.push({time:t,value:+c.v>0?+c.v:0})}return [o,v]}
+function make(box){const T=theme();const el=document.createElement('div');el.className='rcLwC';const lg=document.createElement('div');lg.className='rcLwL';const tip=document.createElement('div');tip.className='rcLwT';
+ box.innerHTML='';box.append(el,lg,tip);const LWC=window.LightweightCharts;
+ const chart=LWC.createChart(el,{autoSize:true,layout:{background:{type:'solid',color:'transparent'},textColor:T.ink,fontFamily:T.font==='inherit'?undefined:T.font,fontSize:11,attributionLogo:true},grid:{vertLines:{color:T.grid},horzLines:{color:T.grid}},rightPriceScale:{borderColor:T.line,scaleMargins:{top:.08,bottom:.24}},timeScale:{borderColor:T.line,timeVisible:true,secondsVisible:false,rightOffset:RIGHT_N,tickMarkFormatter:(t,k)=>tLocal(t,k===0?'y':k===1?'m':k===2?'d':'t')},crosshair:{mode:0},localization:{timeFormatter:t=>tLocal(t),priceFormatter:fp}});
+ const cs=chart.addSeries(LWC.CandlestickSeries,{upColor:T.up,downColor:T.dn,borderUpColor:T.up,borderDownColor:T.dn,wickUpColor:T.up,wickDownColor:T.dn,priceLineVisible:true,lastValueVisible:true,priceFormat:{type:'custom',minMove:1e-12,formatter:fp}});
+ const vs=chart.addSeries(LWC.HistogramSeries,{priceScaleId:'',priceFormat:{type:'volume'},lastValueVisible:false,priceLineVisible:false});vs.priceScale().applyOptions({scaleMargins:{top:.8,bottom:0}});
+ const mk=LWC.createSeriesMarkers?LWC.createSeriesMarkers(cs,[]):null;
+ const C={box,el,lg,tip,chart,cs,vs,mk,key:'',t0:0,n:0,th:JSON.stringify(T),last:null,tips:new Map(),wal:new Map()};
+ chart.subscribeCrosshairMove(p=>{try{legend(C,p&&p.time!=null?p.seriesData.get(cs):null,p&&p.time!=null?p.seriesData.get(vs):null);const id=p&&p.hoveredObjectId;const tx=id!=null?C.tips.get(String(id)):null;if(tx&&p.point){C.tip.textContent=tx;C.tip.style.display='block';const w=C.el.clientWidth;C.tip.style.left=Math.min(w-220,Math.max(4,p.point.x+12))+'px';C.tip.style.top=Math.max(4,p.point.y-10)+'px'}else if(C.tip.style.display!=='none')C.tip.style.display='none'}catch{}});
+ chart.subscribeClick(p=>{try{const id=p&&p.hoveredObjectId;const w=id!=null?C.wal.get(String(id)):'';if(w&&typeof tr118Open==='function'){const r=C.el.getBoundingClientRect();tr118Open(w,{clientX:r.left+(p.point?.x||0),clientY:r.top+(p.point?.y||0),target:C.el,preventDefault(){},stopPropagation(){}})}}catch(e){console.error(e)}});
+ CH.add(C);box.__lw=C;return C}
+function legend(C,b,v){const en=enL();if(!b)b=C.last;if(!b)return;const up=b.close>=b.open;const ch=b.open>0?(b.close/b.open-1)*100:0;const vv=v&&v.value!=null?v.value:C.lastV;
+ const h=`<span>O <b>${fp(b.open)}</b></span><span>H <b>${fp(b.high)}</b></span><span>L <b>${fp(b.low)}</b></span><span>C <b class="${up?'up':'dn'}">${fp(b.close)}</b></span><span class="${up?'up':'dn'}">${ch>=0?'+':''}${ch.toFixed(2)}%</span>${vv>0?`<span>${en?'Vol':'量'} <b>$${fu(vv)}</b></span>`:''}`;if(C.lg.__h!==h){C.lg.innerHTML=h;C.lg.__h=h}}
+function kill(C){try{C.chart.remove()}catch{}CH.delete(C);if(C.box&&C.box.__lw===C)C.box.__lw=null}
+function retheme(C){const T=theme();const s=JSON.stringify(T);if(s===C.th)return;C.th=s;C.chart.applyOptions({layout:{textColor:T.ink},grid:{vertLines:{color:T.grid},horzLines:{color:T.grid}},rightPriceScale:{borderColor:T.line},timeScale:{borderColor:T.line}});C.cs.applyOptions({upColor:T.up,downColor:T.dn,borderUpColor:T.up,borderDownColor:T.dn,wickUpColor:T.up,wickDownColor:T.dn});C.vol=null;C.n=0}
+function volC(b,T){return b.close>=b.open?T.up+'66':T.dn+'66'}
+/* 画／更新：同一个币＋周期，资料只多最后一两根 → 只更新最后几根（不整张重画） */
+function put(box,cs){if(!box||!Array.isArray(cs)||!cs.length)return;box.__lwCs=cs;
+ if(!window.LightweightCharts){if(!box.__lwW){box.__lwW=1;load().then(ok=>{box.__lwW=0;if(!box.isConnected)return;if(ok)put(box,box.__lwCs);else try{box.innerHTML=svgCandles(box.__lwCs)}catch{}})}return}
+ let C=box.__lw;if(C&&!box.contains(C.el)){kill(C);C=null}if(!C)C=make(box);retheme(C);
+ const key=(typeof CDL!=='undefined'&&CDL?(CDL.net+'|'+CDL.pool):'')+'|'+tfNow();const [o,v]=bars(cs);if(!o.length)return;const T=JSON.parse(C.th);const vc=v.map((x,i)=>({...x,color:volC(o[i],T)}));
+ const same=C.key===key&&C.t0===o[0].time&&(o.length===C.n||o.length===C.n+1);
+ if(same){const a=Math.max(0,C.n-1);for(let i=a;i<o.length;i++){C.cs.update(o[i]);C.vs.update(vc[i])}}
+ else{const fresh=C.key!==key;C.cs.setData(o);C.vs.setData(vc);if(fresh){const n=o.length;C.chart.timeScale().setVisibleLogicalRange({from:Math.max(0,n-VIS_N),to:n+RIGHT_N})}}
+ C.key=key;C.t0=o[0].time;C.n=o.length;C.last=o[o.length-1];C.lastV=v[v.length-1].value;legend(C,null,null);
+ window.__cdM={cs,lw:1};/* 交易者小卡的小图用（只读 cs） */
+ try{if(typeof fbMarks==='function')fbMarks()}catch{}}
+function has(box){return !!box&&(!!box.querySelector(':scope>svg')||!!(box.__lw&&box.contains(box.__lw.el)))}
+/* 成交明细 → 最后一根即时更新（跟 AVE／GMGN 一样：每笔成交都会动） */
+let TT=0;
+function trades(rows){const box=document.querySelector('#dtCh #cdBox');if(!box||!box.__lw||typeof CDK==='undefined'||!CDK||!Array.isArray(CDK.cs)||!CDK.cs.length)return;const tf=tfNow();if(CDK.tf!==tf)return;const sec=(typeof CDSEC!=='undefined'&&CDSEC[tf])||300;const cs=CDK.cs;
+ const R=(rows||[]).filter(r=>+r.p>0&&+r.t>0).map(r=>({t:+r.t<1e12?+r.t*1000:+r.t,p:+r.p,u:+r.usd>0?+r.usd:0})).filter(r=>r.t>TT).sort((a,b)=>a.t-b.t);if(!R.length)return;let ch=false;
+ for(const r of R){TT=r.t;const last=cs[cs.length-1];if(r.t<last.t)continue;const nx=kbNext(last.t/1000,sec)*1000;if(r.t>=nx){const b=kbStart(r.t/1000,sec)*1000;cs.push({t:b,o:last.c,h:Math.max(last.c,r.p),l:Math.min(last.c,r.p),c:r.p,v:r.u});if(cs.length>CS_MAX)cs.shift()}else{last.c=r.p;last.h=Math.max(last.h,r.p);last.l=Math.min(last.l,r.p);last.v=(+last.v||0)+r.u}ch=true}
+ if(ch)put(box,cs)}
+const CS_MAX=300;/* 技术用：最多留几根 */
+/* K 线标记（我的交易／KOL／聪明钱／巨鲸）：画在 TradingView 图上；点标记＝打开交易者小卡 */
+function marks(G,cs,en){const box=document.querySelector('#dtCh #cdBox');const C=box&&box.__lw;if(!C||!C.mk)return false;const M=[];C.tips.clear();C.wal.clear();let i=0;
+ for(const v of G.values()){const c=cs[v.i];if(!c)continue;const top=v.L[0];const col=FB_TG[top.kind][2];const lb=top.kind==='me'?(en?'Me':'我'):top.kind==='kol'?(top.T.nm||'K').slice(0,1).toUpperCase():top.kind==='sm'?(en?'S':'聪'):top.kind==='wh'?(en?'W':'鲸'):'★';const id='m'+(i++);
+  C.tips.set(id,v.L.slice(0,TIP_N).map(z=>`${z.T.nm||z.T.lb||fbSh(z.r.w)} · ${z.r.b?(en?'Buy':'买'):(en?'Sell':'卖')} $${fu(+z.r.usd||0)} · ${new Date(+z.r.t).toLocaleTimeString(en?'en-US':'zh-CN',{hour12:false})}`).join('\n')+(v.L.length>TIP_N?`\n+${v.L.length-TIP_N}`:''));C.wal.set(id,String(top.r.w||''));
+  M.push({time:Math.floor(c.t/1000),position:v.b?'belowBar':'aboveBar',color:col,shape:v.b?'arrowUp':'arrowDown',text:lb+(v.L.length>1?'×'+v.L.length:''),id})}
+ M.sort((a,b)=>a.time-b.time);C.mk.setMarkers(M.slice(-MK_MAX));return true}
+/* 关掉详情／换币：图销毁（不留在背景吃资源） */
+setInterval(()=>{if(!CH.size)return;const d=document.getElementById('dtl');const open=d&&d.style.display!=='none';for(const C of [...CH])if(!open||!C.box.isConnected||!C.box.contains(C.el))kill(C)},GC_MS);
+/* TradingView 标志：视窗不开新网页 → 用雷达的「开外部网页」（会先问你） */
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('.rcLwC a[href]');if(!a)return;e.preventDefault();e.stopPropagation();try{window.radar.open('https://www.tradingview.com/')}catch{}},true);
+window.LWK={put,has,trades,marks,load,kill,charts:CH};
+window.cdPut=put;window.cdHas=has;
+})();
+</script>
 
 </body>
 </html>
