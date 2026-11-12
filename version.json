@@ -46,10 +46,10 @@
     "radar/main.cjs": "4a06d123e4228efc9146bbae9b86ad36a90aa2d8a3809290db39790819c5aaf1",
     "radar/market.cjs": "10437ec0d02893901b9df96907c035762cd1ff8a416197c3cbe858ae7f0a3697",
     "radar/next.cjs": "31798271b9ca320ee2155c906383722d0dd5e99ec7a13ac618eac7d7e5fa524c",
-    "radar/official.json": "a2d096ee88cfe75d626589bec5be9e259c75ddfdcd012f955e2ffaa077a3b2ed",
-    "radar/official.sig": "77b8fd16e4ec53930f55fb7bae319fca720ca6200789e43e97217084e53b4d9d",
+    "radar/official.json": "531bbd67a612a5a09199caf54b13f5a0ddbbde51d9ef3c0238b87d28b24f1d2c",
+    "radar/official.sig": "3307947c8bc372d8413f289ddf9de2d6547ebe29c2b32cba0a502a04caadfa00",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "832a3ac4d094a45f59b0707fdf69e14c7e7561dbd71c5532b64ee9f6e7464368",
+    "radar/package.json": "33a291bcb59725156bf74000d1564ecba5bc1027d75c0df0da3b81f11b54bbc1",
     "radar/preload.cjs": "48550affe46da4ff37c9be224eababb80245fe9c8c7c288c0fe21bb0842eec09",
     "radar/settings_schema.json": "255b4b24f934b929592db9f6886249b688547bcc379c9a78ff49907dbb7efe0c",
     "radar/ui/index.html": "1139ffcf6f61bf67be34bcce2f20f94cbf87056705b85bb54c85437f1389e40a",
@@ -82,14 +82,13 @@
     "tg_login.bat": "1b358e1311fe5c0ef32580f47a150904f0028a4451b6409124f9eed46f81dbc9",
     "tools/guard_check.mjs": "da8b958b19bd1e436517e68b3371dc118a693480fa2724fc1044691f67a9964a",
     "tools/guard_rules.json": "ac91171f9601ff71dcf752b6da699a0f1aba4e933b1cf6271994820372c6377f",
-    "tools/zero_allowlist.json": "b181f1dc925cb42a6cd2c38e8cd6c701b84654a33890d7b9421df43059d77366",
+    "tools/zero_allowlist.json": "27c14a70a755414314af399bb440fbcad77591893ac6313b38b09868b3504cc6",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "3fc6d1fdab8361be1c3d9488315dde875421d74ba809c34e07f0129152ddfbb3",
+    "watch.mjs": "ca59e0f76ac1b0e0876fc81bfb46aceb3c0ad5921e6df0a752e4ab07ff104402",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "1e141a57ef3b95a3bcd7d2c254b16329fe434b2a8b6a1c7b61b2fb1663fecf65",
     "一键安装.bat": "c81665cfabc0cff65c64999c43d4a3e14c6909dcfd247107c355c3b9d23c7e21",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "3fc6d1fdab8361be1c3d9488315dde875421d74ba809c34e07f0129152ddfbb3",
-  "seq": 1794484849233
+  "sha256": "ca59e0f76ac1b0e0876fc81bfb46aceb3c0ad5921e6df0a752e4ab07ff104402"
 }
