@@ -18346,6 +18346,48 @@
     "3000"
    ],
    "reason": "TRI-1112：「只观察」已通知过的币最多记几个（记忆体上限，同一个币只通知一次），不是买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN|CONST|OBJNUM",
+   "file": "radar/main\\.cjs$",
+   "match": "AVEB_OFF_MS = 30 \\* 60e3|AVEB_TO_MS = 20e3",
+   "values": [
+    "30",
+    "60e3",
+    "20e3"
+   ],
+   "reason": "BUNDLE-1112：清单打包请求的技术参数（转接站不支援时隔多久再试、整包等多久、一包几份、HTTP 状态码、路径长度上限、错误讯息长度），跟买卖无关"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "=== 404 \\|\\| st === 400|st >= 200 && st < 300",
+   "values": [
+    "404",
+    "400",
+    "200",
+    "300"
+   ],
+   "reason": "BUNDLE-1112：清单打包请求的技术参数（转接站不支援时隔多久再试、整包等多久、一包几份、HTTP 状态码、路径长度上限、错误讯息长度），跟买卖无关"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/worker\\.js$",
+   "match": "typeof x !== 'string' \\|\\| x\\.length > 300",
+   "values": [
+    "300"
+   ],
+   "reason": "BUNDLE-1112：清单打包请求的技术参数（转接站不支援时隔多久再试、整包等多久、一包几份、HTTP 状态码、路径长度上限、错误讯息长度），跟买卖无关"
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/worker\\.js$",
+   "match": "__err: String\\(e\\?\\.message \\|\\| e\\)\\.slice\\(0, 80\\)",
+   "values": [
+    "80",
+    "0"
+   ],
+   "reason": "BUNDLE-1112：清单打包请求的技术参数（转接站不支援时隔多久再试、整包等多久、一包几份、HTTP 状态码、路径长度上限、错误讯息长度），跟买卖无关"
   }
  ]
 }

@@ -1098,9 +1098,11 @@ let MCA_BUSY = 0;
 async function mcaPoll() { if (MCA_BUSY) return; const z = zSet(); if (!zOn(z, 'mca.on')) return; MCA_BUSY = 1; try {
   const want = String(z['mca.pads'] || '').toLowerCase().split(/[\s,，;；]+/).filter(Boolean); const st = [['_in_new', 'new', zOn(z, 'mca.stNew')], ['_in_almost', 'almost', zOn(z, 'mca.stAlmost')], ['_out_new', 'out', zOn(z, 'mca.stOut')]].filter((x) => x[2]);
   const out = { at: Date.now(), items: [], err: '' }; if (!aveOK()) { out.err = 'ave'; } else {
-    for (const ch of MCA_CHAINS) { if (!zOn(z, 'mca.ch.' + ch)) continue; const C = mcChain(ch); if (!C) continue;
-      for (const p of (MC_PADS[ch] || []).filter((x) => want.includes(x))) for (const [sf, stage] of st) { const tag = p + sf; if (!MC_PAD_TAGS.has(tag)) continue;
-        const r = await mcList('/v2/tokens/platform?tag=' + tag + '&limit=100').catch(() => null); if (!r || r.err) { out.err = out.err || String(r?.err || 'ave'); continue; }
+    const JOBS = []; for (const ch of MCA_CHAINS) { if (!zOn(z, 'mca.ch.' + ch)) continue; const C = mcChain(ch); if (!C) continue;
+      for (const p of (MC_PADS[ch] || []).filter((x) => want.includes(x))) for (const [sf, stage] of st) { const tag = p + sf; if (!MC_PAD_TAGS.has(tag)) continue; JOBS.push({ ch, C, p, stage, q: '/v2/tokens/platform?tag=' + tag + '&limit=100' }); } }
+    const RR = await mcListMany(JOBS.map((x) => x.q)); /*BUNDLE-1112 一次打包问*/
+    for (const [ji, { ch, C, p, stage }] of JOBS.entries()) { {
+        const r = RR[ji]; if (!r || r.err) { out.err = out.err || String(r?.err || 'ave'); continue; }
         for (const t of r.arr) { const pk = mcPack(t); if (!pk || pk[0] !== C.ave) continue; padAveSee(pk); const v = pk[2]; out.items.push({ ch, c: pk[1], pad: p, stage, sym: v.s || '', n: v.n || '', mc: v.mc ?? null, h: v.h ?? null, pg: v.pg ?? null, ca: v.ca ?? null, tvl: v.tvl ?? null, v1: v.v1 ?? null, hp: v.hp ?? null, pl: v.pl || '' }); } } } }
   const f = path.join(DATA, 'mca_cand.json'), tmp = f + '.w' + process.pid; fs.writeFileSync(tmp, JSON.stringify(out)); fs.renameSync(tmp, f);
 } catch (e) { console.error('mca', e); } finally { MCA_BUSY = 0; } }
@@ -1133,6 +1135,17 @@ setTimeout(() => { padSample(); setInterval(padSample, PADN_T.ms); }, 60e3); set
 ipcMain.handle('pads', () => padsGet().catch((e) => ({ err: String(e?.message || e).slice(0, 120) })));
 const MC_LIST_MS = MC_T.detMs; /* 技术用：清单在记忆体留多久（跟详情同一个快取时间） */ const mcListCu = (q) => (/trending/.test(q) ? 5 : 10); /* AVE 文件的单位数（计量用） */
 const mcListTag = (q) => (q.match(/tag=([a-z0-9_]+)/) || [])[1] || 'trend_' + ((q.match(/chain=([a-z]+)/) || [])[1] || 'x');
+/*BUNDLE-1112（Nancy 同意）：好几份清单打包成一个请求给转接站（/aveb），Cloudflare 请求次数大约变十分之一；已经有快取的不问；旧转接站没有打包（或打包失败）就照旧一份一份问 */
+let AVEB_OFF = 0; const AVEB_OFF_MS = 30 * 60e3, AVEB_TO_MS = 20e3, AVEB_MAX = 24; /* 技术用：转接站不支援时多久后再试／整包最多等多久／一包最多几份（跟转接站一样） */
+async function mcListMany(Q) { const out = new Array(Q.length); const need = []; Q.forEach((q, i) => { const hit = mcGet('L|' + q, MC_LIST_MS); if (hit) out[i] = hit; else need.push(i); }); if (!need.length) return out;
+  const one = async (ix) => { await Promise.all(ix.map(async (i) => { out[i] = await mcList(Q[i]).catch(() => ({ err: 'ave' })); })); };
+  const R = aveRelay(); if (fs.existsSync(AVE_KF) || !R || !aveProof() || Date.now() < AVEB_OFF) { await one(need); return out; }
+  const bg = !!AVE_BG.getStore()?.bg; if (aveDenied(bg)) { for (const i of need) out[i] = { err: aveWhy() || 'ave' }; return out; }
+  for (let k = 0; k < need.length; k += AVEB_MAX) { const ix = need.slice(k, k + AVEB_MAX); let j = null, st = 0;
+    try { const H = await relayHdr(R, bg ? 0 : AVE_FG_TO_MS); if (H) { const r = await fetch(R + '/aveb?ps=' + encodeURIComponent(JSON.stringify(ix.map((i) => Q[i]))) + (bg ? '&bg=1' : ''), { headers: H, signal: AbortSignal.timeout(AVEB_TO_MS) }); st = r.status; if (r.status === 401) relaySessDrop(); if (r.ok) j = await r.json().catch(() => null); } } catch {}
+    if (!j || !j.r || typeof j.r !== 'object') { if (st === 404 || st === 400 || (st >= 200 && st < 300)) AVEB_OFF = Date.now() + AVEB_OFF_MS; await one(ix); continue; }
+    for (const i of ix) { const q = Q[i], d = j.r[q]; if (!d || d.__err) { const e = String(d?.__err || 'ave'); if (/daily cap/i.test(e)) aveErr('cap', aveNextTpeMidnight() - Date.now()); out[i] = { err: e }; continue; } aveUse(mcListCu(q), bg ? 'bg' : 'fg'); if (d.status !== 1) { out[i] = { err: aveWhy() || 'ave' }; continue; } const dd = d.data; const arr = Array.isArray(dd) ? dd : Array.isArray(dd?.tokens) ? dd.tokens : []; out[i] = mcPut('L|' + q, { at: Date.now(), arr }); } }
+  return out; }
 async function mcList(q) { if (!fs.existsSync(AVE_KF) && !aveProof()) return { err: 'bind' }; /* 没金钥也没绑定＝转接站不会给，不去问 */ const ck = 'L|' + q; const hit = mcGet(ck, MC_LIST_MS); if (hit) return hit; const j = await aveGet(q, mcListCu(q)).catch(() => null); if (!j || j.status !== 1) return { err: aveWhy() || 'ave' }; const d = j.data; const arr = Array.isArray(d) ? d : Array.isArray(d?.tokens) ? d.tokens : []; return mcPut(ck, { at: Date.now(), arr }); }
 function mcPack(t) { const tid = String(t?.token_id || ''); const j0 = tid.lastIndexOf('-'); if (j0 < 1) return null; const ave = tid.slice(j0 + 1), C = MC_CHAINS.find((c) => c.ave === ave); if (!C) return null; const a = mcAddr(C.k, tid.slice(0, j0)); if (!a) return null; /* 跟 ave.mjs pack 同一套栏位（Solana 合约分大小写） */
   const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : undefined; }; const lg = /^https:\/\/[^\s"'<>]{4,300}$/.test(String(t.logo_url || '')) ? String(t.logo_url) : '';
@@ -1141,7 +1154,7 @@ function mcPack(t) { const tid = String(t?.token_id || ''); const j0 = tid.lastI
 async function mcBoard(ch, tab, nWant) { /*BOARD124 nWant＝往下滑要几列*/ const C = mcChain(ch); if (!C || !MC_NEW.has(C.k)) return { err: 'chain' }; tab = MC_TABS.some((t) => t[0] === tab) ? tab : 'hot';
   const nW = Math.max(MC_T.rows, Math.floor(+nWant || 0)); const ck = 'b|' + C.k + '|' + tab + '|' + nW; const hit = mcGet(ck, MC_T.boardMs); if (hit) return hit;
   const A0 = aveBoard(); const det = mcDetected(); const Q = (MC_LISTQ[C.k] || { hot: ['/v2/tokens/trending?chain=' + C.ave + '&page_size=100'] })[tab] || []; /*OPEN-1112 目录里的链都有 AVE 热门榜*/ let liveWhy = ''; const LM = {}, LC = {}; /*MCFIX123-A 看这条链、这个分页才查（转接站共用快取）*/
-  if (Q.length) { const RR = await Promise.all(Q.map(mcList)); RR.forEach((r, i) => { if (!r || r.err) { liveWhy = liveWhy || String(r?.err || 'ave'); return; } const L = []; for (const t of r.arr) { const pk = mcPack(t); if (pk) padAveSee(pk); if (!pk || pk[0] !== C.ave) continue; LM[pk[1]] = { ...(LM[pk[1]] || {}), ...pk[2] }; L.push(pk[1]); } LC[mcListTag(Q[i])] = L; }); }
+  if (Q.length) { const RR = await mcListMany(Q); /*BUNDLE-1112*/ RR.forEach((r, i) => { if (!r || r.err) { liveWhy = liveWhy || String(r?.err || 'ave'); return; } const L = []; for (const t of r.arr) { const pk = mcPack(t); if (pk) padAveSee(pk); if (!pk || pk[0] !== C.ave) continue; LM[pk[1]] = { ...(LM[pk[1]] || {}), ...pk[2] }; L.push(pk[1]); } LC[mcListTag(Q[i])] = L; }); }
   const live = Object.keys(LC).length > 0; const A = live || A0 ? { at: live ? Date.now() : +A0.at || 0, m: { [C.ave]: { ...(A0?.m?.[C.ave] || {}), ...LM } }, cols: { ...(A0?.cols || {}), ...LC }, ht: A0?.ht || {} } : null;
   const base = { chain: C.k, tab, mode: mcMode(C.k, det), at: +A?.at || 0, src: live ? 'live' : A0 ? 'board' : '', tabs: MC_TABS.map((t) => ({ k: t[0], zh: t[1], en: t[2], n: 0 })) };
   if (!A) return { ...base, items: [], why: !Q.length ? 'nolist' : liveWhy || (aveOK() ? 'board' : 'bind') }; /* 读不到＝空白＋真正原因（转接站／AVE 回的），不猜；失败不快取，按重试就再查 */

@@ -277,6 +277,16 @@ async function aveWsRoute(req, env) { if (req.headers.get('Upgrade') !== 'websoc
    ① 同一个查询正在问 AVE 时，其他人直接等同一个结果（不再打一次 AVE、不算额度）；② 转接站的全体速度（wrangler.toml AVE_GLOBAL_RPS）满了就短暂排队再送，不直接回错误。
    快取只用来合并同一瞬间的重复请求（时间见 AVE_OK），不拿旧资料冒充即时资料 */
 const AVE_INFL = new Map(); const AVE_Q_TRIES = 6, AVE_Q_WAIT_MS = 250; /* 技术用：全体速度满了最多排队几次／每次等多久 */
+/*BUNDLE-1112（Nancy 同意）：雷达看盘一个分页要十几份 AVE 清单 → 打包成一个请求（GET /aveb?ps=[...]），转接站在里面照 /ave 一样逐份处理（同样的通行证、额度计量、快取、同时请求合并），Cloudflare 请求次数大约变成十分之一 */
+const AVEB_MAX = 24; /* 技术用：一包最多几份（Cloudflare 每个请求的子请求上限） */
+async function aveBundle(req, u, env) {
+  let ps; try { ps = JSON.parse(String(u.searchParams.get('ps') || '[]')); } catch { return J({ err: 'bad' }, 400); }
+  if (!Array.isArray(ps) || !ps.length || ps.length > AVEB_MAX || ps.some((x) => typeof x !== 'string' || x.length > 300)) return J({ err: 'bad' }, 400);
+  if (!(await sessOf(req, env))) return J({ err: 'session' }, 401);
+  const bg = u.searchParams.get('bg') === '1'; const out = {};
+  await Promise.all([...new Set(ps)].map(async (p) => { try { const u2 = new URL(u.origin + '/ave'); u2.searchParams.set('p', p); if (bg) u2.searchParams.set('bg', '1'); const r = await aveProxy(req, u2, env); if (r.status === 200) { try { out[p] = JSON.parse(await r.text()); } catch { out[p] = { __err: 'html' }; } } else { let e = ''; try { e = String((await r.json())?.err || ''); } catch {} out[p] = { __err: e || 'http ' + r.status, __st: r.status }; } } catch (e) { out[p] = { __err: String(e?.message || e).slice(0, 80) }; } }));
+  return J({ ok: 1, r: out });
+}
 async function aveProxy(req, u, env) {
   const p = String(u.searchParams.get('p') || ''); if (!AVE_OK.find(([re]) => re.test(p)) || !env.AVE_KEY) return J({ err: 'not allowed' }, 400);
   if (!(await sessOf(req, env))) return J({ err: 'session' }, 401); /* 先验通行证，才可以共用别人正在查的结果 */
@@ -322,6 +332,7 @@ export default {
     if (req.method !== 'GET') return new Response('method', { status: 405 });
     if (u.pathname === '/aveboard2' && req.method === 'GET') return aveBoard2(req, u, env); /*BOARD124*/
     if (u.pathname === '/ave') return aveProxy(req, u, env);
+    if (u.pathname === '/aveb') return aveBundle(req, u, env); /*BUNDLE-1112*/
     if (u.pathname === '/points.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_pts'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：积分改由转接站算 */
     if (u.pathname === '/points.json') return mirrorGet(env, 'points'); /* V105-2：积分镜像 */
     if (u.pathname === '/xwatch.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_xpub'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：X 监测改由转接站查 */
