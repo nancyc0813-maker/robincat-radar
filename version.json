@@ -1,6 +1,6 @@
 {
   "version": "1.4.9",
-  "date": "2026-11-11",
+  "date": "2026-11-12",
   "critical": true,
   "notes": [
     "修正：新版引擎有在跑但开机补扫较慢时，不再误报「更新后引擎没有启动成功」",
@@ -48,13 +48,13 @@
     "radar/desklink.cjs": "21b4593af23fabadbcbf12c2e1f61da75f03c074fc3ddd8da9982f0d750d15bc",
     "radar/ghmine.cjs": "085154c479db11c9f4347e14f508ab2744cd1951313990005e083b171c0fc415",
     "radar/kline.cjs": "cd5e6e2c887899f065bad1220b9b1cc518368fda6f7b87be35eca6ad8eee0366",
-    "radar/main.cjs": "39cabbcff4f7dccc43f222fafe53aaf7c84ad8c419ab176349daa6d7b6d72e0a",
+    "radar/main.cjs": "3e42f09d3cfb97c4b7bca281152d66fad934a8822f1e1014a3355ac7ca5c4fba",
     "radar/market.cjs": "95a3c532c84ac91d5b924549d02994c231d84099c77431de0f681398d368d28a",
     "radar/next.cjs": "31798271b9ca320ee2155c906383722d0dd5e99ec7a13ac618eac7d7e5fa524c",
-    "radar/official.json": "45d0aecc41aa3f33a7f7a9d30eac5124c7a330f63658ab48e261a1428d688c17",
-    "radar/official.sig": "b24343e8317529b17591cf8e2657468c6ad4eec975764882a56ff372f785669e",
+    "radar/official.json": "b70190e90640a4744d1a8d42b79e9165b5be2f9bea772cd5b5e116b8027135cc",
+    "radar/official.sig": "df62e4bf7271b180a0550f430ca2a7497c6a3f6612d9d46cb0bde9d4b295d7fd",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "1e7ace261a18720a49a01c406b513a1c242549c25d7a281f1b22220af2f120ce",
+    "radar/package.json": "409951817046a1cd4b0942f36a0f8613be533fc06ecdce8cba541d2960708653",
     "radar/preload.cjs": "77722d0174c2470f9159af7d952975252d5e252ef3809ecbfa10e52124f7d2ee",
     "radar/settings_schema.json": "bd45508e3c74414dd86f111c9ce0362768e23a1ec14773e819a45569f4f8ccdf",
     "radar/ui/index.html": "b018ec46f80818a1e2c7737aaeb20a6ab3131538d91dd5fe4875359bd4b7906f",
@@ -74,7 +74,7 @@
     "relay/worker.js": "6074f8f16ccdf180d809d75eb523f209a6723a3a235d977c948e282fac6dc78b",
     "relay/wrangler.toml": "d6c3c607e3d56d84f5d6f9cf144f78115b2a45a4ebdf5031bee7e05aa1d3fce2",
     "repo.cjs": "0c0e2f7617455529b71cde6cd6556b7eb598c0a3d4c1989d41eaabe85b7571f4",
-    "rh.mjs": "2409d8b9ba10b86e5374c92957755c772b3b5520b41cf500ef3f2f0b61bb3e2e",
+    "rh.mjs": "52e6ab94ebc3c79e0170c72fa6f171104c84d7b0cdb8f97b262d39f39cbf5da2",
     "sentinel.mjs": "f7171b5c139dc85647bbd132c8b67e59a6e304f03b6e45135e66842d6ad58cd9",
     "setup.mjs": "50105c2abacbe3cd910e13eba09ec24c459d1892037288254f0e1ed737af6b56",
     "setup_wallet2.bat": "29948d4ce22618ce75c1f16ba1450b0bb1c5218b008d2e45cd0ba0e4e7e96dad",
@@ -88,11 +88,11 @@
     "tools/guard_rules.json": "ac91171f9601ff71dcf752b6da699a0f1aba4e933b1cf6271994820372c6377f",
     "tools/zero_allowlist.json": "1e2b8f4744fd436848412d985ca8f8d301b81a65efb8a28e60430caaf4ba080e",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "506b17be83c958e0585f87002f19ee42f376d8cd620330daef1c9aed653b6aff",
+    "watch.mjs": "043629ddaa588be8dce9db43200a67ffa1b601c89a8b6224a232031a9ffeb799",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "1e141a57ef3b95a3bcd7d2c254b16329fe434b2a8b6a1c7b61b2fb1663fecf65",
     "一键安装.bat": "c81665cfabc0cff65c64999c43d4a3e14c6909dcfd247107c355c3b9d23c7e21",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "506b17be83c958e0585f87002f19ee42f376d8cd620330daef1c9aed653b6aff"
+  "sha256": "043629ddaa588be8dce9db43200a67ffa1b601c89a8b6224a232031a9ffeb799"
 }
