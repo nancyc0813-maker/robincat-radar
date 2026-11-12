@@ -5631,9 +5631,6 @@ header .right>.btn:hover::before,header .right>button:hover::before,#pz .pzB:hov
 .pzSg.rcNew::before{content:"";position:absolute;inset:0;background:var(--acc,#F0B90B);opacity:0;animation:rcNew 1.8s ease-out 1;pointer-events:none}
 html.rcRM .rcSegH>.rcInd{transition:none}
 @media (prefers-reduced-motion: reduce){.rcSegH>.rcInd{transition:none}}
-/* 效能：画面外的卡片不排版、不绘制（content-visibility）；光晕／阴影用 overflow-clip-margin 留空间，不会被切掉 */
-body.rcV2 .pzL>.pzC{content-visibility:auto;contain-intrinsic-size:auto 100px;overflow-clip-margin:28px}
-body.rcTh-term .pzL>.pzC{contain-intrinsic-size:auto 86px}
 /* 效能（第四轮）：悬停光晕的伪元素只在悬停时才有；独立图层只在悬停／新卡时开 */
 body.rcV2 .pzC{isolation:auto}body.rcV2 .pzC:hover,body.rcV2 .pzC.rcNew{isolation:isolate}
 body.rcV2 .pzC::after{content:none}
@@ -5665,7 +5662,7 @@ const en=()=>{try{return L==='en'}catch{return false}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const SEC=10**3;/* 毫秒换算 */
 /* 技术用（只影响动画，不影响买卖）：换位、滑入、飞行、滚轮、成交滑入、详情进场、闪色的毫秒数；点卡片到详情的配对窗口；骨架张数；走势线点数／记几个币／最少几点；一次最多几张滑入；成交一次最多几笔滑入；等详情画好最多几帧；进度满格；进度环半径；同时最多几个数字在滚；详情页变动多久处理一次（毫秒） */
-const [D_FLIP,D_IN,D_FLY,D_ODO,D_ROW,D_PANEL,D_FLASH,CLICK_MS,SK_N,SP_N,SP_MAP,SP_MIN,IN_MAX,ROW_MAX,FLY_POLL,PCT,RG_R,ODO_MAX,MO_MS]=[460,420,640,620,380,280,900,1500,7,24,600,3,10,12,40,100,19.5,24,200];
+const [D_FLIP,D_IN,D_FLY,D_ODO,D_ROW,D_PANEL,D_FLASH,CLICK_MS,SK_N,SP_N,SP_MAP,SP_MIN,IN_MAX,ROW_MAX,FLY_POLL,PCT,RG_R,ODO_MAX,MO_MS]=[460,420,640,620,380,280,900,1500,7,24,600,3,10,12,40,100,19.5,8,200];
 const EZ='cubic-bezier(.2,1,.3,1)',EZF='cubic-bezier(.5,0,.2,1)';
 /* ===== 玩家的选择（预设：罗宾猫潮流、配乐开、音量适中） ===== */
 const PK='rcV2';
@@ -5908,7 +5905,7 @@ function auVol(){const C=AU.ctx;if(!C||!AU.m)return;const on=auWant();const now=
  else{AU.m.gain.cancelScheduledValues(now);AU.m.gain.setTargetAtTime(0,now,A_FADE/3);if(AU.sg){AU.sg.gain.cancelScheduledValues(now);AU.sg.gain.setTargetAtTime(0,now,A_FADE/6)}AU.susT=setTimeout(()=>{if(auWant())return;if(!AU.det){/* 关掉详情：回到平静段，下次打开从头算 */AU.I=0;AU.pend=null;AU.below=0;const t=C.currentTime;AU.g.forEach((g,i)=>{g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(i===0?1:0,t)});AU.cur=0;AU.since=t}if(C.state==='running')C.suspend().catch(()=>{})},A_FADE*2*SEC)}/* 淡出后再暂停（时间见 A_FADE） *//* 淡出后暂停，省电脑资源 */
  sndBtn()}
 function auApply(){if((P.snd||P.sfx)&&!AU.ctx)auStart();else auVol();detSnd()}
-document.addEventListener('visibilitychange',()=>{try{auVol()}catch{}});
+document.addEventListener('visibilitychange',()=>{try{auVol()}catch{}});addEventListener('pagehide',()=>{try{if(AU.ctx){AU.m&&AU.m.gain.setValueAtTime(0,AU.ctx.currentTime);AU.ctx.close()}}catch{}});/* 关视窗／重新整理：马上停 */
 /* 紧张度 */
 const HIST=new Map();
 function med(a){if(!a.length)return NaN;const s=[...a].sort((x,y)=>x-y);const h=s.length>>1;return s.length%2?s[h]:(s[h-1]+s[h])/2}
