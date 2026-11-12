@@ -27,16 +27,8 @@ const WBNB = '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c';
 const SET_TTL_MS = 10e3; const MAX_TRADES = 1500;
 const MAX_TOKENS = 20000, TR_TOKENS = 3000; /* BOARD-V3 技术用：储存上限——快取最多留几个币、其中最近有动静的几个留成交明细（其余只留名字价格等）。不是列表的边界：已发射的币往下滑会向链上往回读 */
 
-const RPCS = ['https://bsc-rpc.publicnode.com', 'https://bsc-dataseed.bnbchain.org', 'https://bsc-dataseed1.defibit.io', 'https://bsc-dataseed2.ninicoin.io'];
-let ri = 0;
-async function rpc(method, params) {
-  let err;
-  for (let k = 0; k < RPCS.length; k++) {
-    const u = RPCS[(ri + k) % RPCS.length];
-    try { const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }), signal: AbortSignal.timeout(12000) }); const j = await r.json(); if (j.error) throw new Error(j.error.message || 'rpc error'); ri = (ri + k) % RPCS.length; return j.result; } catch (e) { err = e; }
-  }
-  throw err;
-}
+const RP = require('./rpcpool.cjs'); /* NODE-1113：节点池（玩家自己的节点优先、公开节点备用；查事件被拒的节点先不问） */
+async function rpc(method, params) { return RP.rpc('bsc', method, params, 12000); }
 const W = (d, i) => d.slice(2 + 64 * i, 2 + 64 * (i + 1));
 const A = (w) => '0x' + String(w).slice(24).toLowerCase();
 const N = (w) => { try { return BigInt('0x' + (w || '0')); } catch { return 0n; } };
@@ -84,18 +76,21 @@ function startMarket({ DATA, log = () => {} }) {
   async function info() { /* Four 的进度上限、报价币：每个新币问一次官方 Helper 合约 */
     const L = [...needInfo].slice(0, 40); if (!L.length) return; L.forEach((c) => needInfo.delete(c));
     for (let i = 0; i < L.length; i += 20) { const part = L.slice(i, i + 20); let res = [];
-      for (const u of RPCS.slice(0, 2)) { try { const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(part.map((c, k) => ({ jsonrpc: '2.0', id: k, method: 'eth_call', params: [{ to: FOUR_HELPER, data: '0x1f69565f' + c.slice(2).padStart(64, '0') }, 'latest'] }))), signal: AbortSignal.timeout(12000) }); const j = await r.json(); if (Array.isArray(j)) { res = []; for (const x of j) res[x.id] = x.result || ''; break; } } catch {} }
+      for (const u of RP.order('bsc', 'eth_call').slice(0, 2)) { try { const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(part.map((c, k) => ({ jsonrpc: '2.0', id: k, method: 'eth_call', params: [{ to: FOUR_HELPER, data: '0x1f69565f' + c.slice(2).padStart(64, '0') }, 'latest'] }))), signal: AbortSignal.timeout(12000) }); const j = await r.json(); if (Array.isArray(j)) { res = []; for (const x of j) res[x.id] = x.result || ''; break; } } catch {} }
       part.forEach((c, k) => { const r = res[k] || '', x = D.tokens[c]; if (!x || r.length < 2 + 64 * 12) return; const q = A(W(r, 2)); x.q = q === '0x0000000000000000000000000000000000000000' ? '' : q; x.qk = 1; x.maxF = F(N(W(r, 10))); x.funds = F(N(W(r, 9))); x.maxO = F(N(W(r, 8))); x.offers = F(N(W(r, 7))); fProg(x); if (N(W(r, 11)) > 0n) { x.grad = 1; x.prog = 100; x.gradAt = x.gradAt || Date.now(); } }); }
   }
   async function names() { /* 在补抓范围之前就建立的币，读不到名字 → 直接问合约 symbol() */
     const L = Object.values(D.tokens).filter((x) => !x.sym && !x.nmTried).slice(0, 20); if (!L.length) return; L.forEach((x) => (x.nmTried = 1));
-    let res = []; try { const r = await fetch(RPCS[0], { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(L.map((x, k) => ({ jsonrpc: '2.0', id: k, method: 'eth_call', params: [{ to: x.c, data: '0x95d89b41' }, 'latest'] }))), signal: AbortSignal.timeout(12000) }); const j = await r.json(); if (Array.isArray(j)) for (const x of j) res[x.id] = x.result || ''; } catch {}
+    let res = []; try { const r = await fetch(RP.order('bsc', 'eth_call')[0], { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(L.map((x, k) => ({ jsonrpc: '2.0', id: k, method: 'eth_call', params: [{ to: x.c, data: '0x95d89b41' }, 'latest'] }))), signal: AbortSignal.timeout(12000) }); const j = await r.json(); if (Array.isArray(j)) for (const x of j) res[x.id] = x.result || ''; } catch {}
     L.forEach((x, k) => { const r = res[k] || ''; if (r.length >= 130) x.sym = S(r, 0); }); }
   let qAt = 0;
   async function qPrices() { if (Date.now() - qAt < 120e3) return; qAt = Date.now(); const L = [...new Set(Object.values(D.tokens).map((x) => x.q).filter((q) => q && q !== WBNB && !STABLE.has(q)))]; if (!L.length) return; /*BOARD124 报价币不设上限：每 30 个一批（DexScreener 一次的上限）*/
     for (let i = 0; i < L.length; i += 30) try { const ps = await (await fetch('https://api.dexscreener.com/tokens/v1/bsc/' + L.slice(i, i + 30).join(','), { signal: AbortSignal.timeout(10000) })).json(); const best = {}; for (const p of Array.isArray(ps) ? ps : []) { const a = String(p.baseToken?.address || '').toLowerCase(); const lq = +p.liquidity?.usd || 0; if (+p.priceUsd > 0 && (!best[a] || lq > best[a].lq)) best[a] = { v: +p.priceUsd, lq }; } for (const [a, b] of Object.entries(best)) quoteUsd[a] = b.v; } catch {} }
   async function head() { const b = await rpc('eth_getBlockByNumber', ['latest', false]); const n = parseInt(b.number, 16), ts = parseInt(b.timestamp, 16) * 1000; if (st.head && n > st.head && st.headTs) st.blockMs = Math.max(200, Math.min(3000, (ts - st.headTs) / (n - st.head) || st.blockMs)); st.head = n; st.headTs = ts; st.headAt = Math.min(Date.now(), ts + 300); return n; }
-  async function pull(from, to) { const L = await rpc('eth_getLogs', [{ address: [FLAP, FOUR], /*BOARD124 老板 11/6：所有发射台都收（Four.meme 回来）；要不要看由画面「平台」筛选决定 */ topics: [TOPICS], fromBlock: '0x' + from.toString(16), toBlock: '0x' + to.toString(16) }]); for (const l of L) { try { onLog(l); } catch {} } return L.length; }
+  /* NODE-1113：同一则事件（txHash＋logIndex）只处理一次 —— WSS 推来的和轮询读到的会重复 */
+  const SEEN = new Set(); const SEEN_MAX = 20000; /* 技术用：记住几则 */ const once = (l) => { const k = String(l.transactionHash || '') + ':' + String(l.logIndex || ''); if (k.length > 2) { if (SEEN.has(k)) return; SEEN.add(k); if (SEEN.size > SEEN_MAX) SEEN.delete(SEEN.values().next().value); } try { onLog(l); } catch {} };
+  RP.subLogs('bsc', [{ address: [FLAP, FOUR], topics: [TOPICS] }], once); /* NODE-1113：有填 WSS 才会连 */
+  async function pull(from, to) { const L = await rpc('eth_getLogs', [{ address: [FLAP, FOUR], /*BOARD124 老板 11/6：所有发射台都收（Four.meme 回来）；要不要看由画面「平台」筛选决定 */ topics: [TOPICS], fromBlock: '0x' + from.toString(16), toBlock: '0x' + to.toString(16) }]); for (const l of L) once(l); return L.length; }
   let busy = false, SPAN = 1500;
   async function tick() {
     if (busy) return; busy = true;

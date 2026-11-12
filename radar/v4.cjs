@@ -3,7 +3,7 @@
 // 只收挂着已知发射台 Hook 的池子（Robinhood 也收其他 Hook 和一般新池），自己算价格、市值、成交、买卖笔数。只读公开节点，不碰钱包。
 const fs = require('fs');
 const path = require('path');
-const KL = require('./kline.cjs'); /* KQ-1104：K 线共用格子 */
+const KL = require('./kline.cjs'); const RP = require('./rpcpool.cjs'); /* KQ-1104：K 线共用格子 */
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 const MAX_TOKENS = 20000, TR_TOKENS = 3000; /* BOARD-V3 技术用：储存上限（快取最多几个币、其中几个留成交明细）；不是列表的边界，已发射的币往下滑会向链上往回读 */
@@ -43,7 +43,7 @@ function startV4(chain, { DATA }) {
   D.seen = D.seen || {}; D.xq = D.xq || {}; D.curves = D.curves || {}; for (const x of Object.values(D.tokens)) if (x.plat === 'long' && !String(x.c).endsWith('1e18')) x.plat = 'bankr';
   const st = { ok: false, err: '', lastAt: 0, head: 0, headTs: 0, headAt: 0, blockMs: chain === 'rh' ? 105 : 450 };
   let ri = 0, px = 0, pxAt = 0;
-  async function rpc(method, params) { let err; for (let k = 0; k < C.rpcs.length; k++) { const u = C.rpcs[(ri + k) % C.rpcs.length]; try { const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }), signal: AbortSignal.timeout(15000) }); const j = await r.json(); if (j.error) throw new Error(j.error.message || 'rpc'); ri = (ri + k) % C.rpcs.length; return j.result; } catch (e) { err = e; } } throw err; }
+  async function rpc(method, params) { return RP.rpc(C.name === 'robinhood' ? 'robinhood' : 'bsc', method, params, 15000); } /* NODE-1113：节点池（玩家自己的节点优先、公开节点备用；查事件被拒的节点先不问） */
   async function price() { if (Date.now() - pxAt < 60e3 && px) return px; try { const j = await (await fetch('https://api.binance.com/api/v3/ticker/price?symbol=' + C.priceSym, { signal: AbortSignal.timeout(8000) })).json(); if (+j.price > 0) { px = +j.price; pxAt = Date.now(); } } catch {} return px; }
   const qUsd = (q) => { const m = C.quotes[q]; if (m) return m[2] === 'usd' ? 1 : px; return D.xq[q]?.usd || 0; };
   const qDec = (q) => C.quotes[q]?.[1] ?? (D.xq[q]?.dOk === 1 ? D.xq[q].d : null); /* CHAIN-1104 D9：报价币小数位数读不到＝null（这笔不算价），不当成 18 */
@@ -129,7 +129,7 @@ function startV4(chain, { DATA }) {
   function candles(c, sec) { const x = D.tokens[String(c || '').toLowerCase()]; if (!x || !x.tr.length) return []; const r = KL.fromTrades(x.tr, sec, qUsd(x.q), CD_CAP); return r.err ? { err: r.err } : r; } /* KQ-1104：照时间合并＋排序＋去重＋补空格；报价币美金价没读到就不画 */
   const CD_CAP = 160; /* 运作：一次画几根 */
   /* 远端设定：新的发射台 Hook、备用节点，不用发新版（只接受格式正确的地址和 https 节点） */
-  function extra(hooks = {}, rpcs = []) { for (const [h, p] of Object.entries(hooks || {})) if (/^0x[0-9a-f]{40}$/.test(String(h).toLowerCase()) && /^[a-z0-9]{2,16}$/.test(String(p))) C.hooks[String(h).toLowerCase()] = String(p); for (const u of rpcs || []) if (/^https:\/\/[a-z0-9.\-\/]+$/i.test(u) && !C.rpcs.includes(u) && C.rpcs.length < 8) C.rpcs.push(u); }
+  function extra(hooks = {}, rpcs = []) { for (const [h, p] of Object.entries(hooks || {})) if (/^0x[0-9a-f]{40}$/.test(String(h).toLowerCase()) && /^[a-z0-9]{2,16}$/.test(String(p))) C.hooks[String(h).toLowerCase()] = String(p); for (const u of rpcs || []) if (/^https:\/\/[a-z0-9.\-\/]+$/i.test(u) && !C.rpcs.includes(u) && C.rpcs.length < 8) { C.rpcs.push(u); RP.addPub(C.name === 'robinhood' ? 'robinhood' : 'bsc', u); } } /*NODE-1113 也加进节点池*/
   return { older, rpc, board, items, candles, extra, qUsd, info: (c) => { const x = D.tokens[String(c || '').toLowerCase()]; return x ? { grad: !!x.grad, pool: '' } : null; }, raw: () => ({ tokens: D.tokens, usd: (x) => qUsd(x.q) }), /*AUDIT125-B 不再给预设供应量*/ plat: (c) => D.tokens[String(c || '').toLowerCase()]?.plat || '', has: (c) => !!D.tokens[String(c || '').toLowerCase()], status: () => ({ ...st, total: Object.keys(D.tokens).length, pools: Object.keys(D.pools).length }) };
 }
 module.exports = { startV4 };

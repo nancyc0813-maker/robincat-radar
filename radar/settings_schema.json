@@ -140,6 +140,11 @@
    "id": "mca",
    "zh": "🚀 各链发射台自动买（Solana／Base）",
    "en": "🚀 Launchpad auto-buy (Solana / Base)"
+  },
+  {
+   "id": "src",
+   "zh": "🔌 资料来源（选填：自己的节点、OKX 资料）",
+   "en": "🔌 Data sources (optional: your own node, OKX data)"
   }
  ],
  "items": [
@@ -8331,6 +8336,67 @@
    "en": "TG: notify when Pol is joined / claimed",
    "dzh": "没开＝只写雷达日志",
    "den": "Off = radar log only"
+  },
+  {
+   "k": "rpc.bsc.url",
+   "g": "src",
+   "type": "text",
+   "zh": "BNB Chain 自己的节点（https）",
+   "en": "Your BNB Chain node (https)",
+   "dzh": "只收 https 网址。填你自己申请的免费节点（NodeReal、Ankr、Chainstack、QuickNode 都可以）：看盘、成交明细、K 线读链会先问它，公开节点当备用。连线前会核对链编号，不对就不用。网址只存在你这台电脑，不会传到手机或转接站。空着＝只用公开节点",
+   "den": "https only. Your own free node (NodeReal, Ankr, Chainstack, QuickNode…): board, trades and charts read it first, public nodes stay as backup. The chain id is checked first. Stored only on this computer (never sent to the phone or relay). Empty = public nodes only"
+  },
+  {
+   "k": "rpc.bsc.wss",
+   "g": "src",
+   "type": "text",
+   "zh": "BNB Chain 自己的节点（wss，选填）",
+   "en": "Your BNB Chain node (wss, optional)",
+   "dzh": "只收 wss 网址（同一家节点通常会给）。有填：发射台新成交一出块就推过来（不用等轮询），轮询照旧当备用。空着＝不连",
+   "den": "wss only (your node provider usually gives one). When set, new launchpad trades are pushed as soon as the block lands; polling stays as backup. Empty = off"
+  },
+  {
+   "k": "rpc.rh.url",
+   "g": "src",
+   "type": "text",
+   "zh": "Robinhood 自己的节点（https）",
+   "en": "Your Robinhood node (https)",
+   "dzh": "只收 https 网址。填你自己申请的免费节点（NodeReal、Ankr、Chainstack、QuickNode 都可以）：看盘、成交明细、K 线读链会先问它，公开节点当备用。连线前会核对链编号，不对就不用。网址只存在你这台电脑，不会传到手机或转接站。空着＝只用公开节点",
+   "den": "https only. Your own free node (NodeReal, Ankr, Chainstack, QuickNode…): board, trades and charts read it first, public nodes stay as backup. The chain id is checked first. Stored only on this computer (never sent to the phone or relay). Empty = public nodes only"
+  },
+  {
+   "k": "rpc.rh.wss",
+   "g": "src",
+   "type": "text",
+   "zh": "Robinhood 自己的节点（wss，选填）",
+   "en": "Your Robinhood node (wss, optional)",
+   "dzh": "只收 wss 网址（同一家节点通常会给）。有填：发射台新成交一出块就推过来（不用等轮询），轮询照旧当备用。空着＝不连",
+   "den": "wss only (your node provider usually gives one). When set, new launchpad trades are pushed as soon as the block lands; polling stays as backup. Empty = off"
+  },
+  {
+   "k": "okx.mkt.on",
+   "g": "src",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "用 OKX 资料当备用（自己的 OKX API 金钥）",
+   "en": "Use OKX market data as backup (your own OKX API key)",
+   "dzh": "AVE 回得太慢、出错或被转接站拒绝时，改问 OKX：价格、K 线、成交、持有人、行情统计。金钥在「OKX 资料金钥」那里填，加密存在这台电脑，不会传出去。每把金钥每月各有 10 万次免费（基本／进阶），超过 OKX 会收费 → 下面的「每月最多几次」到了就自动停用到下个月。只用来显示，不影响买卖",
+   "den": "When AVE is slow, errors or is refused by the relay, ask OKX instead: price, chart, trades, holders, stats. The key is stored encrypted on this computer only. Each key has 100k free calls per month per tier; above that OKX bills you, so the monthly limit below stops it until next month. Display only, never used for buying"
+  },
+  {
+   "k": "okx.mkt.cap",
+   "g": "src",
+   "need": "okx.mkt.on",
+   "unit": "次／月",
+   "uen": "calls / month",
+   "min": 0,
+   "max": 1000000,
+   "zh": "OKX 每月最多几次（每一级各算）",
+   "en": "OKX calls per month (each tier)",
+   "dzh": "基本（价格、K 线、成交）和进阶（持有人、行情统计）各算各的；到了就停用到下个月 1 号。空着＝用 90000（免费额度 10 万的九成，避免被收费）",
+   "den": "Basic (price, chart, trades) and premium (holders, stats) are counted separately; when reached, OKX is not used until the 1st of next month. Empty = 90000 (90% of the 100k free quota)"
   }
  ]
 }
