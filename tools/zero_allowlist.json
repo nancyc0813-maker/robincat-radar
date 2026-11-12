@@ -18715,6 +18715,24 @@
     "200"
    ],
    "reason": "SOON-1112：排队读进度的上限（记忆体／节点次数，技术用）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "Math\\.abs\\(\\+x\\[f\\]\\)>=0\\.05",
+   "values": [
+    "0.05"
+   ],
+   "reason": "VAL-1112：四舍五入显示成 0.0% 的不显示（显示用）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "Math\\.abs\\(\\+x\\.c24\\)>=0\\.05",
+   "values": [
+    "0.05"
+   ],
+   "reason": "VAL-1112：四舍五入显示成 0.0% 的不显示（显示用）"
   }
  ]
 }
