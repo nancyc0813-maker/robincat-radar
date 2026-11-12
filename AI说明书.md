@@ -442,6 +442,15 @@ api.panel({ title: '我的面板', items: [
 - 资料：`data/elysium.json`（画面／手机读）；每个新代币写一行判断记录（✅ 从 0 地址铸出　✅／❌ 在不在排除清单 → 显示／不显示）。
 - 「在 AVE 打开」：先复制合约，再打开 `https://ave.ai/token/<合约小写>-elysium`（合约先验 `0x`＋40 位）。交易在用户自己的 AVE 钱包完成，雷达不经手。`radar/main.cjs` 的 `openOfficial` 只把「网域刚好是 `ave.ai`、路径以 `/token/` 开头」当官方（不跳陌生网址提醒），理由：这是固定格式的看币页，网址由雷达自己用验过的合约组出来；`ave.ai` 其他路径、子网域、长得像的网域（例如 `evil-ave.ai`、`ave.ai.evil.com`）照样跳提醒。「还没装 AVE？下载」用 `repo.cjs` 的 `REF_AVE_URL`。
 
+## 五之一之一之〇、三段开关（TRI-1112）
+- 每个策略：关／只观察／自动。设定键两个一组（自动＝原本的开关、只观察＝新的），画面三段按钮，只会开一个；`watch.mjs` 的 `triMode(sid)`（gen／tok／rh／bscPaid／bscFree／rhPaid／rhFree）。
+  - gen：gen.auto／gen.watch；tok：bsc.tokAuto／bsc.tokWatch；rh：rh.auto／rh.watch
+  - BNB 铸造：付费 bsc.mintAuto／bsc.paidWatch；免费 bsc.freeAuto／bsc.freeNotify（免费不再需要先开付费的开关）
+  - Robinhood 铸造：付费 rh.mintAuto／rh.mintWatch；免费（0 元，只付 Gas）rh.mintFreeAuto／rh.mintFreeWatch（免费不用填金额）
+- 只观察＝照条件判断、写判断日志，条件都过了发一次 TG（`watchTg`，同一个币只发一次），不买、不用填金额。关＝不判断、不通知、不买（画面清单照常）。
+- 设定搬家：main.cjs `triMigrate()` 只做一次，写 `mig.tri1112`；引擎看到记号才用「免费独立」的新规则（没写之前照旧，行为不变）。
+- Aurlo（朋友的发射台，币结尾 1414）：新币事件 TokenCreated 的 topic0 `0x8d503f4e…` 已内建（`PAD_EV`），地址还不知道也认得出名字；AI 专属币只能走 AurloRouter，目前自动买走币安钱包路由买不到（主网上线、拿到地址和 ABI 后再加买入路线）。
+
 ## 五之一之一之一、🚀 AI 热门代币标出发射台（PADNAME-1112）
 - AI 热门代币（bsc.tok）是在链上看 Agent ID 钱包跟哪个币互动，**不靠发射台名单**，所有发射台都抓得到。
 - 每个币用 `padOf(c)` 往回找第一次「从 0 地址铸造」（加起来 ≥ totalSupply 才算第一次）→ 那笔交易呼叫的合约（tx.to）＝发射台；收到铸造的合约（rcv）也记。结果快取在 `S.padOf`。

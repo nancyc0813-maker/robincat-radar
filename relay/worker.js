@@ -19,6 +19,8 @@ const PAD_NAMES = { bsc: {
   '0xe2ce6ab80874fa9fa2aae65d277dd6b8e65c9de0': 'Flap',
   '0x091d0cbd1e3b7d8b2a6fd8e0795b784eddffb590': 'ToshX',
   '0x8296fa2d430dcf25233a39cc3306ee503967a6bb': 'ToshX',
+}, ev: { /* 发射台的「新币事件」topic0 → 名字（合约地址还不知道时靠这个认） */
+  '0x8d503f4ee1d62dc0a7f4fdd3636a79dd510b9a2c737f5ee0667d481c87a03982': 'Aurlo',
 } };
 const OFFICIAL_PUB = OFFI.PUBKEY;
 const INV_URL = OFFI.DATA_RAW + 'invites.json';

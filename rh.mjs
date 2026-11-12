@@ -97,7 +97,7 @@ export function startRH(ctx) {
       out.push(p); }
     return out;
   }
-  function note(p, why, retry) { const o = R.seen[p.c] || {}; R.seen[p.c] = { ...o, sym: p.sym || o.sym, at: Date.now(), why, ok: false, retry: !!retry, liq: p.liq ?? o.liq }; if (RHC.auto === 1 && o.why !== why) globalThis.NR?.decLog?.('rh', p.c, p.sym, { buy: false, text: '不买：' + why, lines: ['⛔ ' + why], why }, 1); } /* 候选阶段的「不买」也写判断日志 */
+  function note(p, why, retry) { const o = R.seen[p.c] || {}; R.seen[p.c] = { ...o, sym: p.sym || o.sym, at: Date.now(), why, ok: false, retry: !!retry, liq: p.liq ?? o.liq }; if ((RHC.auto === 1 || globalThis.TRIMODE?.('rh') === 'watch') && o.why !== why) globalThis.NR?.decLog?.('rh', p.c, p.sym, { buy: false, text: '不买：' + why, lines: ['⛔ ' + why], why }, 1); } /* 候选阶段的「不买」也写判断日志 */
 
   // ── 深度检查：真人买家、捆绑、持币集中、后门、卖得掉 ──
   async function analyze(c, poolHint, manual, opt = {}) {
@@ -272,8 +272,9 @@ export function startRH(ctx) {
       for (const p of cs) { if (n >= SCAN_BUDGET) break; /* 一轮最多深查几个（读链的量）；查过的 R.seen 会跳过，下一轮轮到后面的，全部都会查到 */ if (R.pos[p.c]) continue; const o = R.seen[p.c]; if (o && (o.ok || (!o.retry && o.full)) && Date.now() - o.at < 10 * 60e3) continue; n++;
         const r = await analyze(p.c, p.pool, false, { age: p.ageMin, liq: p.liq }).catch((e) => ({ ok: false, why: '检查出错：' + e.message.slice(0, 60) }));
         R.seen[p.c] = { sym: p.sym, at: Date.now(), why: r.why, ok: r.ok, full: 1, liq: p.liq, real: r.facts?.realBuyers, bundle: r.facts?.bundlePct, top10: r.facts?.top10 }; save();
-        if (RHC.auto === 1) globalThis.NR?.decLog?.('rh', p.c, p.sym, r.J || { buy: !!r.ok, text: (r.ok ? '' : '不买：') + (r.why || ''), lines: r.why ? [(r.ok ? '✅ ' : '⛔ ') + r.why] : [], why: r.ok ? '' : r.why || '' }, 1); else log(`[Robinhood] ${p.sym} ${p.c}：${r.why}`); /* 深查每一项不买的原因都写判断日志 */
+        if (RHC.auto === 1 || globalThis.TRIMODE?.('rh') === 'watch') globalThis.NR?.decLog?.('rh', p.c, p.sym, r.J || { buy: !!r.ok, text: (r.ok ? '' : '不买：') + (r.why || ''), lines: r.why ? [(r.ok ? '✅ ' : '⛔ ') + r.why] : [], why: r.ok ? '' : r.why || '' }, 1); else log(`[Robinhood] ${p.sym} ${p.c}：${r.why}`); /* 深查每一项不买的原因都写判断日志 */
         if (r.ok) { const cs = globalThis.CUSTOM_SKIP?.({ chain: 'robinhood', type: 'token', c: p.c, sym: p.sym, liqUsd: p.liq, realBuyers: r.facts.realBuyers, bundlePct: r.facts.bundlePct == null ? null : r.facts.bundlePct * 100, top10Pct: r.facts.top10 * 100 }); if (cs) { R.seen[p.c].ok = false; R.seen[p.c].why = '自订规则不打：' + cs; if (RHC.auto === 1) globalThis.NR?.decLog?.('rh', p.c, p.sym, { buy: false, text: '不买：自订规则 ' + cs, lines: ['⛔ 自订规则：' + cs], why: '自订规则' }, 1); log(`[Robinhood] ${p.sym} 自订规则不打：${cs}`); continue; } }
+        if (r.ok && RHC.auto !== 1 && !radarOff() && globalThis.TRIMODE?.('rh') === 'watch') { await globalThis.WATCHTG?.('rh', p.c, p.sym, `Robinhood 热门代币符合你的条件（只观察，不买）：${p.sym || p.c}${p.liq != null ? ' | 流动性 $' + Math.round(p.liq) : ''}\n${p.c}`); continue; } /*TRI-1112*/
         if (r.ok) { if (radarOff() || RHC.auto !== 1) { log(`[Robinhood] ${p.sym} 符合条件，但雷达设成暂停／不自动打`); continue; }
           if (Object.values(R.pos).filter((x) => !x.manual && !x.mint).length >= RHC.maxPos) { log(`[Robinhood] ${p.sym} 符合条件，但这个策略已经持有 ${RHC.maxPos} 个，先不打`); continue; } /* NR-1103：手动买、铸造的不算进去 */
           if (RHC.usd == null || RHC.dayUsd == null) { log(`[Robinhood] ${p.sym} 符合条件，但你没填「每笔」或「每天最多」，不打`); continue; }
@@ -322,13 +323,16 @@ export function startRH(ctx) {
       M.tpl = { to: lc(tx.to), data: tx.input, value: BigInt(tx.value).toString(), from, q, viaOther: lc(tx.to) !== c }; break; }
     const px = await ethUsd(); M.priceUsd = M.tpl && px > 0 ? Number(BigInt(M.tpl.value)) / 1e18 * px / (M.tpl.q || 1) : null; M.costUsd = M.tpl && px > 0 ? Number(BigInt(M.tpl.value)) / 1e18 * px : null;
     const why = []; if (!M.tpl) why.push('找不到一般人自己铸造的交易（可能要白名单或签名）');
-    { const MJ = globalThis.NR?.judge ? globalThis.NR.judge('rhmint', [{ k: 'rh.mintMinReal', name: RHC.mintWinMin != null ? `${RHC.mintWinMin} 分钟内真人钱包` : '真人钱包（没填「几分钟内」）', unit: ' 个', op: '>=', v: RHC.mintWinMin != null ? real : null, missWhy: RHC.mintWinMin != null ? undefined : '你没填「几分钟内」' }, /* 空白＝读不到 */ { k: 'rh.mintMaxFresh', name: '新开钱包占', unit: '%', op: '<=', v: M.freshPct }]) : null; M.J = MJ; if (!MJ || MJ.buy !== true) why.push(MJ ? MJ.text : '设定还没载入'); if (MJ && RHC.mintAuto === 1) globalThis.NR?.decLog?.('rhmint', c, M.name, MJ); } /* NJ-1103：照你的条件组合判断 */
+    { const MJ = globalThis.NR?.judge ? globalThis.NR.judge('rhmint', [{ k: 'rh.mintMinReal', name: RHC.mintWinMin != null ? `${RHC.mintWinMin} 分钟内真人钱包` : '真人钱包（没填「几分钟内」）', unit: ' 个', op: '>=', v: RHC.mintWinMin != null ? real : null, missWhy: RHC.mintWinMin != null ? undefined : '你没填「几分钟内」' }, /* 空白＝读不到 */ { k: 'rh.mintMaxFresh', name: '新开钱包占', unit: '%', op: '<=', v: M.freshPct }]) : null; M.J = MJ; if (!MJ || MJ.buy !== true) why.push(MJ ? MJ.text : '设定还没载入'); if (MJ && (RHC.mintAuto === 1 || globalThis.TRIMODE?.('rhPaid') !== 'off' || globalThis.TRIMODE?.('rhFree') !== 'off')) globalThis.NR?.decLog?.('rhmint', c, M.name, MJ); } /* NJ-1103：照你的条件组合判断 */
     if (M.tpl && BigInt(M.tpl.value || '0') > 0n && !(px > 0)) why.push('读不到 ETH 价格，算不出要花多少，先不打'); /* 安全：价格读不到就不打，金额检查不会被跳过 */
-    if (RHC.mintUsd == null) why.push('没填「一次铸造最多花」'); else if (M.costUsd != null && M.costUsd > RHC.mintUsd) why.push(`一次铸造要约 ${M.costUsd.toFixed(1)}U（超过设定 ${RHC.mintUsd}U）`);
+    const isFree = !!M.tpl && BigInt(M.tpl.value || '0') === 0n && !!globalThis.TRIMIG?.(); M.free = isFree ? 1 : 0; /*TRI-1112 免费铸造（0 元，只付 Gas）有自己的开关，不用填金额；搬家记号还没写之前照旧规则 */
+    if (isFree) {} else if (RHC.mintUsd == null) why.push('没填「一次铸造最多花」'); else if (M.costUsd != null && M.costUsd > RHC.mintUsd) why.push(`一次铸造要约 ${M.costUsd.toFixed(1)}U（超过设定 ${RHC.mintUsd}U）`);
     { const cr = await globalThis.CODE_RISK?.('robinhood', c).catch(() => ''); if (cr) why.push(cr); } /* NR-1103：Robinhood 铸造也跑代码扫描（底线） */
     const cs = globalThis.CUSTOM_SKIP?.({ chain: 'robinhood', type: 'mint', c, name: M.name, sym: M.sym, realBuyers: real }); if (cs) why.push('自订规则：' + cs);
     M.ok = !why.length; M.why = why.join('；') || '符合条件';
-    if (M.ok && RHC.mintAuto === 1 && !radarOff() /* 「Robinhood 热门代币」和铸造是不同策略，各自开关 */ && !M.done) await doMint(c, M, false);
+    const mm = globalThis.TRIMODE ? globalThis.TRIMODE(isFree ? 'rhFree' : 'rhPaid') : RHC.mintAuto === 1 ? 'auto' : 'off'; /*TRI-1112 关／只观察／自动（免费、付费各自）*/
+    if (M.ok && mm === 'auto' && !radarOff() /* 「Robinhood 热门代币」和铸造是不同策略，各自开关 */ && !M.done) await doMint(c, M, false);
+    else if (M.ok && mm === 'watch' && !radarOff()) await globalThis.WATCHTG?.('rhmint', c, M.name, `Robinhood ${isFree ? '免费' : '付费'}铸造符合你的条件（只观察，不铸）：${M.name || M.sym || c}${M.costUsd != null ? ' | 一次约 ' + M.costUsd.toFixed(1) + 'U' : ''}\n${c}`);
   }
   const MINT_BUSY = new Set(); /* BUG2 */
   async function doMint(c, M, manual, capU = 0, opt = {}) { const ack = manual && ACKD(opt); const warn = (W, m) => { /* 预演判断不安全：手动＝按了仍然执行才送；自动＝照你的「预演不过也送出」 */ if (ack) { log(`⚠️ [Robinhood 铸造][${W.name}] ${M.name || c}：${m} —— 你按了「我知道风险，仍然执行」，照送`); return false; } if (!manual && globalThis.NR?.on?.('auto.sendOnPreviewFail')) { log(`⚠️ [Robinhood 铸造][${W.name}] ${M.name || c}：${m} —— 你开了「预演不过也送出」，照送`); tg(`⚠️ [Robinhood][${W.name}] 预演判断不安全仍然送出（你开了「预演不过也送出」）：${m}\n${c}`).catch(() => {}); return false; } return (manual ? NEED_OK : '') + m + (manual ? '（按「我知道风险，仍然执行」才会送）' : '（自动：你没开「预演不过也送出」，只记录不送）'); };
@@ -336,7 +340,7 @@ export function startRH(ctx) {
     const px = await ethUsd(); const out = []; M.done = M.done || {}; if (BigInt(M.tpl.value || '0') > 0n && !(px > 0) && !ack) return (manual ? NEED_OK : '') + '读不到 ETH 价格，算不出要花多少，没有铸造' + (manual ? '（按「我知道风险，仍然执行」会照送，金额上限就检查不到）' : '（等一下再试）');
     const onlyW = opt.w ? lc(opt.w) : ''; /* BUG7：你选的钱包；登出的钱包一律不用 */
     for (const W of WALLETS) { if (W.off || (onlyW && W.addr !== onlyW)) continue; if (M.done[W.addr]) continue; const bk = c + '|' + W.addr; if (MINT_BUSY.has(bk)) { out.push(`[${W.name}] 这个钱包正在铸造这个项目，等它做完`); continue; } MINT_BUSY.add(bk); try { /* BUG2：同一个项目＋钱包同时只铸一次 */
-      const dd = day(); const sp = (R.mintDay[dd] || {})[W.addr] || 0; if (!manual && (RHC.mintDayUsd == null || sp + (M.costUsd || 0) > RHC.mintDayUsd)) { out.push(`[${W.name}] 今天铸造额度用完（或没填「每天铸造最多」）`); continue; }
+      const dd = day(); const sp = (R.mintDay[dd] || {})[W.addr] || 0; if (!manual && !M.free && (RHC.mintDayUsd == null || sp + (M.costUsd || 0) > RHC.mintDayUsd)) { out.push(`[${W.name}] 今天铸造额度用完（或没填「每天铸造最多」）`); continue; }
       const data = String(M.tpl.data).toLowerCase().split(M.tpl.from.slice(2)).join(W.addr.slice(2)); // 范本里如果写了对方的地址，换成我们自己的
       const val = BigInt(M.tpl.value); { const eb2 = await ethBal(W.addr); if (eb2 == null && !manual) { out.push(`[${W.name}] 读不到 ETH 余额，不打`); continue; } if (eb2 != null && eb2 < Number(val) / 1e18 + (RHC.keepEth || 0)) { out.push(`[${W.name}] Robinhood 上的 ETH 不够`); continue; } } /* H7-H10 */
       const p = await W.baw(['contract-call', 'preview', '--binanceChainId', '4663', '--from', W.addr, '--to', M.tpl.to, '--value', val.toString(), '--inputData', data]);

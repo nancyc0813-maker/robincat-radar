@@ -18317,6 +18317,35 @@
     "2"
    ],
    "reason": "PADNAME-1112：bsc.tokPadMode 选项的代号（1＝只买勾选的、2＝不买勾选的），对照设定档 opts，不是门槛"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "Object\\.entries\\(j\\?\\.ev \\|\\| \\{\\}\\)\\.slice\\(0, 200\\)",
+   "values": [
+    "200",
+    "0"
+   ],
+   "reason": "PADNAME-1112：发射台认名字的技术上限（转接站事件名单最多几笔、每笔交易最多记几个事件），只用来显示名字，不是买卖门槛"
+  },
+  {
+   "rule": "SLICE",
+   "file": "watch\\.mjs$",
+   "match": "map\\(\\(l\\) => l\\.topics\\[0\\]\\)\\)\\]\\.slice\\(0, 8\\)",
+   "values": [
+    "8",
+    "0"
+   ],
+   "reason": "PADNAME-1112：发射台认名字的技术上限（转接站事件名单最多几笔、每笔交易最多记几个事件），只用来显示名字，不是买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN|CONST|OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "const KEEP = 3000; /\\* 技术用：「只观察」",
+   "values": [
+    "3000"
+   ],
+   "reason": "TRI-1112：「只观察」已通知过的币最多记几个（记忆体上限，同一个币只通知一次），不是买卖门槛"
   }
  ]
 }

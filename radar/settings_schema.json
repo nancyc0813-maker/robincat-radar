@@ -908,10 +908,24 @@
    "def": 0,
    "min": 0,
    "max": 1,
-   "zh": "自动铸造",
-   "en": "Auto-mint",
+   "zh": "付费铸造自动打",
+   "en": "Paid mints: auto",
    "dzh": "关掉 = BNB Chain AI 铸造项目只通知不打（要自己打开才会买）",
-   "den": "Off = BNB Chain AI mint projects are alerts only"
+   "den": "Off = BNB Chain AI mint projects are alerts only",
+   "tri": 1
+  },
+  {
+   "k": "bsc.paidWatch",
+   "g": "bsc",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "付费铸造只观察",
+   "en": "Paid mints: watch only",
+   "dzh": "只观察：照你的条件判断、写判断日志，条件都过了发 TG 通知，不买（不用填金额）",
+   "den": "Watch only: judged by your conditions and logged; a TG alert when everything passes, no buying (no amounts needed)",
+   "tri": 1
   },
   {
    "k": "bsc.mintUsd",
@@ -1248,15 +1262,16 @@
    "def": 0,
    "min": 0,
    "max": 1,
-   "zh": "0 元免费铸造也自动打",
-   "en": "Auto-mint free (0 BNB) projects",
+   "zh": "免费铸造自动打",
+   "en": "Free mints: auto",
    "dzh": "打开后，达到上面门槛的免费项目也会自动打（要同时开着「自动铸造」）",
    "den": "Free projects that pass the thresholds above are minted automatically (needs Auto-mint on)",
    "excl": [
     "bsc.freeNotify"
    ],
    "xzh": "已关掉「免费铸造只通知」（两个不能同时开）",
-   "xen": "Turned off “free mints: notify only” (they conflict)"
+   "xen": "Turned off “free mints: notify only” (they conflict)",
+   "tri": 1
   },
   {
    "k": "bsc.freeNotify",
@@ -1265,15 +1280,16 @@
    "def": 0,
    "min": 0,
    "max": 1,
-   "zh": "免费铸造只通知、不自动打",
-   "en": "Free mints: notify only",
+   "zh": "免费铸造只观察",
+   "en": "Free mints: watch only",
    "dzh": "免费项目达到门槛时只发 TG 通知，要打自己手动",
    "den": "Free projects that pass the thresholds only send a TG alert",
    "excl": [
     "bsc.freeAuto",
     "xwatch.mint",
     "tgch.mint"
-   ]
+   ],
+   "tri": 1
   },
   {
    "k": "bsc.othersPay",
@@ -1717,7 +1733,21 @@
    "zh": "自动买",
    "en": "Auto-buy",
    "dzh": "关掉 = BNB Chain AI 热门代币只通知不买（要自己打开才会买）。不分发射台：GANG、Flap、Four 等所有 AI 发射台的币，内盘、外盘都会看",
-   "den": "Off = BNB Chain AI hot tokens are alerts only"
+   "den": "Off = BNB Chain AI hot tokens are alerts only",
+   "tri": 1
+  },
+  {
+   "k": "bsc.tokWatch",
+   "g": "tok",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "只观察",
+   "en": "Watch only",
+   "dzh": "只观察：照你的条件判断、写判断日志，条件都过了发 TG 通知，不买（不用填金额）",
+   "den": "Watch only: judged by your conditions and logged; a TG alert when everything passes, no buying (no amounts needed)",
+   "tri": 1
   },
   {
    "k": "bsc.tokUsd",
@@ -2275,7 +2305,21 @@
    "zh": "自动买",
    "en": "Auto-buy",
    "dzh": "BNB Chain 新币（Flap／Four／Genius／新池）全部符合下面你打开的条件才会自动买；要开着雷达才有候选。新币自动买只用第一个钱包",
-   "den": "New BNB Chain tokens are auto-bought only if they pass the rules you turned on; uses the first wallet only"
+   "den": "New BNB Chain tokens are auto-bought only if they pass the rules you turned on; uses the first wallet only",
+   "tri": 1
+  },
+  {
+   "k": "gen.watch",
+   "g": "gen",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "只观察",
+   "en": "Watch only",
+   "dzh": "只观察：照你的条件判断、写判断日志，条件都过了发 TG 通知，不买（不用填金额）",
+   "den": "Watch only: judged by your conditions and logged; a TG alert when everything passes, no buying (no amounts needed)",
+   "tri": 1
   },
   {
    "k": "gen.usd",
@@ -3288,7 +3332,21 @@
    "zh": "Robinhood 自动打",
    "en": "Robinhood auto-buy",
    "dzh": "关掉 = 只看盘不下单（要自己打开才会买）",
-   "den": "Off = watch only"
+   "den": "Off = watch only",
+   "tri": 1
+  },
+  {
+   "k": "rh.watch",
+   "g": "rh",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "只观察",
+   "en": "Watch only",
+   "dzh": "只观察：照你的条件判断、写判断日志，条件都过了发 TG 通知，不买（不用填金额）",
+   "den": "Watch only: judged by your conditions and logged; a TG alert when everything passes, no buying (no amounts needed)",
+   "tri": 1
   },
   {
    "k": "rh.usd",
@@ -4126,10 +4184,50 @@
    "def": 0,
    "min": 0,
    "max": 1,
-   "zh": "自动铸造",
-   "en": "Auto-mint",
-   "dzh": "关掉 = 只列出来、不自动铸（要自己打开才会买）",
-   "den": "Off = list only"
+   "zh": "付费铸造自动铸",
+   "en": "Paid mints: auto",
+   "dzh": "要付钱的铸造自动铸（照每笔／每天上限）。关掉＝不自动铸",
+   "den": "Paid mints are minted automatically (within per-mint / daily caps). Off = no auto mint",
+   "tri": 1
+  },
+  {
+   "k": "rh.mintWatch",
+   "g": "rhmint",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "付费铸造只观察",
+   "en": "Paid mints: watch only",
+   "dzh": "只观察：照你的条件判断、写判断日志，条件都过了发 TG 通知，不买（不用填金额）",
+   "den": "Watch only: judged by your conditions and logged; a TG alert when everything passes, no buying (no amounts needed)",
+   "tri": 1
+  },
+  {
+   "k": "rh.mintFreeAuto",
+   "g": "rhmint",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "免费铸造自动铸",
+   "en": "Free mints: auto",
+   "dzh": "0 元的铸造（只付 Gas）自动铸，不用填金额；条件照「什么时候铸」",
+   "den": "0-cost mints (gas only) are minted automatically, no amounts needed; conditions as set",
+   "tri": 1
+  },
+  {
+   "k": "rh.mintFreeWatch",
+   "g": "rhmint",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "免费铸造只观察",
+   "en": "Free mints: watch only",
+   "dzh": "只观察：照你的条件判断、写判断日志，条件都过了发 TG 通知，不买（不用填金额）",
+   "den": "Watch only: judged by your conditions and logged; a TG alert when everything passes, no buying (no amounts needed)",
+   "tri": 1
   },
   {
    "k": "rh.mintUsd",
