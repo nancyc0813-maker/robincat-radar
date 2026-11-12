@@ -734,14 +734,17 @@ const AVD = new Map(); async function aveDev(net, cr, addr) { if (!aveOK() || !/
     c = { at: Date.now(), v: { cr, age: N(W?.wallet_age) ? Math.max(0, Math.floor((Date.now() / 1e3 - N(W.wallet_age)) / 86400)) : null, win: N(W?.total_win_ratio), pnl: N(W?.total_profit), n: T ? T.length : null, toks } }; AVD.set(k, c); if (AVD.size > 200) AVD.delete(AVD.keys().next().value); }
   const v = c.v, me = v.toks.find((t) => t.a === addr) || null, other = v.toks.filter((t) => t.a !== addr && !/^(wbnb|weth|usdt|usdc|bnb|eth|busd|fdusd)$/i.test(t.s));
   return { cr: v.cr, age: v.age, win: v.win, pnl: v.pnl, n: other.length, me: me ? { b: me.b, buy: me.buy, sold: me.sold } : null, risky: (() => { const rr = zv(zSet(), 'label.riskRed'); return rr == null ? null : other.filter((t) => t.rs != null && +t.rs >= rr).length; })(), /* 「高风险」＝AVE 风险 ≥ 你设的 label.riskRed；没设＝不算 */ list: other.slice(0, 6).map((t) => ({ s: t.s, p: t.p, rs: t.rs })) }; }
+/* KOLPIC-1112：AVE 网页显示钱包名字／头像的方式（ave.ai 前端：名字＝remark→alias→wallet_logo.name，头像＝wallet_logo.logo，连结＝wallet_logo.url／twitter_url）。有给就用，没给就只显示地址 */
+const aveWho = (x) => { const cl = (v) => String(v || '').replace(/[\u0000-\u001f<>"']/g, '').trim().slice(0, 30); const W = x && typeof x.wallet_logo === 'object' && x.wallet_logo ? x.wallet_logo : {}; const hs = (v) => { const u = String(v || '').trim(); return /^https:\/\/[^\s"'<>]{4,300}$/.test(u) ? u : ''; };
+  const xu = hs(W.url || x?.twitter_url); return { nm: cl(x?.remark || x?.alias || W.name || x?.nickname || x?.addr_alias), lg: hs(W.logo || x?.avatar_url), xh: (xu.match(/^https:\/\/(?:www\.)?(?:x|twitter)\.com\/([A-Za-z0-9_]{1,30})\/?$/) || [])[1] || '' }; };
 const htParse = (L) => { const r = htParse_(L); try { fbWho(L, r); } catch {} return r; };
 const htParse_ = (L) => { /* KOL-AVE：AVE 持有人 new_tags → 各类人数／占比（%）。en 有写就照 en 判断（type 编号可能会变），en 空白才看 type；同一个持有人每类只算一次 */
   const C = { kol: [/^kol$/i, '31'], sm: [/^smart\s*money$/i, '30'], wh: [/^whale$/i, '39'], bu: [/^bundle/i, '36'], ca: [/^cabal$/i, '35'], ph: [/^phishing/i, '34'] };
   const rs = L.map((x) => Number(x?.balance_ratio) || 0); const isPct = rs.reduce((a, b) => a + b, 0) > 1.0001; const o = { n: L.length, all: [] }; for (const k of Object.keys(C)) o[k] = { n: 0, p: 0 }; o.kol.w = [];
   L.forEach((x, i) => { let G = x?.new_tags; if (typeof G === 'string') { try { G = JSON.parse(G); } catch { G = []; } } const a = String(x?.holder || x?.address || x?.wallet_address || '').toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(a)) o.all.push(a); const hit = new Set(); let nick = '';
     for (const t of Array.isArray(G) ? G : []) { if (!t || typeof t !== 'object') continue; const en = String(t.en ?? '').trim(), ty = String(t.type ?? '').trim(); for (const [k, [re, code]] of Object.entries(C)) if (en ? re.test(en) : ty === code) { hit.add(k); if (k === 'kol' && !nick) nick = String(t.nick_name || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 30); } }
-    if (hit.has('kol') && !nick) nick = String(x?.addr_alias || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 30); /* nick_name 空白时用 AVE 的地址别名 */
-    for (const k of hit) { o[k].n++; o[k].p += isPct ? rs[i] : rs[i] * 100; } if (hit.has('kol') && o.kol.w.length < 20 /* 显示用：最多列几位 */) o.kol.w.push({ a, nm: nick }); });
+    const WH = aveWho(x); if (hit.has('kol') && !nick) nick = WH.nm; /* nick_name 空白时用 AVE 网页同一套名字（KOLPIC-1112） */
+    for (const k of hit) { o[k].n++; o[k].p += isPct ? rs[i] : rs[i] * 100; } if (hit.has('kol') && o.kol.w.length < 20 /* 显示用：最多列几位 */) o.kol.w.push({ a, nm: nick, lg: WH.lg, xh: WH.xh }); });
   for (const k of Object.keys(C)) o[k].p = Math.round(o[k].p * 10) / 10; return o; };
 const AVH = new Map(); async function aveHolders(net, addr, maxAge) { if (!aveOK()) return null; const k = net + addr, c = AVH.get(k); if (c && Date.now() - c.at < (maxAge ?? AVH_MS)) return c.v; /* KOL-AVE：条件用的可以要求比较新的 */
   const id = `${addr}-${net === 'robinhood' ? 'robinhood' : 'bsc'}`; const jh = await aveGet(`/v2/tokens/holders/${id}?limit=100`, 10); const LH = Array.isArray(jh?.data) ? jh.data : []; const NA = !LH.length && !fs.existsSync(AVE_KF) && AVE_NA.has('holders'); /* KOL-AVE：持有人标签要用 holders（top100 只有 TOPn）；旧转接站不认得 holders → 读不到、画面写「需要转接站更新」 */
@@ -1385,9 +1388,9 @@ function fbWho(L, o) { const N = (x) => { if (x == null || x === '') return null
     for (const g of Array.isArray(G) ? G : []) { if (!g || typeof g !== 'object') continue; const en = String(g.en ?? '').trim(), ty = String(g.type ?? '').trim(), nk = cl(g.nick_name);
       if (!ty && /memeradar/i.test(en)) { if (nk) (FB_NEG.test(nk) ? neg : mr).push(nk); continue; }
       let k = FB_TY[ty] || ''; if (!k && en) for (const [kk, re] of FB_EN) if (re.test(en)) { k = kk; break; } if (!k) continue; t.add(k); if (k === 'kol' && !nm && nk) nm = nk; }
-    if (t.has('kol') && !nm) nm = cl(x?.addr_alias); if (!t.size && !neg.length && !mr.length && i >= 100) return;
+    const WH = aveWho(x); if (!nm) nm = WH.nm; /* KOLPIC-1112：跟 AVE 网页一样，有名字的钱包都显示名字 */ if (!t.size && !neg.length && !mr.length && i >= 100) return;
     const r = isPct ? rs[i] : rs[i] * 100; for (const k of t) { C[k] = C[k] || { n: 0, p: 0 }; C[k].n++; C[k].p += r; }
-    who[a] = { t: [...t], nm, neg: neg.slice(0, 3), mr: mr.slice(0, 3), pct: Math.round(r * 100) / 100, bal: N(x?.balance_usd), amt: N(x?.balance ?? x?.amount), avg: N(x?.avg_purchase_price), rp: N(x?.realized_profit), up: N(x?.unrealized_profit), tp: N(x?.total_profit), tpr: N(x?.total_profit_ratio), inv: N(x?.total_transfer_in_usd ?? x?.total_purchase_usd) }; });
+    who[a] = { t: [...t], nm, lg: WH.lg, xh: WH.xh, neg: neg.slice(0, 3), mr: mr.slice(0, 3), pct: Math.round(r * 100) / 100, bal: N(x?.balance_usd), amt: N(x?.balance ?? x?.amount), avg: N(x?.avg_purchase_price), rp: N(x?.realized_profit), up: N(x?.unrealized_profit), tp: N(x?.total_profit), tpr: N(x?.total_profit_ratio), inv: N(x?.total_transfer_in_usd ?? x?.total_purchase_usd) }; });
   for (const k of ['rat', 'sn', 'dv', 'bw', 'dh', 'ap', 'pp']) if (!o[k]) o[k] = { n: C[k]?.n || 0, p: Math.round((C[k]?.p || 0) * 10) / 10 };
   o.who = who; return o; }
 function fbDisc(net, addr) { const out = { x: [], tg: [] }; const a = String(addr || '').toLowerCase();

@@ -435,7 +435,7 @@
   {
    "rule": "SLICE",
    "file": "radar/main\\.cjs",
-   "match": "\\],\\ nm,\\ neg:\\ neg\\.slice\\(0,\\ 3\\),\\ mr:\\ mr\\.slice\\(0,\\ 3\\),\\ pc",
+   "match": "neg:\\ neg\\.slice\\(0,\\ 3\\),\\ mr:\\ mr\\.slice\\(0,\\ 3\\),\\ pc",
    "value": "3",
    "reason": "BOARD-FOMO（看盘照 FOMO）：显示用：画面上最多列几笔／字串截断长度（钱包页、讨论、标签、小卡、跑马灯），不影响买卖与判断"
   },
@@ -18398,6 +18398,15 @@
     "0"
    ],
    "reason": "PADNAME-1112：「🆕 新发射台」弹窗最多列几个 AI 热门代币看到的发射台（显示用），不是买卖门槛"
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/ui/index\\.html$",
+   "match": "function kolPic\\(lg,nm,sz\\)\\{sz=sz\\|\\|20",
+   "values": [
+    "20"
+   ],
+   "reason": "KOLPIC-1112：头像显示大小（像素，显示用），跟买卖无关"
   }
  ]
 }
