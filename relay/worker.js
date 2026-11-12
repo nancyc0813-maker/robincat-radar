@@ -334,7 +334,7 @@ export default {
     if (req.method !== 'GET') return new Response('method', { status: 405 });
     if (u.pathname === '/aveboard2' && req.method === 'GET') return aveBoard2(req, u, env); /*BOARD124*/
     if (u.pathname === '/ave') return aveProxy(req, u, env);
-    if (u.pathname === '/aveb') return aveBundle(req, u, env); /*BUNDLE-1112*/
+    if (u.pathname === '/aveb') { if (env.AVEB_ON !== '1') return J({ err: 'off' }, 404); return aveBundle(req, u, env); } /*BUNDLE-1112 营运开关 AVEB_ON（没开＝回 404，雷达自动退回一份一份抓）*/
     if (u.pathname === '/points.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_pts'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：积分改由转接站算 */
     if (u.pathname === '/points.json') return mirrorGet(env, 'points'); /* V105-2：积分镜像 */
     if (u.pathname === '/xwatch.json' && invReady(env)) { const r = await env.ROOM.get(env.ROOM.idFromName('inv-main')).fetch('https://do/_inv_xpub'); if (r.ok) return new Response(r.body, { headers: { ...SEC, 'content-type': 'application/json', 'cache-control': 'public, max-age=60' } }); } /* V120：X 监测改由转接站查 */
