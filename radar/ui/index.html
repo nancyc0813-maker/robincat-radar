@@ -5967,6 +5967,7 @@ function sfxPlay(n,why){const C=AU.ctx;const nowMs=Date.now();if(!P.sfx||!C||!AU
  if(!b||C.state!=='running')return true;const s=C.createBufferSource();s.buffer=b;s.connect(AU.sg);const t=C.currentTime;s.start(t);
  if(AU.dk){const d=AU.dk.gain;d.cancelScheduledValues(t);d.setTargetAtTime(S_DUCK,t,S_REL/6);d.setTargetAtTime(1,t+b.duration+S_REL,S_REL)}return true}
 AU.sfx=sfxPlay;/* 测试用 */
+document.addEventListener('keydown',ev=>{if(ev.key!=='Escape'||ev.defaultPrevented)return;const t=ev.target;if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;setTimeout(()=>{if(!detOpen())return;if(document.querySelector('#askm[style*="flex"],#mcCard,.modal.on'))return;const x=document.querySelector('#dtl .fdX');if(x)x.click()},0)});/* Esc 一定关得掉详情（原本的处理没关时补关），配乐跟着停 */
 /* 切侧栏页面、切链、切分类、换上方分页：原本的画面不会关掉详情，但已经离开 K 线页 → 配乐／音效当作关掉；回到详情里点一下或再打开代币就恢复 */
 document.addEventListener('click',ev=>{const t=ev.target;if(!t.closest)return;if(t.closest('#uxG a,header nav.tabs a,[data-pznet],[data-pzcat],[data-pzainet],#uxMoreM a')&&!t.closest('#dtl')){if(detOpen()&&!AU.away){AU.away=1;try{auTick()}catch{}}}},true);
 document.addEventListener('pointerdown',ev=>{if(AU.away&&ev.target.closest&&ev.target.closest('#dtl')){AU.away=0}},true);
