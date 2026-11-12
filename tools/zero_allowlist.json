@@ -19141,6 +19141,43 @@
     "8"
    ],
    "reason": "NODE-1113 每条链最多几个公开节点（原本就有的技术上限，只多加进节点池）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "QU_MS = 60e3, QU_WAIT_MS = 3000",
+   "values": [
+    "60e3",
+    "3000"
+   ],
+   "reason": "LIVE2-1113 报价币美金价（DexScreener，只拿来算显示价格）快取多久／最多等多久，技术用"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar\\/main\\.cjs$",
+   "match": "best\\.liquidity\\?\\.usd \\|\\| 0\\)\\)\\) best = x",
+   "values": [
+    "0"
+   ],
+   "reason": "LIVE2-1113 挑流动性最大的池（没写流动性＝排最后），只影响显示价格"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "MC_DET_PX_MS = 15e3",
+   "values": [
+    "15e3"
+   ],
+   "reason": "AUD2-1113 多链详情价格多久重抓（跟多链成交 trMs 同一个频率），技术用"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "\\+p\\.pairCreatedAt \\/ 1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "AUD2-1113 毫秒换秒"
   }
  ]
 }
