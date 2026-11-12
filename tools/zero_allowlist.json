@@ -19178,6 +19178,42 @@
     "1000"
    ],
    "reason": "AUD2-1113 毫秒换秒"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay\\/board\\.js$",
+   "match": "minGap = g \\? 1000 \\/|C2\\.listS \\* 1000 \\* BOARD_SPREAD",
+   "values": [
+    "1000"
+   ],
+   "reason": "PACE-1113 秒换毫秒（看盘排队间隔），技术用"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "relay\\/board\\.js$",
+   "match": "\\(S\\.bad\\[tag\\] \\|\\| 0\\) > now\\) continue; pri\\[",
+   "values": [
+    "0"
+   ],
+   "reason": "原本的 AVE 不认的 tag 暂停时间（没有＝没暂停），PACE-1113 只在旁边多记优先顺序"
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "relay\\/board\\.js$",
+   "match": "pri\\[i\\] \\?\\? 9\\]",
+   "values": [
+    "9"
+   ],
+   "reason": "PACE-1113 没标优先顺序的清单排最后（排序用），技术用"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay\\/worker\\.js$",
+   "match": "while \\(e\\.length < 4\\) e\\.push\\(0\\)",
+   "values": [
+    "4"
+   ],
+   "reason": "PACE-1113 统计格子数（放行／被拒／重试被拒／重试放行）"
   }
  ]
 }
