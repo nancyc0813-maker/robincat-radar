@@ -14,6 +14,7 @@
 //   AVE_BOARD_KIND_NEW／AVE_BOARD_KIND_HOT 不分平台的清单 tag 放哪个分页（新创建／热门外盘），例 new／hot,bsc_hot
 //   AVE_BOARD_TREND_PAGES 热门榜每条链抓几页；AVE_BOARD_SEEN_MAX 搜寻／详情查到的币最多收几个进看盘
 //   AVE_BOARD_BACKOFF_S AVE 回 429／额度用尽、或当月累计到 AVE_MONTH_STOP_CU 时，看盘停多久再试
+import { scoutRun } from './scout.js'; /*SCOUT-1112*/
 const num = (v) => { if (v === '' || v == null) return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 const okUrl = (u) => (/^https:\/\/[^\s"'<>]{4,300}$/.test(String(u || '')) ? String(u) : '');
 export const envN = (env, k) => { const v = Number(env?.[k]); return Number.isFinite(v) && v > 0 ? v : null; };
@@ -82,6 +83,7 @@ export async function b2Lists(o) {
   for (const tag of tags) { if ((S.bad[tag] || 0) > now) continue; jobs.push(async () => { try { const d = await aveCall(o, '/v2/tokens/platform?tag=' + tag + (C.limit ? '&limit=' + C.limit : ''), 10); const arr = Array.isArray(d) ? d : d?.tokens || []; const L = []; for (const t of arr) { const p = pack(t); if (p) { put(S, p, now); L.push(p[1]); } } S.cols[tag] = L; S.colsAt[tag] = now; S.ch2 = now; delete S.tagErr[tag]; } catch (e) { const m = String(e.message || e); S.tagErr[tag] = m.slice(0, 80); if (/^AVE (200|400|404)/.test(m) && C.badS) S.bad[tag] = now + C.badS * 1000; const vt = (e.full || '').match(/valid tags:\s*\[([^\]]*)\]/); if (vt) S.valid = vt[1].split(/\s+/).filter((t) => /^[a-z0-9_]{2,40}$/.test(t)); } }); }
   for (const ch of C.trend) jobs.push(async () => { const L = []; try { for (let pg = 1; pg <= (C.trendPages || 1); pg++) { const d = await aveCall(o, '/v2/tokens/trending?chain=' + ch + (C.trendN ? '&page_size=' + C.trendN : '') + (C.trendPages ? '&current_page=' + pg : ''), 5); const arr = Array.isArray(d) ? d : d?.tokens || []; for (const t of arr) { const p = pack(t); if (p && !L.includes(p[1])) { put(S, p, now); L.push(p[1]); } } if (!arr.length || d?.next_page == null && !Array.isArray(d)) break; } } catch (e) { S.tagErr['trend_' + ch] = String(e.message || e).slice(0, 80); } if (L.length) { S.cols['trend_' + ch] = L; S.colsAt['trend_' + ch] = now; } }); /* 热门榜可以翻页（AVE_BOARD_TREND_PAGES） */
   await pool(4, jobs); S.listAt = now; S.err = Object.keys(S.cols).length ? '' : 'AVE lists empty';
+  if (o.env.SCOUT_ON === '1') o.ctx.waitUntil(scoutRun(o, S, aveCall, pack, put, o.padNames || {}).catch((e) => { (o.scout = o.scout || {}).err = String(e?.message || e).slice(0, 80); })); /*SCOUT-1112 转接站统一扫新发射台，放进看盘「新币」栏（营运开关 SCOUT_ON；测完才开；在背景跑，不拖慢看盘）*/
   if (C.keepS) { const inCol = new Set(Object.values(S.cols).flat()); for (const M of Object.values(S.m)) for (const [a, v] of Object.entries(M)) if (!inCol.has(a) && now - (v.u || 0) > C.keepS * 1000) delete M[a]; }
 }
 export async function b2Prices(o) {
@@ -112,5 +114,5 @@ export async function b2Handle(o, iu) {
   const since0 = Math.max(0, +iu.searchParams.get('since') || 0); const since = iu.searchParams.get('boot') === S.boot && since0 <= (S.seq || 0) ? since0 : 0; /* 物件重启过（boot 不同）→ 给全部 */ const m = {};
   for (const [ch, M] of Object.entries(S.m)) { const o2 = {}; for (const [a, v] of Object.entries(M)) if (!since || (v.ch || 0) > since) o2[a] = v; m[ch] = o2; }
   const at = Math.max(S.listAt || 0, S.pOk || 0);
-  return new Response(JSON.stringify({ v: 2, at, seq: S.seq || 0, boot: S.boot, since, full: since ? 0 : 1, m, cols: S.cols, colsAt: S.colsAt, listAt: S.listAt, priceAt: S.pOk || 0, poll: { list: C.listS, price: C.priceS }, err: S.err || '', tagErr: S.tagErr, auto: S.auto || [], kinds: Object.fromEntries(Object.keys(S.cols).map((t) => [t, kindOf(t, C)]).filter((x) => x[1])), backoff: S.backoff > now ? S.backoff : 0, q: S.q }));
+  return new Response(JSON.stringify({ v: 2, at, seq: S.seq || 0, boot: S.boot, since, full: since ? 0 : 1, m, cols: S.cols, colsAt: S.colsAt, listAt: S.listAt, priceAt: S.pOk || 0, poll: { list: C.listS, price: C.priceS }, err: S.err || '', tagErr: S.tagErr, auto: S.auto || [], kinds: Object.fromEntries(Object.keys(S.cols).map((t) => [t, kindOf(t, C)]).filter((x) => x[1])), backoff: S.backoff > now ? S.backoff : 0, q: S.q, scout: { at: o.scout?.at || 0, pads: o.scout?.pads || [], err: o.scout?.err || '' } }));
 }

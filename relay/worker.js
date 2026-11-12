@@ -278,13 +278,14 @@ async function aveWsRoute(req, env) { if (req.headers.get('Upgrade') !== 'websoc
    快取只用来合并同一瞬间的重复请求（时间见 AVE_OK），不拿旧资料冒充即时资料 */
 const AVE_INFL = new Map(); const AVE_Q_TRIES = 6, AVE_Q_WAIT_MS = 250; /* 技术用：全体速度满了最多排队几次／每次等多久 */
 /*BUNDLE-1112（Nancy 同意）：雷达看盘一个分页要十几份 AVE 清单 → 打包成一个请求（GET /aveb?ps=[...]），转接站在里面照 /ave 一样逐份处理（同样的通行证、额度计量、快取、同时请求合并），Cloudflare 请求次数大约变成十分之一 */
-const AVEB_MAX = 24; /* 技术用：一包最多几份（Cloudflare 每个请求的子请求上限） */
+const AVEB_MAX = 24, AVEB_PAR = 2; /* 技术用：一包最多几份（Cloudflare 每个请求的子请求上限）／一次同时问 AVE 几份（留速度给前景的 K 线、详情） */
 async function aveBundle(req, u, env) {
   let ps; try { ps = JSON.parse(String(u.searchParams.get('ps') || '[]')); } catch { return J({ err: 'bad' }, 400); }
   if (!Array.isArray(ps) || !ps.length || ps.length > AVEB_MAX || ps.some((x) => typeof x !== 'string' || x.length > 300)) return J({ err: 'bad' }, 400);
   if (!(await sessOf(req, env))) return J({ err: 'session' }, 401);
   const bg = u.searchParams.get('bg') === '1'; const out = {};
-  await Promise.all([...new Set(ps)].map(async (p) => { try { const u2 = new URL(u.origin + '/ave'); u2.searchParams.set('p', p); if (bg) u2.searchParams.set('bg', '1'); const r = await aveProxy(req, u2, env); if (r.status === 200) { try { out[p] = JSON.parse(await r.text()); } catch { out[p] = { __err: 'html' }; } } else { let e = ''; try { e = String((await r.json())?.err || ''); } catch {} out[p] = { __err: e || 'http ' + r.status, __st: r.status }; } } catch (e) { out[p] = { __err: String(e?.message || e).slice(0, 80) }; } }));
+  const Q = [...new Set(ps)]; let qi = 0; const runOne = async (p) => { try { const u2 = new URL(u.origin + '/ave'); u2.searchParams.set('p', p); if (bg) u2.searchParams.set('bg', '1'); const r = await aveProxy(req, u2, env); if (r.status === 200) { try { out[p] = JSON.parse(await r.text()); } catch { out[p] = { __err: 'html' }; } } else { let e = ''; try { e = String((await r.json())?.err || ''); } catch {} out[p] = { __err: e || 'http ' + r.status, __st: r.status }; } } catch (e) { out[p] = { __err: String(e?.message || e).slice(0, 80) }; } };
+  await Promise.all(Array.from({ length: Math.min(AVEB_PAR, Q.length) }, async () => { while (qi < Q.length) await runOne(Q[qi++]); })); /* 一次只问几份（不把 AVE 每秒次数占满，你点的 K 线／详情先过） */
   return J({ ok: 1, r: out });
 }
 async function aveProxy(req, u, env) {
@@ -391,7 +392,7 @@ export class Room extends DurableObject {
     const iu = new URL(req.url);
     if (iu.pathname === '/_avews') return this.hubAccept(req); /* AVE-WSS：集线器（外面只有 /avews 会转到这里，物件名固定 ave-wss） */
     if (iu.pathname === '/_b2add' && req.method === 'POST') { try { await b2Add(this, await req.json()); } catch {} return new Response('ok'); } /*BOARD124 搜寻／详情查到的币收进看盘*/
-    if (iu.pathname === '/_b2') return b2Handle(this, iu); /*BOARD124（外面只有 /aveboard2 和 Cron 会转到这里，物件名固定 ave-board2）*/
+    if (iu.pathname === '/_b2') { this.padNames = PAD_NAMES.bsc; return b2Handle(this, iu); } /*BOARD124（外面只有 /aveboard2 和 Cron 会转到这里，物件名固定 ave-board2）*/
     if (iu.pathname === '/_meter') { /* H8-D2：总额度＋每个钱包每天额度＋每秒速度（全部在这一个物件里，全球一致） */
       const q = iu.searchParams, now = Date.now(), d = new Date(now + 8 * 3600e3).toISOString().slice(0, 10); const cu = Math.max(0, Math.min(100, +q.get('cu') || 0)); const w = String(q.get('w') || '').slice(0, 64), bg = q.get('bg') === '1';
       const num = (k) => { const v = Number(q.get(k)); return Number.isFinite(v) && v > 0 ? v : null; }; const ucap = num('ucap'), urps = num('urps'), grps = num('grps'), cap = num('cap'), ccap = num('ccap'), bgpct = num('bgpct'); const code = String(q.get('code') || '').slice(0, 16); /* OPS-RT6 */
