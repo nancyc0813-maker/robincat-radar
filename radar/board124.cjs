@@ -27,8 +27,8 @@ function merge(j) {
   S.rev++; }
 /* 跟旧的签名看盘档合并：清单／价格以转接站为准，旧档的持有人标签（ht）、聪明钱（sm／sw）照留 */
 let MG = { rev: -1, old: null, v: null };
-function board(old) {
-  if (S.okAt && Date.now() - S.tryAt >= pollMs()) pull().catch(() => {}); else if (!S.okAt && Date.now() - S.tryAt >= 15e3 /* 技术用：转接站还没有这个功能（旧版转接站）时多久再试 */) pull().catch(() => {});
+function board(old, slow) { /*SWR-1113 slow＝多链看盘来拿：最快照转接站清单的刷新间隔（poll.list）才重拉，不照价格的间隔（推送断线时会变成每几秒拉一次整份）*/
+  if (S.okAt && Date.now() - S.tryAt >= (slow && S.poll && +S.poll.list > 0 ? Math.max(pollMs(), +S.poll.list * 1000) : pollMs())) pull().catch(() => {}); else if (!S.okAt && Date.now() - S.tryAt >= 15e3 /* 技术用：转接站还没有这个功能（旧版转接站）时多久再试 */) pull().catch(() => {});
   if (!S.okAt) return old; if (MG.rev === S.rev && MG.old === old) return MG.v;
   const m = {}; for (const ch of new Set([...Object.keys(old?.m || {}), ...Object.keys(S.m)])) { const a = old?.m?.[ch] || {}, b = S.m[ch] || {}; const o = { ...a }; for (const [k, v] of Object.entries(b)) o[k] = a[k] ? { ...a[k], ...v } : v; m[ch] = o; }
   const v = { ...(old || {}), at: S.at || Date.now(), m, cols: { ...(old?.cols || {}), ...S.cols }, colsAt: { ...(old?.colsAt || {}), ...S.colsAt }, kinds: S.kinds, b2: { at: S.at, okAt: S.okAt, err: S.err, q: S.q, tagErr: S.tagErr, backoff: S.backoff || 0 } };

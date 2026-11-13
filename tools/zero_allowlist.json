@@ -20009,6 +20009,40 @@
     "1000"
    ],
    "reason": "OPEN-1113 上外盘时间毫秒换秒（单位换算，技术用），只影响看盘排序和显示，不进买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/board124\\.cjs$",
+   "match": "\\+S\\.poll\\.list\\ \\*\\ 1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "SWR-1113 转接站给的清单间隔（秒）换毫秒；技术用，只影响多链看盘排序／显示与拉资料的节奏，不进任何买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const\\ MCG_T\\ =\\ \\{\\ max:\\ ",
+   "values": [
+    "20000",
+    "60e3"
+   ],
+   "reason": "OPEN2-1113 多链毕业纪录最多记几个币／多久存一次档；技术用，只影响多链看盘排序／显示与拉资料的节奏，不进任何买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const\\ now\\ =\\ Math\\.floor\\(Date\\.now\\(\\)\\ /\\ 1000\\);\\ /\\*\\ 技术用：毫秒换秒\\ \\*/\\ const\\ cur",
+   "values": [
+    "1000"
+   ],
+   "reason": "OPEN2-1113 毫秒换秒；技术用，只影响多链看盘排序／显示与拉资料的节奏，不进任何买卖判断"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/main\\.cjs$",
+   "match": "\\(Array\\.isArray\\(L\\)\\ \\&\\&\\ \\(/_in_\\(new\\|almost\\|hot\\)\\$/\\.test\\(tag\\)",
+   "reason": "OPEN2-1113 AVE 发射台清单 tag 的字尾（内盘三种阶段），用来认「这个币之前在内盘」；不是关键字黑名单、技术用，只影响多链看盘排序／显示与拉资料的节奏，不进任何买卖判断"
   }
  ]
 }
