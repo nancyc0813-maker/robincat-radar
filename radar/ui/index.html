@@ -5438,8 +5438,9 @@ body.rcV2 .pzAv>s img{position:absolute;inset:0}/* 头像图盖住字母（以�
 .pzC:hover .rcSp{transform:scale(1.25)}
 /* 数字滚轮＋涨跌闪色 */
 .rcOd{display:inline-flex;vertical-align:top;height:1.25em;line-height:1.25em;overflow:hidden}
-.rcOd .rcD{display:inline-block;height:1.25em;overflow:hidden}.rcOd .rcD>span{display:flex;flex-direction:column}
-.rcOd .rcD i{font-style:normal;height:1.25em;line-height:1.25em;text-align:center}
+/* ODO-1113 遮罩放在每一位数字自己身上（跟 odometer.js 一样）：外层 .rcOd 的 class 就算被拿掉，数字条也不会整条露出来 */
+.rcD{display:inline-block;vertical-align:top;height:1.25em;line-height:1.25em;overflow:hidden}.rcD>span{display:flex;flex-direction:column}
+.rcD i{font-style:normal;height:1.25em;line-height:1.25em;text-align:center}
 .rcFu{animation:rcFu .9s ease-out 1}.rcFd{animation:rcFd .9s ease-out 1}
 @keyframes rcFu{0%{color:var(--up,#2EBD85);text-shadow:0 0 10px var(--up,#2EBD85)}100%{text-shadow:0 0 0 transparent}}
 @keyframes rcFd{0%{color:var(--dn,#F6465D);text-shadow:0 0 10px var(--dn,#F6465D)}100%{text-shadow:0 0 0 transparent}}
@@ -5811,20 +5812,25 @@ let FL_N=0;function flash(el,a,b){if(RM()||!el||!Number.isFinite(a)||!Number.isF
 const DIG='<i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i>';
 let ODO_N=0;/* 正在滚的数字个数（上限 ODO_MAX，技术用） */
 /* 效能：滚完不还原成纯文字；位数一样的下一次只移动既有数字（不新增／删除节点，不会叫醒全页的 MutationObserver） */
+/* ODO-1113：数字条只有两种结局——滚完（或被打断）就换回纯文字（odoFin），不然就保留遮罩外层；不会只剩数字条 */
+const odoPat=s=>s.replace(/\d/g,'0');
+function odoFin(el){clearTimeout(el.__ot);el.__ot=0;for(const sp of el.querySelectorAll('.rcD>span'))for(const a of sp.getAnimations?.()||[])a.cancel();const s=el._s??el.getAttribute('aria-label');if(s!=null&&(el.firstElementChild||el.textContent!==s))el.textContent=s;el.classList.remove('rcOd');el.__od=0;el.__pat=''}
+function odoLater(el){clearTimeout(el.__ot);el.__ot=setTimeout(()=>odoFin(el),D_ODO)}/* 每次更新都重排「换回纯文字」，用最新的值（不会被旧的计时器漏掉） */
 function odo(el,old,s){el._s=s;flash(el,numOf(old),numOf(s));el.setAttribute('aria-label',s);
- if(RM()||!el.isConnected||old.length!==s.length||ODO_N>=ODO_MAX){if(el.__od!==s.length||!el.classList.contains('rcOd')||RM()){el.classList.remove('rcOd');el.__od=0;el.textContent=s}else odoSet(el,s,null);return}
+ const reuse=el.__od===s.length&&el.classList.contains('rcOd')&&el.__pat===odoPat(s)&&!!el.querySelector('.rcD');
+ if(RM()||!el.isConnected||old.length!==s.length||ODO_N>=ODO_MAX){if(reuse&&!RM()){odoSet(el,s,null);odoLater(el)}else odoFin(el);return}
  ST.odo++;ODO_N++;setTimeout(()=>ODO_N--,D_ODO);
- if(el.__od===s.length&&el.classList.contains('rcOd')&&el.__pat===s.replace(/\d/g,'0')){odoSet(el,s,old);clearTimeout(el.__ot);el.__ot=setTimeout(()=>{if(el._s===s&&el.classList.contains('rcOd')){el.classList.remove('rcOd');el.__od=0;el.textContent=s}},D_ODO);return}
+ if(reuse){odoSet(el,s,old);odoLater(el);return}
  let h='';for(let i=0;i<s.length;i++){const c=s[i];h+=/\d/.test(c)?`<span class="rcD"><span>${DIG}</span></span>`:`<span class="rcC">${esc(c)}</span>`}
- el.innerHTML=h;el.classList.add('rcOd');el.__od=s.length;el.__pat=s.replace(/\d/g,'0');odoSet(el,s,old);clearTimeout(el.__ot);el.__ot=setTimeout(()=>{if(el._s===s&&el.classList.contains('rcOd')){el.classList.remove('rcOd');el.__od=0;el.textContent=s}},D_ODO)}/* 滚完换回纯文字：节点数不会越积越多 */
-function odoSet(el,s,old){if(el.__pat!==s.replace(/\d/g,'0')){el.classList.remove('rcOd');el.__od=0;el.textContent=s;return}const ds=el.querySelectorAll('.rcD>span');let j=0;for(let i=0;i<s.length;i++){if(!/\d/.test(s[i]))continue;const sp=ds[j++];if(!sp)continue;const to=`translateY(${-s[i]*10}%)`;const fr=old&&/\d/.test(old[i])?`translateY(${-old[i]*10}%)`:to;if(sp.__t!==to){sp.style.transform=to;sp.__t=to;if(fr!==to)sp.animate([{transform:fr},{transform:to}],{duration:D_ODO-D_ODO/6,easing:EZ})}}}
+ el.innerHTML=h;el.classList.add('rcOd');el.__od=s.length;el.__pat=odoPat(s);odoSet(el,s,old);odoLater(el)}/* 滚完换回纯文字：节点数不会越积越多 */
+function odoSet(el,s,old){if(el.__pat!==odoPat(s)){odoFin(el);return}const ds=el.querySelectorAll('.rcD>span');let j=0;for(let i=0;i<s.length;i++){if(!/\d/.test(s[i]))continue;const sp=ds[j++];if(!sp)continue;const to=`translateY(${-s[i]*10}%)`;const fr=old&&/\d/.test(old[i])?`translateY(${-old[i]*10}%)`:to;if(sp.__t!==to){sp.style.transform=to;sp.__t=to;if(fr!==to)sp.animate([{transform:fr},{transform:to}],{duration:D_ODO-D_ODO/6,easing:EZ})}}}
 const NUMSEL='.rcMc b,.pzHr>small',FLSEL='.pzS>span,.pzR3>i.up,.pzR3>i.dn,.rcTag.up,.rcTag.dn,.pzHr>em';
 /* 技术用（只影响动画）：涟漪起始透明度；名次箭头出现／开始消失的时间点（占动画的比例） */
 const [RIP_A,RK_IN,RK_OUT]=[.3,.2,.75];
 let LIVE=true;/* 这张卡在画面上才滚数字／闪色（画面外的直接换字） */
-function syncAttr(o,n){for(const a of [...o.attributes])if(!n.hasAttribute(a.name)&&a.name!=='style')o.removeAttribute(a.name);for(const a of n.attributes)if(o.getAttribute(a.name)!==a.value)o.setAttribute(a.name,a.value)}
+function syncAttr(o,n){const od=!!o.__od;/* ODO-1113 正在滚的数字：class（rcOd 遮罩）和 aria-label 是滚动元件自己的状态，模板里没有，不能照模板拿掉（以前拿掉后只剩数字条＝$0123456789…） */for(const a of [...o.attributes])if(!n.hasAttribute(a.name)&&a.name!=='style'&&!(od&&(a.name==='class'||a.name==='aria-label')))o.removeAttribute(a.name);for(const a of n.attributes)if(o.getAttribute(a.name)!==a.value)o.setAttribute(a.name,a.value);if(od&&!o.classList.contains('rcOd'))o.classList.add('rcOd')}
 function morph(o,n){syncAttr(o,n);
- if(o.matches(NUMSEL)){const s=n.textContent;const old=o._s??o.textContent;if(old!==s){if(LIVE)odo(o,old,s);else{o._s=s;o.textContent=s}}return}
+ if(o.matches(NUMSEL)){const s=n.textContent;const old=o._s??o.textContent;if(old!==s){if(LIVE)odo(o,old,s);else{o._s=s;odoFin(o)}}else if(o.__od&&!o.querySelector('.rcD'))odoFin(o);return}
  const oc=o.childNodes,nc=[...n.childNodes];if(oc.length!==nc.length){o.replaceChildren(...nc);return}
  for(let i=0;i<nc.length;i++){const a=oc[i],b=nc[i];
   if(a.nodeType!==b.nodeType||a.nodeName!==b.nodeName){o.replaceChild(b,a);continue}
