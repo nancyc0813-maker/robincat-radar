@@ -20043,6 +20043,106 @@
    "file": "radar/main\\.cjs$",
    "match": "\\(Array\\.isArray\\(L\\)\\ \\&\\&\\ \\(/_in_\\(new\\|almost\\|hot\\)\\$/\\.test\\(tag\\)",
    "reason": "OPEN2-1113 AVE 发射台清单 tag 的字尾（内盘三种阶段），用来认「这个币之前在内盘」；不是关键字黑名单、技术用，只影响多链看盘排序／显示与拉资料的节奏，不进任何买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/klinehist\\.cjs$",
+   "match": "TR_TTL\\ =\\ 3e3",
+   "values": [
+    "3e3"
+   ],
+   "reason": "MCK-1113 同一个池子的成交多久内共用一次（技术用，只影响 K 线显示）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "'4h':14400,'1d':86400\\}",
+   "values": [
+    "86400"
+   ],
+   "reason": "MCK-1113 K 线周期秒数对照（单位换算）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "const\\ \\[MCK_LIVE,MCK_MAX\\]=\\[4e3,600\\]",
+   "values": [
+    "4e3"
+   ],
+   "reason": "MCK-1113 多链详情多久拿一次成交更新最后一根（技术用，只影响画面）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "if\\(a>=1e3\\)return\\ s\\+\\(a/1e3\\)\\.toFixed\\(2\\)\\+'K';return\\ s\\+String\\(",
+   "values": [
+    "1e3"
+   ],
+   "reason": "MCK-1113 市值刻度写成 K（单位换算，显示用）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "const\\ t=Math\\.floor\\(\\+c\\.t/1000\\);if\\(!\\(t>last\\)",
+   "values": [
+    "1000"
+   ],
+   "reason": "MCK-1113 毫秒换秒（单位换算）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "priceLineStyle:2,lastValueVisible:true|type:'custom',minMove:1e\\-8,formatter:kNum",
+   "values": [
+    "2",
+    "1e-8"
+   ],
+   "reason": "MCK-1113 图表样式代号（虚线）与刻度最小间距初值（画完马上照价格大小重设），只影响画面"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "r\\?\\.err\\?'\\ \\('\\+E\\(String\\(r\\.err\\)\\.slice\\(0,60\\)\\)",
+   "values": [
+    "60"
+   ],
+   "reason": "MCK-1113 错误原因最多显示几个字（显示用）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "if\\(x\\.t>=nx\\)\\{const\\ bt=kbStart\\(x\\.t/1000,sec\\)\\*1000|cs\\.push\\(\\{t:bt,o:last\\.c",
+   "values": [
+    "1000"
+   ],
+   "reason": "MCK-1113 毫秒／秒换算"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "=\\[2,1000,\\.06,\\.04,8,2,24,4,1\\];",
+   "values": [
+    "1000"
+   ],
+   "reason": "KFIX-1113 纵轴：实体偏离中位数几倍以上不撑轴（画面用，不进买卖判断）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "minimumWidth:72\\},timeScale",
+   "values": [
+    "72"
+   ],
+   "reason": "KFIX-1113 价格轴最小宽度（像素，显示用）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "if\\(v>=1e3\\)return\\ \\(v/1e3\\)\\.toFixed\\(1\\)\\+'K';return\\ String\\(Math\\.round\\(",
+   "values": [
+    "1e3"
+   ],
+   "reason": "KFIX-1113 成交量刻度写成 K（单位换算，显示用）"
   }
  ]
 }

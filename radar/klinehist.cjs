@@ -6,9 +6,9 @@
    资料源没有的周期（3 小时、6 小时、3 天、周、月）用小周期合并；周线＝周一开始、月线＝日历月（跟其他图同一套格子 kline.cjs）。 */
 const KL = require('./kline.cjs');
 
-const SEC = { '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '3h': 10800, '6h': 21600, '12h': 43200, '1d': 86400, '3d': 259200, '1w': 604800, '1M': 2592000 };
+const SEC = { '1s': 1, '4h': 14400, '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '3h': 10800, '6h': 21600, '12h': 43200, '1d': 86400, '3d': 259200, '1w': 604800, '1M': 2592000 };
 /* GeckoTerminal 只有 day(1)／hour(1,4,12)／minute(1,5,15)：[时间单位, aggregate, 几根合成一根] */
-const GT = { '1m': ['minute', 1, 1], '5m': ['minute', 5, 1], '15m': ['minute', 15, 1], '1h': ['hour', 1, 1], '3h': ['hour', 1, 3], '6h': ['hour', 1, 6], '12h': ['hour', 12, 1], '1d': ['day', 1, 1], '3d': ['day', 1, 3], '1w': ['day', 1, 7], '1M': ['day', 1, 31] };
+const GT = { '4h': ['hour', 4, 1], '1m': ['minute', 1, 1], '5m': ['minute', 5, 1], '15m': ['minute', 15, 1], '1h': ['hour', 1, 1], '3h': ['hour', 1, 3], '6h': ['hour', 1, 6], '12h': ['hour', 12, 1], '1d': ['day', 1, 1], '3d': ['day', 1, 3], '1w': ['day', 1, 7], '1M': ['day', 1, 31] };
 const GT_NET = { bsc: 'bsc', robinhood: 'robinhood', solana: 'solana', base: 'base', eth: 'eth' }; /* 技术用：GeckoTerminal 的链代号（11/13 查过 /networks 有 robinhood） */
 const BARS = 300; /* 技术用：一次给几根 */
 const GT_CAP = 8, GT_REFILL_MS = 2200, GT_WAIT_MS = 2500, GT_COOL_MS = 20e3; /* 技术用：GeckoTerminal 令牌桶（最多存 8 个、每 2.2 秒补 1 个≈每分钟 27 次，低于它公布的 30 次）／没令牌最多等多久／被回 429 后停多久（这段时间改用 AVE／OKX） */
@@ -71,4 +71,13 @@ async function hist(net, addr, pool, tf, beforeMs) {
   INF.set(k, p); return p;
 }
 function stat() { return { gt: { tokens: Math.floor(B.tok), cooling: B.cool > Date.now(), calls: B.n, n429: B.n429 }, cache: CK.size }; }
-module.exports = { install, hist, stat, SEC };
+/*MCK-1113 成交明细（GeckoTerminal /pools/{pool}/trades，免费、不花 AVE 额度；它给最近一段时间的成交）：多链详情的 K 线最后一根即时更新、1 秒线。
+  GeckoTerminal 自己约慢几十秒（11/13 实测 Solana 最新一笔约 38 秒前），所以「即时」＝跟它一样快，不是逐笔秒级 */
+const TR = new Map(), TR_TTL = 3e3; /* 技术用：同一个池子的成交多久内共用一次 */
+async function trades(net, addr, pool) { if (!GT_NET[net]) return { rows: [] }; const P = await poolOf(net, addr, pool); if (!P) return { rows: [], pool: '' }; const k = net + '|' + P + '|' + addr, c = TR.get(k); if (c && Date.now() - c.at < TR_TTL) return c.v;
+  const j = await gt(`${GT_NET[net]}/pools/${P}/trades`); if (!j || j.err) return c ? c.v : { rows: [], pool: P, err: 'gt' }; const same = (x) => (net === 'solana' ? String(x || '') === addr : String(x || '').toLowerCase() === addr);
+  const rows = (Array.isArray(j.data) ? j.data : []).map((d) => { const a = d?.attributes || {}; const buy = same(a.to_token_address), sell = same(a.from_token_address); if (!buy && !sell) return null; const p = +(buy ? a.price_to_in_usd : a.price_from_in_usd); const t = Date.parse(a.block_timestamp || ''); if (!(p > 0) || !(t > 0)) return null; return { t, p, usd: +a.volume_in_usd || 0, b: buy ? 1 : 0, w: String(a.tx_from_address || '').slice(0, 64), tx: String(a.tx_hash || '').slice(0, 100) }; }).filter(Boolean).sort((x, y) => x.t - y.t);
+  const v = { rows, pool: P }; TR.set(k, { at: Date.now(), v }); if (TR.size > 200) TR.delete(TR.keys().next().value); return v; }
+/* 1 秒线：只有成交明细做得出来（AVE／GeckoTerminal 的 K 线最小 1 分钟） */
+async function sec1(net, addr, pool) { const r = await trades(net, addr, pool); if (!r.rows.length) return { src: '', pool: r.pool || '', bars: [] }; const L = KL.aggregate(r.rows.map((x) => ({ t: x.t, o: x.p, h: x.p, l: x.p, c: x.p, v: x.usd })), 1); return { src: 'gt-trades', pool: r.pool, bars: KL.fillGaps(L, 1, BARS, Date.now()).slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0 })) }; }
+module.exports = { install, hist, stat, SEC, trades, sec1 };
