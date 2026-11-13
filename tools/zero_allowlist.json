@@ -19923,6 +19923,83 @@
     "1e3"
    ],
    "reason": "CRQ-1113：现在时间毫秒换秒算开盘几秒（单位换算）；只决定卡片风险一排要不要先查，不进买卖判断"
+  },
+  {
+   "rule": "OBJNUM|TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const\\ MC_SWR\\ =\\ \\{\\ coldMs:\\ ",
+   "values": [
+    "2500",
+    "90e3",
+    "600e3"
+   ],
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：多链看盘冷启动最多等几毫秒、背景补抓清单多久重抓（跟以前画面重查间隔一样，不增加 AVE 额度）、空清单多久后再问（省额度）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "const\\ MC_PEND=1500,MC_FAST=",
+   "values": [
+    "10e3",
+    "30e3"
+   ],
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：其他链看盘重拿间隔、预先暖其他链间隔（只用转接站共用看盘，不向 AVE 多要）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "MC_POLL=90e3;\\ const\\ MC_PEND",
+   "values": [
+    "25e3",
+    "90e3"
+   ],
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：原有的 MC_TO／MC_POLL（旁边多了一行常数才重新列出）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "ago<60\\?'':'off'",
+   "values": [
+    "60"
+   ],
+   "reason": "显示用：看盘「实时」绿点超过一分钟变灰、改写「几分钟前」（秒换分钟），不是买卖门槛"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "String\\(R\\[0\\]\\.err\\)\\.slice\\(0,80\\)",
+   "values": [
+    "80"
+   ],
+   "reason": "显示用：红字错误原因最多显示几个字（技术用）"
+  },
+  {
+   "rule": "FALLBACK0|TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "MC_FAST\\)\\{S\\.mcAt=Date\\.now\\(\\);tick\\(\\)\\}\\}catch\\{\\}\\},5000\\)|\\(S\\.mcAt\\|\\|0\\)>=MC_FAST",
+   "values": [
+    "0",
+    "5000"
+   ],
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：计时器检查间隔；mcAt 没有＝从没拿过，马上拿"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "warmOthers\\(\\)\\}\\}catch\\{\\}\\},5000\\)",
+   "values": [
+    "5000"
+   ],
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：预先暖其他链的计时器检查间隔"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "liveMs:\\ 90e3,\\ emptyMs:\\ 600e3",
+   "values": [
+    "600e3"
+   ],
+   "reason": "SWR-1113 技术用：多链看盘上次抓到是空的发射台清单多久后再问（省 AVE 额度），不是买卖门槛"
   }
  ]
 }
