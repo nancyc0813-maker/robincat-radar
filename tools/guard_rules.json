@@ -76,7 +76,9 @@
   "ave.ai": "只给玩家点开的连结（ELY107：https://ave.ai/token/<合约>-elysium，浏览器打开，雷达不送资料）",
   "proofmine.fun": "Pol · Proof of Liquidity 官网（POL-MINE：只用来让你按「看项目」打开网页；雷达不从这个网站读资料，参与／领回只走链上合约、经过统一动作闸门）",
   "www.binance.com": "PROXY122：只给 resolveProxy 问电脑系统「币安钱包程式 baw 连 www.binance.com 要不要走代理」（读系统代理／PAC 设定），雷达主程式本身不会连这个网址；真正连线的是币安官方的 baw",
-  "web3.okx.com": "OKX-1113 OKX OnchainOS 行情 API（玩家自己填金钥、预设关才会连；只读价格／K 线／成交／持有人，只拿来显示，不碰钱包、不下单）"
+  "web3.okx.com": "OKX-1113 OKX OnchainOS 行情 API（玩家自己填金钥、预设关才会连；只读价格／K 线／成交／持有人，只拿来显示，不碰钱包、不下单）",
+  "pumpportal.fun": "用户 11/13 同意：新币秒级资料来源（NEWTOK-1113：Solana 新币／上外盘即时推送 wss://pumpportal.fun/api/data，只订阅免费的 subscribeNewToken／subscribeMigration，不带金钥、不送任何资料，整个雷达只开一条连线）",
+  "base-rpc.publicnode.com": "用户 11/13 同意：新币秒级资料来源（NEWTOK-1113：Base 公开节点，只读 eth_blockNumber／eth_getLogs／eth_getBlockByNumber／eth_call，读 Clanker／Doppler 建币事件）"
  },
  "allow": [
   {
