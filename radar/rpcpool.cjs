@@ -14,8 +14,9 @@ const crypto = require('crypto');
 const PUB = {
   bsc: ['https://bsc-rpc.publicnode.com', 'https://bsc-dataseed.bnbchain.org', 'https://bsc-dataseed1.defibit.io', 'https://bsc.publicnode.com', 'https://bsc-dataseed2.ninicoin.io'],
   robinhood: ['https://rpc.mainnet.chain.robinhood.com', 'https://robinhood.drpc.org', 'https://4663.rpc.thirdweb.com'],
+  base: ['https://base-rpc.publicnode.com'], /*NEWTOK-1113 Base 新币读链：11/13 实测 eth_getLogs 一次最多 50000 块、400 次连打没被限流；base.drpc.org 免费版 200 块就拒、base.llamarpc.com 回 525，都不用*/
 };
-const CHAIN_ID = { bsc: '0x38', robinhood: '0x1237' }; /* 技术用：链编号（BSC 56、Robinhood 4663） */
+const CHAIN_ID = { bsc: '0x38', robinhood: '0x1237', base: '0x2105' }; /* 技术用：链编号（BSC 56、Robinhood 4663、Base 8453） */
 const SET_KEYS = { bsc: ['rpc.bsc.url', 'rpc.bsc.wss'], robinhood: ['rpc.rh.url', 'rpc.rh.wss'] };
 const SET_TTL_MS = 10e3; /* 技术用：设定档多久重读一次 */
 const LOGS_BAD_MS = 10 * 60e3, LOGS_SOFT_MS = 60e3, NODE_BAD_MS = 30e3; /* 技术用：节点查事件被拒（从没成功过／成功过）、连不上，各暂停多久 */
@@ -147,4 +148,4 @@ function subLogs(net, filters, onLog) {
 /* 雷达官方显示资料（remote）带来的额外公开节点：加在公开节点后面（不会排在玩家自己的节点前面） */
 function addPub(net, u) { const L = PUB[net]; if (!L || !okHttps(String(u || '')) || L.includes(u) || L.length >= PUB_MAX) return; L.push(u); }
 const PUB_MAX = 8; /* 技术用：每条链最多几个公开节点（跟原本 v4 的上限一样） */
-module.exports = { init, addPub, rpc, order, noteOk, noteErr, stat, subLogs, userUrl, userWss, PUB, CHAIN_ID };
+module.exports = { init, addPub, rpc, order, noteOk, noteErr, stat, subLogs, userUrl, userWss, PUB, CHAIN_ID, wsOpen }; /*NEWTOK-1113 newtok.cjs 共用这个小型 WebSocket*/
