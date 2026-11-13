@@ -19895,6 +19895,34 @@
     "2"
    ],
    "reason": "lzLv 回传的颜色等级（2＝红，门槛是玩家在「标签与颜色」自己填的 label.top10Red），不是门槛数字；手机详情前 10 大标红"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const CRQ_TTL_MS = 30e3; /\\* 技术用",
+   "values": [
+    "30e3"
+   ],
+   "reason": "CRQ-1113：卡片风险排队里多久没人再要就拿掉（记忆体清理，技术用；只影响显示，不进买卖判断）"
+  },
+  {
+   "rule": "CMP|TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "if \\(ca > 1e12\\) ca /= 1e3; /\\* 技术用：毫秒换秒",
+   "values": [
+    "1e12",
+    "1e3"
+   ],
+   "reason": "CRQ-1113：开盘时间单位判断（毫秒／秒）与换算，单位换算不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const age = ca > 0 \\? Date\\.now\\(\\) / 1e3 - ca : null;",
+   "values": [
+    "1e3"
+   ],
+   "reason": "CRQ-1113：现在时间毫秒换秒算开盘几秒（单位换算）；只决定卡片风险一排要不要先查，不进买卖判断"
   }
  ]
 }
