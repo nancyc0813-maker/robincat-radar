@@ -488,9 +488,9 @@ ipcMain.handle('b3', (e, net) => { net = String(net || 'bsc'); const D = B3_DEF[
     if (need.length) cardRiskFill(hn, need, 0); } catch {}
   return out; });
 /* RISK2-1113 卡片风险一排的资料：① AVE 清单本身有给的（转接站把 holders_top10_ratio／dev／sniper／insider／bundle 比例放进看盘资料，AVE 网页清单就是用这些栏位）② 本机查过的 AVE 持有人标签（跟详情同一份）。都没有＝不显示 */
-function cardRk(hn, c, v) { const pc = (x) => (x == null || x === '' || !Number.isFinite(+x) ? null : +(+x).toFixed(1)); /* AVE 清单这几栏本来就是 %（AVE 网页：前10 ≥30 标黄、开发者 >5 标红） */ const L = v ? { t10: pc(v.t10), dv: pc(v.dvr), sn: pc(v.snr), rat: pc(v.inr), bu: pc(v.bur) } : null; const hasL = L && Object.values(L).some((y) => y != null);
+function cardRk(hn, c, v) { const pc = (x) => (x == null || x === '' || !Number.isFinite(+x) ? null : +(+x).toFixed(1)); /* AVE 清单这几栏本来就是 %（AVE 网页：前10 ≥30 标黄、开发者 >5 标红） */ const L = v ? { t10: pc(v.t10), dv: pc(v.dvr), sn: pc(v.snr), rat: pc(v.inr), bu: pc(v.bur) } : null; const hasL = L && L.t10 > 0; /* NODATA-1113 前10 是 0 或没给＝AVE 还没资料（有人持有前10 不可能是 0）→ 清单这几栏都不用（没资料就不显示，跟 GMGN 一样） */
   const h = AVH.get(hn + String(c).toLowerCase())?.v; const G = h?.tags || {}; const H = h ? { t10: h.top10 ?? null, dv: G.dv ? G.dv.p : null, sn: G.sn ? G.sn.p : null, rat: G.rat ? G.rat.p : null, bu: G.bu ? G.bu.p : null } : null;
-  if (!hasL && !H) return null; const o = {}; for (const k of ['t10', 'dv', 'sn', 'rat', 'bu']) o[k] = H?.[k] ?? L?.[k] ?? null; return o; } /* 持有人那份比较新（详情点开过）就用它，跟详情一致 */
+  if (!hasL && !H) return null; const o = {}; for (const k of ['t10', 'dv', 'sn', 'rat', 'bu']) o[k] = H?.[k] ?? (hasL ? L[k] : null); return o.t10 > 0 ? o : null; } /* 持有人那份比较新（详情点开过）就用它，跟详情一致 */
 /* RISK2-1113 画面看得到的卡：画面把看得到的币传进来，没查过的排进背景队列（同一个币 AVH_MS 内只查一次；转接站共用快取） */
 ipcMain.handle('cardRisk', (e, net, list) => { const hn = net === 'robinhood' ? 'robinhood' : 'bsc'; const L = (Array.isArray(list) ? list : []).map((a) => String(a || '').toLowerCase()).filter((a) => /^0x[0-9a-f]{40}$/.test(a)).slice(0, CARD_RISK_VIS); const M = aveBoard()?.m?.[hn === 'robinhood' ? 'rh' : 'bsc'] || {}; const out = {}, need = [];
   for (const a of L) { const rk = cardRk(hn, a, M[a]); if (rk) out[a] = rk; else if (crNeed(hn, a, M[a])) need.push(a); } if (need.length) cardRiskFill(hn, need, 1); return out; });
