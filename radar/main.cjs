@@ -221,7 +221,7 @@ function smartLive(S) { const st = readJSON(SET, {}); const own = new Set((Array
   const clr = Number(st['smart.clearAt']) || 0; return (S.smartW?.events || []).filter((e) => e.at > clr && (e.who || []).some((w) => own.has(String(w).toLowerCase()))); }
 /*KOLFEED-1113 名单＝①官方 KOL 钱包（RMT.kol，EVM 地址，十条 EVM 链都看）②查过的 AVE 持有人标签里的 KOL／聪明钱（详情、卡片风险一排查到的）③AVE smart_wallet/list（每条链 KF_SW_MS 问一次，只在有人看动态时）。
   价格／市值只用看盘资料（AVE 共用看盘），读不到＝不显示。只读，不进任何买卖判断 */
-const KF_CH = ['bsc', 'robinhood', 'solana', 'base', 'eth', 'xlayer', 'arbitrum', 'polygon', 'monad', 'hyperevm']; const KF_SW_MS = 30 * 60e3; /* 运作：聪明钱清单多久重问一次（每条链 10 单位） */ const KFW = { at: {}, L: {}, busy: 0 };
+const KF_CH = ['bsc', 'robinhood', 'solana', 'base', 'eth', 'xlayer', 'arbitrum', 'polygon', 'monad', 'hyperevm', 'elysium']; const KF_SW_MS = 30 * 60e3; /* 运作：聪明钱清单多久重问一次（每条链 10 单位） */ const KFW = { at: {}, L: {}, busy: 0 };
 const kfAddr = (ch, a) => { a = String(a || '').trim(); return ch === 'solana' ? (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a) ? a : '') : (/^0x[0-9a-fA-F]{40}$/.test(a) ? a.toLowerCase() : ''); };
 async function kfSmRefresh() { if (KFW.busy || !aveOK()) return; KFW.busy = 1; try { for (const ch of KF_CH) { if (Date.now() - (KFW.at[ch] || 0) < KF_SW_MS) continue; KFW.at[ch] = Date.now();
       const j = await AVE_BG.run({ bg: 1 }, () => aveGet('/v2/address/smart_wallet/list?chain=' + ch, 10)).catch(() => null); const L = Array.isArray(j?.data) ? j.data : []; if (L.length) KFW.L[ch] = L.map((w) => ({ a: kfAddr(ch, w.wallet_address), nm: String(w.remark || '').replace(/[\u0000-\u001f<>]/g, '').slice(0, 30) })).filter((w) => w.a); } } finally { KFW.busy = 0; } }
