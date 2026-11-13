@@ -627,13 +627,14 @@ function render() {
   if (!KEY) { if (app.dataset.v !== 'pair') { app.dataset.v = 'pair'; app.innerHTML = `<div class="pair"><svg width="96" height="96" viewBox="0 0 192 192"><rect width="192" height="192" rx="44" fill="#16191e"/><circle cx="96" cy="96" r="62" fill="none" stroke="#2ebd85" stroke-width="7" opacity=".55"/><circle cx="96" cy="96" r="36" fill="none" stroke="#2ebd85" stroke-width="7"/><path d="M96 96 L146 56" stroke="#2ebd85" stroke-width="10" stroke-linecap="round"/><circle cx="96" cy="96" r="11" fill="#f0b90b"/></svg><h1>连结你的罗宾猫雷达</h1><p>在电脑雷达点「⚙️ 设定 → 📱 连结手机」，<br>用这支手机的相机扫画面上的 QR 码。</p><p style="font-size:13px">钱包和私钥一直留在你的电脑里。<br>手机和电脑之间的消息全程加密，转接站看不到内容。</p></div>`; } return; }
   if (app.dataset.v !== 'main') {
     app.dataset.v = 'main';
-    app.innerHTML = `<header class="top"><div class="brand">${catImg('cat')}<div style="min-width:0"><b>罗宾猫雷达</b><span class="pc" id="stTxt"></span></div></div><div id="topR"></div></header><div class="warnbar" id="wb"></div><div id="bnr"></div><main id="pg"></main>
+    app.innerHTML = `<header class="top"><div class="brand">${catImg('cat')}<div style="min-width:0"><b>罗宾猫雷达</b><span class="pcr"><span class="pc" id="stTxt"></span><button class="aveC" id="aveC" data-a="ave" hidden aria-label="AVE 赞助：打开 AVE" title="感谢 AVE 赞助"><small>赞助</small>AVE ↗</button></span></div></div><div id="topR"></div></header><div class="warnbar" id="wb"></div><div id="bnr"></div><main id="pg"></main>
     <nav class="tab" id="nav">${[['board', '看盘'], ['hold', '持仓'], ['set', '自订策略'], ['sig', '信号'], ['me', '更多']].map(([k, n]) => `<button data-a="tab" data-t="${k}">${IC[k]}${n}<sup id="nb_${k}" hidden></sup></button>`).join('')}</nav>`;
     if (FIRST) { FIRST = false; document.body.classList.add('intro'); setTimeout(() => document.body.classList.remove('intro'), 700); }
   }
   document.querySelectorAll('[data-avew]').forEach((e) => { e.style.display = ST?.ref?.ave ? (e.style.padding.startsWith('0') ? 'flex' : '') : 'none'; }); /* ZR-FIX7：AVE 连结来自电脑（repo.cjs REF_AVE_URL），没有就不显示 */
   const stop = !!ST?.estop;
   setHTML('#stTxt', PC_ON && ST?.eng ? '<i class="dot" style="background:#f6465d"></i><span style="color:#ff8f9e">⚠️ 引擎停了</span>' : PC_ON && ST?.boot ? '<i class="dot" style="background:#f0b90b"></i><span style="color:#f0b90b">⏳ 引擎启动中…</span>' /* UIFIX7 */ : `<i class="dot ${PC_ON ? 'on' : ''}"></i>${esc(PC_ON ? (ST?.run || '电脑在线') : (WS?.readyState === 1 ? '电脑离线' : '连线中…'))}`); /* UIFIX5：引擎停了就写引擎停了，不写运行中 */
+  { const a = $('#aveC'); if (a) a.hidden = !ST?.ref?.ave; } /* POL-1113：AVE 赞助改成顶栏状态旁一个小标（连结来自电脑 ST.ref.ave，没有就不显示），不再占看盘一整排 */
   setHTML('#topR', `<button class="stopB ${stop ? 'on' : ''}" data-a="stop">${stop ? '🛑 已全停' : '🛑 紧急全停'}</button>`);
   const wb = $('#wb'); const off = (ST?.wallets || []).filter((w) => w.off).map((w) => w.name); let wt = '';
   if (!PC_ON) wt = '电脑雷达没在线：电脑要开着、雷达要在跑。连上后会自动更新。';
@@ -723,7 +724,7 @@ async function loadPnl(force) {
 
 /* ── 看盘（首页） ── */
 const openAttr = (c, s, n) => `data-a="open" data-c="${esc(c)}" data-s="${esc(s)}" data-net="${n === 'rh' ? 'rh' : 'bsc'}"`;
-const frameBoard = () => heroFrame('我的资产', 1) + '<div id="uf4AveP" style="display:none;align-items:center;gap:8px;padding:0 4px 6px"><button class="btn g s" data-a="ave" style="font-weight:700">AVE ↗</button><small class="mu" style="font-size:11px">感谢 AVE 赞助</small></div><div id="bStrip"></div><div class="bhR0"><div class="chips sm" id="bCat" style="padding:0 4px 6px"></div><div class="nseg" id="bNet"></div></div><div class="bhd"><div class="bh1"><div class="ctabs" id="bCol"></div></div><div class="chips sm" id="bSort"></div></div><div class="aveSt note" style="display:none;padding:0 4px 6px;font-size:12px"></div><div id="bList"></div>';
+const frameBoard = () => heroFrame('我的资产', 1) + '<div id="bStrip"></div><div class="bhR0"><div class="chips sm" id="bCat" style="padding:0 4px 6px"></div><div class="nseg" id="bNet"></div></div><div class="bhd"><div class="bh1"><div class="ctabs" id="bCol"></div></div><div class="chips sm" id="bSort"></div></div><div class="aveSt note" style="display:none;padding:0 4px 6px;font-size:12px"></div><div id="bList"></div>';
 /* NX-1103：每一栏自己的排序；时间段只在排序里选 */
 /* PER-1103（Nancy）：列表上方 [1分][5分][15分][更多 ▾]。每次打开都是：每一列显示 1分／5分／15分 涨跌，热门／涨幅照你点的固定按钮（预设 5分）排；
    「更多」（底部选单：30分 1小时 4小时 24小时 7天）＝暂时只看那个时间段（一列一个大数字，排序也照它；按钮显示「4小时 ▾」）；点固定按钮就回来。不记住（重开回到 1/5/15） */
@@ -749,7 +750,7 @@ const PLATN = { four: 'Four', 'four.meme': 'Four', flap: 'Flap', 'flap.sh': 'Fla
 const PLAT = { bsc: lsGet('rcPlat_bsc') || 'all', rh: lsGet('rcPlat_rh') || 'all' };
 const platKey = (x) => { const p = String(x.plat || '').toLowerCase(); if (!p || p === 'dex' || p === 'new' || p === 'pancake' || p === 'uniswap') return 'new'; if (p === 'other' || p === 'otherpad') return 'otherpad'; if (p.startsWith('p_')) return String(x.pn || p.slice(2)).toLowerCase(); return (PLATN[p] || p).toLowerCase(); }; /* NX-1103 */
 function platChips(cols) { const cnt = {}; for (const c of cols) for (const x of c.items || []) { const k = platKey(x); cnt[k] = (cnt[k] || 0) + 1; } const named = Object.keys(cnt).filter((k) => k !== 'new' && k !== 'otherpad').sort((a, b) => cnt[b] - cnt[a]); const top = named.slice(0, 4), rest = named.slice(4);
-  const L = [['all', '全部']].concat(top.map((k) => [k, PLATN[k] || k.charAt(0).toUpperCase() + k.slice(1), cnt[k]])); if (rest.length || cnt.otherpad) L.push(['olp', '其他发射台', rest.reduce((t, k) => t + cnt[k], 0) + (cnt.otherpad || 0)]); if (cnt.new) L.push(['new', '其他新池', cnt.new]);
+  const L = [['all', '全部']].concat(top.map((k) => [k, PLATN[k] || (k.charAt(0).toUpperCase() + k.slice(1)).replace(/_/g, ' '), cnt[k]])); if (rest.length || cnt.otherpad) L.push(['olp', '其他发射台', rest.reduce((t, k) => t + cnt[k], 0) + (cnt.otherpad || 0)]); if (cnt.new) L.push(['new', '其他新池', cnt.new]);
   if (!L.some((p) => p[0] === PLAT[NET])) PLAT[NET] = 'all'; return { L, top: new Set(top), any: named.length > 0 }; }
 function platOk(x, P) { const f = PLAT[NET]; if (f === 'all') return true; const k = platKey(x); if (f === 'new') return k === 'new'; if (f === 'olp') return k !== 'new' && !P.top.has(k); return k === f; }
 function sortItems(L, c) { const S = curSort(c); const a = L.slice(); const n = (v) => v == null || !isFinite(v) ? -Infinity : +v; const done = c?.k === 'done';
@@ -785,7 +786,8 @@ function fillBoard() {
   setHTML('#bCol', cols.map((c, i) => `<button data-a="col" data-i="${i}" class="${i === COL && !PWL ? 'on' : ''}">${esc(c.k === 'hot' ? '🔥 热门内盘' : String(c.t).replace(/^\S+\s/, ''))}</button>`).join('') + (cols.length ? `<button data-a="wlcol" class="${PWL ? 'on' : ''}">⭐ 自选</button>` : '') || '<span class="mu" style="font-size:12px;padding:0 4px">看盘</span>');
   setHTML('#bNet', `${sn ? `<button data-a="strip" class="stb${STRIP ? ' on' : ''}" aria-label="焦点">⭐ 焦点<small>${sn}</small></button>` : ''}<button data-a="net" data-n="bsc" class="${NET === 'bsc' ? 'on' : ''}">BSC</button><button data-a="net" data-n="rh" class="${NET === 'rh' ? 'on' : ''}">RH</button>`);
   const P = platChips(cols);
-  setHTML('#bSort', (P.any ? '<div class="bsP">' + P.L.map(([k, n, c]) => `<button data-a="plat" data-k="${k}" class="pf${PLAT[NET] === k ? ' on' : ''}">${esc(n)}</button>`).join('') + '</div>' : '') + '<div class="bsT">' + (cols[COL]?.k === 'done' ? ['new', 'hot'].map((k) => `<button data-a="dsub" data-k="${k}" class="${DSUB === k ? 'on' : ''}">${k === 'new' ? '新外盘' : '热门外盘'}</button>`).join('') + '<i class="csep"></i>' : '') + perBar() + `<select class="psel" data-a="psort" aria-label="这一栏怎么排">${SORTS.map(([k, n]) => `<option value="${k}" ${curSort(cols[COL]) === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>`);
+  const dsb = cols[COL]?.k === 'done' ? ['new', 'hot'].map((k) => `<button data-a="dsub" data-k="${k}" class="${DSUB === k ? 'on' : ''}">${k === 'new' ? '新外盘' : '热门外盘'}</button>`).join('') + '<i class="csep"></i>' : ''; /* POL-1113：「新外盘／热门外盘」放到发射台那排最前面（那排本来就能横滑），时间段＋排序一排才塞得下 */
+  setHTML('#bSort', (P.any ? '<div class="bsP">' + dsb + P.L.map(([k, n, c]) => `<button data-a="plat" data-k="${k}" class="pf${PLAT[NET] === k ? ' on' : ''}">${esc(n)}</button>`).join('') + '</div>' : '') + '<div class="bsT">' + (P.any ? '' : dsb) + perBar() + `<select class="psel" data-a="psort" aria-label="这一栏怎么排">${SORTS.map(([k, n]) => `<option value="${k}" ${curSort(cols[COL]) === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>`);
   const z = rowZap(NET);
   setHTML('#bList', !B ? (PC_ON ? skRows(9) : '<div class="empty">电脑雷达没在线</div>') : B.err && !cols.length ? `<div class="empty">暂时读不到（${esc(B.err)}）<br><button class="btn g s" data-a="bretry" style="margin-top:8px">重试</button></div>` : (PWL ? wlRows(NET, z) : sortItems((cols[COL]?.items || []).filter((x) => platOk(x, P)), cols[COL]).map((x) => rowTok(x, NET, z, winOf(curSort(cols[COL])))).join('') + moreBtn(cols[COL])) || `<div class="empty">${B.err ? `暂时读不到（${esc(B.err)}）<br><button class="btn g s" data-a="bretry" style="margin-top:8px">重试</button>` : PLAT[NET] !== 'all' ? '这个平台现在没有币' : '这一栏现在没有币'}</div>` + moreBtn(cols[COL]));
 }
@@ -1725,7 +1727,7 @@ const fin=v=>v!=null&&v!==''&&Number.isFinite(+v);const PC_EPS=.05;/* 技术用�
 const kf=n=>{n=+n;const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':a>=1e3?(n/1e3).toFixed(a<1e5?1:0).replace(/\.0$/,'')+'K':String(Math.round(n))};
 const pc1=v=>(+v>=0?'+':'')+(Math.abs(+v)>=PCT?Math.round(+v):(+v).toFixed(1))+'%';
 const ageTxt=m=>m==null?'':m<1?'刚刚':m<60?Math.round(m)+'分':m<1440?Math.round(m/60)+'小时':Math.round(m/1440)+'天';
-const platN=p=>{p=String(p||'').toLowerCase();if(!p)return '';if(p.includes('four'))return 'four.meme';if(p.includes('flap'))return 'Flap';if(p.includes('gang'))return 'GANG';if(p.includes('pons'))return 'Pons';if(p.includes('bankr'))return 'Bankr';return p.replace(/\.(com|ai|fun|sh|xyz)$/,'').slice(0,10)};
+const platN=p=>{p=String(p||'').toLowerCase().replace(/^p_/,'').replace(/_/g,' ');if(!p)return '';if(p.includes('four'))return 'Four';/*POL-1113 卡片上用短名（跟筛选列一样），不再出现「four....」*/if(p.includes('flap'))return 'Flap';if(p.includes('gang'))return 'GANG';if(p.includes('pons'))return 'Pons';if(p.includes('bankr'))return 'Bankr';return p.replace(/\.(com|ai|fun|sh|xyz)$/,'').slice(0,10)};
 function card(x,net,z){const e=x.e||{};const pg=fin(e.pg)?+e.pg:fin(x.prog)?+x.prog:null;const rp=pg==null?0:Math.min(PCT,Math.max(0,pg));
  const av=`<div class="rcAv"><div class="rcRing" style="background:conic-gradient(var(--acc) ${(rp*3.6).toFixed(1)}deg,var(--line) 0)">${logo(x.sym,x.c,x.img)}</div>${pg!=null?`<i class="rcPg">${Math.floor(rp)}%</i>`:''}</div>`;
  const so=[e.xl?'𝕏':'',e.tl?'✈':'',e.wl?'🌐':''].filter(Boolean).join(' ');
@@ -1904,5 +1906,43 @@ header.top .stopB{flex:0 0 auto;min-height:44px}
  nav.tab button sup{top:2px;left:auto;right:6px}
 }
 </style>
+<style id="phPol1113">/*POL-1113 手机看盘再收紧（对照 GMGN／AVE／币安钱包手机版）：①AVE 赞助＝顶栏状态旁一个小标 ②时间段＋排序一排塞得下（排序选单可缩、超出用 …）③卡片发射台标签用短名、不被截 ④资产列变一条细列、没连钱包横幅变矮 → 第一张卡往上 ⑤会横滑的列右边淡出，看得出还有。只改画面*/
+header.top .pcr{display:flex;align-items:center;gap:6px;min-width:0}
+header.top .pcr .pc{flex:0 1 auto;min-width:0}
+.aveC{flex:none;position:relative;display:inline-flex;align-items:center;gap:3px;height:17px;padding:0 6px 0 5px;border-radius:999px;border:1px solid rgba(60,227,160,.34);background:rgba(60,227,160,.09);color:#3CE3A0;font-size:10px;font-weight:750;line-height:1;white-space:nowrap;letter-spacing:.2px}
+.aveC small{font-size:9.5px;font-weight:600;color:var(--mute)}
+.aveC[hidden]{display:none}
+.aveC::after{content:"";position:absolute;inset:-14px -6px}/* 点的范围比看起来大 */
+.aveC:active{transform:scale(.95)}
+.nowb{height:30px;margin:0 10px 2px;font-size:12.5px;border-radius:9px}.nowb a{width:40px;height:30px}
+.hero.cmp{margin:2px 10px 3px;padding:3px 10px 3px 8px;border-radius:12px;box-shadow:none}
+.hero.cmp .hrow>img,.hero.cmp .hrow>.catf{width:22px;height:22px;border-radius:6px}
+.hero.cmp .big{font-size:17px}.hero.cmp .pl{font-size:11.5px}
+.hero.cmp canvas.pnl{width:72px;height:22px}
+.bh1{padding-top:0}
+#bSort.chips.sm{padding-top:2px;padding-bottom:3px;row-gap:3px}
+@media (orientation:landscape) and (max-height:500px){#bSort>.bsT{flex:0 0 auto}#bSort>.bsP{flex:1 1 0;min-width:0}}
+.bhR0>#bNet{padding:0 2px}
+#bSort>.bsT{gap:4px}
+#bSort>.bsT .perBar{flex:none}
+#bSort>.bsT .pperB{padding:0 7px;min-width:44px}
+#bSort>.bsT>.psel{flex:1 1 0;min-width:64px;max-width:none;height:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rcPC>.r1 b{flex:0 1 auto;min-width:2.4em}
+.rcPC>.r1 i{flex:none;max-width:76px;text-overflow:clip;text-transform:capitalize}
+.rcPC>.r1 em{flex:none}@media (max-width:360px){.rcPC>.r1{gap:4px}}/* 窄的时候只有名字用 … 让位；发射台短名、几分钟前都完整显示 */
+header.top .brand>div{overflow:visible}/* 让「赞助 AVE」小标的点击范围可以超出文字框 */
+.hsf{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 var(--fl,0px),#000 calc(100% - var(--fr,0px)),transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 var(--fl,0px),#000 calc(100% - var(--fr,0px)),transparent 100%)}
+.hsf.fr{--fr:28px}.hsf.fl{--fl:16px}
+</style>
+<script>/*POL-1113 横滑列（看盘栏位／分类／发射台／排序列）右边（滑过后左边）淡出：还有东西时才淡，滑到底就不淡（跟 GMGN 手机版一样）。只改画面*/
+(function(){const SEL='#bCol,#bCat,#bSort>.bsP,#bSort>.bsT,#sF,.chips';let q=0;
+function upd(e){const m=e.scrollWidth-e.clientWidth;const on=m>1;e.classList.toggle('hsf',on);e.classList.toggle('fr',on&&e.scrollLeft<m-1);e.classList.toggle('fl',on&&e.scrollLeft>1)}
+function all(){q=0;document.querySelectorAll(SEL).forEach(upd)}
+const go=()=>{if(!q){q=1;setTimeout(()=>requestAnimationFrame(all),120)}};/* 技术用：画面一直在跳价格，合并成一次检查 */
+document.addEventListener('scroll',(ev)=>{const t=ev.target;if(t&&t.nodeType===1&&t.matches&&t.matches(SEL))upd(t)},true);
+addEventListener('resize',go);
+setInterval(go,1500);/* 技术用：字型／图片载入后宽度会变（不会触发上面的监听），慢慢补检查 */
+const st=()=>{const a=document.getElementById('app');if(!a)return setTimeout(st,300);new MutationObserver(go).observe(a,{childList:true,subtree:true});go()};st();})();
+</script>
 </body>
 </html>
