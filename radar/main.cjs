@@ -526,6 +526,10 @@ const AVK = new Map(); async function aveCandles(net, addr, tf) { if (!aveOK()) 
   if (T[1] > 1 && L.length) L = agg(L);
   if (!L.length && T[0] * T[1] > 5) { try { let P2 = []; for (const u of [`token/${addr}-${ch}`, `pair/${addr}-${ch}`]) { const j = await aveGet(`/v2/klines/${u}?interval=5&limit=1000`, 10); P2 = j?.data?.points || []; if (P2.length || addr.length !== 42) break; } const L5 = P2.map((r) => ({ t: (+r.time) * 1000, o: +r.open, h: +r.high, l: +r.low, c: +r.close, v: +r.volume || 0 })).filter((x) => x.t > 0 && x.h > 0).sort((a, b) => a.t - b.t); if (L5.length) L = agg(L5); } catch {} }
   L = KL.fillGaps(L, SEC, CD_CAP_AVE, Date.now()); if (L.length) AVK.set(ck, { at: Date.now(), v: L }); /*AVE110-NOCACHE 读不到不快取*/ if (AVK.size > 200) AVK.delete(AVK.keys().next().value); return L; }
+/*SND2-1113 音档／loops.json 由主程式读给画面：只收 radar/ui/audio 底下「小写字母数字底线＋.ogg／.json」的档名，读不到回 null（画面就静音、隔一阵再试）。
+  原因：画面用 fetch 读本机档，Chromium 在 file:// 底下不保证能读（一般浏览器、某些设定会挡），读失败时配乐又会一直重试把画面卡死 */
+const AUDIO_DIR = path.join(__dirname, 'ui', 'audio'); const AUDIO_MAX_B = 4194304; /* 技术用：单一音档最大几 MB */
+ipcMain.handle('audioFile', (e, n) => { try { n = String(n || ''); if (!/^[a-z0-9_]{1,40}\.(ogg|json)$/.test(n)) return null; const f = path.join(AUDIO_DIR, n); const st = fs.statSync(f); if (!st.isFile() || st.size > AUDIO_MAX_B) return null; const b = fs.readFileSync(f); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); } catch { return null; } });
 ipcMain.handle('candles', async (e, net, pool, tf) => { net = net === 'robinhood' ? 'robinhood' : 'bsc'; pool = String(pool || '').toLowerCase().replace(/_[a-z0-9]+$/, ''); /* QAMC-1103 */ if (!/^0x[0-9a-f]{40,64}$/.test(pool)) return [];
   /* KQ-1104：顺序 ① 已经开池的发射台币 → 改看池子 ② AVE（有金钥）／GeckoTerminal 的完整历史 ③ 雷达自己记的成交只用在：还在曲线上的币、或远端读不到；有远端资料时只拿来更新最后一根 */
   const sec = CDSEC[tf] || 300; let loc = null, quoteWait = false, curve = false;

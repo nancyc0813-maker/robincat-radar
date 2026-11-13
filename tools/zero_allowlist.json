@@ -20143,6 +20143,24 @@
     "1e3"
    ],
    "reason": "KFIX-1113 成交量刻度写成 K（单位换算，显示用）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "const\\ AU_RETRY_MS=60e3;",
+   "values": [
+    "60e3"
+   ],
+   "reason": "SND2-1113 音档读不到后多久再试（技术用，只影响声音，不进买卖判断）"
+  },
+  {
+   "rule": "TIMEWIN|OBJNUM|CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "const\\ AUDIO_MAX_B\\ =\\ 4194304;",
+   "values": [
+    "4194304"
+   ],
+   "reason": "SND2-1113 主程式读音档的大小上限（技术用，防止读到怪档）"
   }
  ]
 }

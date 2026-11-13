@@ -6043,19 +6043,21 @@ let moT=0;function dtlObs(){const d=Q('#dtl');if(!d||d.__rcO)return;d.__rcO=1;ne
    - 音讯只在「详情开着＋（配乐或音效开着）＋视窗看得到」时建立；条件不成立 → 约 FADE_S 秒淡出 → 暂停（suspend）→ 再过 CLOSE_S 秒关掉（close，Windows 音量合成器里就消失），下次打开再建。
    - 配乐关＝音乐来源根本不建立（不是只把音量调 0）；音效关＝一个音效都不播。 */
 const AU={ctx:null,mg:null,dk:null,sg:null,src:{},g:{},t0:0,loopDur:0,cur:'flat',ready:0,loading:0,det:false,away:0,winHid:0,err:'',susT:0,clsT:0,sm:null,smA:'',log:[],sfxLog:[],seen:null,nCtx:0,test:null};
-window.__rcAu=AU;/* 测试与除错用（只读） */
+window.__rcAu=AU;const AU_RETRY_MS=60e3;/* 技术用：音档读不到后多久再试 *//* 测试与除错用（只读） */
 const BUF=new Map();/* 解码好的音档（不绑定音讯，关掉再建不用重新解码） */
 function logA(o){AU.log.push(o);if(AU.log.length>LOGN)AU.log.shift();try{console.info('[配乐]',JSON.stringify(o))}catch{}}
-function buf(name){if(BUF.has(name))return BUF.get(name);const p=fetch('audio/'+name+'.ogg').then(r=>{if(!r.ok)throw new Error(name+' '+r.status);return r.arrayBuffer()}).then(b=>{const C=AU.ctx||new OfflineAudioContext(2,1,44100);return C.decodeAudioData(b)}).catch(e=>{BUF.delete(name);throw e});BUF.set(name,p);return p}
+/*SND2-1113 先请主程式读（雷达本体），读不到才退回 fetch（手机网页／测试）*/
+async function auRead(n){try{if(window.radar?.audioFile){const b=await window.radar.audioFile(n);if(b&&b.byteLength)return b}}catch{}try{const r=await fetch('audio/'+n);if(r.ok)return await r.arrayBuffer()}catch{}return null}
+function buf(name){if(BUF.has(name))return BUF.get(name);const p=auRead(name+'.ogg').then(b=>{if(!b)throw new Error(name+' unreadable');return b}).then(b=>{const C=AU.ctx||new OfflineAudioContext(2,1,44100);return C.decodeAudioData(b)}).catch(e=>{BUF.delete(name);throw e});BUF.set(name,p);return p}
 function detAddr(){if(AU.away)return '';if(!detOpen()||!document.getElementById('dtl').getClientRects().length){try{return window.__mcxAu?String(window.__mcxAu.addr()||''):''}catch{return ''}}try{return String(window.__dtD?.addr||FDV?.addr0||'').toLowerCase()}catch{return ''}}/*SND-1113 多链详情也算*/
 function want(){return !!AU.det&&(!!P.snd||!!P.sfx)&&!document.hidden&&!AU.winHid}
 function mkCtx(){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('no AudioContext');const C=new AC({latencyHint:'playback'});AU.ctx=C;AU.nCtx++;
  const cp=C.createDynamicsCompressor();cp.connect(C.destination);const dk=C.createGain();dk.connect(cp);const mg=C.createGain();mg.gain.value=0;mg.connect(dk);const sg=C.createGain();sg.gain.value=0;sg.connect(cp);Object.assign(AU,{mg,dk,sg,src:{},g:{},ready:0});logA({ev:'ctx',n:AU.nCtx,state:C.state})}
-let LJ=null;function loopsJson(){if(!LJ)LJ=fetch('audio/loops.json').then(r=>r.ok?r.json():{}).catch(()=>({}));return LJ}
+let LJ=null;function loopsJson(){if(!LJ)LJ=auRead('loops.json').then(b=>b?JSON.parse(new TextDecoder().decode(b)):{}).catch(()=>({}));return LJ}
 async function musicStart(){const C=AU.ctx;if(!C||AU.ready||AU.loading||!P.snd)return;AU.loading=1;try{const [L,J]=await Promise.all([Promise.all(MS.map(s=>buf('m_'+s))),loopsJson()]);if(AU.ctx!==C||!P.snd||!want())return;
   /* 五段同长度同速：loopEnd 照 loops.json 的取样点数设（解码后可能多几个编码补的空白取样，不能用档案长度）；全部在同一个时间点起播，换段才会落在小节上 */const j=J&&J.m_flat;AU.loopDur=j&&+j.samples>0&&+j.sr>0?+j.samples/+j.sr:Math.min(...L.map(b=>b.duration));AU.bars=j&&+j.bars>0?+j.bars:LOOP_BARS;const t0=C.currentTime+GUARD_S*2;AU.t0=t0;
   MS.forEach((s,i)=>{const b=L[i];const x=C.createBufferSource();x.buffer=b;x.loop=true;x.loopStart=0;x.loopEnd=AU.loopDur;const g=C.createGain();g.gain.value=s===AU.cur?1:0;x.connect(g);g.connect(AU.mg);x.start(t0);AU.src[s]=x;AU.g[s]=g});
-  AU.ready=1;logA({ev:'music-start',loop:+AU.loopDur.toFixed(3),state:AU.cur})}catch(e){AU.err=String(e?.message||e);console.error('配乐',e)}finally{AU.loading=0;sndSync()}}
+  AU.ready=1;AU.failAt=0;logA({ev:'music-start',loop:+AU.loopDur.toFixed(3),state:AU.cur})}catch(e){AU.err=String(e?.message||e);AU.failAt=Date.now();logA({ev:'music-fail',err:AU.err});console.error('配乐',e)}finally{AU.loading=0;if(AU.ready)sndSync()}}/*SND2-1113 读不到音档时不再立刻重试（以前 finally→sndSync→musicStart 无限循环，整个画面卡死）；隔 AU_RETRY_MS 才再试*/
 function musicStop(){for(const s in AU.src){try{AU.src[s].stop()}catch{}try{AU.src[s].disconnect()}catch{}}AU.src={};AU.g={};AU.ready=0}
 /* 换段：等到下一个小节线才开始，交叉淡入淡出一小节 */
 function xfade(to){const C=AU.ctx;if(!C||!AU.ready||to===AU.cur)return void(AU.cur=to);const now=C.currentTime;const bar=AU.loopDur/(AU.bars||LOOP_BARS);const XF_S=bar;const k=Math.ceil((now+GUARD_S-AU.t0)/bar);const tb=AU.t0+k*bar;const from=AU.cur;
@@ -6064,7 +6066,7 @@ function xfade(to){const C=AU.ctx;if(!C||!AU.ready||to===AU.cur)return void(AU.c
 /* 开关音讯（每次状态可能改变都叫这个；没变就什么都不做） */
 function sndSync(){const C=AU.ctx;const on=want();clearTimeout(AU.susT);
  if(on){clearTimeout(AU.clsT);AU.clsT=0;if(!C){try{mkCtx()}catch(e){AU.err=String(e?.message||e);return}}const X=AU.ctx;if(X.state==='suspended')X.resume().catch(()=>{});const now=X.currentTime;
-  if(P.snd){if(!AU.ready)musicStart();AU.mg.gain.cancelScheduledValues(now);AU.mg.gain.setTargetAtTime(P.vol*P.vol,now,FADE_S/4)}else{AU.mg.gain.cancelScheduledValues(now);AU.mg.gain.setTargetAtTime(0,now,FADE_S/6);if(AU.ready)AU.susT=setTimeout(()=>{if(!P.snd)musicStop()},FADE_S*SEC)}
+  if(P.snd){if(!AU.ready&&!(AU.failAt&&Date.now()-AU.failAt<AU_RETRY_MS))musicStart();AU.mg.gain.cancelScheduledValues(now);AU.mg.gain.setTargetAtTime(P.vol*P.vol,now,FADE_S/4)}else{AU.mg.gain.cancelScheduledValues(now);AU.mg.gain.setTargetAtTime(0,now,FADE_S/6);if(AU.ready)AU.susT=setTimeout(()=>{if(!P.snd)musicStop()},FADE_S*SEC)}
   AU.sg.gain.cancelScheduledValues(now);AU.sg.gain.setTargetAtTime(P.sfx?P.svol*P.svol:0,now,FADE_S/8)}
  else if(C){const now=C.currentTime;AU.mg.gain.cancelScheduledValues(now);AU.mg.gain.setTargetAtTime(0,now,FADE_S/4);AU.sg.gain.cancelScheduledValues(now);AU.sg.gain.setTargetAtTime(0,now,FADE_S/6);
   AU.susT=setTimeout(()=>{if(want()||AU.ctx!==C)return;if(!P.snd)musicStop();if(C.state==='running')C.suspend().catch(()=>{});logA({ev:'suspend'});

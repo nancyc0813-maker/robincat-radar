@@ -9,6 +9,7 @@ const B = (x) => !!x;
 const call = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
 contextBridge.exposeInMainWorld('radar', {
   snapshot: () => call('snapshot'),
+  audioFile: (n) => call('audioFile', S(n, 48)), /*SND2-1113 音档改由主程式读（只收 audio 资料夹里固定格式的档名），不靠画面 fetch 本机档*/
   uiPage: (p) => call('uiPage', S(p, 20)), /*HANG-1111 告诉主程式目前在哪一页（只写日志）*/
   factoryInfo: () => call('factoryInfo'), factoryReset: (t, by) => call('factoryReset', S(t, 20), by === 'phone' ? 'phone' : 'radar'), factoryRestore: () => call('factoryRestore'), /*RESET117 恢复出厂设置／复原*/
   zoomSet: (f) => call('zoomSet', N(f)), zoomGet: () => call('zoomGet'), onWinVis: (fn) => { if (typeof fn === 'function') ipcRenderer.on('winVis', (e, v) => { try { fn(v ? 1 : 0); } catch {} }); }, /*RCV2-VIS 视窗最小化／还原（只给 0／1）*/
