@@ -23,7 +23,7 @@ export const SOL_BASE = new Set([
 /* EVM 不是代币的地址：零地址、全 e／全 f 的占位、Multicall3、Permit2 */
 const EVM_BASE = new Set(['0x0000000000000000000000000000000000000000', '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', '0xffffffffffffffffffffffffffffffffffffffff', '0xca11bde05977b3631167028862be2a173976ca11', '0x000000000022d473030f116ddee9f6b43ac78ba3']);
 /* DexScreener 的 chainId → 雷达的链代号（雷达十条链；其他链的币不收） */
-export const DS_CH = { bsc: 'bsc', solana: 'solana', base: 'base', ethereum: 'eth', robinhood: 'robinhood', xlayer: 'xlayer', arbitrum: 'arbitrum', polygon: 'polygon', monad: 'monad', hyperevm: 'hyperevm' };
+export const DS_CH = { bsc: 'bsc', solana: 'solana', base: 'base', ethereum: 'eth', robinhood: 'robinhood', xlayer: 'xlayer', arbitrum: 'arbitrum', polygon: 'polygon', monad: 'monad', hyperevm: 'hyperevm', elysium: 'elysium' /*ELYCALL-1114 用户要 Elysium 喊单也收（DexScreener chainId＝elysium，11/14 实测有交易对）*/ };
 
 /* 从一段文字挑地址：evm（小写）、sol（大小写原样）。base58 要同时有数字和英文字母（一般英文长字不会被当成地址） */
 export function pickAddrs(text) {

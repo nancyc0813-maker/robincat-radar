@@ -233,7 +233,7 @@ function kfList() { const out = {}; const add = (ch, a0, nm, kind) => { const a 
   return out; }
 function kfPx(ch, c) { const M = aveBoard()?.m?.[ch === 'robinhood' ? 'rh' : ch]; const v = M?.[ch === 'solana' ? c : String(c).toLowerCase()]; return v ? { cp: +v.cp || null, mc: +v.mc || null, sym: String(v.s || '') } : null; }
 ipcMain.handle('kolFeed', (e, n) => { try { if (!KF) return { items: [], err: 'kf' }; KF.touch(); kfSmRefresh().catch(() => {}); return { items: KF.feed(Math.max(1, Math.min(500, +n || 100))), stat: KF.stat(), at: Date.now() }; } catch (er) { return { items: [], err: String(er?.message || er).slice(0, 80) }; } }); /*KOLFEED-1113 给讯号页／总览面板：谁、买／卖、哪个币、多少钱、当时市值、现在市值*/
-const SIG_DS = { bsc: 'bsc', rh: 'robinhood', solana: 'solana', base: 'base', eth: 'ethereum', xlayer: 'xlayer', arbitrum: 'arbitrum', polygon: 'polygon', monad: 'monad', hyperevm: 'hyperevm' }; /*CALLADDR-1113 雷达链代号 → DexScreener chainId（喊单的现在市值）*/
+const SIG_DS = { bsc: 'bsc', rh: 'robinhood', solana: 'solana', base: 'base', eth: 'ethereum', xlayer: 'xlayer', arbitrum: 'arbitrum', polygon: 'polygon', monad: 'monad', hyperevm: 'hyperevm', elysium: 'elysium' }; /*CALLADDR-1113 雷达链代号 → DexScreener chainId（喊单的现在市值）*/
 async function signals() { const S = stJSON(path.join(DATA, 'watch_state.json'), {}); const P = readJSON(SIGP, {});
   /* 信号页改版 → 三种来源合在一起（TG 频道、X、聪明钱／KOL 实买），同一个币合并成一行；1 小时内 2 个以上不同来源＝🔥共振 */
   const L = [...(S.callLog || []).slice(-300).map((x) => ({ c: x.c, src: x.src, at: x.at, ch: SIG_DS[x.ch] ? x.ch : 'bsc', ty: /^𝕏/.test(x.src) ? 'x' : 'tg' })), /*CALLADDR-1113 引擎记的 ch（Solana／Base／X Layer…）；旧纪录没有 ch＝BNB Chain*/
