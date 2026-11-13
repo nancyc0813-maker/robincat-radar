@@ -27,8 +27,8 @@ function merge(j) {
   S.rev++; }
 /* 跟旧的签名看盘档合并：清单／价格以转接站为准，旧档的持有人标签（ht）、聪明钱（sm／sw）照留 */
 let MG = { rev: -1, old: null, v: null };
-function board(old) {
-  if (S.okAt && Date.now() - S.tryAt >= pollMs()) pull().catch(() => {}); else if (!S.okAt && Date.now() - S.tryAt >= 15e3 /* 技术用：转接站还没有这个功能（旧版转接站）时多久再试 */) pull().catch(() => {});
+function board(old, slow) { /*SWR-1113 slow＝多链看盘来拿：最快照转接站清单的刷新间隔（poll.list）才重拉，不照价格的间隔（推送断线时会变成每几秒拉一次整份）*/
+  if (S.okAt && Date.now() - S.tryAt >= (slow && S.poll && +S.poll.list > 0 ? Math.max(pollMs(), +S.poll.list * 1000) : pollMs())) pull().catch(() => {}); else if (!S.okAt && Date.now() - S.tryAt >= 15e3 /* 技术用：转接站还没有这个功能（旧版转接站）时多久再试 */) pull().catch(() => {});
   if (!S.okAt) return old; if (MG.rev === S.rev && MG.old === old) return MG.v;
   const m = {}; for (const ch of new Set([...Object.keys(old?.m || {}), ...Object.keys(S.m)])) { const a = old?.m?.[ch] || {}, b = S.m[ch] || {}; const o = { ...a }; for (const [k, v] of Object.entries(b)) o[k] = a[k] ? { ...a[k], ...v } : v; m[ch] = o; }
   const v = { ...(old || {}), at: S.at || Date.now(), m, cols: { ...(old?.cols || {}), ...S.cols }, colsAt: { ...(old?.colsAt || {}), ...S.colsAt }, kinds: S.kinds, b2: { at: S.at, okAt: S.okAt, err: S.err, q: S.q, tagErr: S.tagErr, backoff: S.backoff || 0 } };
@@ -60,4 +60,6 @@ async function tapeAve(net, addr, pool, tag) {
   return { src: 'ave', pair: p, at: Date.now(), rows: rows.slice(0, 60) }; }
 function install(o) { X = o; }
 const act = async (o) => { const a = String(o?.a || ''); if (a === 'search') return search(o); if (a === 'stat') return { okAt: S.okAt, at: S.at, err: S.err, q: S.q, tagErr: S.tagErr, n: Object.values(S.m).reduce((n, M) => n + Object.keys(M).length, 0) }; return null; };
-module.exports = { install, board, search, tapeAve, act, stat, _S: S, _merge: merge, _guess: guess };
+module.exports = { install, warm, board, search, tapeAve, act, stat, _S: S, _merge: merge, _guess: guess };
+/*SWR-1113 雷达刚打开、还没拿到共用看盘时：马上去拿，最多等 ms 毫秒（多链看盘切链不用等下一轮） */
+function warm(ms) { if (S.okAt) return Promise.resolve(true); if (!S.busy) pull().catch(() => {}); const t0 = Date.now(); return new Promise((ok) => { const f = () => { if (S.okAt || !S.busy || Date.now() - t0 >= ms) ok(!!S.okAt); else setTimeout(f, 50 /* 技术用：多久看一次拿到没 */); }; setTimeout(f, 50 /* 技术用 */); }); }

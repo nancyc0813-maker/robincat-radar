@@ -19305,6 +19305,744 @@
     "1000"
    ],
    "reason": "OPEN-1113 上外盘时间毫秒换秒（单位换算，技术用），只影响看盘排序和显示，不进买卖判断"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "^/\\*RCV2\\-CSS\\ 新外观",
+   "values": [
+    "40%"
+   ],
+   "reason": "RCV2（新外观）：<style> 里的 CSS 样式数值（渐层位置百分比等），被当成画面文字扫到；只影响外观，不是买卖数字"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "aset\\.cdt\\]\\|\\|\\['',''\\];\\ if\\(cs\\.length>=2\\)\\{CDK",
+   "reason": "LWK-1113：K 线至少两根才画图（画图的技术条件），只影响画面",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "cs\\&\\&cs\\.length>1\\?\\(cs\\[1\\]\\.t\\-cs\\[0\\]\\.t\\):300e3;",
+   "reason": "A5（11/13）：K 线标签笔数／标记用的时间换算（秒→毫秒）与预设 K 棒间隔，只影响画面显示",
+   "values": [
+    "300e3"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "ue;nT\\+\\+;\\ let\\ tt=\\+r\\.t;if\\(tt>0\\&\\&tt<1e12\\)tt",
+   "reason": "A5（11/13）：K 线标签笔数／标记用的时间换算（秒→毫秒）与预设 K 棒间隔，只影响画面显示",
+   "values": [
+    "1e12"
+   ]
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "let\\ tt=\\+r\\.t;if\\(tt>0\\&\\&tt<1e12\\)tt\\*=1000;if",
+   "reason": "A5（11/13）：K 线标签笔数／标记用的时间换算（秒→毫秒）与预设 K 棒间隔，只影响画面显示",
+   "values": [
+    "1000"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "nhard:\\-2,down:\\-1,flat:0,up:1,uphot:2\\};\\ c",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "住了就退回上涨／下跌）；单纯来回震荡不算\\ \\*/\\ if\\(cur===2\\&\\&L<2\\&",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "上涨／下跌）；单纯来回震荡不算\\ \\*/\\ if\\(cur===2\\&\\&L<2\\&\\&up>=",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": ">=o\\.u1\\*k\\)L=Math\\.max\\(L,1\\);if\\(cur===\\-2\\&\\&L>",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\*k\\)L=Math\\.max\\(L,1\\);if\\(cur===\\-2\\&\\&L>\\-2\\&\\&dn",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\.cs\\)\\)\\{cs=CDK\\.cs;sec=CDSEC\\[CDK\\.tf\\]\\|\\|300\\}\\}",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "300"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\.mu\\.samp\\*SEC,keep:P\\.mu\\.keep\\*SEC,w1:60\\*SE",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "EC,keep:P\\.mu\\.keep\\*SEC,w1:60\\*SEC,w5:300\\*S",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "300"
+   ]
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "atio\\.\\ Crossfades\\ start\\ on\\ a\\ beat\\.':'σ＝这个",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60 秒"
+   ]
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\{e\\?'Weight\\ of\\ 60\\ s\\ change\\ \\(0–1\\)':'60\\ 秒涨跌",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60 秒"
+   ]
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": ">\\$\\{e\\?'Sharp\\ pump/dump\\ ≥\\ \\(σ,\\ 60\\ s\\)':'急拉／急",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60 秒"
+   ]
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "态配乐（11/13\\ 重做：音乐跟着「正在看的币」的涨跌方向走）＋短音效\\ ====",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60 秒"
+   ]
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "声音）：进入\\ 上涨／猛涨\\ 门槛、进入\\ 下跌／急跌\\ 门槛（都是\\ σ\\ 的倍数）、60",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "60 秒"
+   ]
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "效（每一种：自己的开关、音量、▶\\ 试听；大单音量照「这笔是这个币成交中位数的几倍",
+   "reason": "RCV2 配乐／音效（11/13）：只决定放哪段音乐、响哪个提示音的声音参数（玩家可在设定改），不影响任何买卖、通知或标签",
+   "values": [
+    "3 秒"
+   ]
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "RIGHT_N,GC_MS,MK_MAX,TIP_N\\]=\\[120,4,1000,",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "1000"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "inherit'\\?undefined:T\\.font,fontSize:11,at",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "11"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "rderColor:T\\.line,scaleMargins:\\{top:\\.08,b",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    ".08"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\.line,scaleMargins:\\{top:\\.08,bottom:\\.24\\}\\}",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    ".24"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "=>tLocal\\(t,k===0\\?'y':k===1\\?'m':k===2\\?'d'",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "priceFormat:\\{type:'custom',minMove:1e\\-12",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "1e-12"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\(\\)\\.applyOptions\\(\\{scaleMargins:\\{top:\\.8,bo",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    ".8"
+   ]
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/ui/index\\.html$",
+   "match": "C\\(b,T\\)\\{return\\ b\\.close>=b\\.open\\?T\\.up\\+'66':",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "'66'"
+   ]
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/ui/index\\.html$",
+   "match": "urn\\ b\\.close>=b\\.open\\?T\\.up\\+'66':T\\.dn\\+'66'\\}",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "'66'"
+   ]
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/ui/index\\.html$",
+   "match": "f\\ CDSEC!=='undefined'\\&\\&CDSEC\\[tf\\]\\)\\|\\|300;c",
+   "reason": "LWK-1113（TradingView K 线）：画图用的版面比例、时间换算（秒↔毫秒）、K 棒周期秒数；只影响画面，不是买卖数字",
+   "values": [
+    "300"
+   ]
+  },
+  {
+   "rule": "JSON_NUM",
+   "file": "radar/ui/audio/loops\\.json$",
+   "reason": "配乐音档资料（每段几小节、取样点数、取样率、秒数），只给画面无缝循环用，不是买卖数字"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/ui/index\\.html$",
+   "match": "SHOW_ELEMENT,\\{acceptNode",
+   "reason": "RCV2 翻译走访：略过 SCRIPT／STYLE／TEXTAREA 这几种 HTML 标签（跟原本 i18n 一样的技术清单），不是关键字黑名单"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\(n/1e3\\)\\.toFixed\\(n<1e5\\?1:0\\)",
+   "reason": "11/13 数字显示格式（千／百万换算成 K／M、几位小数），只影响画面，不是时间窗也不是买卖数字"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "t\\(String\\(u\\|\\|''\\)\\)\\&\\&String\\(u\\)\\.length<200\\?S",
+   "reason": "PH-V2 给手机的看盘卡片补栏位（同一份 b3 资料的显示用截断与格式），不是买卖数字",
+   "values": [
+    "200"
+   ]
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\.slice\\(0,42\\),tg:\\(x\\.tg\\|\\|\\[\\]\\)\\.slice\\(0,3\\)\\}\\)\\)",
+   "reason": "PH-V2 给手机的看盘卡片补栏位（同一份 b3 资料的显示用截断与格式），不是买卖数字",
+   "values": [
+    "3"
+   ]
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "机卡片跟电脑看盘同样的栏位：用电脑新看盘（b3）已经有的资料补上（持有人、24h",
+   "reason": "PH-V2 给手机的看盘卡片补栏位（同一份 b3 资料的显示用截断与格式），不是买卖数字",
+   "values": [
+    "24h"
+   ]
+  },
+  {
+   "rule": "JSON_NUM",
+   "file": "relay/audio/loops\\.json$",
+   "reason": "手机配乐音档资料（小节、取样点数、取样率、秒数），只给无缝循环用"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "relay/phone\\.html$",
+   "match": "3\\ 跟电脑一样：AVE\\ 的\\ 240\\ 推送跟\\ 6h\\ 格子对不齐\\*/",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "6h"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "nhard:\\-2,down:\\-1,flat:0,up:1,uphot:2\\};\\ c",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "住了就退回上涨／下跌）；单纯来回震荡不算\\ \\*/\\ if\\(cur===2\\&\\&L<2\\&",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "上涨／下跌）；单纯来回震荡不算\\ \\*/\\ if\\(cur===2\\&\\&L<2\\&\\&up>=",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": ">=o\\.u1\\*k\\)L=Math\\.max\\(L,1\\);if\\(cur===\\-2\\&\\&L>",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "\\*k\\)L=Math\\.max\\(L,1\\);if\\(cur===\\-2\\&\\&L>\\-2\\&\\&dn",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/phone\\.html$",
+   "match": "\\)\\.replace\\(/\\\\\\.0\\$/,''\\)\\+'M':a>=1e3\\?\\(n/1e3\\)\\.",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "1e3"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "st\\ ageTxt=m=>m==null\\?'':m<1\\?'刚刚':m<60\\?Ma",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "60"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": ":m<1\\?'刚刚':m<60\\?Math\\.round\\(m\\)\\+'分':m<1440\\?",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "1440"
+   ]
+  },
+  {
+   "rule": "KWLIST",
+   "file": "relay/phone\\.html$",
+   "match": "'\\)\\)return\\ 'Bankr';return\\ p\\.replace\\(/\\\\\\.\\(c",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "\\.(com|ai|fun|sh|xyz)$"
+   ]
+  },
+  {
+   "rule": "SLICE",
+   "file": "relay/phone\\.html$",
+   "match": "\\.\\(com\\|ai\\|fun\\|sh\\|xyz\\)\\$/,''\\)\\.slice\\(0,10\\)\\};",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "10"
+   ]
+  },
+  {
+   "rule": "MINMAX",
+   "file": "relay/phone\\.html$",
+   "match": "ym,net\\)\\}\\ style=\"\\-\\-rn:\\$\\{Math\\.max\\(rn,2\\)\\};\\-",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "MINMAX",
+   "file": "relay/phone\\.html$",
+   "match": "\\(rn,2\\)\\};\\-\\-rt:\\$\\{Math\\.max\\(r4\\?rn\\-1:rn,2\\)\\}\">",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "ansparent'\\},textColor:ink,fontSize:10,at",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "10"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": ":\\{borderColor:ln,scaleMargins:\\{top:\\.12,b",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    ".12"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "or:ln,scaleMargins:\\{top:\\.12,bottom:\\.24\\}\\}",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    ".24"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "e,secondsVisible:false,rightOffset:3,tic",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "3"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "Formatter:\\(t,k\\)=>tl\\(t,k===0\\?'y':k<=2\\?'d'",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "priceFormat:\\{type:'custom',minMove:1e\\-12",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "1e-12"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "\\(\\)\\.applyOptions\\(\\{scaleMargins:\\{top:\\.8,bo",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    ".8"
+   ]
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "relay/phone\\.html$",
+   "match": "olor:\\(o\\[i\\]\\.close>=o\\[i\\]\\.open\\?up:dn\\)\\+'66'\\}",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "'66'"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "\\.usd>=mn\\)\\)continue;let\\ t=\\+x\\.t;if\\(t>1e12\\)",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "1e12"
+   ]
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/phone\\.html$",
+   "match": ";let\\ ROWK=new\\ Set\\(\\);const\\ ROWK_MAX=2000,",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "2000"
+   ]
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/phone\\.html$",
+   "match": "const\\ r\\ of\\ R\\)\\{let\\ t=\\+r\\.t;if\\(t>0\\&\\&t<1e12\\)",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "1e12"
+   ]
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "relay/phone\\.html$",
+   "match": ",'15m':900,'1h':3600\\}\\)\\[DT\\&\\&DT\\.tf\\]\\|\\|300;c",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "300"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "\\.mu\\.samp\\*SEC,keep:P\\.mu\\.keep\\*SEC,w1:60\\*SE",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "60"
+   ]
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/phone\\.html$",
+   "match": "EC,keep:P\\.mu\\.keep\\*SEC,w1:60\\*SEC,w5:300\\*S",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "300"
+   ]
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "relay/phone\\.html$",
+   "match": "新外观（跟电脑雷达同一套）：三种风格、看盘卡片跟电脑同样的栏位、K\\ 线页（Tra",
+   "reason": "PH-V2 手机新外观／看盘卡片显示／TradingView K 线／配乐与音效（跟电脑同一套声音状态机与预设值，只影响画面与声音，玩家可在设定改），不是买卖数字",
+   "values": [
+    "10%"
+   ]
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "cardRisk\\(n,\\[\\.\\.\\.new Set\\(need\\)\\]\\.slice\\(0,60\\)",
+   "values": [
+    "60"
+   ],
+   "reason": "RISK2-1113 手机看盘卡片风险一排：一次最多传几张给主程式 cardRisk（主程式 preload 也只收 60 张），技术用，只影响显示"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "const RK_VIS=60,RK_ASK=8\\*1e3;",
+   "values": [
+    "8",
+    "1e3"
+   ],
+   "reason": "RISK2-1113 看盘卡片风险一排：画面看得到的卡多久最多向主程式问一次（主程式自己另有每个币多久才再查的限制），技术用，只影响显示"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/ui/index\\.html$",
+   "match": "txns\\?\\.h1\\?\\.buys\\|\\|0\\)\\+\\(\\+p\\??\\.txns\\?\\.h1\\?\\.sells\\|\\|0\\)>0",
+   "values": [
+    "0"
+   ],
+   "reason": "H1Z-1113 详情 1 小时买卖：只用来判断「这 1 小时有没有成交」（没有笔数资料＝当作没看到成交），有成交但金额是 0 就显示「-」不显示 $0；只影响显示，不进买卖判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "t10\\),'label\\.top10Red','label\\.top10Yellow'\\)===2\\?1:0",
+   "values": [
+    "2"
+   ],
+   "reason": "lzLv 回传的颜色等级（2＝红，门槛是玩家在「标签与颜色」自己填的 label.top10Red），不是门槛数字；手机详情前 10 大标红"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const CRQ_TTL_MS = 30e3; /\\* 技术用",
+   "values": [
+    "30e3"
+   ],
+   "reason": "CRQ-1113：卡片风险排队里多久没人再要就拿掉（记忆体清理，技术用；只影响显示，不进买卖判断）"
+  },
+  {
+   "rule": "CMP|TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "if \\(ca > 1e12\\) ca /= 1e3; /\\* 技术用：毫秒换秒",
+   "values": [
+    "1e12",
+    "1e3"
+   ],
+   "reason": "CRQ-1113：开盘时间单位判断（毫秒／秒）与换算，单位换算不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const age = ca > 0 \\? Date\\.now\\(\\) / 1e3 - ca : null;",
+   "values": [
+    "1e3"
+   ],
+   "reason": "CRQ-1113：现在时间毫秒换秒算开盘几秒（单位换算）；只决定卡片风险一排要不要先查，不进买卖判断"
+  },
+  {
+   "rule": "OBJNUM|TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const\\ MC_SWR\\ =\\ \\{\\ coldMs:\\ ",
+   "values": [
+    "2500",
+    "90e3",
+    "600e3"
+   ],
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：多链看盘冷启动最多等几毫秒、背景补抓清单多久重抓（跟以前画面重查间隔一样，不增加 AVE 额度）、空清单多久后再问（省额度）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "const\\ MC_PEND=1500,MC_FAST=",
+   "values": [
+    "10e3",
+    "30e3"
+   ],
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：其他链看盘重拿间隔、预先暖其他链间隔（只用转接站共用看盘，不向 AVE 多要）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "MC_POLL=90e3;\\ const\\ MC_PEND",
+   "values": [
+    "25e3",
+    "90e3"
+   ],
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：原有的 MC_TO／MC_POLL（旁边多了一行常数才重新列出）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/ui/index\\.html$",
+   "match": "ago<60\\?'':'off'",
+   "values": [
+    "60"
+   ],
+   "reason": "显示用：看盘「实时」绿点超过一分钟变灰、改写「几分钟前」（秒换分钟），不是买卖门槛"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "String\\(R\\[0\\]\\.err\\)\\.slice\\(0,80\\)",
+   "values": [
+    "80"
+   ],
+   "reason": "显示用：红字错误原因最多显示几个字（技术用）"
+  },
+  {
+   "rule": "FALLBACK0|TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "MC_FAST\\)\\{S\\.mcAt=Date\\.now\\(\\);tick\\(\\)\\}\\}catch\\{\\}\\},5000\\)|\\(S\\.mcAt\\|\\|0\\)>=MC_FAST",
+   "values": [
+    "0",
+    "5000"
+   ],
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：计时器检查间隔；mcAt 没有＝从没拿过，马上拿"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "warmOthers\\(\\)\\}\\}catch\\{\\}\\},5000\\)",
+   "values": [
+    "5000"
+   ],
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：预先暖其他链的计时器检查间隔"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "liveMs:\\ 90e3,\\ emptyMs:\\ 600e3",
+   "values": [
+    "600e3"
+   ],
+   "reason": "SWR-1113 技术用：多链看盘上次抓到是空的发射台清单多久后再问（省 AVE 额度），不是买卖门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/board124\\.cjs$",
+   "match": "\\+S\\.poll\\.list\\ \\*\\ 1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "SWR-1113 转接站给的清单间隔（秒）换毫秒；技术用，只影响多链看盘排序／显示与拉资料的节奏，不进任何买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const\\ MCG_T\\ =\\ \\{\\ max:\\ ",
+   "values": [
+    "20000",
+    "60e3"
+   ],
+   "reason": "OPEN2-1113 多链毕业纪录最多记几个币／多久存一次档；技术用，只影响多链看盘排序／显示与拉资料的节奏，不进任何买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const\\ now\\ =\\ Math\\.floor\\(Date\\.now\\(\\)\\ /\\ 1000\\);\\ /\\*\\ 技术用：毫秒换秒\\ \\*/\\ const\\ cur",
+   "values": [
+    "1000"
+   ],
+   "reason": "OPEN2-1113 毫秒换秒；技术用，只影响多链看盘排序／显示与拉资料的节奏，不进任何买卖判断"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/main\\.cjs$",
+   "match": "\\(Array\\.isArray\\(L\\)\\ \\&\\&\\ \\(/_in_\\(new\\|almost\\|hot\\)\\$/\\.test\\(tag\\)",
+   "reason": "OPEN2-1113 AVE 发射台清单 tag 的字尾（内盘三种阶段），用来认「这个币之前在内盘」；不是关键字黑名单、技术用，只影响多链看盘排序／显示与拉资料的节奏，不进任何买卖判断"
   }
  ]
 }
