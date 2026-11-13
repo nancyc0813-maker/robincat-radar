@@ -19858,6 +19858,25 @@
     "300e3"
    ],
    "reason": "V3T-1113 lu 多久才推给用户一次（流量用），技术用"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/ui/index\\.html$",
+   "match": "cardRisk\\(n,\\[\\.\\.\\.new Set\\(need\\)\\]\\.slice\\(0,60\\)",
+   "values": [
+    "60"
+   ],
+   "reason": "RISK2-1113 手机看盘卡片风险一排：一次最多传几张给主程式 cardRisk（主程式 preload 也只收 60 张），技术用，只影响显示"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "const RK_VIS=60,RK_ASK=8\\*1e3;",
+   "values": [
+    "8",
+    "1e3"
+   ],
+   "reason": "RISK2-1113 看盘卡片风险一排：画面看得到的卡多久最多向主程式问一次（主程式自己另有每个币多久才再查的限制），技术用，只影响显示"
   }
  ]
 }
