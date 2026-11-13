@@ -5146,7 +5146,7 @@ const toast=m=>{try{t(m)}catch{}};
 /* 链：BNB Chain、Robinhood 放最前（Nancy 11/11） */
 const CH=[['bsc','BNB Chain','#F0B90B'],['robinhood','Robinhood','#2EBD85'],['solana','Solana','#9B6BFF'],['eth','Ethereum','#6F8BFF'],['base','Base','#3D7BFF'],['arbitrum','Arbitrum','#4AA8FF'],['polygon','Polygon','#A66BFF']];
 /*OPEN-1112 链目录：主程式给的 AVE 链全部可选；上面只显示你勾的（预设 5 条），「＋ 链」打开选单自己加减 */
-const SEL0=['bsc','robinhood','solana','base','eth'];const PADS=new Set(['solana']);const hasPads=k=>PADS.has(k);/*PAD-1112 有发射台的链（主程式 mc chains 回 pads:1）＝新币／即将打满／已开盘三栏都用发射台清单*/
+const SEL0=['bsc','robinhood','solana','base','eth','xlayer','arbitrum','polygon','monad','hyperevm'];/*CH10-1113 预设十条链*/const PADS=new Set(['solana']);const hasPads=k=>PADS.has(k);/*PAD-1112 有发射台的链（主程式 mc chains 回 pads:1）＝新币／即将打满／已开盘三栏都用发射台清单*/
 async function loadChains(){try{const r=await window.radar.mc('chains');for(const c of r?.chains||[]){if(c.pads)PADS.add(c.k);if(c.own==='ely')continue;if(!CH.some(x=>x[0]===c.k))CH.push([c.k,c.en||c.zh||c.k,c.color||'#7D8597'])}paint()}catch(e){console.error(e)}}
 function selChains(){let a=LSj('pzChains',null);if(!Array.isArray(a)||!a.length)a=SEL0.slice();a=a.filter(k=>CH.some(c=>c[0]===k)||!CH.length);if(!a.includes(S.net))a.push(S.net);return a}
 const OWN={bsc:1,robinhood:1};

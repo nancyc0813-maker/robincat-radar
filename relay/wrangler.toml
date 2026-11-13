@@ -40,8 +40,9 @@ ONLINE_PUBKEY = "MCowBQYDK2VwAyEA6yiFLuIICmiINfXUBFCf6/bUDGZK+Hx4ecwv9AiqtEM="
 AVE_MONTH_WARN_CU = "250000000"
 AVE_MONTH_STOP_CU = "290000000"
 # BOARD124 看盘由转接站自己抓（GET /aveboard2）。tag 来自 AVE 11/6 实测的有效 tag 清单（AVE 对无效 tag 会回完整清单；转接站也会自己问来做自动发现）。AVE 不认的 tag 自动跳过 AVE_BOARD_BAD_S 秒（/aveboard2 的 tagErr 看得到）。
-AVE_BOARD_TAGS = "new,hot,bsc_hot,fourmeme_in_new,fourmeme_in_almost,fourmeme_in_hot,fourmeme_out_new,fourmeme_out_hot,flap_in_new,flap_in_almost,flap_in_hot,flap_out_new,flap_out_hot,xflap_in_new,xflap_in_almost,xflap_in_hot,xflap_out_new,xflap_out_hot,bn_in_new,bn_in_almost,bn_in_hot,bn_out_new,bn_out_hot,grafun_in_new,grafun_in_almost,grafun_in_hot,grafun_out_new,grafun_out_hot,pump_in_new,pump_in_almost,pump_in_hot,pump_out_new,pump_out_hot"
-AVE_BOARD_TRENDING = "bsc,robinhood,solana,eth,base"
+AVE_BOARD_TAGS = "new,hot,bsc_hot,fourmeme_in_new,fourmeme_in_almost,fourmeme_in_hot,fourmeme_out_new,fourmeme_out_hot,flap_in_new,flap_in_almost,flap_in_hot,flap_out_new,flap_out_hot,xflap_in_new,xflap_in_almost,xflap_in_hot,xflap_out_new,xflap_out_hot,bn_in_new,bn_in_almost,bn_in_hot,bn_out_new,bn_out_hot,grafun_in_new,grafun_in_almost,grafun_in_hot,grafun_out_new,grafun_out_hot,pump_in_new,pump_in_almost,pump_in_hot,pump_out_new,pump_out_hot,nadfun_in_new,nadfun_in_almost,nadfun_in_hot,nadfun_out_new,nadfun_out_hot,xdyorswap_in_new,xdyorswap_in_hot,xdyorswap_out_new,xdyorswap_out_hot,popme_in_new,popme_out_new"
+# CH10-1113 十条链（只改设定、还没部署）：热门榜加 xlayer／arbitrum／polygon／monad／hyperevm；发射台 tag 加 Monad 的 nadfun、X Layer 的 xdyorswap／popme（xflap 原本就有）
+AVE_BOARD_TRENDING = "bsc,robinhood,solana,eth,base,xlayer,arbitrum,polygon,monad,hyperevm"
 AVE_BOARD_LIMIT = "300"
 AVE_BOARD_TREND_N = "100"
 AVE_BOARD_LIST_S = "30"
