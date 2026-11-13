@@ -64,13 +64,13 @@ function startMarket({ DATA, log = () => {} }) {
     if (a === FOUR) {
       if (t0 === T.fCreate) { const c = A(W(d, 1)); const x = tok(c); Object.assign(x, { plat: 'four', at: x.at || t, dev: A(W(d, 0)), nm: S(d, 3), sym: S(d, 4), sup: F(N(W(d, 5))) }); needInfo.add(c); }
       else if (t0 === T.fBuy || t0 === T.fSell) { const c = A(W(d, 0)); if (!D.tokens[c]) { tok(c).plat = 'four'; needInfo.add(c); } const x = D.tokens[c]; x.funds = F(N(W(d, 7))); x.offers = F(N(W(d, 6))); if (!(x.maxO > 0) && x.plat === 'four') needInfo.add(c); fProg(x); { const qa = F(N(W(d, 4))), ta = F(N(W(d, 3))); trade(c, t, t0 === T.fBuy, qa, ta > 0 ? qa / ta : F(N(W(d, 2))), A(W(d, 1))); } }
-      else if (t0 === T.fLiq) { const c = A(W(d, 0)); const x = D.tokens[c]; if (x) { x.grad = 1; x.gradAt = t; x.prog = 100; } }
+      else if (t0 === T.fLiq) { const c = A(W(d, 0)); const x = D.tokens[c]; if (x) { x.grad = 1; x.gradAt = t; x.gradEv = 1; x.prog = 100; } }
     } else if (a === FLAP) {
       if (t0 === T.pCreate) { const c = A(W(d, 3)); const x = tok(c); Object.assign(x, { plat: 'flap', at: x.at || t, dev: A(W(d, 1)), nm: S(d, 4), sym: S(d, 5), sup: 1e9, qk: 1 }); }
       else if (t0 === T.pBuy || t0 === T.pSell) { const c = A(W(d, 1)); const x = D.tokens[c] || Object.assign(tok(c), { plat: 'flap', sup: 1e9 }); { const qa = F(N(W(d, 4))), ta = F(N(W(d, 3))); if (ta > 0) trade(c, t, t0 === T.pBuy, qa, qa / ta, A(W(d, 2))); } }
       else if (t0 === T.pProg) { const x = D.tokens[A(W(d, 0))]; if (x) x.prog = Math.min(100, F(N(W(d, 1)), 16)); }
       else if (t0 === T.pQuote) { const x = tok(A(W(d, 0))); const q = A(W(d, 1)); if (q !== '0x0000000000000000000000000000000000000000') x.q = q; }
-      else if (t0 === T.pDex) { const x = D.tokens[A(W(d, 0))]; if (x) { x.grad = 1; x.gradAt = t; x.prog = 100; x.pool = A(W(d, 1)); } }
+      else if (t0 === T.pDex) { const x = D.tokens[A(W(d, 0))]; if (x) { x.grad = 1; x.gradAt = t; x.gradEv = 1; x.prog = 100; x.pool = A(W(d, 1)); } }
     }
   }
   async function info() { /* Four 的进度上限、报价币：每个新币问一次官方 Helper 合约 */
