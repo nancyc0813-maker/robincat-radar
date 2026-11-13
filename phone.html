@@ -730,7 +730,7 @@ async function loadPnl(force) {
 
 /* ── 看盘（首页） ── */
 const openAttr = (c, s, n) => `data-a="open" data-c="${esc(c)}" data-s="${esc(s)}" data-net="${n === 'rh' ? 'rh' : 'bsc'}"`;
-const frameBoard = () => heroFrame('我的资产', 1) + '<div id="uf4AveP" style="display:none;align-items:center;gap:8px;padding:0 4px 6px"><button class="btn g s" data-a="ave" style="font-weight:700">AVE ↗</button><small class="mu" style="font-size:11px">感谢 AVE 赞助</small></div><div id="bStrip"></div><div class="chips sm" id="bCat" style="padding:0 4px 6px"></div><div class="bhd"><div class="bh1"><div class="ctabs" id="bCol"></div><div class="nseg" id="bNet"></div></div><div class="chips sm" id="bSort"></div></div><div class="aveSt note" style="display:none;padding:0 4px 6px;font-size:12px"></div><div id="bList"></div>';
+const frameBoard = () => heroFrame('我的资产', 1) + '<div id="uf4AveP" style="display:none;align-items:center;gap:8px;padding:0 4px 6px"><button class="btn g s" data-a="ave" style="font-weight:700">AVE ↗</button><small class="mu" style="font-size:11px">感谢 AVE 赞助</small></div><div id="bStrip"></div><div class="bhR0"><div class="chips sm" id="bCat" style="padding:0 4px 6px"></div><div class="nseg" id="bNet"></div></div><div class="bhd"><div class="bh1"><div class="ctabs" id="bCol"></div></div><div class="chips sm" id="bSort"></div></div><div class="aveSt note" style="display:none;padding:0 4px 6px;font-size:12px"></div><div id="bList"></div>';
 /* NX-1103：每一栏自己的排序；时间段只在排序里选 */
 /* PER-1103（Nancy）：列表上方 [1分][5分][15分][更多 ▾]。每次打开都是：每一列显示 1分／5分／15分 涨跌，热门／涨幅照你点的固定按钮（预设 5分）排；
    「更多」（底部选单：30分 1小时 4小时 24小时 7天）＝暂时只看那个时间段（一列一个大数字，排序也照它；按钮显示「4小时 ▾」）；点固定按钮就回来。不记住（重开回到 1/5/15） */
@@ -792,7 +792,7 @@ function fillBoard() {
   setHTML('#bCol', cols.map((c, i) => `<button data-a="col" data-i="${i}" class="${i === COL && !PWL ? 'on' : ''}">${esc(c.k === 'hot' ? '🔥 热门内盘' : String(c.t).replace(/^\S+\s/, ''))}</button>`).join('') + (cols.length ? `<button data-a="wlcol" class="${PWL ? 'on' : ''}">⭐ 自选</button>` : '') || '<span class="mu" style="font-size:12px;padding:0 4px">看盘</span>');
   setHTML('#bNet', `${sn ? `<button data-a="strip" class="stb${STRIP ? ' on' : ''}" aria-label="焦点">⭐ 焦点<small>${sn}</small></button>` : ''}<button data-a="net" data-n="bsc" class="${NET === 'bsc' ? 'on' : ''}">BSC</button><button data-a="net" data-n="rh" class="${NET === 'rh' ? 'on' : ''}">RH</button>`);
   const P = platChips(cols);
-  setHTML('#bSort', (P.any ? P.L.map(([k, n, c]) => `<button data-a="plat" data-k="${k}" class="pf${PLAT[NET] === k ? ' on' : ''}">${esc(n)}</button>`).join('') + '<i class="csep"></i>' : '') + (cols[COL]?.k === 'done' ? ['new', 'hot'].map((k) => `<button data-a="dsub" data-k="${k}" class="${DSUB === k ? 'on' : ''}">${k === 'new' ? '新外盘' : '热门外盘'}</button>`).join('') + '<i class="csep"></i>' : '') + perBar() + `<select class="psel" data-a="psort" aria-label="这一栏怎么排">${SORTS.map(([k, n]) => `<option value="${k}" ${curSort(cols[COL]) === k ? 'selected' : ''}>${n}</option>`).join('')}</select>`);
+  setHTML('#bSort', (P.any ? '<div class="bsP">' + P.L.map(([k, n, c]) => `<button data-a="plat" data-k="${k}" class="pf${PLAT[NET] === k ? ' on' : ''}">${esc(n)}</button>`).join('') + '</div>' : '') + '<div class="bsT">' + (cols[COL]?.k === 'done' ? ['new', 'hot'].map((k) => `<button data-a="dsub" data-k="${k}" class="${DSUB === k ? 'on' : ''}">${k === 'new' ? '新外盘' : '热门外盘'}</button>`).join('') + '<i class="csep"></i>' : '') + perBar() + `<select class="psel" data-a="psort" aria-label="这一栏怎么排">${SORTS.map(([k, n]) => `<option value="${k}" ${curSort(cols[COL]) === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>`);
   const z = rowZap(NET);
   setHTML('#bList', !B ? (PC_ON ? skRows(9) : '<div class="empty">电脑雷达没在线</div>') : B.err && !cols.length ? `<div class="empty">暂时读不到（${esc(B.err)}）<br><button class="btn g s" data-a="bretry" style="margin-top:8px">重试</button></div>` : (PWL ? wlRows(NET, z) : sortItems((cols[COL]?.items || []).filter((x) => platOk(x, P)), cols[COL]).map((x) => rowTok(x, NET, z, winOf(curSort(cols[COL])))).join('') + moreBtn(cols[COL])) || `<div class="empty">${B.err ? `暂时读不到（${esc(B.err)}）<br><button class="btn g s" data-a="bretry" style="margin-top:8px">重试</button>` : PLAT[NET] !== 'all' ? '这个平台现在没有币' : '这一栏现在没有币'}</div>` + moreBtn(cols[COL]));
 }
@@ -1879,6 +1879,18 @@ async function mock0(m,a){
 function go(){try{connect=()=>{};KEY={};WS={readyState:1,send(){},close(){}};PC_ON=true;req=(m,a={})=>mock(m,a);render();refresh();setTimeout(()=>{try{toast('示范模式：资料是录下来的，价格模拟跳动；点代币进 K 线听配乐',5000)}catch{}},800)}catch(e){console.error(e)}}
 if(document.readyState==='complete')setTimeout(go,300);else addEventListener('load',()=>setTimeout(go,300))})();</script>
 <style id="phFit1113">/*PHFIT-1113 手机版面：①窄手机（≤360px，iPhone SE 1 代／Galaxy S9+）顶栏标题让位、「紧急全停」整颗看得到且 ≥44px ②横放（高度 ≤500px）像 GMGN／AVE 手机版：底部导览改成图示＋文字同一行（约 48px，保留底部安全区）、币安钱包引导卡收成一行、顶栏／提醒条变矮，看盘露出来。只改版面*/
+/* 看盘上方（跟 GMGN／AVE 手机版一样）：链切换跟分类同一排；发射台一排可以左右滑；时间段＋排序一排 */
+.bhR0{display:flex;align-items:center;gap:6px;padding-right:10px}
+.bhR0>#bCat{flex:1 1 auto;min-width:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.bhR0>#bNet{flex:none;margin:0}
+.bhR0>#bNet:empty{display:none}
+#bSort{flex-wrap:wrap;row-gap:4px}
+#bSort>.bsP,#bSort>.bsT{display:flex;gap:6px;align-items:center;flex:1 1 100%;min-width:0;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+#bSort>.bsP::-webkit-scrollbar,#bSort>.bsT::-webkit-scrollbar,.bhR0>#bCat::-webkit-scrollbar{display:none}
+#bSort>.bsP>*,#bSort>.bsT>*{flex:none}
+/* 详情页：K 线图（TradingView 标志）自己一个图层，往上捲时不会盖到黏在上面的标题列／配乐音效列（标志照授权保留） */
+#rcK{isolation:isolate;z-index:0}
+#dt .dth{z-index:20}
 header.top .brand{flex:1 1 0;min-width:0}
 header.top .brand>div{min-width:0;overflow:hidden}
 header.top .brand b,header.top .brand .pc{overflow:hidden;text-overflow:ellipsis}
@@ -1906,6 +1918,10 @@ header.top .stopB{flex:0 0 auto;min-height:44px}
  #bnr .card .btn{white-space:nowrap;flex:none;min-height:44px;padding-top:0;padding-bottom:0}
  .hero{margin:2px 10px 4px;padding:6px 11px 3px}
  main{padding-bottom:calc(var(--sb) + 60px)}
+ #bSort{flex-wrap:nowrap}
+ #bSort>.bsP{flex:1 1 auto}
+ #bSort>.bsT{flex:0 1 auto}
+ .hero .pnlv,.hero .rseg{display:none}
  nav.tab{left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));bottom:calc(var(--sb) + 4px);padding:2px;gap:2px;border-radius:16px}
  nav.tab button{height:44px;flex-direction:row;gap:6px;border-radius:13px;font-size:12px}
  nav.tab svg{width:18px;height:18px;flex:none}
