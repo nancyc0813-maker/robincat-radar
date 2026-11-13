@@ -61,9 +61,14 @@ async function hist0(net, addr, pool, tf, beforeMs) {
   if (!out.src && loc && loc.bars && loc.bars.length) { L = loc.bars; out.src = 'chain'; } /* ⑤ 读链记的 */
   if (!out.src) { if (loc?.quoteWait) out.err = 'quote'; return out; }
   L = KL.aggregate(L, sec); if (beforeMs > 0) L = L.filter((x) => x.t < beforeMs);
-  L = KL.fillGaps(L, sec, BARS, beforeMs > 0 ? 0 : Date.now()); out.bars = L.slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0 }));
+  L = KL.fillGaps(L, sec, BARS, beforeMs > 0 ? 0 : Date.now()); out.bars = clean(L.slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0, ...(x.gap ? { gap: 1 } : {}) })));
   return out;
 }
+/*KDATA-1113 离谱影线（资料源单笔异常成交，例 O 33／H 4495／C 34）：原始值照留在 h／l，另外给 hc／lc＝去掉离谱部分的高低（影线超过实体 WICK_K 倍就截到实体），
+  并标 ow:1；画图用 hc／lc 缩放纵轴，AVE／GMGN 一样不让单笔异常把整张图压平。开盘那根从接近 0 拉上来（o 远小于后面价格）标 op:1（画图可以不拿它撑轴） */
+const WICK_K = 2, OPEN_K = 100; /* 技术用（只影响画图）：影线最多到实体的几倍、开盘价比收盘小几倍以上算「从 0 拉上来」 */
+function clean(B) { for (const x of B) { const top = Math.max(x.o, x.c), bot = Math.min(x.o, x.c); x.hc = x.h > top * WICK_K ? top : x.h; x.lc = bot > 0 && x.l < bot / WICK_K ? bot : x.l; if (x.hc !== x.h || x.lc !== x.l) x.ow = 1; } if (B.length && B[0].o > 0 && B[0].c > B[0].o * OPEN_K) B[0].op = 1; return B; }
+/* 成交明细里 GeckoTerminal 标为异常（is_anomalous）的不算 */
 /* 同一个查询同时只跑一次＋短快取 */
 async function hist(net, addr, pool, tf, beforeMs) {
   const k = [net, addr, pool, tf, beforeMs || 0].join('|'); const c = CK.get(k); if (c && Date.now() - c.at < ttlOf(tf)) return c.v; if (INF.has(k)) return INF.get(k);
@@ -76,7 +81,7 @@ function stat() { return { gt: { tokens: Math.floor(B.tok), cooling: B.cool > Da
 const TR = new Map(), TR_TTL = 3e3; /* 技术用：同一个池子的成交多久内共用一次 */
 async function trades(net, addr, pool) { if (!GT_NET[net]) return { rows: [] }; const P = await poolOf(net, addr, pool); if (!P) return { rows: [], pool: '' }; const k = net + '|' + P + '|' + addr, c = TR.get(k); if (c && Date.now() - c.at < TR_TTL) return c.v;
   const j = await gt(`${GT_NET[net]}/pools/${P}/trades`); if (!j || j.err) return c ? c.v : { rows: [], pool: P, err: 'gt' }; const same = (x) => (net === 'solana' ? String(x || '') === addr : String(x || '').toLowerCase() === addr);
-  const rows = (Array.isArray(j.data) ? j.data : []).map((d) => { const a = d?.attributes || {}; const buy = same(a.to_token_address), sell = same(a.from_token_address); if (!buy && !sell) return null; const p = +(buy ? a.price_to_in_usd : a.price_from_in_usd); const t = Date.parse(a.block_timestamp || ''); if (!(p > 0) || !(t > 0)) return null; return { t, p, usd: +a.volume_in_usd || 0, b: buy ? 1 : 0, w: String(a.tx_from_address || '').slice(0, 64), tx: String(a.tx_hash || '').slice(0, 100) }; }).filter(Boolean).sort((x, y) => x.t - y.t);
+  const rows = (Array.isArray(j.data) ? j.data : []).map((d) => { const a = d?.attributes || {}; const buy = same(a.to_token_address), sell = same(a.from_token_address); if ((!buy && !sell) || a.is_anomalous === true) return null; const p = +(buy ? a.price_to_in_usd : a.price_from_in_usd); const t = Date.parse(a.block_timestamp || ''); if (!(p > 0) || !(t > 0)) return null; return { t, p, usd: +a.volume_in_usd || 0, b: buy ? 1 : 0, w: String(a.tx_from_address || '').slice(0, 64), tx: String(a.tx_hash || '').slice(0, 100) }; }).filter(Boolean).sort((x, y) => x.t - y.t);
   const v = { rows, pool: P }; TR.set(k, { at: Date.now(), v }); if (TR.size > 200) TR.delete(TR.keys().next().value); return v; }
 /* 1 秒线：只有成交明细做得出来（AVE／GeckoTerminal 的 K 线最小 1 分钟） */
 async function sec1(net, addr, pool) { const r = await trades(net, addr, pool); if (!r.rows.length) return { src: '', pool: r.pool || '', bars: [] }; const L = KL.aggregate(r.rows.map((x) => ({ t: x.t, o: x.p, h: x.p, l: x.p, c: x.p, v: x.usd })), 1); return { src: 'gt-trades', pool: r.pool, bars: KL.fillGaps(L, 1, BARS, Date.now()).slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0 })) }; }
