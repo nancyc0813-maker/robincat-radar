@@ -20216,6 +20216,39 @@
     "50000 块"
    ],
    "reason": "NEWTOK-1113 注释记录节点实测结果（eth_getLogs 区段上限），不是程式里的门槛"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "calladdr\\.mjs$",
+   "match": "const isBaseSym = ",
+   "reason": "CALLADDR-1113 技术用：基础币／稳定币代号（SOL、ETH、BNB、USDC…）——DexScreener 把它们当 baseToken 回来时排除，避免把「报价币」当成喊单的币；只影响喊单流显示，不进买卖判断"
+  },
+  {
+   "rule": "PARAMDEF",
+   "file": "calladdr\\.mjs$",
+   "match": "fetchJ, per = 30\\)",
+   "values": [
+    "30"
+   ],
+   "reason": "CALLADDR-1113 技术用：DexScreener /tokens/v1 一次最多 30 个地址（官方上限，雷达其他地方 DS_PER_CALL 同值）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "watch\\.mjs$",
+   "match": "const CALL_T = \\{ pendMs: 600e3 \\}",
+   "values": [
+    "600e3"
+   ],
+   "reason": "CALLADDR-1113 技术用：喊单地址查不到交易对时最多再等多久（新币上 DexScreener 要时间），只影响喊单流显示，不进买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "watch\\.mjs$",
+   "match": "o\\.srcs\\.push\\(String\\(src\\)\\.slice\\(0, 40\\)\\)",
+   "values": [
+    "40"
+   ],
+   "reason": "CALLADDR-1113 来源名称显示长度上限（跟原本 callLog 的 src 一样 40 字）"
   }
  ]
 }

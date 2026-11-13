@@ -83,13 +83,19 @@ const today8 = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10
 async function xEnforce(X, env) { const cand = Object.entries(X.acc).filter(([, A]) => A.st === 'ok' || A.st === 'drop').sort((a, b) => (xN(b[1]) - xN(a[1])) || ((a[1].okAt || 0) - (b[1].okAt || 0))); const out = [];
   cand.forEach(([h, A], i) => { const st = i < X_MAX ? 'ok' : 'drop'; if (A.st !== st) { if (st === 'drop') out.push(h); A.st = st; if (st === 'ok') A.init = 0; } });
   if (out.length) await tgOwner(env, `ℹ️ X 监测已满 ${X_MAX} 个，自动拿掉最少人关心的：${out.map((h) => '@' + h).join('、')}（之后关心的人变多会自动补回）`); }
+/*CALLADDR-1113 推文里的合约：0x（BNB Chain／Base／X Layer 等 EVM 链）＋Solana base58（以前只认 0x，Solana 喊单全漏）。规则跟雷达 calladdr.mjs 一样；
+  这里只挑地址，是不是真合约、哪条链由雷达查 DexScreener 决定。排除 WSOL／USDC／USDT 和系统程式地址 */
+const X_SOL_BASE = new Set(['So11111111111111111111111111111111111111112', 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', '11111111111111111111111111111111', 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', 'TokenzQdBNbLqP5VEhdkAS6EHB7d2TQ3XqC7XqyzaYK', '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P']);
+function xAddrs(txt) { const t = String(txt || ''); const evm = [...t.matchAll(/(?<![0-9a-fA-Fx])0x[a-fA-F0-9]{40}(?![0-9a-fA-F])/g)].map((m) => m[0].toLowerCase()).filter((a) => !/^0x0{40}$/.test(a));
+  const sol = [...t.matchAll(/(?<![0-9A-Za-z])[1-9A-HJ-NP-Za-km-z]{32,44}(?![0-9A-Za-z])/g)].map((m) => m[0]).filter((a) => !X_SOL_BASE.has(a) && /[1-9]/.test(a) && /[A-HJ-NP-Za-km-z]/.test(a));
+  return new Set([...evm, ...sol]); }
 async function xPoll(X, env) { if (!env.GX_KEY) return; const hs = xOk(X); if (!hs.length) return; const B = []; for (let i = 0; i < hs.length; i += X_BATCH) B.push(hs.slice(i, i + X_BATCH));
   const gap = Math.max(3, Math.ceil((B.length * 1440) / X_DAY_CAP)) * 60e3; if (Date.now() - (X.lastPoll || 0) < gap) return; X.lastPoll = Date.now();
   for (const b of B) { const d = today8(); if (X.day !== d) { X.day = d; X.calls = 0; } if (X.calls >= X_DAY_CAP) { if (X.capDay !== d) { X.capDay = d; await tgOwner(env, `⚠️ X 帐号监测今天的上限（${X_DAY_CAP} 次）用完了，先暂停，明天 0 点自动恢复。`); } break; } X.calls++;
     let j; try { const r = await fetch('https://api.getxapi.com/twitter/tweet/advanced_search?q=' + encodeURIComponent('(' + b.map((h) => 'from:' + h).join(' OR ') + ')') + '&product=Latest', { headers: { Authorization: 'Bearer ' + env.GX_KEY } });
       if (r.status === 402 || r.status === 401) { if (Date.now() - (X.creditAt || 0) > 12 * 3600e3) { X.creditAt = Date.now(); await tgOwner(env, '⚠️ X 帐号监测停了：GetXAPI ' + (r.status === 402 ? '余额用完，请到 getxapi.com 储值' : '金钥失效') + '（雷达其他功能照常）'); } break; } if (!r.ok) break; j = await r.json(); } catch { break; }
     for (const t of Array.isArray(j?.tweets) ? j.tweets : []) { const id = String(t.id || ''), h = String(t.author?.userName || '').toLowerCase(); if (!id || !b.includes(h) || X.seen[id]) continue; X.seen[id] = Date.now(); const A = X.acc[h]; if (!A?.init) continue;
-      const txt = String(t.text || '') + ' ' + String(t.retweeted_tweet?.text || ''); for (const c of new Set((txt.match(/0x[a-fA-F0-9]{40}/g) || []).map((x) => x.toLowerCase()))) X.hits.push({ id, h, c, at: Date.parse(t.createdAt || '') || Date.now(), u: String(t.url || '').slice(0, 120) }); }
+      const txt = String(t.text || '') + ' ' + String(t.retweeted_tweet?.text || ''); for (const c of xAddrs(txt)) X.hits.push({ id, h, c, at: Date.parse(t.createdAt || '') || Date.now(), u: String(t.url || '').slice(0, 120) }); }
     for (const h of b) if (X.acc[h]) X.acc[h].init = 1; }
   const ks = Object.keys(X.seen); if (ks.length > 6000) for (const k of ks.sort((a, b) => X.seen[a] - X.seen[b]).slice(0, ks.length - 6000)) delete X.seen[k];
   X.hits = X.hits.filter((x) => Date.now() - x.at < 48 * 3600e3).slice(-300); }
