@@ -78,7 +78,15 @@
   "www.binance.com": "PROXY122：只给 resolveProxy 问电脑系统「币安钱包程式 baw 连 www.binance.com 要不要走代理」（读系统代理／PAC 设定），雷达主程式本身不会连这个网址；真正连线的是币安官方的 baw",
   "web3.okx.com": "OKX-1113 OKX OnchainOS 行情 API（玩家自己填金钥、预设关才会连；只读价格／K 线／成交／持有人，只拿来显示，不碰钱包、不下单）",
   "pumpportal.fun": "用户 11/13 同意：新币秒级资料来源（NEWTOK-1113：Solana 新币／上外盘即时推送 wss://pumpportal.fun/api/data，只订阅免费的 subscribeNewToken／subscribeMigration，不带金钥、不送任何资料，整个雷达只开一条连线）",
-  "base-rpc.publicnode.com": "用户 11/13 同意：新币秒级资料来源（NEWTOK-1113：Base 公开节点，只读 eth_blockNumber／eth_getLogs／eth_getBlockByNumber／eth_call，读 Clanker／Doppler 建币事件）"
+  "base-rpc.publicnode.com": "用户 11/13 同意：新币秒级资料来源（NEWTOK-1113：Base 公开节点，只读 eth_blockNumber／eth_getLogs／eth_getBlockByNumber／eth_call，读 Clanker／Doppler 建币事件）",
+  "ethereum-rpc.publicnode.com": "用户 11/13 同意（由主线转达）：KOL／聪明钱即时动态资料来源（KOLFEED-1113：公开节点，只读订阅／查询名单钱包的代币转帐与交易，不带金钥、不送任何使用者资料）",
+  "polygon-bor-rpc.publicnode.com": "用户 11/13 同意（由主线转达）：KOL／聪明钱即时动态资料来源（KOLFEED-1113：公开节点，只读订阅／查询名单钱包的代币转帐与交易，不带金钥、不送任何使用者资料）",
+  "arbitrum-one-rpc.publicnode.com": "用户 11/13 同意（由主线转达）：KOL／聪明钱即时动态资料来源（KOLFEED-1113：公开节点，只读订阅／查询名单钱包的代币转帐与交易，不带金钥、不送任何使用者资料）",
+  "hyperliquid-rpc.publicnode.com": "用户 11/13 同意（由主线转达）：KOL／聪明钱即时动态资料来源（KOLFEED-1113：公开节点，只读订阅／查询名单钱包的代币转帐与交易，不带金钥、不送任何使用者资料）",
+  "rpc.xlayer.tech": "用户 11/13 同意（由主线转达）：KOL／聪明钱即时动态资料来源（KOLFEED-1113：公开节点，只读订阅／查询名单钱包的代币转帐与交易，不带金钥、不送任何使用者资料）",
+  "rpc.monad.xyz": "用户 11/13 同意（由主线转达）：KOL／聪明钱即时动态资料来源（KOLFEED-1113：公开节点，只读订阅／查询名单钱包的代币转帐与交易，不带金钥、不送任何使用者资料）",
+  "api.mainnet-beta.solana.com": "用户 11/13 同意（由主线转达）：KOL／聪明钱即时动态资料来源（KOLFEED-1113：公开节点，只读订阅／查询名单钱包的代币转帐与交易，不带金钥、不送任何使用者资料）",
+  "solana-rpc.publicnode.com": "用户 11/13 同意（由主线转达）：KOL／聪明钱即时动态资料来源（KOLFEED-1113：公开节点，只读订阅／查询名单钱包的代币转帐与交易，不带金钥、不送任何使用者资料）"
  },
  "allow": [
   {

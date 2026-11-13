@@ -20249,6 +20249,131 @@
     "40"
    ],
    "reason": "CALLADDR-1113 来源名称显示长度上限（跟原本 callLog 的 src 一样 40 字）"
+  },
+  {
+   "rule": "TIMEWIN|OBJNUM",
+   "file": "radar/kolfeed\\.cjs$",
+   "match": "idleMs: 300e3|keep: 500,|chunk: 200|evmMax: 1000|solMax: 90|pollMs: 3000|span: 99|settleMs: 600|txGapMs: 350|back0: 1e3|backMax: 120e3|stableMs: 30e3|listMs: 60e3|symMax: 3000 \\}",
+   "values": [
+    "300e3",
+    "500",
+    "200",
+    "1000",
+    "90",
+    "3000",
+    "99",
+    "600",
+    "350",
+    "1e3",
+    "120e3",
+    "30e3",
+    "60e3"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）的技术常数：闲置多久关连线、记几则、一个订阅带几个地址（节点限制）、EVM 每链最多几个钱包、Solana 最多几个订阅（api.mainnet-beta 实测第 100 个订阅被关线）、轮询间隔、一次几块（rpc.xlayer.tech／rpc.monad.xyz 实测上限 100）、同一笔交易等几毫秒收齐、查交易间隔、重连退避、名单重整、快取上限"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/kolfeed\\.cjs$",
+   "match": "\\* 1000 : null",
+   "values": [
+    "1000"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）的技术常数：秒换毫秒（单位换算）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/kolfeed\\.cjs$",
+   "match": "b\\.length < 97|v <= 36|l\\.topics\\.length < 3",
+   "values": [
+    "97",
+    "36",
+    "3"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）的技术常数：资料格式检查：pump.fun TradeEvent 最短长度、ERC-20 小数位合理范围、Transfer 事件要有 3 个 topic；不是门槛"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/kolfeed\\.cjs$",
+   "match": "const isBaseSym = ",
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）的技术常数：基础币／稳定币代号（SOL、ETH、BNB、USDC…），换来换去的钱不当成「买的币」"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/kolfeed\\.cjs$",
+   "match": "jsonrpc: '2\\.0'",
+   "values": [
+    "'2.0'"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）的技术常数：JSON-RPC 协定版本字串，不是数字设定"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/kolfeed\\.cjs$",
+   "match": "\\.slice\\(0, (20|60|80)\\)",
+   "values": [
+    "20",
+    "60",
+    "80"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）的技术常数：代号／错误讯息显示长度上限"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/kolfeed\\.cjs$",
+   "match": "块|位",
+   "values": [
+    "100 块",
+    "6 位",
+    "8 位"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）的技术常数：注释记录节点实测上限、事件格式（判别码 8 位、代币 6 位小数），不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "KF_SW_MS = 30 \\* 60e3",
+   "values": [
+    "30",
+    "60e3"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）的技术常数：AVE 聪明钱清单多久重问一次（只在有人看动态时，每条链 10 单位）"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar/main\\.cjs$",
+   "match": "KFW\\.at\\[ch\\] \\|\\| 0",
+   "values": [
+    "0"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）的技术常数：从没问过＝马上问（时间戳），不是买卖资料"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "M\\[a\\]\\.nm = String\\(nm\\)\\.slice\\(0, 30\\)|nm: String\\(nm \\|\\| ''\\)\\.slice\\(0, 30\\)",
+   "values": [
+    "30"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）的技术常数：名字显示长度上限"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "replace\\(/\\[\\\\u0000-\\\\u001f<>\\]/g, ''\\)\\.slice\\(0, 30\\)|e\\.w\\.slice\\(0, 6\\)|slice\\(0, 6\\)\\)\\.slice\\(0, 30\\)",
+   "values": [
+    "30",
+    "6"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）：名字／地址显示长度（地址只露前 6 码当名字）"
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "radar/main\\.cjs$",
+   "match": "KF\\.feed\\(Math\\.max\\(1, Math\\.min\\(500, \\+n \\|\\| 100\\)\\)\\)",
+   "values": [
+    "100"
+   ],
+   "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）：画面没给几则时回 100 则（显示用分页）；上限 500＝kolfeed 记忆体最多留的则数"
   }
  ]
 }

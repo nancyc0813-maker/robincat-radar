@@ -219,11 +219,26 @@ async function sigFill(L, P) { /* 1) 行情网站没有的 → 看板（Flap／F
 function smartLive(S) { const st = readJSON(SET, {}); const own = new Set((Array.isArray(st['smart.wallets']) ? st['smart.wallets'] : []).map((x) => String(x?.addr || '').toLowerCase()));
   for (const [a, r] of Object.entries(S.smartW?.related || {})) if (own.has(String(r?.of || '').toLowerCase())) own.add(a.toLowerCase());
   const clr = Number(st['smart.clearAt']) || 0; return (S.smartW?.events || []).filter((e) => e.at > clr && (e.who || []).some((w) => own.has(String(w).toLowerCase()))); }
+/*KOLFEED-1113 名单＝①官方 KOL 钱包（RMT.kol，EVM 地址，十条 EVM 链都看）②查过的 AVE 持有人标签里的 KOL／聪明钱（详情、卡片风险一排查到的）③AVE smart_wallet/list（每条链 KF_SW_MS 问一次，只在有人看动态时）。
+  价格／市值只用看盘资料（AVE 共用看盘），读不到＝不显示。只读，不进任何买卖判断 */
+const KF_CH = ['bsc', 'robinhood', 'solana', 'base', 'eth', 'xlayer', 'arbitrum', 'polygon', 'monad', 'hyperevm']; const KF_SW_MS = 30 * 60e3; /* 运作：聪明钱清单多久重问一次（每条链 10 单位） */ const KFW = { at: {}, L: {}, busy: 0 };
+const kfAddr = (ch, a) => { a = String(a || '').trim(); return ch === 'solana' ? (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a) ? a : '') : (/^0x[0-9a-fA-F]{40}$/.test(a) ? a.toLowerCase() : ''); };
+async function kfSmRefresh() { if (KFW.busy || !aveOK()) return; KFW.busy = 1; try { for (const ch of KF_CH) { if (Date.now() - (KFW.at[ch] || 0) < KF_SW_MS) continue; KFW.at[ch] = Date.now();
+      const j = await AVE_BG.run({ bg: 1 }, () => aveGet('/v2/address/smart_wallet/list?chain=' + ch, 10)).catch(() => null); const L = Array.isArray(j?.data) ? j.data : []; if (L.length) KFW.L[ch] = L.map((w) => ({ a: kfAddr(ch, w.wallet_address), nm: String(w.remark || '').replace(/[\u0000-\u001f<>]/g, '').slice(0, 30) })).filter((w) => w.a); } } finally { KFW.busy = 0; } }
+function kfList() { const out = {}; const add = (ch, a0, nm, kind) => { const a = kfAddr(ch, a0); if (!a) return; const M = (out[ch] = out[ch] || {}); if (!M[a]) M[a] = { nm: String(nm || '').slice(0, 30), kind }; else if (!M[a].nm && nm) M[a].nm = String(nm).slice(0, 30); };
+  for (const k of RMT?.kol || []) for (const ch of KF_CH) if (ch !== 'solana') add(ch, k.addr, k.name, 'kol');
+  const pre = [...KF_CH].sort((a, b) => b.length - a.length); for (const [k, e] of AVH) { const ch = pre.find((c) => k.startsWith(c)); if (!ch) continue; for (const w of e?.v?.tags?.kol?.w || []) add(ch, w.a, w.nm, 'kol'); }
+  for (const [k, e] of AVH) { const ch = pre.find((c) => k.startsWith(c)); if (!ch) continue; for (const w of e?.v?.tags?.sm?.w || []) add(ch, w.a, '', 'sm'); }
+  const B = aveBoard(); for (const [k, L] of Object.entries(B?.sw || {})) for (const w of L || []) add(k === 'rh' ? 'robinhood' : k, w.a, w.r, 'sm'); for (const [ch, L] of Object.entries(KFW.L)) for (const w of L) add(ch, w.a, w.nm, 'sm');
+  return out; }
+function kfPx(ch, c) { const M = aveBoard()?.m?.[ch === 'robinhood' ? 'rh' : ch]; const v = M?.[ch === 'solana' ? c : String(c).toLowerCase()]; return v ? { cp: +v.cp || null, mc: +v.mc || null, sym: String(v.s || '') } : null; }
+ipcMain.handle('kolFeed', (e, n) => { try { if (!KF) return { items: [], err: 'kf' }; KF.touch(); kfSmRefresh().catch(() => {}); return { items: KF.feed(Math.max(1, Math.min(500, +n || 100))), stat: KF.stat(), at: Date.now() }; } catch (er) { return { items: [], err: String(er?.message || er).slice(0, 80) }; } }); /*KOLFEED-1113 给讯号页／总览面板：谁、买／卖、哪个币、多少钱、当时市值、现在市值*/
 const SIG_DS = { bsc: 'bsc', rh: 'robinhood', solana: 'solana', base: 'base', eth: 'ethereum', xlayer: 'xlayer', arbitrum: 'arbitrum', polygon: 'polygon', monad: 'monad', hyperevm: 'hyperevm' }; /*CALLADDR-1113 雷达链代号 → DexScreener chainId（喊单的现在市值）*/
 async function signals() { const S = stJSON(path.join(DATA, 'watch_state.json'), {}); const P = readJSON(SIGP, {});
   /* 信号页改版 → 三种来源合在一起（TG 频道、X、聪明钱／KOL 实买），同一个币合并成一行；1 小时内 2 个以上不同来源＝🔥共振 */
   const L = [...(S.callLog || []).slice(-300).map((x) => ({ c: x.c, src: x.src, at: x.at, ch: SIG_DS[x.ch] ? x.ch : 'bsc', ty: /^𝕏/.test(x.src) ? 'x' : 'tg' })), /*CALLADDR-1113 引擎记的 ch（Solana／Base／X Layer…）；旧纪录没有 ch＝BNB Chain*/
-    ...smartLive(S).filter((e) => e.dir === '买' && /^0x[0-9a-f]{40}$/.test(e.tok || '')).map((e) => ({ c: e.tok, src: '🐋 ' + String(e.names || '').slice(0, 30), at: e.at, ch: e.ch === 'robinhood' ? 'rh' : 'bsc', ty: 'smart' }))].sort((a, b) => b.at - a.at);
+    ...smartLive(S).filter((e) => e.dir === '买' && /^0x[0-9a-f]{40}$/.test(e.tok || '')).map((e) => ({ c: e.tok, src: '🐋 ' + String(e.names || '').slice(0, 30), at: e.at, ch: e.ch === 'robinhood' ? 'rh' : 'bsc', ty: 'smart' })),
+    ...(() => { try { KF?.touch(); return (KF?.feed(300) || []).filter((e) => e.side === 'buy').map((e) => ({ c: e.c, src: (e.kind === 'kol' ? '🎤 ' : '🐋 ') + String(e.nm || e.w.slice(0, 6)).slice(0, 30), at: e.at, ch: e.ch === 'robinhood' ? 'rh' : e.ch, ty: 'smart' })); } catch { return []; } })()].sort((a, b) => b.at - a.at); /*KOLFEED-1113 KOL／聪明钱即时买入也进讯号页（十条链）*/
   const key = (x) => (x.ch === 'bsc' ? '' : x.ch + ':') + x.c; /* BNB Chain 不加前缀（跟以前的快取一样）；Robinhood 还是 rh: */ const Zc = zSet(); const CZ = { rN: zv(Zc, 'call.resoN'), rMin: zv(Zc, 'call.resoMin'), winX: zv(Zc, 'call.winX') };
   if (!SIGB) { SIGB = true; try { for (const ch of [...new Set(['bsc', 'rh', ...L.map((x) => x.ch)])]) { const pk = (c) => (ch === 'bsc' ? '' : ch + ':') + c; const need = [...new Set(L.filter((x) => x.ch === ch).map((x) => x.c))].filter((c) => { const o = P[pk(c)]; return !o || Date.now() - (o.t || 0) > 120e3; });
       for (let i = 0; i < need.length; i += DS_PER_CALL) { try { const ps = await (await fetch('https://api.dexscreener.com/tokens/v1/' + SIG_DS[ch] + '/' + need.slice(i, i + DS_PER_CALL).join(','), { signal: AbortSignal.timeout(12000) })).json(); const best = {}; for (const p of Array.isArray(ps) ? ps : []) { const a0 = String(p.baseToken?.address || ''); const a = ch === 'solana' ? a0 : a0.toLowerCase(); /* Solana 合约分大小写 */ const lq = +p.liquidity?.usd || 0; if (!best[a] || lq > best[a].lq) best[a] = { lq, mc: +(p.marketCap || p.fdv) || 0, sym: String(p.baseToken?.symbol || '').slice(0, 20), img: p.info?.imageUrl || '', at: +p.pairCreatedAt || 0 }; }
@@ -842,10 +857,10 @@ const htParse = (L) => { const r = htParse_(L); try { fbWho(L, r); } catch {} re
 const htParse_ = (L) => { /* KOL-AVE：AVE 持有人 new_tags → 各类人数／占比（%）。en 有写就照 en 判断（type 编号可能会变），en 空白才看 type；同一个持有人每类只算一次 */
   const C = { kol: [/^kol$/i, '31'], sm: [/^smart\s*money$/i, '30'], wh: [/^whale$/i, '39'], bu: [/^bundle/i, '36'], ca: [/^cabal$/i, '35'], ph: [/^phishing/i, '34'] };
   const rs = L.map((x) => Number(x?.balance_ratio) || 0); const isPct = rs.reduce((a, b) => a + b, 0) > 1.0001; const o = { n: L.length, all: [] }; for (const k of Object.keys(C)) o[k] = { n: 0, p: 0 }; o.kol.w = [];
-  L.forEach((x, i) => { let G = x?.new_tags; if (typeof G === 'string') { try { G = JSON.parse(G); } catch { G = []; } } const a = String(x?.holder || x?.address || x?.wallet_address || '').toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(a)) o.all.push(a); const hit = new Set(); let nick = '';
+  L.forEach((x, i) => { let G = x?.new_tags; if (typeof G === 'string') { try { G = JSON.parse(G); } catch { G = []; } } const raw = String(x?.holder || x?.address || x?.wallet_address || ''); const a = raw.toLowerCase(); const aw = /^0x/i.test(raw) ? a : raw; /*KOLFEED-1113 Solana 地址分大小写，名单要用原样*/ if (/^0x[0-9a-f]{40}$/.test(a)) o.all.push(a); const hit = new Set(); let nick = '';
     for (const t of Array.isArray(G) ? G : []) { if (!t || typeof t !== 'object') continue; const en = String(t.en ?? '').trim(), ty = String(t.type ?? '').trim(); for (const [k, [re, code]] of Object.entries(C)) if (en ? re.test(en) : ty === code) { hit.add(k); if (k === 'kol' && !nick) nick = String(t.nick_name || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 30); } }
     const WH = aveWho(x); if (hit.has('kol') && !nick) nick = WH.nm; /* nick_name 空白时用 AVE 网页同一套名字（KOLPIC-1112） */
-    for (const k of hit) { o[k].n++; o[k].p += isPct ? rs[i] : rs[i] * 100; } if (hit.has('kol') && o.kol.w.length < 20 /* 显示用：最多列几位 */) o.kol.w.push({ a, nm: nick, lg: WH.lg, xh: WH.xh }); });
+    for (const k of hit) { o[k].n++; o[k].p += isPct ? rs[i] : rs[i] * 100; } if (hit.has('kol') && o.kol.w.length < 20 /* 显示用：最多列几位 */) o.kol.w.push({ a: aw, nm: nick, lg: WH.lg, xh: WH.xh }); if (hit.has('sm')) (o.sm.w = o.sm.w || []).push({ a: aw }); /*KOLFEED-1113 聪明钱地址也留（即时动态名单用）*/ });
   for (const k of Object.keys(C)) o[k].p = Math.round(o[k].p * 10) / 10; return o; };
 const KOLW = new Map(), KOLW_N = 6 /* 技术用：每个币最多补查几个 KOL 名字（AVE 额度） */, KOLW_TTL = 30 * 60e3 /* 技术用：同一个钱包名字多久重查 */, KOLW_MS = 4e3; /* 技术用：最多等几毫秒，超过就先显示地址 */
 /* AUD3-1113 前10 照 AVE、GMGN 网页的算法：池子／发射台曲线合约不算持有人（以前 four.meme／Flap 内盘币的曲线合约、外盘的交易池都被算进前10，跟 AVE／GMGN 差很多）。
@@ -902,7 +917,8 @@ async function tokOrOkx(net, addr, maxMs) { const avP = aveToken(net, addr).catc
   if (!OKM.ready(net, 'premium')) return { A: await lim(avP) }; let tm; const f = await Promise.race([avP, new Promise((r) => { tm = setTimeout(() => r('slow'), OKX_SLOW_MS); })]); clearTimeout(tm);
   if (f !== 'slow' && f?.pair?.price != null) return { A: f }; const okP = OKM.pair(net, addr).catch(() => null); if (f !== 'slow') return { A: f, O: await lim(okP) };
   return lim(new Promise((res) => { let n = 0; const fin = (v) => { if (v) res(v); else if (++n === 2) res({}); }; avP.then((v) => fin(v?.pair?.price != null ? { A: v } : null)); okP.then((v) => fin(v ? { O: v } : null)); })).then((r) => r || {}); }
-let NT = null; try { NT = require('./newtok.cjs'); } catch (e) { console.error('newtok', e); } /*NEWTOK-1113 新币秒级：Solana＝PumpPortal 推送、Base＝读链（Clanker／Doppler）*/
+let NT = null; try { NT = require('./newtok.cjs'); } catch (e) { console.error('newtok', e); }
+let KF = null; try { KF = require('./kolfeed.cjs'); KF.install({ getList: kfList, getPx: kfPx, solUsd: () => (+PXB.v?.sol > 0 ? +PXB.v.sol : null), log: () => {} }); } catch (e) { console.error('kolfeed', e); } /*KOLFEED-1113 KOL／聪明钱即时动态；kfList／kfPx 是函式宣告（执行时才读 AVH／aveBoard／RMT）*/ /*NEWTOK-1113 新币秒级：Solana＝PumpPortal 推送、Base＝读链（Clanker／Doppler）*/
 const KH = require('./klinehist.cjs'); KH.install({ aveCandles: (n, a, t) => aveCandles(n, a, t), aveOK: () => aveOK(), MK, V4B, V4R, get AVT() { return AVT; }, OKM }); /* KH-1113 */
 const KH_NET = new Set(['bsc', 'robinhood', 'solana', 'base', 'eth']);
 ipcMain.handle('klineHist', async (e, net, addr, pool, tf, before, meta) => { net = KH_NET.has(net) ? net : 'bsc'; addr = String(addr || '').trim(); pool = String(pool || '').trim(); if (net !== 'solana') { addr = addr.toLowerCase(); pool = pool.toLowerCase().replace(/_[a-z0-9]+$/, ''); }
@@ -911,7 +927,7 @@ ipcMain.handle('klineHist', async (e, net, addr, pool, tf, before, meta) => { ne
 /* OKX-1113：OKX 资料金钥（只回「有没有」和用量，金钥本身绝不回画面） */
 ipcMain.handle('okxMkt', (e, act, k, s2, p2) => { try { if (act === 'save') return OKM.saveKey(k, s2, p2); if (act === 'clear') return OKM.clearKey(); return OKM.status(); } catch (er) { return { err: String(er?.message || er).slice(0, 80) }; } });
 /* NODE-1113：资料来源状态（节点、WSS、GeckoTerminal 限速、OKX 用量）给设定页显示 */
-ipcMain.handle('srcStat', () => { const o = {}; try { o.rpc = RP.stat(); } catch {} try { o.kline = KH.stat(); } catch {} try { o.okx = OKM.status(); } catch {} return o; });
+ipcMain.handle('srcStat', () => { const o = {}; try { o.rpc = RP.stat(); } catch {} try { o.kol = KF?.stat(); } catch {} /*KOLFEED-1113*/ try { o.kline = KH.stat(); } catch {} try { o.okx = OKM.status(); } catch {} return o; });
 /* PERF-1103 技术用：同一个币的详情正在查时（例如连点两下），共用同一次查询 */
 const TDIF = new Map(); ipcMain.handle('tokenDetail', (e, net, addr) => { const k0 = String(net) + '|' + String(addr || '').toLowerCase(); if (TDIF.has(k0)) return TDIF.get(k0); const r = tokenDetail0(e, net, addr).finally(() => TDIF.delete(k0)); TDIF.set(k0, r); return r; });
 /* PERF-1103 快速行情：只回 AVE 代币资料（跟详情用同一个快取／同一个请求，不多花额度），让详情页上方数字先出来 */
