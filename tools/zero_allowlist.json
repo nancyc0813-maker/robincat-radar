@@ -19927,23 +19927,25 @@
   {
    "rule": "OBJNUM|TIMEWIN",
    "file": "radar/main\\.cjs$",
-   "match": "const\\ MC_SWR\\ =\\ \\{\\ coldMs:\\ ",
+   "match": "const\\ MC_SWR\\ =\\ \\{\\ coldMs:\\ |emptyMs: 600e3, coverX: 3 \\}",
    "values": [
     "2500",
     "90e3",
-    "600e3"
+    "600e3",
+    "3"
    ],
-   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：多链看盘冷启动最多等几毫秒、背景补抓清单多久重抓（跟以前画面重查间隔一样，不增加 AVE 额度）、空清单多久后再问（省额度）"
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：多链看盘冷启动最多等几毫秒、背景补抓清单多久重抓（跟以前画面重查间隔一样，不增加 AVE 额度）、空清单多久后再问（省额度）；coverX＝NEWTOK-1113 即时新币来源（PumpPortal／Base 读链）活着时，它已涵盖的 AVE 清单补抓间隔放慢几倍（只会更少问 AVE，来源断了马上恢复）"
   },
   {
    "rule": "TIMEWIN",
    "file": "radar/ui/index\\.html$",
-   "match": "const\\ MC_PEND=1500,MC_FAST=",
+   "match": "const\\ MC_PEND=1500,MC_FAST=|MC_LIVE=2e3,MC_WARM=30e3",
    "values": [
     "10e3",
+    "2e3",
     "30e3"
    ],
-   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：其他链看盘重拿间隔、预先暖其他链间隔（只用转接站共用看盘，不向 AVE 多要）"
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：其他链看盘重拿间隔、预先暖其他链间隔（只用转接站共用看盘，不向 AVE 多要）；MC_LIVE＝NEWTOK-1113 有即时新币来源的链画面多久向主程式重拿一次（只读主程式记忆体，不向 AVE 多要）"
   },
   {
    "rule": "TIMEWIN",
@@ -19976,12 +19978,12 @@
   {
    "rule": "FALLBACK0|TIMEWIN",
    "file": "radar/ui/index\\.html$",
-   "match": "MC_FAST\\)\\{S\\.mcAt=Date\\.now\\(\\);tick\\(\\)\\}\\}catch\\{\\}\\},5000\\)|\\(S\\.mcAt\\|\\|0\\)>=MC_FAST",
+   "match": "MC_FAST\\)\\{S\\.mcAt=Date\\.now\\(\\);tick\\(\\)\\}\\}catch\\{\\}\\},5000\\)|\\(S\\.mcAt\\|\\|0\\)>=MC_FAST|\\(S\\.mcAt\\|\\|0\\)>=\\(lv\\?MC_LIVE:MC_FAST\\)",
    "values": [
     "0",
     "5000"
    ],
-   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：计时器检查间隔；mcAt 没有＝从没拿过，马上拿"
+   "reason": "SWR-1113 技术用（只影响看盘画面多快出现／多久重拿／本机存几张卡，不是买卖门槛，不进任何买卖判断）：计时器检查间隔；mcAt 没有＝从没拿过，马上拿；NEWTOK-1113 计时器改用 MC_LIVE 当检查间隔"
   },
   {
    "rule": "TIMEWIN",
@@ -20161,6 +20163,59 @@
     "4194304"
    ],
    "reason": "SND2-1113 主程式读音档的大小上限（技术用，防止读到怪档）"
+  },
+  {
+   "rule": "TIMEWIN|OBJNUM",
+   "file": "radar/newtok\\.cjs$",
+   "match": "idleMs: 300e3|keep: 300,|back0: 1e3|backMax: 120e3|stableMs: 30e3|silentMs: 300e3|ageMax: 3600|basePollMs: 2500|baseSpan: 20000|baseProbe: 1000 \\}",
+   "values": [
+    "300e3",
+    "300",
+    "1e3",
+    "120e3",
+    "30e3",
+    "3600",
+    "2500",
+    "20000",
+    "1000"
+   ],
+   "reason": "NEWTOK-1113 技术用（只影响新币资料多快出现，不进任何买卖判断）：没人看多久停连线、记忆体留几个新币、重连退避起始／上限（Google SRE：指数退避＋随机）、连线撑多久才算稳、多久没讯息算半开连线、新币在「新开盘」留几秒、Base 读链间隔、一次 eth_getLogs 几块（节点实测上限 50000）、量出块速度往回看几块"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/newtok\\.cjs$",
+   "match": "Math\\.floor\\(Date\\.now\\(\\) / 1000\\)|Math\\.floor\\(now / 1000\\)|\\(h1 - h0\\) \\* 1000|T\\.ageMax \\* 1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "NEWTOK-1113 毫秒／秒换算（单位换算，不是门槛）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/newtok\\.cjs$",
+   "match": "RP\\.rpc\\('base', m, p, 12000\\)",
+   "values": [
+    "12000"
+   ],
+   "reason": "NEWTOK-1113 Base 节点单次查询逾时（技术用，跟 market.cjs 读 BNB Chain 一样 12 秒）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/newtok\\.cjs$",
+   "match": "String\\(e\\?\\.message \\|\\| e\\)\\.slice\\(0, 80\\)",
+   "values": [
+    "80"
+   ],
+   "reason": "NEWTOK-1113 错误讯息显示长度上限（防撑爆状态列），不是买卖数字"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/rpcpool\\.cjs$",
+   "match": "NEWTOK-1113 Base 新币读链：11/13 实测",
+   "values": [
+    "50000 块"
+   ],
+   "reason": "NEWTOK-1113 注释记录节点实测结果（eth_getLogs 区段上限），不是程式里的门槛"
   }
  ]
 }
