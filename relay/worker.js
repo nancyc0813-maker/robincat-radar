@@ -186,7 +186,12 @@ AVE_OK.push(
   [new RegExp('^/v2/tokens/(trending|platform|main)' + OK_Q + '$'), 30, 10],
   [new RegExp('^/v2/tokens' + OK_Q + '$'), 30, 5],
   [new RegExp('^/v2/address/tx' + OK_Q + '$'), 30, 100],
-  [new RegExp('^/v2/address/(pnl|walletinfo|walletinfo/tokens|smart_wallet/list)' + OK_Q + '$'), 120, 10]);
+  [new RegExp('^/v2/address/(pnl|walletinfo|walletinfo/tokens|smart_wallet/list)' + OK_Q + '$'), 120, 10],
+  /*RANKSIG-1113 叙事分类、讯号要用（AVE 官方 API 参考：GET /v2/ranks/topics、GET /v2/ranks?topic=、GET /v2/signals/public/list?chain=&pageSize=(≤50)&pageNO=）。
+    单位 AVE 文件没写：先照清单类估 10（topics 列表照搜寻估 5），实际以 /avestat 计量为准；快取：topics 1 小时、排行 60 秒、讯号 30 秒（所有用户共用一份）*/
+  [/^\/v2\/ranks\/topics$/, 3600, 5],
+  [/^\/v2\/ranks\?topic=[a-z0-9_]{1,30}$/, 60, 10],
+  [/^\/v2\/signals\/public\/list\?chain=[a-z0-9]{2,24}(&pageSize=[0-9]{1,2})?(&pageNO=[0-9]{1,3})?$/, 30, 10]);
 const MC = new Map(), MC_MAX = 2000; /* H8-D5：这个执行个体自己的快取（*.workers.dev 上 caches.default 可能不生效） */
 const mcGet = (k) => { const v = MC.get(k); if (!v) return null; if (Date.now() > v.exp) { MC.delete(k); return null; } return v.body; };
 const mcPut = (k, body, ttlS) => { MC.set(k, { body, exp: Date.now() + ttlS * 1000 }); if (MC.size > MC_MAX) MC.delete(MC.keys().next().value); };
