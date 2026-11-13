@@ -39,6 +39,9 @@ header.top{position:sticky;top:0;z-index:6;background:rgba(10,11,13,.88);backdro
 .stopB{background:rgba(246,70,93,.12);color:#ff8f9e;border:1px solid rgba(246,70,93,.35);border-radius:999px;padding:7px 13px;font-weight:700;font-size:13px;white-space:nowrap}
 .stopB.on{background:var(--red);color:#fff;border-color:var(--red)}
 main{padding:0 0 calc(var(--sb) + 104px)}
+.nowb{display:flex;align-items:center;gap:8px;height:40px;box-sizing:border-box;margin:2px 10px 4px;padding:0 4px 0 12px;border-radius:10px;background:rgba(240,185,11,.1);border:1px solid rgba(240,185,11,.28);color:#f5d36b;font-size:13px;cursor:pointer;overflow:hidden}
+.nowb span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nowb b{color:#f0b90b}
+.nowb a{flex:none;width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:#9aa1ad;font-size:15px}
 .warnbar{margin:4px 16px 8px;background:rgba(246,70,93,.12);color:#ffb3bd;border:1px solid rgba(246,70,93,.3);border-radius:14px;padding:10px 13px;font-size:13px;display:none}
 /* 首页大卡：猫＋总值＋盈亏曲线 */
 .hero{margin:6px 14px 4px;border-radius:24px;padding:16px 16px 12px;background:radial-gradient(120% 90% at 100% 0%,rgba(240,185,11,.16),rgba(240,185,11,0) 55%),linear-gradient(160deg,#17191e,#101215 70%);border:1px solid #262a31;box-shadow:0 12px 34px rgba(0,0,0,.35);position:relative;overflow:hidden}
@@ -581,7 +584,7 @@ function confirmBox(title, body, okTxt, cls = 'y') {
 function infoBox(title, body) { return new Promise((res) => { openSheet(`<h3>${esc(title)}</h3><p class="note" style="font-size:14.5px;color:var(--ink);white-space:pre-line">${esc(body)}</p><div style="display:grid;grid-template-columns:1fr;margin-top:16px"><button class="btn y" id="cOk">知道了</button></div>`); $('#cOk').onclick = () => { closeSheet(); res(true); }; }); }
 /* ZR-UI-1103（主人原则）：电脑那边的引擎说这张单「需要确认」→ 手机跳框写清楚后果，按「我知道风险，仍然执行」才送；取消就不送 */
 const ACKSEEN = new Set(); let ACKBUSY = 0; const ackAge = (x) => { const m = Math.floor((Date.now() - (+x.oat || 0)) / 60e3); return +x.oat > 0 ? `\n🕒 这张单是 ${m < 1 ? '刚刚' : m < 60 ? m + ' 分钟前' : Math.floor(m / 60) + ' 小时前'}下的${m >= 10 ? '（价格可能已经变了）' : ''}` : ''; }; /* UI2-1104 H3-S3：显示单子下了多久 */
-/* UI-1104 D3：AVE 状态（文字由电脑算好放在 ST.aveSt：「AVE 资料：N 分钟前更新」／「⚠️ AVE 暂停：…」） */ function aveStFill() { const t = String(ST?.aveSt || ''); document.querySelectorAll('.aveSt').forEach((e) => { if (e.textContent !== t) e.textContent = t; e.style.display = t ? '' : 'none'; e.style.color = /⚠️/.test(t) ? '#f0b90b' : ''; }); } setInterval(aveStFill, 3000);
+/* UI-1104 D3：AVE 状态（文字由电脑算好放在 ST.aveSt：「AVE 资料：N 分钟前更新」／「⚠️ AVE 暂停：…」） */ function aveStFill() { const t0 = String(ST?.aveSt || ''); const t = /^🔒/.test(t0) && document.querySelector('#bnr .nowb') ? '' : t0; /* NOWB-1113 没连钱包的细横幅在的时候，「🔒 连钱包后解锁」同一件事不重复一行 */ document.querySelectorAll('.aveSt').forEach((e) => { if (e.textContent !== t) e.textContent = t; e.style.display = t ? '' : 'none'; e.style.color = /⚠️/.test(t) ? '#f0b90b' : ''; }); } setInterval(aveStFill, 3000);
 const ACK_POLL_MS = 2000, ACK_POLL_N = 30; /* 技术用：下单后每 2 秒看一次要不要确认，最多 30 次（60 秒） */ let ackPollT = null; function ackPoll() { if (ackPollT) clearInterval(ackPollT); let n = 0; ackPollT = setInterval(async () => { n++; try { ST = await req('state'); askAcks(); } catch {} if (n >= ACK_POLL_N || (ST && Array.isArray(ST.ack) && ST.ack.some((x) => x && ACKSEEN.has(x.id)))) { clearInterval(ackPollT); ackPollT = null; } }, ACK_POLL_MS); } /* ZR-INT-UI */
 /* PHONE-2：电脑引擎对手机单的回复（含拒绝，例如超过手机每日额度、手机不能确认授权）由电脑放在 ST.res＝[{ id, what, t, at, ok }]。
    成功／失败只看电脑给的 ok（true／false），不靠文字猜；没有 ok＝标示「结果不明」并照原文显示。只显示这次打开手机页之后的回复 */
@@ -648,11 +651,11 @@ function render() {
   else if (ST?.boot) wt = '电脑雷达的引擎正在启动（通常 1–2 分钟内好），好了会自动更新；这段时间还不能买卖。'; /* UIFIX7 */
   else if (stop) wt = '紧急全停中：买入全部停止；自动卖出正常执行；可以手动卖出。要重新打开，请回电脑雷达重新设定。';
   else if (off.length) wt = '钱包已断开：' + off.join('、') + '（这个钱包不能买卖，回电脑重新连接）';
-  else if (ST?.noW) wt = NOW_TXT; /* UIFIX6：电脑没连钱包 */
+  /* NOWB-1113 电脑没连钱包：不再用红条＋大卡，改成下面 #bnr 一条细横幅（跟 GMGN／AVE 手机版一样），点开是底部小卡 */
   if (wb.textContent !== wt) wb.textContent = wt; wb.style.display = wt ? 'block' : 'none';
   { /* UIFIX4：这台电脑还有另一个雷达在用同一个钱包（电脑传来）→ 红条；✕ 收起后只显示「⏸ 已停买」；冲突解除自动消失 */ const cf = PC_ON && ST?.cf ? ST.cf : null; let e = $('#cfP'); if (!e && cf) { e = document.createElement('div'); e.id = 'cfP'; e.className = 'warnbar'; e.style.position = 'relative'; e.style.paddingRight = '34px'; wb.after(e); }
     if (e) { if (!cf) { e.style.display = 'none'; window.__cfh = ''; } else { const dir = String(cf.dir || '?'); const hid = window.__cfh === dir; const h = hid ? '<span data-a="cfshow" style="cursor:pointer">⏸ 已停买（另一个雷达在用同一钱包）</span>' : `⚠️ 这台电脑还有另一个罗宾猫雷达在用同一个钱包（${esc(dir)}）。为了不重复下单，这个已经停买。请把旧的那个停用：关掉它，并取消开机自动启动；确认旧的里面没有持仓了，再删除整个资料夹。（步骤在电脑雷达按「怎么停用旧版？」）<a data-a="cfx" style="position:absolute;right:10px;top:8px;cursor:pointer;font-size:16px" aria-label="收起">✕</a>`; if (e._h !== h) { e.innerHTML = h; e._h = h; } e.style.display = 'block'; } } }
-  { /* INTEG2：没绑钱包时第一屏显示币安 AI 钱包邀请（只在这里、只在开头） */ const bn = $('#bnr'); if (bn) { let sk = ''; try { sk = localStorage.getItem('gbnSkip') || ''; } catch {} const show = PC_ON && ST && ST.noW && !sk && ST.ref?.bnCode && ST.ref?.bnUrl ? '1' : '0'; /* ZR-FIX8：邀请码／连结只来自电脑（repo.cjs），没有就不显示 */ if (bn.dataset.s !== show) { bn.dataset.s = show; const code = esc(ST?.ref?.bnCode || ''); bn.innerHTML = show === '1' ? `<div class="card"><h4>先准备币安 AI 钱包</h4><p class="note">还没有币安 AI 钱包？用这个连结申请，开通时在币安填邀请码 <b>${code}</b><br>打开币安钱包 → 建立 AI 钱包 → 填邀请码 → 回电脑雷达绑定</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn" data-a="bnref">去申请 ↗</button><button class="btn g" data-a="bncopy">复制邀请码</button><button class="btn g" data-a="bnskip">我已经有钱包了，下一步</button></div></div>` : ''; } } }
+  { /* NOWB-1113 没连钱包：一条约 40px 细横幅「连接钱包后才能在手机下单 · 去设定 ›」，可 ✕ 收起（这次打开有效）；点它开底部小卡（币安 AI 钱包邀请码＋步骤） */ const bn = $('#bnr'); if (bn) { let x = ''; try { x = sessionStorage.getItem('nowbX') || ''; } catch {} const show = PC_ON && ST && ST.noW && !wt && !x ? '1' : '0'; if (bn.dataset.s !== show) { bn.dataset.s = show; bn.innerHTML = show === '1' ? '<div class="nowb" data-a="nwopen" role="button" tabindex="0"><span>连接钱包后才能在手机下单 · <b>去设定 ›</b></span><a data-a="nwx" aria-label="收起" role="button">✕</a></div>' : ''; } } }
   document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.t === TAB));
   const nr = (SIG?.feed || []).filter((x) => x.reso).length; const sb = $('#nb_sig'); if (sb) { const t = nr ? String(Math.min(nr, 99)) : ''; if (sb.textContent !== t) sb.textContent = t; sb.hidden = !nr; }
   const pg = $('#pg');
@@ -1285,7 +1288,9 @@ document.addEventListener('click', async (e) => {
   else if (a === 'ave') { if (ST?.ref?.ave) window.open(ST.ref.ave, '_blank', 'noopener'); } /* ZR-INT-AVE：只在你按的时候打开 */
   else if (a === 'bnref') { if (ST?.ref?.bnUrl) window.open(ST.ref.bnUrl, '_blank', 'noopener'); } /* INTEG2：只在你按的时候打开 */
   else if (a === 'bncopy') { const c = ST?.ref?.bnCode || ''; if (!c) return; try { await navigator.clipboard.writeText(c); toast('已复制邀请码'); } catch { toast(c, 5000); } }
-  else if (a === 'bnskip') { try { localStorage.setItem('gbnSkip', '1'); } catch {} const bn = $('#bnr'); if (bn) { bn.dataset.s = '0'; bn.innerHTML = ''; } }
+  else if (a === 'bnskip') { try { localStorage.setItem('gbnSkip', '1'); } catch {} closeSheet(); }
+  else if (a === 'nwx') { try { sessionStorage.setItem('nowbX', '1'); } catch {} const bn = $('#bnr'); if (bn) { bn.dataset.s = '0'; bn.innerHTML = ''; } try { aveStFill(); } catch {} }
+  else if (a === 'nwopen') { /* NOWB-1113 底部小卡：原本的币安 AI 钱包引导（邀请码只来自电脑 repo.cjs，没有就不显示）＋怎么连 */ let sk = ''; try { sk = localStorage.getItem('gbnSkip') || ''; } catch {} const ok = !sk && ST?.ref?.bnCode && ST?.ref?.bnUrl; const code = esc(ST?.ref?.bnCode || ''); openSheet(`<h3>连接钱包</h3><p class="note">${esc(NOW_TXT)}<br>电脑雷达「⚙️ 设定 → 👛 钱包」连接后，手机就能下单。</p>${ok ? `<div class="card"><h4>先准备币安 AI 钱包</h4><p class="note">还没有币安 AI 钱包？用这个连结申请，开通时在币安填邀请码 <b>${code}</b><br>打开币安钱包 → 建立 AI 钱包 → 填邀请码 → 回电脑雷达绑定</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn" data-a="bnref">去申请 ↗</button><button class="btn g" data-a="bncopy">复制邀请码</button><button class="btn g" data-a="bnskip">我已经有钱包了，下一步</button></div></div>` : ''}<button class="btn g" data-a="close" style="width:100%;margin-top:10px">知道了</button>`); }
   else if (a === 'close') closeSheet();
   else if (!DT) return;
   else if (a === 'back') history.back();
@@ -1738,7 +1743,7 @@ function card(x,net,z){const e=x.e||{};const pg=fin(e.pg)?+e.pg:fin(x.prog)?+x.p
  const kv=[];const h=e.h,v=fin(e.v)?e.v:x.a24?.v,tx=fin(e.tx)?e.tx:x.a24?.t;if(fin(h))kv.push(`<span>持有 <b>${kf(h)}</b></span>`);if(fin(v))kv.push(`<span>量 <b>$${+v===0?'0':kf(v)}</b></span>`);if(fin(tx))kv.push(`<span>笔数 <b>${kf(tx)}</b></span>`);
  const tg=[];if(+e.bt>0||+e.st>0)tg.push(`<i class="bad">税 ${Math.round(+e.bt||0)}/${Math.round(+e.st||0)}%</i>`);const ch=(val,l)=>{if(!fin(val)||Math.abs(+val)<PC_EPS)return;tg.push(`<i class="${+val>=0?'up':'dn'}">${l} ${pc1(val)}</i>`)};ch(fin(e.c5)?e.c5:x.c5,'5m');ch(fin(e.c1)?e.c1:x.h1,'1h');
  const b1=+e.b1||0,s1=+e.s1||0;if(b1+s1>0)tg.push(`<i>1h 买 ${Math.round(b1/(b1+s1)*PCT)}%</i>`);if(+x.kol>0)tg.push(`<i class="kol">KOL ${+x.kol}</i>`);if(+x.sm>0)tg.push(`<i class="up">🧠 ${+x.sm}</i>`);if(x.hp)tg.push('<i class="bad">貔貅</i>');if(x.wash)tg.push('<i class="bad">刷量</i>');
- const R=Array.isArray(e.rk)?e.rk:null;const rk=R?[['前10',R[0]],['开发',R[1]],['狙击',R[2]],['老鼠仓',R[3]],['捆绑',R[4]]].filter(([,v])=>fin(v)).map(([l,v])=>`<span>${l} <b>${(+v).toFixed(+v<10?1:0)}%</b></span>`).join(''):'';
+ const R=Array.isArray(e.rk)&&+e.rk[0]>0?e.rk:null;/*NODATA-1113 前10 是 0／没给＝还没资料，不显示*/const rk=R?[['前10',R[0]],['开发',R[1]],['狙击',R[2]],['老鼠仓',R[3]],['捆绑',R[4]]].filter(([,v])=>fin(v)).map(([l,v])=>`<span>${l} <b>${(+v).toFixed(+v<10?1:0)}%</b></span>`).join(''):'';
  const c24=fin(e.c24)?e.c24:x.c24;const cg=fin(c24)&&Math.abs(+c24)>=PC_EPS?`<span class="cg ${+c24>=0?'up':'dn'}">${pc1(c24)}</span>`:'';
  const zap=z&&!x.hp?`<button class="rz" data-a="rzap" data-c="${esc(x.c)}" data-s="${esc(x.sym)}" data-net="${net}" data-k="${z.k}" aria-label="一键买 ${esc(z.v)} ${esc(z.u)}">${IC.zap}<small>${esc(z.v)}</small></button>`:'';
  const r2=kv.length?`<div class="r2">${kv.join('')}</div>`:'',r3=tg.length?`<div class="r3">${tg.join('')}</div>`:'',r4=rk?`<div class="r4">${rk}</div>`:'';const rn=1+(r2?1:0)+(r3?1:0)+(r4?1:0);
