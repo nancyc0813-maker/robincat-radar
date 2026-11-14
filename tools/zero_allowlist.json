@@ -20043,6 +20043,45 @@
    "file": "radar/main\\.cjs$",
    "match": "\\(Array\\.isArray\\(L\\)\\ \\&\\&\\ \\(/_in_\\(new\\|almost\\|hot\\)\\$/\\.test\\(tag\\)",
    "reason": "OPEN2-1113 AVE 发射台清单 tag 的字尾（内盘三种阶段），用来认「这个币之前在内盘」；不是关键字黑名单、技术用，只影响多链看盘排序／显示与拉资料的节奏，不进任何买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/market\\.cjs$",
+   "match": "GF_BACK_MS = 24 \\* 3600e3, GF_TICK_MS = 3000",
+   "values": [
+    "24",
+    "3600e3",
+    "3000",
+    "5000"
+   ],
+   "reason": "GRADFILL-1114 看盘「已上外盘」补读毕业时间（技术用：往回补多久、多久读一段、快取上限、毫秒换算），只影响看盘排序和显示，不进买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/market\\.cjs$",
+   "match": "const endTs = parseInt\\(b\\?\\.timestamp, 16\\) \\* 1000;",
+   "values": [
+    "1000"
+   ],
+   "reason": "GRADFILL-1114 看盘「已上外盘」补读毕业时间（技术用：往回补多久、多久读一段、快取上限、毫秒换算），只影响看盘排序和显示，不进买卖判断（区块时间秒换毫秒）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "x\\.ot = Math\\.floor\\(\\+GT\\[c\\] / 1000\\)",
+   "values": [
+    "1000"
+   ],
+   "reason": "GRADFILL-1114 看盘「已上外盘」补读毕业时间（技术用：往回补多久、多久读一段、快取上限、毫秒换算），只影响看盘排序和显示，不进买卖判断（毫秒换秒）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/market\\.cjs$",
+   "match": "GF_TICK_MS = 3000, GT_MAX = 5000;",
+   "values": [
+    "5000"
+   ],
+   "reason": "GRADFILL-1114 看盘「已上外盘」补读毕业时间（技术用：往回补多久、多久读一段、快取上限、毫秒换算），只影响看盘排序和显示，不进买卖判断"
   }
  ]
 }
