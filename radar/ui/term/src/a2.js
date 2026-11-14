@@ -46,7 +46,7 @@ function flushSparks(){spRaf=0;const up=CC.up||'#2BD48F',dn=CC.dn||'#FF5B6E';for
  x.beginPath();a.forEach((b,i)=>{const px=(i/(a.length-1))*(W-2)+1,py=H-2-((b.c-mn)/rg)*(H-4);i?x.lineTo(px,py):x.moveTo(px,py)});x.strokeStyle=col;x.lineWidth=1.4;x.lineJoin='round';x.stroke();x.lineTo(W-1,H);x.lineTo(1,H);x.closePath();x.globalAlpha=.12;x.fillStyle=col;x.fill();x.globalAlpha=1}SPQ.clear()}
 /* 安全徽章＝「我们的检查」和「AVE 风险分」取较差的那个（AVE ≥60 危险、30–59 注意），不会出现「安全」配黄／红风险分 */
 /* 安全徽章＝「持有人风险栏位」和「AVE 风险分」取较差的那个；两边都读不到＝不显示徽章（不写安全）。红黄绿门槛只影响显示 */
-function ownLv(t){const F=[t.top10,t.bnd,t.ins,t.devp,t.stax];if(F.every(v=>v==null))return null;const s=(t.top10>40?2:t.top10>25?1:0)+(t.bnd>15?2:t.bnd>8?1:0)+(t.ins>10?2:t.ins>5?1:0)+(t.devp>4?1:0)+(t.stax>1?1:0)+(t.hp?4:0);return s>=4?'bad':s>=2?'w':'ok'}
+function ownLv(t){const F=[t.top10,t.bnd,t.ins,t.devp];if(F.every(v=>v==null))return null;/* 持有人栏位一个都没查到＝不判断（只有税不算） */const s=(t.top10>40?2:t.top10>25?1:0)+(t.bnd>15?2:t.bnd>8?1:0)+(t.ins>10?2:t.ins>5?1:0)+(t.devp>4?1:0)+(t.stax>1?1:0)+(t.hp?4:0);return s>=4?'bad':s>=2?'w':'ok'}
 const aveLv=t=>t.rs==null?null:t.rs>=60?'bad':t.rs>=30?'w':'ok';const LVR={ok:0,w:1,bad:2};
 function riskLv(t){const a=ownLv(t),b=aveLv(t);if(t.hp)return 'bad';if(!a&&!b)return null;if(!a)return b;if(!b)return a;return LVR[a]>=LVR[b]?a:b}
 const lvTxt=lv=>lv==='ok'?L('安全','Safe'):lv==='w'?L('注意','Watch'):lv==='bad'?L('高风险','Risky'):L('未检查','Unchecked');
