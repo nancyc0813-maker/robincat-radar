@@ -11,6 +11,11 @@ export const MCT_CHAINS = { /* 雷达链代号 → 币安 binanceChainId＋原�
   arbitrum: { id: '42161', nat: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', sym: 'ETH' },
   polygon: { id: '137', nat: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', sym: 'POL' },
   solana: { id: 'CT_501', nat: 'So11111111111111111111111111111111111111111', sym: 'SOL' }, /*SOL-13 币安文件：Solana 原生币地址、链代号 CT_501*/
+  /*OKXW-1114 只有 OKX AI 钱包支援的链（币安钱包没有回报这三条）：链代号＝OKX chainIndex（官方支援表 web3.okx.com/onchainos/dev-docs/home/supported-chain：X Layer 196、Monad 143、HyperEVM 999），
+    原生币地址＝OKX onchainos CLI chains.rs native_token_address 的 EVM 写法 0xeeee…（github.com/okx/onchainos-skills cli/src/chains.rs）；送单一样经过 W.baw（外面包 actionGate），只有钱包回报支援才会选到 */
+  xlayer: { id: '196', nat: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', sym: 'OKB', okxOnly: 1 },
+  monad: { id: '143', nat: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', sym: 'MON', okxOnly: 1 },
+  hyperevm: { id: '999', nat: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', sym: 'HYPE', okxOnly: 1 },
 };
 const T = { pollMs: 3000, pollMax: 40, keep: 30 }; /* 技术用：轮询订单状态的间隔、最多几次（约 2 分钟）、结果档留几笔（只影响显示） */
 const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/, EVM = /^0x[0-9a-fA-F]{40}$/;
@@ -20,8 +25,9 @@ export function mctAddr(ch, a) { a = String(a || '').trim(); return ch === 'sola
 
 export function mctSupported(DIR, ch, wName) { /* 这个钱包有没有回报支援这条链 */
   const C = MCT_CHAINS[ch]; if (!C) return false;
-  try { const o = JSON.parse(readFileSync(join(DIR, 'data', 'wallet_chains.json'), 'utf8')); const ws = o?.kinds?.binance?.wallets || {};
-    const L = wName ? [ws[wName]] : Object.values(ws); return L.some((w) => w && w.ok && Array.isArray(w.ids) && w.ids.map(String).includes(C.id)); } catch { return false; }
+  try { const o = JSON.parse(readFileSync(join(DIR, 'data', 'wallet_chains.json'), 'utf8')); /*OKXW-1114 币安钱包看 kinds.binance、OKX 钱包看 kinds.okx（只有 OKX 能做的链只看 OKX）*/
+    const ws = { ...(C.okxOnly ? {} : o?.kinds?.binance?.wallets || {}), ...(o?.kinds?.okx?.wallets || {}) }; const ids = C.id === 'CT_501' ? ['CT_501', '501'] : [C.id];
+    const L = wName ? [ws[wName]] : Object.values(ws); return L.some((w) => w && w.ok && Array.isArray(w.ids) && w.ids.map(String).some((x) => ids.includes(x))); } catch { return false; }
 }
 
 function result(DIR, rec) { const f = join(DIR, 'data', 'mc_trade.json'); let a = []; try { a = JSON.parse(readFileSync(f, 'utf8')); if (!Array.isArray(a)) a = []; } catch {} a.unshift(rec); a = a.slice(0, T.keep); try { writeFileSync(f + '.tmp', JSON.stringify(a)); renameSync(f + '.tmp', f); } catch {} }

@@ -3280,9 +3280,16 @@ async function mcWalletScan(W, force) { const now = Date.now(); if (!force && no
     rec = L ? { at: now, ok: 1, ids: L.map((x) => String(x?.binanceChainId ?? '')).filter((x) => /^[A-Za-z0-9_]{1,20}$/.test(x)), names: L.map((x) => String(x?.simpleName || x?.name || '').replace(/[^\w .-]/g, '').slice(0, 30)) } : { at: now, ok: 0, err: String(r?.j?.error?.message || r?.t || '').replace(/[\u0000-\u001f]/g, ' ').slice(0, 120) }; }
   catch (e) { rec = { at: now, ok: 0, err: String(e?.message || e).slice(0, 120) }; }
   const f = join(DIR, 'data', 'wallet_chains.json'); let o = {}; try { o = JSON.parse(readFileSync(f, 'utf8')) || {}; } catch {} if (!o.kinds || typeof o.kinds !== 'object') o.kinds = {};
-  if (!o.kinds.binance || typeof o.kinds.binance !== 'object') o.kinds.binance = { wallets: {} }; if (!o.kinds.binance.wallets || typeof o.kinds.binance.wallets !== 'object') o.kinds.binance.wallets = {};
-  const keep = new Set(WALLETS.map((x) => x.name)); for (const k of Object.keys(o.kinds.binance.wallets)) if (!keep.has(k)) delete o.kinds.binance.wallets[k];
-  o.kinds.binance.wallets[W.name] = rec; o.at = now; try { const tmp = f + '.w' + process.pid; writeFileSync(tmp, JSON.stringify(o)); renameSync(tmp, f); } catch {} }
+  const kind = W.kind === 'okx' ? 'okx' : 'binance'; /*OKXW-1114 OKX AI 钱包写在 kinds.okx（链代号＝OKX realChainIndex，501 写成 CT_501 跟币安同一种写法）；币安钱包照旧 kinds.binance*/
+  for (const kk of ['binance', 'okx']) { if (!o.kinds[kk] || typeof o.kinds[kk] !== 'object') o.kinds[kk] = { wallets: {} }; if (!o.kinds[kk].wallets || typeof o.kinds[kk].wallets !== 'object') o.kinds[kk].wallets = {}; }
+  const keep = new Set(WALLETS.map((x) => x.name)); for (const kk of ['binance', 'okx']) for (const k of Object.keys(o.kinds[kk].wallets)) if (!keep.has(k) || (k === W.name && kk !== kind)) delete o.kinds[kk].wallets[k];
+  o.kinds[kind].wallets[W.name] = rec; o.at = now;
+  /*OKXW-1114 钱包回报了雷达不认得的链代号 → 只通知一次「钱包新支援 X 链，等雷达更新才会开放买卖」，不会自动开放（画面也会显示）*/
+  const unk = rec.ok ? rec.ids.filter((id) => !MCW_KNOWN[kind].has(id)) : []; const told = new Set(Array.isArray(o.kinds[kind].told) ? o.kinds[kind].told : []); const fresh = unk.filter((id) => !told.has(id));
+  if (fresh.length) { for (const id of fresh) told.add(id); o.kinds[kind].told = [...told].slice(-50); const nm = fresh.map((id) => { const i = rec.ids.indexOf(id); return (rec.names[i] || '') + '（' + id + '）'; }).join('、'); tgSay(`🌐 ${W.name}（${kind === 'okx' ? 'OKX AI 钱包' : '币安 AI 钱包'}）新支援 ${nm}：等雷达更新才会开放买卖，现在只能看`).catch(() => {}); log(`钱包 ${W.name} 回报雷达还不认得的链：${nm}（等雷达更新才会开放买卖）`); }
+  try { const tmp = f + '.w' + process.pid; writeFileSync(tmp, JSON.stringify(o)); renameSync(tmp, f); } catch {} }
+/*OKXW-1114 雷达认得的钱包链代号（跟 radar/main.cjs MC_WALLET_KINDS 同一份对照；OKX 官方支援表 web3.okx.com/onchainos/dev-docs/home/supported-chain）。不在这里的＝钱包新支援、雷达还没更新*/
+const MCW_KNOWN = { binance: new Set(['56', '1', '8453', 'CT_501', '4663', '42161', '137']), okx: new Set(['56', '1', '8453', 'CT_501', '501', '4663', '42161', '137', '196', '143', '999']) };
 /*MC121-W-END*/
 /*ENG127-A5 开发者模式到期时间：数字＝Unix 秒（小于 1e12 当秒、否则当毫秒，技术用：单位判断），字串数字同上，其他字串照日期解析；读不到＝NaN */
 function devExpMs(v) { if (v == null || v === '' || typeof v === 'boolean') return NaN; const n = Number(v); if (Number.isFinite(n)) return n > 0 ? (n < 1e12 ? n * 1000 : n) : NaN; const d = Date.parse(String(v)); return Number.isFinite(d) ? d : NaN; }

@@ -33,7 +33,8 @@ const CHOF={};for(const [a,b] of Object.entries(NETOF))CHOF[b]=a;CHOF.rh='rh';
 /* 能不能交易：一律照主程式 mc('chains') 回的 mode（main.cjs mcMode：BNB Chain／Robinhood 一律可；钱包支援的 ETH／Base／Arbitrum／Polygon／Solana 可手动买卖；其他只看）。还没读到之前：只有 BNB Chain／Robinhood（主程式 MC_RADAR_TRADE 固定可交易） */
 const MODE={bsc:'trade',rh:'trade'};const PADF={};
 const OWNB3=new Set(['bsc','rh','sol']);/* radar.b3 有三栏＋热门的链（主程式 B3 看板） */
-async function loadModes(){if(!R)return;try{const r=await R.mc('chains');for(const c of r?.chains||[]){const k=CHOF[c.k];if(!k)continue;MODE[k]=c.mode;if(c.pads)PADF[k]=1}}catch(e){console.error(e)}try{paintTop()}catch{}}
+const UNK=[];/* 钱包回报、雷达还不认得的链（主程式 mc chains 的 unknown）：只提示「等雷达更新才会开放买卖」，不开放 */
+async function loadModes(){if(!R)return;try{const r=await R.mc('chains');for(const c of r?.chains||[]){const k=CHOF[c.k];if(!k)continue;MODE[k]=c.mode;if(c.pads)PADF[k]=1}UNK.length=0;UNK.push(...(r?.unknown||[]));const told=LS.g('unkTold',[]);const fresh=UNK.filter(u=>!told.includes(u.kind+':'+u.id));if(fresh.length){LS.s('unkTold',[...told,...fresh.map(u=>u.kind+':'+u.id)].slice(-50));toast(L(`钱包新支援 ${fresh.map(u=>(u.name||u.id)).join('、')}：等雷达更新才会开放买卖`,`Your wallet now supports ${fresh.map(u=>u.name||u.id).join(', ')}: trading opens after a radar update`))}}catch(e){console.error(e)}try{paintTop()}catch{}}
 const isOwnTrade=ch=>ch==='bsc'||ch==='rh';/* 雷达原本的下单程式（qbBuy／qsSell）；其他可交易的链走 mctrade（旧画面 mctBuy／mctSell） */
 
 /* ===== 代币：把各来源的列整理成同一种物件（读不到＝null） ===== */
