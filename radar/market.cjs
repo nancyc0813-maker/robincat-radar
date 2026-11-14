@@ -106,8 +106,20 @@ function startMarket({ DATA, log = () => {} }) {
     return (Array.isArray(L) ? L : []).map((l) => { const d = l.data, t0 = l.topics[0], blk = parseInt(l.blockNumber, 16), ts = l.blockTimestamp ? (typeof l.blockTimestamp === 'string' ? parseInt(l.blockTimestamp, 16) : +l.blockTimestamp) * 1000 : null;
       if (t0 === T.fLiq) return { c: A(W(d, 0)), pool: '', blk, ts, plat: 'four' }; if (t0 === T.fCreate) return { c: A(W(d, 1)), dev: A(W(d, 0)), nm: S(d, 3), sym: S(d, 4), blk, ts, plat: 'four' };
       return kind === 'grad' ? { c: A(W(d, 0)), pool: A(W(d, 1)), blk, ts, plat: 'flap' } : { c: A(W(d, 3)), dev: A(W(d, 1)), nm: S(d, 4), sym: S(d, 5), blk, ts, plat: 'flap' }; }); }
+  /*GRADFILL-1114 已上外盘的「上外盘时间」：雷达没开着的时候毕业的币，以前没有毕业时间、只能照建立时间排（例：慌啥子嘛早上建立、下午才上外盘，AVE 新外盘／GMGN 已开盘照上外盘时间排，雷达照建立时间排到后面去）。
+     开机后在背景往回补读最近 GF_BACK_MS 的毕业事件（只读；只有 Four.meme 加池子／Flap 上 DEX 两种事件，量很少，一次一段、节点限流就缩小范围）。只影响看盘排序和「上外盘多久」显示，不进任何买卖判断 */
+  const GF_BACK_MS = 24 * 3600e3, GF_TICK_MS = 3000, GT_MAX = 5000; /* 技术用：往回补多久、多久读一段、最多记几个币（显示用快取） */
+  let gf = null, gfBusy = 0, GF_SPAN = SPAN; D.gt = D.gt && typeof D.gt === 'object' ? D.gt : {};
+  async function gradFill() { if (gfBusy || !st.head || !st.headTs) return; if (!gf) gf = { lo: Math.max(0, st.head - Math.ceil(GF_BACK_MS / st.blockMs)), cur: st.head }; if (gf.cur <= gf.lo) return; gfBusy = 1;
+    try { const from = Math.max(gf.lo, gf.cur - GF_SPAN); const [L, b] = await Promise.all([rpc('eth_getLogs', [{ address: [FLAP, FOUR], topics: [[T.pDex, T.fLiq]], fromBlock: '0x' + from.toString(16), toBlock: '0x' + gf.cur.toString(16) }]), rpc('eth_getBlockByNumber', ['0x' + gf.cur.toString(16), false])]);
+      const endTs = parseInt(b?.timestamp, 16) * 1000; if (!(endTs > 0)) throw new Error('no block time'); /* 读不到这段的区块时间＝这段下一轮重读（不猜时间） */
+      for (const l of Array.isArray(L) ? L : []) { const d = l.data, blk = parseInt(l.blockNumber, 16); const bt = l.blockTimestamp != null ? (typeof l.blockTimestamp === 'string' ? parseInt(l.blockTimestamp, 16) : +l.blockTimestamp) * 1000 : NaN; const ts = bt > 0 ? bt : endTs - (gf.cur - blk) * st.blockMs; /* 节点有给事件时间就用；没给用这段最后一块的时间往回推（一段只有几分钟，误差很小） */
+        const c = A(W(d, 0)); const x = D.tokens[c]; if (x) { if (!x.gradEv) { x.grad = 1; x.gradAt = ts; x.gradEv = 1; x.prog = 100; if (l.topics[0] === T.pDex) x.pool = A(W(d, 1)); } } else if (!(+D.gt[c] > 0)) D.gt[c] = ts; }
+      const ks = Object.keys(D.gt); if (ks.length > GT_MAX) ks.sort((a, b2) => D.gt[a] - D.gt[b2]).slice(0, ks.length - GT_MAX).forEach((k) => delete D.gt[k]);
+      gf.cur = from - 1; if (GF_SPAN < SPAN) GF_SPAN = Math.min(SPAN, GF_SPAN + 50);
+    } catch (e) { if (/limit|range|too many|exceed/i.test(String(e?.message || e)) && GF_SPAN > 50) GF_SPAN = Math.max(50, Math.floor(GF_SPAN / 2)); } finally { gfBusy = 0; } }
   function save() { try { prune(); fs.writeFileSync(FILE, JSON.stringify(D)); } catch {} }
-  setInterval(tick, 2500); setTimeout(tick, 500); setInterval(save, 60e3); setInterval(() => { supFill().catch(() => {}); }, 2500); /*AUDIT125-B*/
+  setInterval(tick, 2500); setTimeout(tick, 500); setInterval(save, 60e3); setInterval(() => { supFill().catch(() => {}); }, 2500); /*AUDIT125-B*/ setInterval(() => { gradFill().catch(() => {}); }, GF_TICK_MS); /*GRADFILL-1114*/
 
   /* 给画面用：每个币算好各时间段的成交、涨跌、买卖笔数 */
   const TF = { m1: 60, m5: 300, m15: 900, h1: 3600, h6: 21600, h24: 86400 };
@@ -132,6 +144,6 @@ function startMarket({ DATA, log = () => {} }) {
   const CD_CAP = 160; /* 运作：一次画几根 */
   function setQuoteUsd(q, v) { if (v > 0) quoteUsd[q] = v; }
   function quotes() { return [...new Set(Object.values(D.tokens).map((x) => x.q).filter((q) => q && q !== WBNB && !STABLE.has(q)))]; } /*BOARD124*/
-  return { older, rpc, board, candles, raw: () => ({ tokens: D.tokens, usd: (x) => xUsd(x) }), plat: (c) => D.tokens[String(c || '').toLowerCase()]?.plat || '', has: (c) => !!D.tokens[String(c || '').toLowerCase()], setQuoteUsd, quotes, qUsd, want: (c) => { c = String(c || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(c) || needInfo.size > 200) return; if (!D.tokens[c]) tok(c).plat = 'four'; const x = D.tokens[c]; if (!x.qk || !(x.maxO > 0)) needInfo.add(c); }, /*SOON-1112 看盘「即将打满」的 Four.meme 币雷达还没读过进度 → 排进下一轮读*/ info: (c) => { const x = D.tokens[String(c || '').toLowerCase()]; return x ? { grad: !!x.grad, pool: x.pool || '' } : null; }, status: () => ({ ...st, total: Object.keys(D.tokens).length }) };
+  return { older, rpc, board, candles, raw: () => ({ tokens: D.tokens, usd: (x) => xUsd(x), gt: D.gt }), /*GRADFILL-1114 gt＝不在快取里的币的毕业时间（毫秒）*/ plat: (c) => D.tokens[String(c || '').toLowerCase()]?.plat || '', has: (c) => !!D.tokens[String(c || '').toLowerCase()], setQuoteUsd, quotes, qUsd, want: (c) => { c = String(c || '').toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(c) || needInfo.size > 200) return; if (!D.tokens[c]) tok(c).plat = 'four'; const x = D.tokens[c]; if (!x.qk || !(x.maxO > 0)) needInfo.add(c); }, /*SOON-1112 看盘「即将打满」的 Four.meme 币雷达还没读过进度 → 排进下一轮读*/ info: (c) => { const x = D.tokens[String(c || '').toLowerCase()]; return x ? { grad: !!x.grad, pool: x.pool || '' } : null; }, status: () => ({ ...st, total: Object.keys(D.tokens).length }) };
 }
 module.exports = { startMarket };
