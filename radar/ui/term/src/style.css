@@ -980,3 +980,6 @@ span.fr,b.fr,small.fr{display:inline;margin:0}/* 「新鲜」标记 .fr 和表�
 @media (max-width:1350px){.dock .dk>span:not(.bdg){display:none}.dock .dk{padding-left:8px;padding-right:8px}}
 .tkcol .lst .lr{min-width:0}
 .tkcol .lst .scr{overflow-x:hidden}
+.tgt .c-act .rl,.tgt .c-act .rtx{display:none}
+.tgt .c-act{gap:4px}
+.tgt .c-act .qb{padding-left:6px;padding-right:6px}
