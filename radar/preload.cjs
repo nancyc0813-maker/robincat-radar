@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('radar', {
   klineHist: (n, a, p, tf, before, meta) => call('klineHist', S(n, 20), S(a, 64), S(p, 80), S(tf, 10), N(before), B(meta)), /* KH-1113 K 线历史：[{t 毫秒,o,h,l,c,v 美金}]；meta＝true 回 {src,pool,bars} */
   okxMkt: (act, k, s2, p2) => call('okxMkt', ['save', 'clear'].includes(act) ? act : 'status', S(k, 100), S(s2, 200), S(p2, 100)), /* OKX-1113 OKX 资料金钥：status／save／clear（金钥不会回传） */
   srcStat: () => call('srcStat'),
+  solk: (c, s) => call('solk', S(c, 64), N(s)), /*SOLK-1114 Solana pump.fun 内盘币本机秒线（只读）*/
   term: (a, o) => call('term', ['topics', 'signals'].includes(a) ? a : '', O(o)), /*TV2-1114 新看盘终端：AVE 叙事板块／公开讯号（只读；只用自己的 AVE 金钥）*/
   kolFeed: (n) => call('kolFeed', N(n)), /*KOLFEED-1113 KOL／聪明钱即时动态（只读）*/
   kfLocal: (ch) => call('kfLocal', S(ch, 20)), /*KFSTAT-1114 雷达本机统计：KOL／聪明钱已实现盈亏、胜率（只读）*/

@@ -1651,3 +1651,6 @@ ipcMain.handle('term', async (e, act, o) => { o = o && typeof o === 'object' ? o
     const list = D.map((x) => ({ c: String(x.token || x.token_address || x.address || '').slice(0, 64), sym: String(x.symbol || x.token_symbol || '').slice(0, 30), type: String(x.signal_type || x.type || '').slice(0, 40), mc: tv2Num(x.first_signal_mc), mcNow: tv2Num(x.mc_cur), mx: tv2Num(x.max_price_change), n: tv2Num(x.history_count), w: String(x.action_wallet_type || '').slice(0, 20), buy: /sell/i.test(String(x.action_type || '')) ? 0 : 1, ac: tv2Num(x.action_count), ts: (() => { const t = tv2Num(x.signal_time); return t == null ? null : t > 1e12 ? t / 1000 : t; })() })).filter((x) => x.c);
     const v = { list, at: Date.now() }; TV2C.set(k, { at: Date.now(), v }); return v; }
   return { err: 'act' }; } catch (er) { return { err: String(er?.message || er).slice(0, TV2_ERR_N) }; } });
+/*SOLK-1114 Solana pump.fun 内盘币本机秒线（只读）：代币页开着才订一个；资料见 radar/solk.cjs*/
+let SOLK = null; try { SOLK = require('./solk.cjs'); SOLK.install({ solUsd: () => (+PXB.v?.sol > 0 ? +PXB.v.sol : null) }); } catch (e) { SOLK = null; }
+ipcMain.handle('solk', (e, c, sec) => { try { if (!SOLK) return { err: 'mod' }; return SOLK.bars(String(c || ''), Number(sec)); } catch (er) { return { err: String(er?.message || er).slice(0, TV2_ERR_N) }; } });
