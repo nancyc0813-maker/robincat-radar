@@ -19,7 +19,7 @@ function open() { const m = S.mint; S.st = 'conn'; S.err = ''; globalThis.SOLK_N
       for (const x of tradeEv(v.logs)) { if (x.mint !== m || !(x.vtok > 0) || !(x.vsol > 0)) continue; S.tr.push({ ts: x.ts, rt, sol: x.sol, tok: x.tok, vsol: x.vsol, vtok: x.vtok, buy: x.buy, w: x.user, sig: v.signature }); if (x.ts > 0) { S.lag.push(rt / 1000 - x.ts); if (S.lag.length > KEEP_N) S.lag.shift(); } }
       if (S.tr.length > KEEP_N) S.tr.splice(0, S.tr.length - KEEP_N); },
     onClose: (why) => { if (S.mint !== m) return; S.st = 'retry'; S.err = String(why || '').slice(0, ERR_N); S.ws = null; setTimeout(() => { if (S.mint === m && !S.ws) open(); }, BACK_MS); } }); }
-/*RV8-7 TradeEvent 解码（照 pump.fun 官方 IDL：github.com/pump-fun/pump-public-docs idl/pump.json，commit 639b87f；位移含 8 位元组 discriminator）：
+/*RV8-7 TradeEvent 解码（照 pump.fun 官方 IDL：github.com/pump-fun/pump-public-docs idl/pump.json，commit 639b87f；位移含开头的 discriminator 位元组）：
    8 mint、40 sol_amount、48 token_amount、56 is_buy、57 user、89 timestamp、97 virtual_sol_reserves、105 virtual_token_reserves。
    K 线价格用成交后的虚拟储备（virtual_sol_reserves ÷ virtual_token_reserves），跟 pump.fun 曲线报价同一个算法，不用这笔成交的平均价 */
 const [OFF_VSOL, OFF_VTOK, EV_MIN] = [97, 105, 113]; /* 技术用：官方 IDL 的栏位位移、含虚拟储备的最短长度 */
