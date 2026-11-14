@@ -4232,6 +4232,7 @@ const mctAmt=(ch)=>{try{return localStorage.getItem('mctAmt_'+ch)||''}catch{retu
 async function mctSend(o){const e=en();try{await radarOrder(o);t(e?'Sent — confirming on-chain, result on TG':'已送出，链上确认中，结果看 TG');setTimeout(mctLoad,4000);setTimeout(mctLoad,20000);setTimeout(mctLoad,60000)}catch(x){if(!x?.silent)t(String(x?.message||x?.err||x))}}
 async function mctBuy(ch,c,name,amt,noAsk){const e=en();const a=+amt;if(!(a>0)){t(e?'Enter an amount first':'先填金额');return}if(!noAsk&&!(await ask((e?`Buy ${name||''} with ${a} ${natOf(ch)}?`:`用 ${a} ${natOf(ch)} 买 ${name||''}？`)+'\n'+(e?'Market order through your Binance AI wallet. The radar confirms the fill on-chain before reporting.':'透过你的币安 AI 钱包市价买入，雷达会等链上确认成交才回报。'),{ok:e?'Buy':'买入'})))return;try{localStorage.setItem('mctAmt_'+ch,String(a))}catch{}mctSend({type:'buy',mc:ch,c,amt:a,slip:+mctSlip()||undefined,name})}
 async function mctSell(ch,c,name,pct){const e=en();if(!(await ask(e?`Sell ${pct}% of ${name||'this token'}?`:`卖出 ${name||'这个币'} 的 ${pct}%？`,{ok:e?'Sell':'卖出'})))return;{const lb=MCTR.find(x=>x.type==='buy'&&x.ok&&x.ch===ch&&String(x.c).toLowerCase()===String(c).toLowerCase()&&x.w);mctSend({type:'sell',mc:ch,c,pct:+pct,slip:+mctSlip()||undefined,name,...(lb?{w:lb.w}:{})})}/*DUALW-13 卖用当初买的钱包*/}
+window.__mct={buy:mctBuy,sell:mctSell};/*TV2-1114 新看盘终端用同一个买卖流程（确认框、钱包、引擎闸门都照旧）*/
 let MCTR=[];async function mctLoad(){try{const r=await window.radar.mc('myTrades');MCTR=Array.isArray(r)?r:[];const b=$('#mctRes');if(b)b.innerHTML=mctResHtml()}catch{}}
 function mctResHtml(){const D=MC.D;const e=en();const L2=MCTR.filter(x=>D&&x.ch===D.chain&&String(x.c).toLowerCase()===String(D.c).toLowerCase()).slice(0,5);return L2.map(x=>`<div class="mcMu mcSm" style="margin-top:4px">${new Date(x.at).toLocaleTimeString(e?'en-US':'zh-CN',{hour12:false})} ${x.type==='buy'?(e?'Buy':'买'):(e?'Sell':'卖')} · ${E(x.msg)}</div>`).join('')}
 function mctBtn(c){const e=en();return `<button class="btn y s" data-mct-buy="${E(c)}">⚡ ${e?'Buy':'买'}</button>`}
@@ -6271,5 +6272,6 @@ window.cdPut=put;window.cdHas=has;
 })();
 </script>
 
+<link rel="stylesheet" href="term/tv2.css"><script src="term/tv2.js"></script><!--TV2-1114 新看盘终端（设定里可切回旧版介面）-->
 </body>
 </html>
