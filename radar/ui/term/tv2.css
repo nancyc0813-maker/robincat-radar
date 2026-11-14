@@ -188,7 +188,7 @@
 #tv2 .pop .g div{display:flex;justify-content:space-between;color:var(--tx3);font-size:11px}
 #tv2 .pop .g b{color:var(--tx1);font:600 11px var(--fNum)}
 #tv2 .toastw{position:fixed;left:50%;bottom:56px;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
-#tv2 .toast{pointer-events:auto;display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:var(--r-bt);background:var(--bg4);color:var(--tx1);border:1px solid var(--line3);box-shadow:0 18px 40px -14px rgba(0,0,0,.6);font-weight:600;animation:tv2tin .18s ease-out}
+#tv2 .toast{position:relative;left:auto;bottom:auto;transform:none;width:max-content;max-width:min(560px,90vw);z-index:auto;pointer-events:auto;display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:var(--r-bt);background:var(--bg4);color:var(--tx1);border:1px solid var(--line3);box-shadow:0 18px 40px -14px rgba(0,0,0,.6);font-weight:600;animation:tv2tin .18s ease-out}
 #tv2 .toast button{color:var(--accTx);font-weight:700}
 @keyframes tv2tin{from{opacity:0;transform:translateY(8px)}}
 #tv2 .modal{position:fixed;inset:0;z-index:150;display:grid;place-items:center;background:rgba(0,0,0,.45);animation:tv2fin .12s}
@@ -1121,4 +1121,13 @@
 #tv2 .srcb{flex:none;display:inline-block;height:16px;padding:0 5px;margin-right:5px;border-radius:4px;font:700 10px/16px var(--fUi);vertical-align:1px}
 #tv2 .srcb.ave{color:var(--me);background:color-mix(in srgb,var(--me) 14%,transparent)}
 #tv2 .srcb.loc{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
+#tv2 #tv2{overflow:hidden}
+#tv2 .stage,#tv2 .body2,#tv2 .wcol,#tv2 .pnl,#tv2 .pb{min-width:0}
+#tv2 .dock .dks{overflow-x:auto;scrollbar-width:none;min-width:0;flex:1 1 auto}
+#tv2 .dock .dks::-webkit-scrollbar{display:none}
+@media (max-width:1350px){#tv2 .dock .dk>span:not(.bdg){display:none}
+#tv2 .dock .dk{padding-left:8px;padding-right:8px}
+}
+#tv2 .tkcol .lst .lr{min-width:0}
+#tv2 .tkcol .lst .scr{overflow-x:hidden}
 

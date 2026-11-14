@@ -1,11 +1,10 @@
 'use strict';
-/* ===== 罗宾猫雷达 新看盘终端 原型（假资料、不会下单） ===== */
+/* ===== 罗宾猫雷达 新看盘终端（TV2-1114）：资料全部来自主程式，下单转呼叫旧画面流程 ===== */
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const LS={g(k,d){try{const v=localStorage.getItem('rc2_'+k);return v==null?d:JSON.parse(v)}catch{return d}},s(k,v){try{localStorage.setItem('rc2_'+k,JSON.stringify(v))}catch{}}};
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-function rng(seed){let a=seed>>>0||1;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const nowS=()=>Date.now()/MS_1000;
 
 /* ===== 语言 ===== */
@@ -21,7 +20,7 @@ function fN(n){if(n==null||n==='')return '—';n=+n;if(!isFinite(n))return '—'
 function fP(p,pre='$'){p=+p;if(!(p>0))return '—';if(p>=UI_1000)return pre+p.toLocaleString('en-US',{maximumFractionDigits:0});if(p>=1)return pre+p.toFixed(p>=100?2:4);
  const z=Math.floor(-Math.log10(p));if(z>=UI_4){const d=Math.round(p*Math.pow(10,z+3));return pre+'0.0'+String(z).split('').map(c=>SUB[+c]).join('')+String(Math.min(d,999))}
  return pre+p.toPrecision(4)}
-function fPct(v,d=1){if(v==null||v==='')return '—';v=+v;if(!isFinite(v))return '—';const a=Math.abs(v);const t=a>=1000?fN(a):a.toFixed(a>=100?0:d);if(/^0(\.0+)?$/.test(t))return t+'%';return (v>0?'+':v<0?'-':'')+t+'%'}/* 四舍五入成 0 就不带正负号（不出现 -0.0%） */
+function fPct(v,d=1){if(v==null||v==='')return '—';v=+v;if(!isFinite(v))return '—';const a=Math.abs(v);const t=a>=1000?fN(a):a.toFixed(a>=100?0:a>0&&a*CNT_10<1&&d<UI_2?UI_2:d);/* RV8-9 来源有给值但很小（例如 -0.02%）：显示两位，不四舍五入成 0.0% */if(/^0(\.0+)?$/.test(t))return t+'%';return (v>0?'+':v<0?'-':'')+t+'%'}/* 四舍五入成 0 就不带正负号（不出现 -0.0%） */
 function fAge(s){if(s==null||!isFinite(s))return '—';s=Math.max(0,Math.floor(s));if(s<UI_60)return s+(L('秒','s'));if(s<UI_3600)return Math.floor(s/60)+L('分','m');if(s<UI_86400)return Math.floor(s/3600)+L('时','h');if(s<UI_86400*30)return Math.floor(s/86400)+L('天','d');if(s<UI_86400*365)return Math.floor(s/86400/30)+L('月','mo');return Math.floor(s/86400/365)+L('年','y')}
 function fAgeS(s){if(s==null||!isFinite(s))return '—';s=Math.max(0,Math.floor(s));if(s<UI_60)return s+'s';if(s<UI_3600)return Math.floor(s/60)+'m';if(s<UI_86400)return Math.floor(s/3600)+'h';if(s<UI_86400*365)return Math.floor(s/86400)+'d';return (s/86400/365).toFixed(1).replace(/\.0$/,'')+'y'}/* 全站年龄同一套单位：s／m／h／d／y */
 const fx=(v,d=0)=>v==null||!isFinite(+v)?'—':(+v).toFixed(d);

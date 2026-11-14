@@ -75,7 +75,7 @@ const TRH=new Set(),WLH=new Set(),MONP=new Map();
 function lazyN(el,rowH,min=CNT_8){const h=(el.clientHeight||el.parentElement?.clientHeight||CNT_500);const w=(el.clientWidth||el.parentElement?.clientWidth||CNT_400);const cols=w>=PX_960?Math.max(1,Math.floor((w-16)/448)):1;/* 宽面板排成多栏时一次多拿几张 */return Math.max(min,(Math.ceil(h/rowH)+3)*cols)}
 function lazyMore(sc,o,redraw,step=CNT_12){sc.addEventListener('scroll',()=>{if(sc.scrollTop+sc.clientHeight>sc.scrollHeight-60){o._n=(o._n||0)+step;const st=sc.scrollTop;redraw();const s2=el2(sc);if(s2)s2.scrollTop=st}},{passive:true})}
 const el2=sc=>sc.isConnected?sc:null;
-/* 读链实测中位延迟（资料助手 11/13 实测约一到五秒；EVM＝publicnode WSS／HTTP 轮询，Solana＝logsSubscribe）。原型显示示范值，正式版显示即时量测 */
+/* 读链延迟：用 KOL 动态每笔「上链时间→雷达看到」实际算（latOf） */
 const latTxt=ch=>LATC[ch]!=null?LATC[ch]+L(' 秒',' s'):L('未验证','unverified');
 function feedClick(e,p){if(e.target.closest('[data-a=setq]')){openSettings();return}if(e.target.closest('.vo'))return;const b=e.target.closest('[data-a=buy]');const r=e.target.closest('[data-t]');if(!r)return;const t=BYID.get(r.dataset.t);if(!t)return;if(b){fakeBuy(t,b.dataset.amt||ST.gq[t.chain].a,'buy',b);return}p.o.link?setFocus(t):openTok(t)}
 function focusTok(){let t=ST.focus&&BYID.get(ST.focus);if(!t||t.chain!==ST.chain){t=listRows({tab:'hot',per:'h1'})[0]||TOK[ST.chain][0]||null;ST.focus=t?t.id:null}return t}
