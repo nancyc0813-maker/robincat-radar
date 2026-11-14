@@ -1067,6 +1067,7 @@ let OTH=0;async function tick(){TICK++;if(!TV.on)return;
  await loadChain(ST.chain);if(TICK%UI_24===0){const o=CHS.filter(c=>c!==ST.chain);loadChain(o[OTH++%o.length])}
  if(TICK%CNT_4===1)loadKol();if(TICK%CNT_4===UI_3)loadCalls();if(TICK%UI_6===0)loadPx();if(TICK%UI_10===UI_5)loadSrc();if(TICK%UI_3===0)riskVisible();if(TICK%UI_40===UI_7)loadModes();if(TICK%UI_2===0)loadPos();
  monCheck();alertCheck();
+ for(const h of TRADEH){const t=h.tok&&h.tok();if(t)trGet(t)}/*KNET-1114 总览／盯盘的成交面板也要定时更新（以前只有代币页会再拿，面板第一次拿到空的就一直空着）；trGet 自己有间隔，不会多打*/
  const onTok=ROOTEL.classList.contains('rt-tok');const mob=matchMedia('(max-width:760px)').matches;
  const onPg=ROOTEL.classList.contains('rt-pg');if(!onTok&&!onPg)for(const [id,x] of INST){if(mob&&id!==MON)continue;if(x.el.offsetParent===null)continue;x.h.update&&x.h.update()}
  if(DRW.t&&DRW.h)DRW.h.update&&DRW.h.update();
