@@ -20400,6 +20400,23 @@
    "file": "(radar/klinehist\\.cjs|watch\\.mjs)$",
    "match": "GTLIM-1114",
    "reason": "GTLIM／GTMKT-1114（用户 11/14 同意「没有办法连接数据的想办法突破」）：注解说明限速次数（每分钟 20 次＝整个雷达对 GeckoTerminal 的技术上限；27 次＝旧版说明），不是买卖门槛"
+  },
+  {
+   "rule": "OBJNUM|TIMEWIN",
+   "file": "radar/kolfeed\\.cjs$",
+   "match": "statSaveMs: 60e3, statTok: 300, statW: 3000",
+   "values": [
+    "300",
+    "3000",
+    "60e3"
+   ],
+   "reason": "KFSTAT-1114 雷达本机统计（KOL／聪明钱已实现盈亏、胜率，只读显示，不进任何买卖判断）：技术常数＝多久存一次档、每个钱包最多记几个币、最多记几个钱包（记忆体／档案大小）"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/main\\.cjs$",
+   "match": "fdusd",
+   "reason": "KFSTAT-1114 雷达本机统计（KOL／聪明钱已实现盈亏、胜率，只读显示，不进任何买卖判断）：美金稳定币代号清单（USDC／USDT／DAI…），只用来把这笔成交换出去的稳定币当 1 美金算金额，不是关键字黑名单"
   }
  ]
 }

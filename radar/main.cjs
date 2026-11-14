@@ -44,6 +44,7 @@ ipcMain.handle('uiLang', (e, l) => { const v = l === 'en' ? 'en' : 'zh'; if (v !
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 { try { const qf = path.join(__dirname, '..', 'data', 'quit.req'); if (fs.existsSync(qf)) { fs.unlinkSync(qf); app.exit(0); } } catch {} } /*QUIT-1111 data/quit.req 存在＝这次启动直接关掉（用来远端关雷达；关掉时自己删档，下次照常开）*/
 app.on('second-instance', () => { if (win) { win.show(); win.focus(); } });
+app.on('before-quit', () => { try { KF?.saveStats?.(); } catch {} }); /*KFSTAT-1114 关雷达前把本机统计存档*/
 
 function readJSON(f, d) { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } }
 const STC = new Map(); function stJSON(f, d) { try { const st = fs.statSync(f); const c = STC.get(f); if (c && c.mt === st.mtimeMs && c.sz === st.size) return c.v; const v = JSON.parse(fs.readFileSync(f, 'utf8')); STC.set(f, { mt: st.mtimeMs, sz: st.size, v }); return v; } catch { const c = STC.get(f); return c ? c.v : d; } } /*HANG-1111 引擎状态档（可能好几 MB）：档案没变就用上次解析好的，不要每个画面请求都重读重解析（只读，不写回）*/
@@ -231,6 +232,9 @@ function kfList() { const out = {}; const add = (ch, a0, nm, kind) => { const a 
   const B = aveBoard(); for (const [k, L] of Object.entries(B?.sw || {})) for (const w of L || []) add(k === 'rh' ? 'robinhood' : k, w.a, w.r, 'sm'); for (const [ch, L] of Object.entries(KFW.L)) for (const w of L) add(ch, w.a, w.nm, 'sm');
   return out; }
 function kfPx(ch, c) { const M = aveBoard()?.m?.[ch === 'robinhood' ? 'rh' : ch]; const v = M?.[ch === 'solana' ? c : String(c).toLowerCase()]; return v ? { cp: +v.cp || null, mc: +v.mc || null, sym: String(v.s || '') } : null; }
+/*KFSTAT-1114 基础币美金价（算 KOL／聪明钱每笔成交金额）：美金稳定币＝1（技术换算）；ETH／BNB／SOL 用底部价格列（币安公开行情，读不到用 DexScreener）；其他读不到＝null（那笔金额不算，不猜）*/
+function kfBaseUsd(ch, sym) { const s = String(sym || '').toLowerCase(); if (/^(usd[tcg1]|usdt0|usdc\.e|busd|dai|fdusd)$/.test(s)) return 1; const v = PXB.v || {}; if (/^w?eth$/.test(s)) return +v.eth > 0 ? +v.eth : null; if (/^w?bnb$/.test(s)) return +v.bnb > 0 ? +v.bnb : null; if (/^w?sol$/.test(s)) return +v.sol > 0 ? +v.sol : null; return null; }
+ipcMain.handle('kfLocal', (e, ch) => { try { if (!KF) return { err: 'kf' }; ch = KF_CH.includes(String(ch)) ? String(ch) : ''; if (!ch) return { err: 'chain' }; KF.touch(); kfSmRefresh().catch(() => {}); const st = KF.stat(); return { chain: ch, src: 'local', list: KF.wstats(ch), watching: st.list?.[ch] || 0, live: st.ch?.[ch]?.st || 'off', at: Date.now() }; } catch (er) { return { err: String(er?.message || er).slice(0, 80) }; } }); /*KFSTAT-1114 雷达本机统计（Base／Ethereum 没有 AVE 聪明钱清单时用）*/
 ipcMain.handle('kolFeed', (e, n) => { try { if (!KF) return { items: [], err: 'kf' }; KF.touch(); kfSmRefresh().catch(() => {}); return { items: KF.feed(Math.max(1, Math.min(500, +n || 100))), stat: KF.stat(), at: Date.now() }; } catch (er) { return { items: [], err: String(er?.message || er).slice(0, 80) }; } }); /*KOLFEED-1113 给讯号页／总览面板：谁、买／卖、哪个币、多少钱、当时市值、现在市值*/
 const SIG_DS = { bsc: 'bsc', rh: 'robinhood', solana: 'solana', base: 'base', eth: 'ethereum', xlayer: 'xlayer', arbitrum: 'arbitrum', polygon: 'polygon', monad: 'monad', hyperevm: 'hyperevm', elysium: 'elysium' }; /*CALLADDR-1113 雷达链代号 → DexScreener chainId（喊单的现在市值）*/
 async function signals() { const S = stJSON(path.join(DATA, 'watch_state.json'), {}); const P = readJSON(SIGP, {});
@@ -920,7 +924,7 @@ async function tokOrOkx(net, addr, maxMs) { const avP = aveToken(net, addr).catc
   return lim(new Promise((res) => { let n = 0; const fin = (v) => { if (v) res(v); else if (++n === 2) res({}); }; avP.then((v) => fin(v?.pair?.price != null ? { A: v } : null)); okP.then((v) => fin(v ? { O: v } : null)); })).then((r) => r || {}); }
 let NT = null; try { NT = require('./newtok.cjs'); } catch (e) { console.error('newtok', e); }
 let GTM = null; try { GTM = require('./gtmkt.cjs'); } catch (e) { console.error('gtmkt', e); } /*GTMKT-1114 AVE 没有新币来源的链：GeckoTerminal new_pools 补「新开盘」（只读、走 gtlim 共用限速）*/
-let KF = null; try { KF = require('./kolfeed.cjs'); KF.install({ getList: kfList, getPx: kfPx, solUsd: () => (+PXB.v?.sol > 0 ? +PXB.v.sol : null), log: () => {} }); } catch (e) { console.error('kolfeed', e); } /*KOLFEED-1113 KOL／聪明钱即时动态；kfList／kfPx 是函式宣告（执行时才读 AVH／aveBoard／RMT）*/ /*NEWTOK-1113 新币秒级：Solana＝PumpPortal 推送、Base＝读链（Clanker／Doppler）*/
+let KF = null; try { KF = require('./kolfeed.cjs'); KF.install({ getList: kfList, getPx: kfPx, solUsd: () => (+PXB.v?.sol > 0 ? +PXB.v.sol : null), baseUsd: kfBaseUsd, statFile: path.join(DATA, 'kf_stats.json'), log: () => {} }); /*KFSTAT-1114*/ } catch (e) { console.error('kolfeed', e); } /*KOLFEED-1113 KOL／聪明钱即时动态；kfList／kfPx 是函式宣告（执行时才读 AVH／aveBoard／RMT）*/ /*NEWTOK-1113 新币秒级：Solana＝PumpPortal 推送、Base＝读链（Clanker／Doppler）*/
 const KH = require('./klinehist.cjs'); KH.install({ aveCandles: (n, a, t) => aveCandles(n, a, t), aveOK: () => aveOK(), MK, V4B, V4R, get AVT() { return AVT; }, OKM }); /* KH-1113 */
 const KH_NET = new Set(['bsc', 'robinhood', 'solana', 'base', 'eth']);
 ipcMain.handle('klineHist', async (e, net, addr, pool, tf, before, meta) => { net = KH_NET.has(net) ? net : 'bsc'; addr = String(addr || '').trim(); pool = String(pool || '').trim(); if (net !== 'solana') { addr = addr.toLowerCase(); pool = pool.toLowerCase().replace(/_[a-z0-9]+$/, ''); }
