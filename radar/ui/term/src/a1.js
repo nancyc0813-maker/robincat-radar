@@ -116,7 +116,7 @@ const TOK=Object.fromEntries(Object.keys(CH).map(k=>[k,[]])),BYID=new Map();
 if(!CH[ST.chain])ST.chain='bsc';
 
 /* ===== K 线：主程式 klineHist（见 a0 kGet），秒为单位 ===== */
-const TF=[['1s',1],['5s',5],['15s',15],['1m',60],['5m',300],['15m',900],['1h',3600],['4h',14400],['1d',86400]];
+const TF=[['1s',1],['5s',5],['15s',15],['30s',30],['1m',60],['5m',300],['15m',900],['1h',3600],['4h',14400],['1d',86400]];
 function bars(t,tf){return kGet(t,tf).bars}
 
 /* ===== 交易、持有人：主程式 tape／tokenDetail（见 a0） ===== */

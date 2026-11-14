@@ -56,7 +56,7 @@ async function hist0(net, addr, pool, tf, beforeMs) {
   if (!out.src && !(beforeMs > 0)) { L = await fromAve(net, P || addr, tf); if (!L && P && P !== addr) L = await fromAve(net, addr, tf); if (L && L.length) out.src = 'ave'; } /* ③ AVE（没有往回翻页） */
   if (!out.src) { L = await fromOkx(net, addr, tf, beforeMs); if (L && L.length) out.src = 'okx'; } /* ④ OKX */
   if (!out.src && loc && loc.bars && loc.bars.length) { L = loc.bars; out.src = 'chain'; } /* ⑤ 读链记的 */
-  if (!out.src) { if (loc?.quoteWait) out.err = 'quote'; else if (ctx.busy) out.err = 'busy'; return out; }
+  if (!out.src) { if (loc?.quoteWait) out.err = 'quote'; else if (ctx.busy) out.err = 'busy'; else if (!P && !loc) out.err = 'nopool'; /*KWHY-1114 找不到交易池、雷达也没在发射台曲线上看到＝还没开盘（AVE 空图写「未開盤」）*/ return out; }
   L = KL.aggregate(L, sec); if (beforeMs > 0) L = L.filter((x) => x.t < beforeMs);
   L = KL.fillGaps(L, sec, BARS, beforeMs > 0 ? 0 : Date.now()); out.bars = clean(L.slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0, ...(x.gap ? { gap: 1 } : {}) })));
   return out;
