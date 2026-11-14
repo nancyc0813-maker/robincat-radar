@@ -983,3 +983,5 @@ span.fr,b.fr,small.fr{display:inline;margin:0}/* 「新鲜」标记 .fr 和表�
 .tgt .c-act .rl,.tgt .c-act .rtx{display:none}
 .tgt .c-act{gap:4px}
 .tgt .c-act .qb{padding-left:6px;padding-right:6px}
+.stt.warn{color:var(--wn,#F5A524)}
+.stt.warn .lv{background:var(--wn,#F5A524)}

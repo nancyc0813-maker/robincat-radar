@@ -1133,4 +1133,6 @@
 #tv2 .tgt .c-act .rl,#tv2 .tgt .c-act .rtx{display:none}
 #tv2 .tgt .c-act{gap:4px}
 #tv2 .tgt .c-act .qb{padding-left:6px;padding-right:6px}
+#tv2 .stt.warn{color:var(--wn,#F5A524)}
+#tv2 .stt.warn .lv{background:var(--wn,#F5A524)}
 
