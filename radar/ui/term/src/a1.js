@@ -14,8 +14,8 @@ const L=(zh,en)=>ST.lang==='en'?(en??zh):zh;
 /* ===== 格式 ===== */
 const SUB='₀₁₂₃₄₅₆₇₈₉';
 function fU(n,pre='$'){if(n==null||n==='')return '—';n=+n;if(!isFinite(n))return '—';const s=n<0?'-':'';const a=Math.abs(n);let r;
- if(a>=1e9)r=(a/1e9).toFixed(a>=1e10?1:2)+'B';else if(a>=1e6)r=(a/1e6).toFixed(a>=1e7?1:2)+'M';else if(a>=1e3)r=(a/MS_1000).toFixed(a>=1e4?1:2)+'K';else r=a>=100?a.toFixed(0):a>=1?a.toFixed(2):a.toFixed(3);
- return s+pre+r.replace(/\.0+([KMB]?)$/,'$1').replace(/(\.\d*?)0+([KMB])$/,'$1$2').replace(/\.([KMB])$/,'$1')}
+ if(a>=1e12)r=(a/1e12).toFixed(a>=1e13?1:2)+'T';/*FMT-1114 照 GMGN／DexScreener 用 K／M／B／T*/else if(a>=1e9)r=(a/1e9).toFixed(a>=1e10?1:2)+'B';else if(a>=1e6)r=(a/1e6).toFixed(a>=1e7?1:2)+'M';else if(a>=1e3)r=(a/MS_1000).toFixed(a>=1e4?1:2)+'K';else r=a>=100?a.toFixed(0):a>=1?a.toFixed(2):a.toFixed(3);
+ return s+pre+r.replace(/\.0+([KMBT]?)$/,'$1').replace(/(\.\d*?)0+([KMBT])$/,'$1$2').replace(/\.([KMBT])$/,'$1')}
 function fN(n){if(n==null||n==='')return '—';n=+n;if(!isFinite(n))return '—';const a=Math.abs(n);if(a>=1e6)return (n/1e6).toFixed(2).replace(/\.?0+$/,'')+'M';if(a>=1e4)return (n/MS_1000).toFixed(1).replace(/\.0$/,'')+'K';if(a>=1e3)return (n/MS_1000).toFixed(2).replace(/\.?0+$/,'')+'K';return String(Math.round(n))}
 function fP(p,pre='$'){p=+p;if(!(p>0))return '—';if(p>=UI_1000)return pre+p.toLocaleString('en-US',{maximumFractionDigits:0});if(p>=1)return pre+p.toFixed(p>=100?2:4);
  const z=Math.floor(-Math.log10(p));if(z>=UI_4){const d=Math.round(p*Math.pow(10,z+3));return pre+'0.0'+String(z).split('').map(c=>SUB[+c]).join('')+String(Math.min(d,999))}

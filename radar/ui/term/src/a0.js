@@ -3,6 +3,7 @@ const [CNT_10,CNT_100,CNT_12,CNT_14,CNT_2,CNT_200,CNT_24,CNT_3,CNT_30,CNT_4,CNT_
 const [MS_1000,MS_15,MS_20000,MS_3000,MS_3600000,MS_5000,MS_600,MS_6000,MS_60000,MS_8000,MS_9000,MS_15000]=[1000,15,20000,3000,3600e3,5000,600,6000,60000,8000,9000,15000];/* 技术用：毫秒（秒换毫秒、画面向主程式轮询的间隔、快取多久算旧、提示停留时间），只影响读取频率与显示 */
 const [TS_1E12]=[1e12];/* 技术用：毫秒时间戳的判断（大于这个数＝毫秒，否则是秒），单位换算 */
 const [UI_0,UI_10,UI_100,UI_1000,UI_14,UI_15,UI_180,UI_1E18,UI_1E9,UI_2,UI_20,UI_24,UI_26,UI_28,UI_3,UI_30,UI_3600,UI_4,UI_40,UI_48,UI_5,UI_50,UI_6,UI_60,UI_7,UI_72,UI_8,UI_86400,UI_90,UI_9999]=[0,10,100,1000,14,15,180,1e18,1e9,2,20,24,26,28,3,30,3600,4,40,48,5,50,6,60,7,72,8,86400,90,9999];/* 技术用：画面显示用的小数字（小数位数、动画步数、分页数、风险颜色红黄绿门槛——只影响颜色，画面有写「只影响显示」），不进任何买卖、跳过、排除、通知判断 */
+const LIQ_MC_MAX=1000;/* 技术用（只影响显示）：池子金额超过市值几倍就当资料错（真实池子通常远小于市值；连流通很少的币，池子也不会是市值的上千倍） */
 const PX_TOKMIN=104,PX_MCMIN=52;/* 技术用（只影响排版）：清单太窄时代币栏／市值栏最少多宽（代币名看得到） */
 const [PX_0P2,PX_0P5,PX_0P8,PX_10,PX_1000,PX_120,PX_14,PX_15,PX_1600,PX_170,PX_200,PX_25,PX_260,PX_3,PX_30,PX_4,PX_40,PX_600,PX_760,PX_8,PX_960,PX_9999]=[.2,.5,.8,10,1000,120,14,15,1600,170,200,25,260,3,30,4,40,600,760,8,960,9999];/* 技术用：版面像素（窄面板少显示几栏、手机宽度断点、选单位置、列高、栏宽），只影响版面 */
 const [SEC_1000,SEC_120,SEC_60,SEC_86400]=[1000,120,60,86400];/* 技术用：秒（年龄显示切换单位、刚上线标亮、延迟换算），只影响显示 */
@@ -55,7 +56,7 @@ function tokFrom(ch,x,grp,src){const c0=String(x.c||'');if(!c0)return null;const
  const s=x.s??x.sym;if(s)t.s=String(s).slice(0,40);const n=x.n??x.name??x.nm;if(n)t.n=String(n).slice(0,80);if(!t.s)t.s=c.slice(0,CNT_6);
  const lg=x.lg||x.img;if(lg&&/^https:\/\//.test(lg))t.lg=lg;
  const mc=num(x.mc);if(mc!=null&&mc>0)t.mc=mc;const p=num(x.price??x.cp);if(p!=null&&p>0)t.p=p;if(t.mc>0&&t.p>0)t.sup=t.mc/t.p;
- const l=num(x.tvl??x.liq);if(l!=null)t.l=l;const h=num(x.h??x.holders);if(h!=null)t.h=h;
+ const l=num(x.tvl??x.liq);if(l!=null){const bad=t.mc>0&&l>t.mc*LIQ_MC_MAX;t.l=bad?null:l;t.lBad=bad?1:0}/*LIQ-1114 资料源的池子金额比市值大上千倍＝资料错（11/14 实测 AVE 给 AERO $1.3e17、VIRTUAL $6.4e15；AVE 自己页面也显示「$133P」，GMGN 池子 $3.8M、DexScreener $3.79M）→ 不显示，写「—」并说原因*/const h=num(x.h??x.holders);if(h!=null)t.h=h;
  const c5=num(x.c5),c1=num(x.c1),c24=num(x.c24);if(c5!=null)t.ch.m5=c5;if(c1!=null)t.ch.h1=c1;if(c24!=null)t.ch.h24=c24;
  const v5=num(x.v5),v1=num(x.v1),v24=num(x.v24);if(v5!=null)t.vol.m5=v5;if(v1!=null)t.vol.h1=v1;if(v24!=null)t.vol.h24=v24;
  const tx1=num(x.tx1),tx24=num(x.tx24??x.tx);if(tx1!=null)t.txn.h1=tx1;if(tx24!=null)t.txn.h24=tx24;

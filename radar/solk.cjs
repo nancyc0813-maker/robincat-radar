@@ -33,7 +33,7 @@ function watch(mint) { mint = String(mint || ''); if (!B58.test(mint)) return { 
   return { ok: 1 }; }
 setInterval(() => { if (S.mint && Date.now() - S.at > IDLE_MS) stop(); }, IDLE_MS).unref?.();
 /* 组 K 线：秒数 sec（1／5／15），时间用区块时间（秒）；价格＝SOL÷代币×SOL 美金价（读不到 SOL 价＝只给 SOL 计价，画面不画美金） */
-function bars(mint, sec) { const r = watch(mint); if (r.err) return r; sec = [1, 5, 15, 30].includes(+sec) ? +sec : 1; /*SEC30-1114 加 30 秒（币安钱包 1秒／5秒／30秒、OKX 1秒／30秒）*/ const u = S.solUsd(); const out = []; let cur = null;
+function bars(mint, sec) { const r = watch(mint); if (r.err) return r; sec = [1, 5, 15, 30].includes(+sec) ? +sec : 1; /*SEC30-1114 加半分钟一根（照币安钱包、OKX 的秒线周期）*/ const u = S.solUsd(); const out = []; let cur = null;
   for (const x of S.tr.slice().sort((a, b) => a.ts - b.ts)) { if (!(x.ts > 0)) continue; const p = (x.vsol / x.vtok) * (u || 1); /*RV8-7 成交后的曲线价格（虚拟储备）*/ const k = Math.floor(x.ts / sec) * sec; const v = x.sol * (u || 1);
     if (!cur || cur.t !== k) { cur = { t: k * 1000, o: p, h: p, l: p, c: p, v }; out.push(cur); } else { cur.h = Math.max(cur.h, p); cur.l = Math.min(cur.l, p); cur.c = p; cur.v += v; } }
   const L = S.lag.slice().sort((a, b) => a - b); const last = S.tr.at(-1);

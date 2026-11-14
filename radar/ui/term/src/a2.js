@@ -102,7 +102,7 @@ function cellHTML(k,t,P){const c=t.ch[P];const n=t.txn[P==='m5'?'h1':P]??null;co
  case 'mc':return `<div class="c r c-mc v2"><b data-k="mc">${fU(t.mc)}</b><small class="${cls(c)}" data-k="ch">${fPct(c)}</small></div>`;
  case 'c5':return `<div class="c r c-c5 num ${cls(t.ch.m5)}">${fPct(t.ch.m5)}</div>`;
  case 'c24':return `<div class="c r c-c24 num ${cls(t.ch.h24)}">${fPct(t.ch.h24)}</div>`;
- case 'liq':return `<div class="c r c-liq num t2" data-k="liq">${fU(t.l)}</div>`;
+ case 'liq':return `<div class="c r c-liq num t2" data-k="liq"${t.lBad?` title="${L('资料源给的池子金额比市值大上千倍，不合理，先不显示','Source liquidity is implausible (over 1000× market cap); hidden')}"`:''}>${fU(t.l)}</div>`;
  case 'hold':return `<div class="c r c-hold v2"><b>${fN(t.h)}</b>${t.top10!=null?`<small class="t3">${L('前10','T10')} ${fx(t.top10)}%</small>`:''}</div>`;
  case 'tx':return `<div class="c r c-tx v2"><b data-k="tx">${fN(bs?bs[0]+bs[1]:n)}</b>${bs?`<small class="bs2"><span class="up" data-k="bn">${fN(bs[0])}</span><span class="dn" data-k="sn">${fN(bs[1])}</span></small>`:''}</div>`;
  case 'vol':return `<div class="c r c-vol num" data-k="vol">${fU(t.vol[P])}</div>`;
