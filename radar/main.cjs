@@ -273,22 +273,6 @@ ipcMain.handle('backtest', (e, o = {}) => { try { const net = o.net === 'robinho
       const m = (out.p * (1 - SLIP) * (1 - FEE)) / (entry.p * (1 + SLIP) * (1 + FEE)); res.push({ c: x.c, sym: x.sym || x.c.slice(0, 8), plat: x.plat, t: entry.t * 1000, mc: Math.round(entry.mc), m: +m.toFixed(3), peak: +(peak / entry.p).toFixed(2), why: out.why, pnl: +(AMT * (m - 1)).toFixed(2) }); } }
   res.sort((a, b) => b.t - a.t); const done = res.filter((r) => r.why !== 'open'); const win = done.filter((r) => r.m > 1).length; const pnl = done.reduce((a, r) => a + r.pnl, 0);
   return { fee: FEE * 100, slip: SLIP * 100, skipped: { noAt, noOpen }, n: res.length, done: done.length, win, rate: done.length ? win / done.length : 0, pnl: +pnl.toFixed(2), spent: +(done.length * AMT).toFixed(2), list: res, best: done.slice().sort((a, b) => b.m - a.m).slice(0, BT_TOPN), worst: done.slice().sort((a, b) => a.m - b.m).slice(0, BT_TOPN) }; } catch (er) { return { err: String(er.message || er).slice(0, 100) }; } });
-/*TV2-1114 新看盘终端：AVE 叙事板块（/v2/ranks/topics＋/v2/ranks?topic=）与公开讯号（/v2/signals/public/list），只读、不进任何买卖判断。
-  只在玩家自己填了 AVE 金钥时才问（转接站还没部署这两条规则：转接站模式去问会被拒，还会让整个 AVE 暂停一分钟 → 直接回 relay，画面写「需要转接站更新或自己的 AVE 金钥」）。 */
-const TV2_TOPICS = ['meme', 'ai', 'depin', 'gamefi', 'rwa', 'l2']; /* 11/14 用户电脑实测：ranks/topics 里能当板块的只有这 6 个 */
-const TV2_SIG = new Set(['solana', 'bsc', 'robinhood', 'eth', 'arbitrum', 'elysium']); /* 11/14 实测有讯号的链 */
-const TV2_MS = { topics: 10 * 60e3, sig: 60e3 }; /* 技术用：板块多久重问一次、讯号多久重问一次（只影响读取频率） */ const TV2C = new Map();
-const tv2Num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
-ipcMain.handle('term', async (e, act, o) => { o = o && typeof o === 'object' ? o : {}; try {
-  if (!fs.existsSync(AVE_KF)) return { err: 'relay' };
-  if (act === 'topics') { const c = TV2C.get('topics'); if (c && Date.now() - c.at < TV2_MS.topics) return c.v; const list = [];
-    for (const k of TV2_TOPICS) { const j = await aveGet('/v2/ranks?topic=' + k, 5).catch(() => null); const D = Array.isArray(j?.data) ? j.data : Array.isArray(j?.data?.list) ? j.data.list : []; list.push({ k, tokens: D.slice(0, 60).map((x) => ({ c: String(x.token || x.address || '').slice(0, 64), chain: String(x.chain || '').slice(0, 20), sym: String(x.symbol || '').slice(0, 30), mc: tv2Num(x.market_cap ?? x.mcap), c24: tv2Num(x.price_change_24h), c1: tv2Num(x.price_change_1h), v24: tv2Num(x.tx_volume_u_24h ?? x.volume_u_24h), h: tv2Num(x.holders) })).filter((x) => x.c) }); }
-    const v = { list, at: Date.now() }; TV2C.set('topics', { at: Date.now(), v }); return v; }
-  if (act === 'signals') { const ch = String(o.chain || ''); if (!TV2_SIG.has(ch)) return { list: [], none: 1 }; const k = 'sig:' + ch; const c = TV2C.get(k); if (c && Date.now() - c.at < TV2_MS.sig) return c.v;
-    const j = await aveGet('/v2/signals/public/list?chain=' + ch + '&pageSize=50', 5).catch(() => null); const D = Array.isArray(j?.data) ? j.data : Array.isArray(j?.data?.list) ? j.data.list : [];
-    const list = D.map((x) => ({ c: String(x.token || x.token_address || x.address || '').slice(0, 64), sym: String(x.symbol || x.token_symbol || '').slice(0, 30), type: String(x.signal_type || x.type || '').slice(0, 40), mc: tv2Num(x.first_signal_mc), mcNow: tv2Num(x.mc_cur), mx: tv2Num(x.max_price_change), n: tv2Num(x.history_count), w: String(x.action_wallet_type || '').slice(0, 20), buy: /sell/i.test(String(x.action_type || '')) ? 0 : 1, ac: tv2Num(x.action_count), ts: (() => { const t = tv2Num(x.signal_time); return t == null ? null : t > 1e12 ? t / 1000 : t; })() })).filter((x) => x.c);
-    const v = { list, at: Date.now() }; TV2C.set(k, { at: Date.now(), v }); return v; }
-  return { err: 'act' }; } catch (er) { return { err: String(er?.message || er).slice(0, 80) }; } });
 ipcMain.handle('signals', () => signals().catch((e) => ({ feed: [], rank: [], err: String(e.message || e).slice(0, 80) })));
 /* 11/3 跟 AVE 合作：把 AVE 的持有人数、税率、风险分数、图示补进看盘卡片（资料由有金钥的雷达整理成 data/ave_board.json） */
 /* 11/3：一般用户没有金钥 → 每 2 分钟从转接站拿她整理好的 AVE 看盘资料（有官方签名、只给绑了邀请码的雷达） */
@@ -1651,3 +1635,19 @@ ipcMain.handle('walletInfo', async (e, net, w) => { net = net === 'robinhood' ? 
   if (W && T) FBW.set(k, { at: Date.now(), v }); /*TRADER118 读到一半不快取，按重试会重问*/ if (FBW.size > 100) FBW.delete(FBW.keys().next().value); return v; });
 /*FBM-END*/
 
+/*TV2-1114 新看盘终端：AVE 叙事板块（/v2/ranks/topics＋/v2/ranks?topic=）与公开讯号（/v2/signals/public/list），只读、不进任何买卖判断。
+  只在玩家自己填了 AVE 金钥时才问（转接站还没部署这两条规则：转接站模式去问会被拒，还会让整个 AVE 暂停一分钟 → 直接回 relay，画面写「需要转接站更新或自己的 AVE 金钥」）。 */
+const TV2_TOPICS = ['meme', 'ai', 'depin', 'gamefi', 'rwa', 'l2']; /* 11/14 用户电脑实测：ranks/topics 里能当板块的只有这六个 */
+const TV2_SIG = new Set(['solana', 'bsc', 'robinhood', 'eth', 'arbitrum', 'elysium']); /* 11/14 实测有讯号的链 */
+const TV2_MS = { topics: 10 * 60e3, sig: 60e3 }; /* 技术用：板块多久重问一次、讯号多久重问一次（只影响读取频率） */ const TV2C = new Map();
+const TV2_ERR_N = 80; /* 技术用：错误讯息给画面的长度上限（防画面撑爆） */ const tv2Num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
+ipcMain.handle('term', async (e, act, o) => { o = o && typeof o === 'object' ? o : {}; try {
+  if (!fs.existsSync(AVE_KF)) return { err: 'relay' };
+  if (act === 'topics') { const c = TV2C.get('topics'); if (c && Date.now() - c.at < TV2_MS.topics) return c.v; const list = [];
+    for (const k of TV2_TOPICS) { const j = await aveGet('/v2/ranks?topic=' + k, 5).catch(() => null); const D = Array.isArray(j?.data) ? j.data : Array.isArray(j?.data?.list) ? j.data.list : []; list.push({ k, tokens: D.slice(0, 60).map((x) => ({ c: String(x.token || x.address || '').slice(0, 64), chain: String(x.chain || '').slice(0, 20), sym: String(x.symbol || '').slice(0, 30), mc: tv2Num(x.market_cap ?? x.mcap), c24: tv2Num(x.price_change_24h), c1: tv2Num(x.price_change_1h), v24: tv2Num(x.tx_volume_u_24h ?? x.volume_u_24h), h: tv2Num(x.holders) })).filter((x) => x.c) }); }
+    const v = { list, at: Date.now() }; TV2C.set('topics', { at: Date.now(), v }); return v; }
+  if (act === 'signals') { const ch = String(o.chain || ''); if (!TV2_SIG.has(ch)) return { list: [], none: 1 }; const k = 'sig:' + ch; const c = TV2C.get(k); if (c && Date.now() - c.at < TV2_MS.sig) return c.v;
+    const j = await aveGet('/v2/signals/public/list?chain=' + ch + '&pageSize=50', 5).catch(() => null); const D = Array.isArray(j?.data) ? j.data : Array.isArray(j?.data?.list) ? j.data.list : [];
+    const list = D.map((x) => ({ c: String(x.token || x.token_address || x.address || '').slice(0, 64), sym: String(x.symbol || x.token_symbol || '').slice(0, 30), type: String(x.signal_type || x.type || '').slice(0, 40), mc: tv2Num(x.first_signal_mc), mcNow: tv2Num(x.mc_cur), mx: tv2Num(x.max_price_change), n: tv2Num(x.history_count), w: String(x.action_wallet_type || '').slice(0, 20), buy: /sell/i.test(String(x.action_type || '')) ? 0 : 1, ac: tv2Num(x.action_count), ts: (() => { const t = tv2Num(x.signal_time); return t == null ? null : t > 1e12 ? t / 1000 : t; })() })).filter((x) => x.c);
+    const v = { list, at: Date.now() }; TV2C.set(k, { at: Date.now(), v }); return v; }
+  return { err: 'act' }; } catch (er) { return { err: String(er?.message || er).slice(0, TV2_ERR_N) }; } });

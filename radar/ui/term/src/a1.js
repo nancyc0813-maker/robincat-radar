@@ -6,7 +6,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const LS={g(k,d){try{const v=localStorage.getItem('rc2_'+k);return v==null?d:JSON.parse(v)}catch{return d}},s(k,v){try{localStorage.setItem('rc2_'+k,JSON.stringify(v))}catch{}}};
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function rng(seed){let a=seed>>>0||1;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-const nowS=()=>Date.now()/1000;
+const nowS=()=>Date.now()/MS_1000;
 
 /* ===== 语言 ===== */
 const ST={lang:__tvO.lang(),theme:LS.g('theme','brand'),mode:LS.g('mode','dark'),chain:LS.g('chain','bsc'),estop:0};
@@ -15,18 +15,18 @@ const L=(zh,en)=>ST.lang==='en'?(en??zh):zh;
 /* ===== 格式 ===== */
 const SUB='₀₁₂₃₄₅₆₇₈₉';
 function fU(n,pre='$'){if(n==null||n==='')return '—';n=+n;if(!isFinite(n))return '—';const s=n<0?'-':'';const a=Math.abs(n);let r;
- if(a>=1e9)r=(a/1e9).toFixed(a>=1e10?1:2)+'B';else if(a>=1e6)r=(a/1e6).toFixed(a>=1e7?1:2)+'M';else if(a>=1e3)r=(a/1e3).toFixed(a>=1e4?1:2)+'K';else r=a>=100?a.toFixed(0):a>=1?a.toFixed(2):a.toFixed(3);
+ if(a>=1e9)r=(a/1e9).toFixed(a>=1e10?1:2)+'B';else if(a>=1e6)r=(a/1e6).toFixed(a>=1e7?1:2)+'M';else if(a>=1e3)r=(a/MS_1000).toFixed(a>=1e4?1:2)+'K';else r=a>=100?a.toFixed(0):a>=1?a.toFixed(2):a.toFixed(3);
  return s+pre+r.replace(/\.0+([KMB]?)$/,'$1').replace(/(\.\d*?)0+([KMB])$/,'$1$2').replace(/\.([KMB])$/,'$1')}
-function fN(n){if(n==null||n==='')return '—';n=+n;if(!isFinite(n))return '—';const a=Math.abs(n);if(a>=1e6)return (n/1e6).toFixed(2).replace(/\.?0+$/,'')+'M';if(a>=1e4)return (n/1e3).toFixed(1).replace(/\.0$/,'')+'K';if(a>=1e3)return (n/1e3).toFixed(2).replace(/\.?0+$/,'')+'K';return String(Math.round(n))}
-function fP(p,pre='$'){p=+p;if(!(p>0))return '—';if(p>=1000)return pre+p.toLocaleString('en-US',{maximumFractionDigits:0});if(p>=1)return pre+p.toFixed(p>=100?2:4);
- const z=Math.floor(-Math.log10(p));if(z>=4){const d=Math.round(p*Math.pow(10,z+3));return pre+'0.0'+String(z).split('').map(c=>SUB[+c]).join('')+String(Math.min(d,999))}
+function fN(n){if(n==null||n==='')return '—';n=+n;if(!isFinite(n))return '—';const a=Math.abs(n);if(a>=1e6)return (n/1e6).toFixed(2).replace(/\.?0+$/,'')+'M';if(a>=1e4)return (n/MS_1000).toFixed(1).replace(/\.0$/,'')+'K';if(a>=1e3)return (n/MS_1000).toFixed(2).replace(/\.?0+$/,'')+'K';return String(Math.round(n))}
+function fP(p,pre='$'){p=+p;if(!(p>0))return '—';if(p>=UI_1000)return pre+p.toLocaleString('en-US',{maximumFractionDigits:0});if(p>=1)return pre+p.toFixed(p>=100?2:4);
+ const z=Math.floor(-Math.log10(p));if(z>=UI_4){const d=Math.round(p*Math.pow(10,z+3));return pre+'0.0'+String(z).split('').map(c=>SUB[+c]).join('')+String(Math.min(d,999))}
  return pre+p.toPrecision(4)}
 function fPct(v,d=1){if(v==null||v==='')return '—';v=+v;if(!isFinite(v))return '—';const a=Math.abs(v);const t=a>=1000?fN(a):a.toFixed(a>=100?0:d);if(/^0(\.0+)?$/.test(t))return t+'%';return (v>0?'+':v<0?'-':'')+t+'%'}/* 四舍五入成 0 就不带正负号（不出现 -0.0%） */
-function fAge(s){if(s==null||!isFinite(s))return '—';s=Math.max(0,Math.floor(s));if(s<60)return s+(L('秒','s'));if(s<3600)return Math.floor(s/60)+L('分','m');if(s<86400)return Math.floor(s/3600)+L('时','h');if(s<86400*30)return Math.floor(s/86400)+L('天','d');if(s<86400*365)return Math.floor(s/86400/30)+L('月','mo');return Math.floor(s/86400/365)+L('年','y')}
-function fAgeS(s){if(s==null||!isFinite(s))return '—';s=Math.max(0,Math.floor(s));if(s<60)return s+'s';if(s<3600)return Math.floor(s/60)+'m';if(s<86400)return Math.floor(s/3600)+'h';if(s<86400*365)return Math.floor(s/86400)+'d';return (s/86400/365).toFixed(1).replace(/\.0$/,'')+'y'}/* 全站年龄同一套单位：s／m／h／d／y */
+function fAge(s){if(s==null||!isFinite(s))return '—';s=Math.max(0,Math.floor(s));if(s<UI_60)return s+(L('秒','s'));if(s<UI_3600)return Math.floor(s/60)+L('分','m');if(s<UI_86400)return Math.floor(s/3600)+L('时','h');if(s<UI_86400*30)return Math.floor(s/86400)+L('天','d');if(s<UI_86400*365)return Math.floor(s/86400/30)+L('月','mo');return Math.floor(s/86400/365)+L('年','y')}
+function fAgeS(s){if(s==null||!isFinite(s))return '—';s=Math.max(0,Math.floor(s));if(s<UI_60)return s+'s';if(s<UI_3600)return Math.floor(s/60)+'m';if(s<UI_86400)return Math.floor(s/3600)+'h';if(s<UI_86400*365)return Math.floor(s/86400)+'d';return (s/86400/365).toFixed(1).replace(/\.0$/,'')+'y'}/* 全站年龄同一套单位：s／m／h／d／y */
 const fx=(v,d=0)=>v==null||!isFinite(+v)?'—':(+v).toFixed(d);
 const ageOf=t=>t&&t.born?nowS()-t.born:null;
-const sAddr=c=>(c=String(c??'')).length>12?c.slice(0,4)+'…'+c.slice(-4):c;
+const sAddr=c=>(c=String(c??'')).length>CNT_12?c.slice(0,4)+'…'+c.slice(-4):c;
 const cls=v=>v>0?'up':v<0?'dn':'t3';
 
 /* ===== 图示（自绘线条） ===== */
@@ -86,7 +86,7 @@ const IP={
  globe2:'<circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"/>',
  aa:'<path d="M4 18 8.5 6 13 18M5.6 14h5.8M15 11.5c.8-1 1.8-1.5 3-1.5 1.8 0 3 1 3 3v5M21 15c-1-.6-2-.8-3-.8-1.7 0-3 .8-3 2.1 0 1.2 1 1.9 2.3 1.9 1.6 0 2.8-.9 3.7-2.2"/>'
 };
-/* 图示：同一份 SVG sprite，用 <use> 引用（每个图示 2 个节点，画面元素少很多） */
+/* 图示：同一份 SVG sprite，用 <use> 引用（每个图示只有两个节点，画面元素少很多） */
 const I=(k,c='')=>`<svg class="i ${c}" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-${k}"/></svg>`;
 (()=>{const d=document.createElement('div');d.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">${Object.entries(IP).map(([k,v])=>`<symbol id="ic-${k}" viewBox="0 0 24 24">${v}</symbol>`).join('')}</svg>`;ROOTEL.prepend(d.firstChild)})();
 const LOGO=`<svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lgS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD54A"/><stop offset="1" stop-color="#FF8A3D"/></linearGradient></defs><path d="M6 11.5 7.6 3.8l5.6 4.6M26 11.5l-1.6-7.7-5.6 4.6" fill="#1C2029" stroke="url(#lgS)" stroke-width="1.8" stroke-linejoin="round"/><circle cx="16" cy="18" r="11" fill="#141821" stroke="url(#lgS)" stroke-width="1.8"/><circle cx="16" cy="18" r="6" fill="none" stroke="rgba(240,185,11,.35)" stroke-width="1"/><path d="M16 18 22.5 12.5" stroke="#FFD54A" stroke-width="1.4" stroke-linecap="round" opacity=".8"/><circle cx="16" cy="18" r="1.6" fill="#FFD54A"/><circle cx="21.5" cy="21.5" r="1.3" fill="#3CE3A0"/></svg>`;
@@ -111,7 +111,7 @@ const PIN0=['bsc','rh','sol','base','eth'];
 const CHS=Object.keys(CH);
 const MAJ=[['BTC',null,null],['ETH',null,null],['SOL',null,null],['BNB',null,null]];
 const PADS={'pump.fun':['P','#2BB673'],'four.meme':['4','#E8A33B'],'flap.sh':['F','#7A6CFF'],'web3.binance.com':['B','#D9A400'],'believe.app':['b','#3D7BFF'],'bags.fm':['G','#9C5BD9'],'flap_pool_launch':['F','#7A6CFF'],'open.four':['4','#E8A33B'],'four_agent_meme':['4','#E8A33B'],'ponsv2':['P','#2EBD85'],'pons.family':['P','#2EBD85'],'app.long.xyz':['L','#2EBD85'],'fun.noxa.fi':['N','#2EBD85'],'bankr.bot':['B','#3D7BFF'],'virtuals.io':['V','#3D7BFF'],'o1.exchange':['O','#3D7BFF'],'trench.today':['T','#6F8BFF'],'sender.family':['S','#6F8BFF'],'x.flap.sh':['X','#7A6CFF'],'nad.fun':['N','#836EF9'],'clanker.world':['C','#3D7BFF']};
-/* 叙事板块：AVE /v2/ranks/topics 能当板块的 6 个（11/14 实测）；哪个币属于哪个板块只照 AVE 回的清单，不用名称猜 */
+/* 叙事板块：AVE /v2/ranks/topics 能当板块的六个（11/14 实测）；哪个币属于哪个板块只照 AVE 回的清单，不用名称猜 */
 const META=[['meme','Meme','Meme'],['ai','AI','AI'],['rwa','RWA','RWA'],['gamefi','GameFi','GameFi'],['depin','Depin','Depin'],['l2','L2','L2']];
 const TOK=Object.fromEntries(Object.keys(CH).map(k=>[k,[]])),BYID=new Map();
 if(!CH[ST.chain])ST.chain='bsc';
@@ -121,7 +121,7 @@ const TF=[['1s',1],['1m',60],['5m',300],['15m',900],['1h',3600],['4h',14400],['1
 function bars(t,tf){return kGet(t,tf).bars}
 
 /* ===== 交易、持有人：主程式 tape／tokenDetail（见 a0） ===== */
-const dn=n=>{n=String(n??'');return n==='¤'?L('我','Me'):/^0x[0-9a-fA-F]{40}$/.test(n)||n.length>30?sAddr(n):n};
+const dn=n=>{n=String(n??'');return n==='¤'?L('我','Me'):/^0x[0-9a-fA-F]{40}$/.test(n)||n.length>CNT_30?sAddr(n):n};
 const TAGS=[['kol','KOL','KOL'],['smart','聪明钱','Smart'],['rat','老鼠仓','Insider'],['snp','狙击','Sniper'],['dev','DEV','DEV'],['bnd','捆绑','Bundle'],['cab','隐藏集团','Cabal'],['phi','钓鱼','Phishing'],['whale','巨鲸','Whale'],['me','我的','Mine']];
 function genTrades(t){return trGet(t).rows}
 /* 持有人：主程式 tokenDetail 的 aveH（AVE 持有人标签：KOL／聪明钱／巨鲸／捆绑／阴谋集团／钓鱼＋前10 合计）。雷达目前只拿到「有标签的钱包」和占比合计，不是完整前 100 名单 */

@@ -20417,6 +20417,100 @@
    "file": "radar/main\\.cjs$",
    "match": "fdusd",
    "reason": "KFSTAT-1114 雷达本机统计（KOL／聪明钱已实现盈亏、胜率，只读显示，不进任何买卖判断）：美金稳定币代号清单（USDC／USDT／DAI…），只用来把这笔成交换出去的稳定币当 1 美金算金额，不是关键字黑名单"
+  },
+  {
+   "file": "radar/ui/term/tv2\\.js$",
+   "reason": "TV2-1114 建置产物：tv2.js 由 tools/term_build.mjs 把 radar/ui/term/src/*.js 原样串起来（只多包一层函式），内容跟 src 完全同一份；数字一律在 src 逐条检查（src 不加白名单），这里不重复计算"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/term/src/a0\\.js$",
+   "match": "(MS|UI|PX|SEC)_\\d+[,\\]]|\\];/\\* 技术用：",
+   "reason": "TV2-1114 新看盘终端「技术常数」区块（a0.js 最上面）：秒换毫秒、画面轮询间隔、快取多久算旧、版面像素；每组旁边有「技术用」注解，只影响读取频率与显示，不进买卖／跳过／排除／通知判断"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/ui/term/src/a1\\.js$",
+   "match": "four[._a-z]*':\\['4'",
+   "reason": "TV2-1114 发射台小图示上显示的字（four.meme 系列显示「4」），是图示文字，不是数字"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/term/src/a[234]\\.js$",
+   "match": "24h 涨跌|L\\('24h · 按成交排序|L\\('24h 成交'",
+   "reason": "TV2-1114 栏位／时段名称「24h」（AVE 清单的 24 小时资料栏），是标题文字，不是门槛"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/term/src/a2\\.js$",
+   "match": "AVE 涨跌榜只有",
+   "reason": "TV2-1114 说明文字：AVE 涨跌榜 11/14 实测抓到的笔数（事实说明），引擎不读"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "radar/ui/term/src/a3\\.js$",
+   "match": "雷达看到时已经过了 10 分钟以上",
+   "reason": "TV2-1114 说明文字：主程式 signals() 的「晚到」标记（main.cjs 写死在喊单资料层的既有判断，标 late）照实说明，画面不另外判断"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs$",
+   "match": "'(196|143|999|8453|501|42161)': '(xlayer|monad|hyperevm|base|solana|arbitrum)'",
+   "reason": "OKXW-1114 MC_WALLET_KINDS（币安 binance 与 OKX okx 两种钱包）：钱包回报的链代号对照雷达链名，OKX 照官方支援表 web3.okx.com/onchainos/dev-docs/home/supported-chain；是链的编号，不是金额或门槛"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "watch\\.mjs$",
+   "match": "'CT_501'|'4663'|'196', '143'",
+   "reason": "OKXW-1114 MCW_KNOWN：雷达认得的钱包链代号（跟 main.cjs MC_WALLET_KINDS 同一份），用来判断「钱包新支援、雷达还没更新」只通知不开放；是链编号，不是金额或门槛"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "mctrade\\.mjs$",
+   "match": "id: '(196|143|999)'|C\\.id === 'CT_501' \\? \\['CT_501', '501'\\]",
+   "reason": "OKXW-1114 X Layer／Monad／HyperEVM 的 OKX 链代号（官方支援表），以及 Solana 两种写法（币安 CT_501、OKX 501）；是链编号，不是金额或门槛"
+  },
+  {
+   "rule": "TIMEWIN|SLICE|CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "TV2_MS = \\{ topics: 10 \\* 60e3, sig: 60e3 \\}|D\\.slice\\(0, 60\\)\\.map\\(\\(x\\) => \\(\\{ c: String\\(x\\.token|t > 1e12 \\? t / 1000 : t; \\}\\)\\(\\)",
+   "reason": "TV2-1114 AVE 板块／讯号（只读）：多久重问一次（技术用，只影响读取频率与 AVE 用量）、每个板块最多带几个币到画面（显示用）、AVE 时间戳秒／毫秒判断（单位换算）；不进买卖判断"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "mctrade\\.mjs$",
+   "match": "(base|arbitrum|polygon): \\{ id: '(8453|42161|137)'",
+   "reason": "MCT-1111（既有，OKXW-1114 改到这个档才被列出）：币安钱包 binanceChainId（Base 8453、Arbitrum 42161、Polygon 137），是链编号，不是金额或门槛"
+  },
+  {
+   "rule": "TIMEWIN|OBJNUM|COMMENT_NUM",
+   "file": "mctrade\\.mjs$",
+   "match": "const T = \\{ pollMs: 3000, pollMax: 40, keep: 30 \\}|技术用：轮询订单状态的间隔、最多几次",
+   "reason": "MCT-1111（既有）：送出后轮询订单状态的间隔与次数、结果档留几笔，旁边已注明技术用；只影响等结果多久与显示，不影响买不买"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "mctrade\\.mjs$",
+   "match": "'--binanceChainId', cid\\], 30000\\)|'--hideLowValue', 'false'\\], 60000\\)|await W\\.baw\\(a, 90000\\)",
+   "reason": "MCT-1111（既有）：钱包指令逾时（查单、查余额、送单），技术用；逾时＝回报失败、不会改用别的数字买"
+  },
+  {
+   "rule": "SLICE",
+   "file": "mctrade\\.mjs$",
+   "match": "\\.slice\\(0, 160\\)",
+   "reason": "MCT-1111（既有）：错误讯息显示长度上限（防日志／TG 被撑爆），不是买卖规则"
+  },
+  {
+   "rule": "STRING_NUM",
+   "file": "mctrade\\.mjs$",
+   "match": "送出了，但约 2 分钟还没确认成交",
+   "reason": "MCT-1111（既有）：照实告诉玩家轮询了多久还没确认（就是上面 pollMs×pollMax），说明文字"
+  },
+  {
+   "rule": "CMP",
+   "file": "mctrade\\.mjs$",
+   "match": "pct > 0 && pct <= 100",
+   "reason": "MCT-1111（既有）：卖出比例的格式检查（百分比本来就是 1–100），不对就不卖"
   }
  ]
 }
