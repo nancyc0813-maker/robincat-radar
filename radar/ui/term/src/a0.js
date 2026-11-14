@@ -6,6 +6,7 @@ const [UI_0,UI_10,UI_100,UI_1000,UI_14,UI_15,UI_180,UI_1E18,UI_1E9,UI_2,UI_20,UI
 const [PX_0P2,PX_0P5,PX_0P8,PX_10,PX_1000,PX_120,PX_14,PX_15,PX_1600,PX_170,PX_200,PX_25,PX_260,PX_3,PX_30,PX_4,PX_40,PX_600,PX_760,PX_8,PX_960,PX_9999]=[.2,.5,.8,10,1000,120,14,15,1600,170,200,25,260,3,30,4,40,600,760,8,960,9999];/* 技术用：版面像素（窄面板少显示几栏、手机宽度断点、选单位置、列高、栏宽），只影响版面 */
 const [SEC_1000,SEC_120,SEC_60,SEC_86400]=[1000,120,60,86400];/* 技术用：秒（年龄显示切换单位、刚上线标亮、延迟换算），只影响显示 */
 const [FR_0P01,FR_0P38,FR_0P42,FR_0P45,FR_0P48,FR_0P5,FR_0P52,FR_0P55,FR_0P58,FR_0P62,FR_1EM12]=[.01,.38,.42,.45,.48,.5,.52,.55,.58,.62,1e-12];/* 技术用：版面比例（预设布局的栏宽、面板高度比例），只影响版面 */
+const SLIP_MAX=100;/* 技术用（格式检查，不是建议值）：滑点上限＝钱包官方允许的最大值（币安 baw market-order.md「0–100」、OKX onchainos validators.rs「0（不含）–100」），跟 mctrade.mjs MCT_SLIP_MAX 同一个 */
 /* ===== TV2-1114 新看盘终端：外框＋资料桥 =====
    画面元素的资料全部来自主程式现有 IPC（window.radar.*）：b3／mc board／kolFeed／signals／kfLocal／klineHist／tape／tokenDetail／cardRisk／pxBar／news／snapshot。
    读不到的栏位＝null＝画面不显示（不写 0、不编资料）。下单一律转呼叫旧画面原本的流程（__tvO，见 g0.js），经主程式到引擎的 actionGate。 */

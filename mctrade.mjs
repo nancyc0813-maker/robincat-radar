@@ -18,6 +18,8 @@ export const MCT_CHAINS = { /* 雷达链代号 → 币安 binanceChainId＋原�
   hyperevm: { id: '999', nat: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', sym: 'HYPE', okxOnly: 1 },
 };
 const T = { pollMs: 3000, pollMax: 40, keep: 30 }; /* 技术用：轮询订单状态的间隔、最多几次（约 2 分钟）、结果档留几笔（只影响显示） */
+const MCT_SHOW_N = 12; /* 技术用：回报里引用玩家填的字最多几个字（防讯息撑爆） */
+const MCT_SLIP_MAX = 100; /* 技术用（格式检查，不是建议值）：滑点上限＝钱包官方允许的最大值——币安 baw references/market-order.md「--slippage: "auto" or 0–100」（github.com/binance/binance-skills-hub）、OKX onchainos cli/src/validators.rs「between 0 (exclusive) and 100 (inclusive)」 */
 const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/, EVM = /^0x[0-9a-fA-F]{40}$/;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -50,7 +52,9 @@ export async function mctOrder(o, { DIR, WALLETS, log, tgSay }) {
   if (!wa && !W) { const P = o.type === 'buy' ? globalThis.PICK_BUY_W?.(c) : null; W = (P && sup(P)) ? P : (WALLETS || []).find((x) => sup(x) && !x.off) || null; } /*DUALW-13 买：主钱包优先（要支援这条链）；卖：有支援这条链、有登入的钱包（单子会带当初买的钱包）*/
   if (!W) return done(false, '你的钱包没有回报支援这条链（或选的钱包不支援），没送出');
   o._w = String(W.addr || '').toLowerCase();
-  const slip = Number(o.slip) > 0 && Number(o.slip) <= 50 ? String(+o.slip) : null; /* 没填＝用币安预设滑点 */
+  /*SLIP-1114 滑点：没填＝钱包（币安／OKX）自己的预设滑点；有填但不在钱包官方允许的范围＝不送单、回报原因（以前超过就偷偷改用预设，违反「没有偷偷的备用路径」）*/
+  const s0 = o.slip; const hasSlip = s0 != null && String(s0).trim() !== ''; if (hasSlip && !(Number(s0) > 0 && Number(s0) <= MCT_SLIP_MAX)) return done(false, `滑点要在 0–${MCT_SLIP_MAX}% 之间（你填的是 ${String(s0).slice(0, MCT_SHOW_N)}），没送出`);
+  const slip = hasSlip ? String(+s0) : null;
   let a;
   if (o.type === 'buy') { const amt = Number(o.amt); if (!(amt > 0)) return done(false, `没填要花多少 ${C.sym}，没送出`);
     a = ['market-order', 'swap', '--binanceChainId', C.id, '--fromTokenQty', String(+amt.toPrecision(10)), '--fromToken', C.nat, '--toToken', c]; }

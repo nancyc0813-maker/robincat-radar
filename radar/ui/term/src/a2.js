@@ -8,7 +8,7 @@ function unitOf(ch){if(isOwnTrade(ch)){const Q=__tvO.qb();const u=Q&&Q[NETOF[ch]
 /* P1–P3：滑点（%）玩家自己填，预设空。只有走 mctrade 的链（ETH／Base／Arbitrum／Polygon／Solana）引擎会读滑点；BNB Chain／Robinhood 的滑点由引擎自己处理，这里不显示 P 按钮（引擎不读的栏位不放） */
 ST.pset=LS.g('pset3',[{slip:''},{slip:''},{slip:''}]);
 ST.chips=new Proxy({},{get(_,ch){if(!isOwnTrade(ch))return [];const Q=__tvO.qb();const q=Q&&Q[NETOF[ch]];return q&&Array.isArray(q.v)?q.v.filter(x=>+x>0).map(String):[]}});ST.sellp=LS.g('sellp',{});/* 卖出快选 %：玩家自己填，预设空；画面灰色提示 25／50／100 引擎不读 *//* 代币页快选金额：玩家自己填，预设空 */
-const psetTxt=i=>{const x=ST.pset[i]||{};return x.slip!==''&&x.slip!=null?`${x.slip}%`:L('未设定','Not set')};
+const psetTxt=i=>{const x=ST.pset[i]||{};return x.slip!==''&&x.slip!=null?`${x.slip}%`:L('没填＝钱包预设滑点','Empty = wallet default slippage')};
 const usesP=ch=>canTrade(ch)&&!isOwnTrade(ch);
 ST.anim=LS.g('anim',1);ST.blue=LS.g('blue',{mc:'',d:''});
 const PERF={nav:[],lt:[],ev:[]};window.__perf=PERF;
@@ -17,7 +17,7 @@ function toast(msg,act){const w=$('#toasts');const d=document.createElement('div
 function fakeBuy(t,amt,side='buy',btn){if(!t)return;if(!canTrade(t.chain)){toast(L(`${CH[t.chain].name} 只看盘：你的钱包没有回报支援这条链，或雷达还没有这条链的下单程式`,`${CH[t.chain].name} is view-only`));return}
  const a=String(amt??'').trim();const v=parseFloat(a);
  if(side==='buy'&&ST.estop){toast(L('紧急全停中：不会买（卖照常）。要恢复买入到 ⚙ 设定按「重新设定」。','Emergency stop is on: buying is off (selling still works).'));return}
- try{if(side==='buy'){if(!(v>0)){openSettings();return}if(isOwnTrade(t.chain))__tvO.buyOwn(NETOF[t.chain],t.c,t.s,btn||null,v);else{const pi=ST.gq[t.chain].p;const sl=ST.pset[pi]&&ST.pset[pi].slip;try{if(sl!==''&&sl!=null)localStorage.setItem('mctSlip',String(sl))}catch{}__tvO.buyMc(NETOF[t.chain],t.c,t.s,v)}}
+ try{if(side==='buy'){if(!(v>0)){openSettings();return}if(isOwnTrade(t.chain))__tvO.buyOwn(NETOF[t.chain],t.c,t.s,btn||null,v);else{const pi=ST.gq[t.chain].p;const sl=ST.pset[pi]&&ST.pset[pi].slip;try{if(sl!==''&&sl!=null)localStorage.setItem('mctSlip',String(sl));else localStorage.removeItem('mctSlip')}catch{}/* SLIP-1114 这个 P 没填滑点＝钱包预设（不沿用上一次的） */__tvO.buyMc(NETOF[t.chain],t.c,t.s,v)}}
   else{const pct=Math.min(100,parseFloat(String(a).replace('%','')));if(!(pct>0)){toast(L('先选卖多少 %','Choose how much to sell'));return}if(isOwnTrade(t.chain))__tvO.sellOwn(NETOF[t.chain],t.c,t.s,btn||null,pct);else __tvO.sellMc(NETOF[t.chain],t.c,t.s,pct)}}catch(e){console.error(e);toast(L('这笔没有送出：','Not sent: ')+esc(String(e?.message||e).slice(0,80)))}}
 /* 统一的确认视窗（取代浏览器原生 confirm，样式跟其他视窗一致） */
 function askM(title,msg,ok,fn,danger){modal(`<h3${danger?' style="color:var(--dn)"':''}>${title}</h3><p>${msg}</p><div class="btns"><button class="btn s" data-x>${L('取消','Cancel')}</button><button class="btn p" id="askOk"${danger?' style="background:var(--dn);color:#fff"':''}>${ok}</button></div>`,(m,cl)=>{$('#askOk',m).onclick=()=>{cl();fn()}})}
