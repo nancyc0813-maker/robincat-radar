@@ -20587,6 +20587,15 @@
     "5000"
    ],
    "reason": "GRADFILL-1114 看盘「已上外盘」补读毕业时间（技术用：往回补多久、多久读一段、快取上限、毫秒换算），只影响看盘排序和显示，不进买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "const MCK_RETRY_MS=4e3",
+   "values": [
+    "4e3"
+   ],
+   "reason": "KNET-1114：多链详情 K 线被 GeckoTerminal 共用限速挡下时，画面写「资料来源忙，自动重试中」，隔几秒自动再拿一次（运作间隔，跟买卖无关）"
   }
  ]
 }
