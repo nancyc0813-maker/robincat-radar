@@ -1130,4 +1130,7 @@
 }
 #tv2 .tkcol .lst .lr{min-width:0}
 #tv2 .tkcol .lst .scr{overflow-x:hidden}
+#tv2 .tgt .c-act .rl,#tv2 .tgt .c-act .rtx{display:none}
+#tv2 .tgt .c-act{gap:4px}
+#tv2 .tgt .c-act .qb{padding-left:6px;padding-right:6px}
 
