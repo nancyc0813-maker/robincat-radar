@@ -22,7 +22,7 @@
   "robinhood.drpc.org": "Robinhood 链公开节点",
   "4663.rpc.thirdweb.com": "Robinhood 链公开节点",
   "api.dexscreener.com": "公开行情／合约验证／貔貅检查 API（只读）",
-  "api.geckoterminal.com": "公开行情／合约验证／貔貅检查 API（只读）",
+  "api.geckoterminal.com": "公开行情／合约验证／貔貅检查 API（只读）；GTMKT-1114 也用来补 AVE 没收的链的「新开盘」（new_pools），用户 11/14 同意「没有办法连接数据的想办法突破」（由主线转达）；整个雷达共用限速每分钟 20 次以内（radar/gtlim.cjs）",
   "api.binance.com": "公开行情／合约验证／貔貅检查 API（只读）",
   "data-api.binance.vision": "公开行情／合约验证／貔貅检查 API（只读）",
   "api.honeypot.is": "公开行情／合约验证／貔貅检查 API（只读）",
