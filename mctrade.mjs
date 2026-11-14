@@ -32,6 +32,15 @@ export function mctSupported(DIR, ch, wName) { /* 这个钱包有没有回报支
     const L = wName ? [ws[wName]] : Object.values(ws); return L.some((w) => w && w.ok && Array.isArray(w.ids) && w.ids.map(String).some((x) => ids.includes(x))); } catch { return false; }
 }
 
+/*RV8-1114 这条链这笔单会用哪个钱包（送单与画面确认框共用）：有指定钱包＝那个钱包（要支援这条链）；买＝主钱包优先（要支援这条链），不然第一个支援、有登入的；卖＝第一个支援、有登入的 */
+export function mctPick(DIR, WALLETS, ch, type, w, c) { const wa = String(w || '').toLowerCase(); const sup = (x) => x && mctSupported(DIR, ch, x.name); let W = wa ? (WALLETS || []).find((x) => String(x.addr || '').toLowerCase() === wa && sup(x)) : null;
+  if (!wa && !W) { const P = type === 'buy' ? globalThis.PICK_BUY_W?.(c) : null; W = (P && sup(P)) ? P : (WALLETS || []).find((x) => sup(x) && !x.off) || null; } return W || null; }
+export const mctKindTxt = (W) => (W?.kind === 'okx' ? 'OKX AI 钱包' : '币安 AI 钱包');
+/*RV8-1114 给画面确认框：每条链买／卖会用哪个钱包（引擎写 data/mc_pick.json，画面只读）*/
+export function mctPickWrite(DIR, WALLETS) { const out = { at: Date.now(), ch: {}, wallets: (WALLETS || []).map((W) => ({ name: String(W.name || ''), addr: String(W.addr || '').toLowerCase(), kind: W.kind === 'okx' ? 'okx' : 'binance', off: W.off ? 1 : 0 })) };
+  for (const ch of Object.keys(MCT_CHAINS)) { const one = (t) => { const W = mctPick(DIR, WALLETS, ch, t, '', ''); return W ? { name: String(W.name || ''), addr: String(W.addr || '').toLowerCase(), kind: W.kind === 'okx' ? 'okx' : 'binance' } : null; }; out.ch[ch] = { buy: one('buy'), sell: one('sell') }; }
+  try { const f = join(DIR, 'data', 'mc_pick.json'); writeFileSync(f + '.tmp', JSON.stringify(out)); renameSync(f + '.tmp', f); } catch {} }
+
 function result(DIR, rec) { const f = join(DIR, 'data', 'mc_trade.json'); let a = []; try { a = JSON.parse(readFileSync(f, 'utf8')); if (!Array.isArray(a)) a = []; } catch {} a.unshift(rec); a = a.slice(0, T.keep); try { writeFileSync(f + '.tmp', JSON.stringify(a)); renameSync(f + '.tmp', f); } catch {} }
 
 async function waitOrder(W, id, cid) { /* 轮询到终态（币安文件规定：orderId 只是送出） */
@@ -48,8 +57,7 @@ export async function mctOrder(o, { DIR, WALLETS, log, tgSay }) {
   const done = (ok, msg, extra = {}) => { const rec = { at: Date.now(), ch, c: String(o.c || ''), type: o.type, name, w: String(o._w || ''), ok: ok ? 1 : 0, msg: String(msg).slice(0, 300), ...extra }; result(DIR, rec); log(`🌐 ${ch} ${o.type === 'buy' ? (o.auto ? '自动买' : '手动买') : '手动卖'} ${name || o.c}：${msg}`); tgSay(`${o.auto ? '🤖 自动' : '🖥 '}${C?.sym ? ch.toUpperCase() : ch} ${o.type === 'buy' ? '买' : '卖'} ${name || o.c}\n${msg}`).catch(() => {}); return rec; };
   if (!C) return done(false, '雷达不认识这条链，没送出');
   const c = mctAddr(ch, o.c); if (!c) return done(false, '合约地址格式不对，没送出');
-  const wa = String(o.w || '').toLowerCase(); const sup = (x) => x && mctSupported(DIR, ch, x.name); let W = wa ? (WALLETS || []).find((x) => String(x.addr || '').toLowerCase() === wa && sup(x)) : null;
-  if (!wa && !W) { const P = o.type === 'buy' ? globalThis.PICK_BUY_W?.(c) : null; W = (P && sup(P)) ? P : (WALLETS || []).find((x) => sup(x) && !x.off) || null; } /*DUALW-13 买：主钱包优先（要支援这条链）；卖：有支援这条链、有登入的钱包（单子会带当初买的钱包）*/
+  const W = mctPick(DIR, WALLETS, ch, o.type, o.w, c); /*RV8-1114 选钱包抽成函式：送单跟画面确认框（data/mc_pick.json）用同一套*/
   if (!W) return done(false, '你的钱包没有回报支援这条链（或选的钱包不支援），没送出');
   o._w = String(W.addr || '').toLowerCase();
   /*SLIP-1114 滑点：没填＝钱包（币安／OKX）自己的预设滑点；有填但不在钱包官方允许的范围＝不送单、回报原因（以前超过就偷偷改用预设，违反「没有偷偷的备用路径」）*/
@@ -71,5 +79,5 @@ export async function mctOrder(o, { DIR, WALLETS, log, tgSay }) {
   if (x.status === 'FINISHED') { const rf = Array.isArray(x.refund) ? x.refund.filter((y) => y && Number(y.amount) > 0) : []; const got = x.toTokenActualQty ? `收到 ${x.toTokenActualQty} ${x.toTokenName || ''}` : '';
     return done(true, `✅ 成交 ${got}${rf.length ? `（部分成交，退回 ${rf.map((y) => y.amount + ' ' + (y.symbol || '')).join('、')}）` : ''}`, { tx: String(x.txHash || ''), id: String(id) }); }
   if (x.status === 'FAILED') return done(false, '❌ 没成交（链上失败：可能滑点、流动性不够或路由问题），钱没花掉', { id: String(id) });
-  return done(false, `⏳ 送出了，但约 2 分钟还没确认成交（单号 ${id}），请到币安 App 看结果`, { id: String(id), pending: 1 });
+  return done(false, `⏳ 送出了，但约 2 分钟还没确认成交（单号 ${id}），请到${W.kind === 'okx' ? ' OKX 钱包' : '币安 App'}看结果`, { id: String(id), pending: 1 });
 }
