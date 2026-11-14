@@ -11,16 +11,13 @@ const SEC = { '1s': 1, '4h': 14400, '1m': 60, '5m': 300, '15m': 900, '1h': 3600,
 const GT = { '4h': ['hour', 4, 1], '1m': ['minute', 1, 1], '5m': ['minute', 5, 1], '15m': ['minute', 15, 1], '1h': ['hour', 1, 1], '3h': ['hour', 1, 3], '6h': ['hour', 1, 6], '12h': ['hour', 12, 1], '1d': ['day', 1, 1], '3d': ['day', 1, 3], '1w': ['day', 1, 7], '1M': ['day', 1, 31] };
 const GT_NET = { bsc: 'bsc', robinhood: 'robinhood', solana: 'solana', base: 'base', eth: 'eth' }; /* 技术用：GeckoTerminal 的链代号（11/13 查过 /networks 有 robinhood） */
 const BARS = 300; /* 技术用：一次给几根 */
-const GT_CAP = 8, GT_REFILL_MS = 2200, GT_WAIT_MS = 2500, GT_COOL_MS = 20e3; /* 技术用：GeckoTerminal 令牌桶（最多存 8 个、每 2.2 秒补 1 个≈每分钟 27 次，低于它公布的 30 次）／没令牌最多等多久／被回 429 后停多久（这段时间改用 AVE／OKX） */
 const POOL_TTL = 30 * 60e3; /* 技术用：币→池子 对应快取多久 */
 const ttlOf = (tf) => (SEC[tf] <= 300 ? 15e3 : SEC[tf] <= 3600 ? 30e3 : 120e3); /* 技术用：K 线快取多久（最新一根画面用成交即时更新） */
 
 let D = {}; /* 依赖：aveCandles, aveOK, MK, V4B, V4R, AVT, OKM */
 function install(deps) { D = deps || {}; }
-const B = { tok: GT_CAP, at: Date.now(), cool: 0, n: 0, n429: 0 };
-function take() { const now = Date.now(); B.tok = Math.min(GT_CAP, B.tok + (now - B.at) / GT_REFILL_MS); B.at = now; if (now < B.cool || B.tok < 1) return false; B.tok -= 1; return true; }
-async function gtToken() { const end = Date.now() + GT_WAIT_MS; for (;;) { if (take()) return true; if (Date.now() >= end || Date.now() < B.cool) return false; await new Promise((r) => setTimeout(r, 250)); } }
-async function gt(u) { if (!(await gtToken())) return null; B.n++; const r = await fetch('https://api.geckoterminal.com/api/v2/networks/' + u, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10000) }).catch(() => null); if (!r) return null; if (r.status === 429) { B.n429++; B.cool = Date.now() + GT_COOL_MS; return null; } if (!r.ok) return { err: r.status }; return r.json().catch(() => null); }
+const B = { n: 0, n429: 0 }; /* 这个档自己打了几次（限速在 gtlim.cjs） */
+async function gt(u) { const r = await require('./gtlim.cjs').main().get('networks/' + u); /*GTLIM-1114 改用整个雷达共用的 GeckoTerminal 限速（以前这里自己一个桶每分钟约 27 次，加上别处会超过）*/ if (r.st === 'limit' || r.st === 429 || r.st === 'net') { if (r.st === 429) B.n429++; return null; } B.n++; if (r.st !== 200) return { err: r.st }; return r.j; }
 
 const CK = new Map(), INF = new Map(), PL = new Map();
 const isEvm = (a) => /^0x[0-9a-f]{40}$/.test(a), isPool = (p) => /^0x[0-9a-f]{40}([0-9a-f]{24})?$/.test(p);
@@ -75,7 +72,7 @@ async function hist(net, addr, pool, tf, beforeMs) {
   const p = hist0(net, addr, pool, tf, beforeMs).then((v) => { if (v.bars.length) { CK.set(k, { at: Date.now(), v }); if (CK.size > 300) CK.delete(CK.keys().next().value); } else if (c) return c.v; return v; }).finally(() => INF.delete(k));
   INF.set(k, p); return p;
 }
-function stat() { return { gt: { tokens: Math.floor(B.tok), cooling: B.cool > Date.now(), calls: B.n, n429: B.n429 }, cache: CK.size }; }
+function stat() { return { gt: { ...require('./gtlim.cjs').main().stat(), mine: B.n, mine429: B.n429 }, cache: CK.size }; }
 /*MCK-1113 成交明细（GeckoTerminal /pools/{pool}/trades，免费、不花 AVE 额度；它给最近一段时间的成交）：多链详情的 K 线最后一根即时更新、1 秒线。
   GeckoTerminal 自己约慢几十秒（11/13 实测 Solana 最新一笔约 38 秒前），所以「即时」＝跟它一样快，不是逐笔秒级 */
 const TR = new Map(), TR_TTL = 3e3; /* 技术用：同一个池子的成交多久内共用一次 */

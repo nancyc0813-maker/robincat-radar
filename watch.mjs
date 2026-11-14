@@ -356,11 +356,12 @@ async function dexScreener(addr) { /* 不管跟什么币配对、在哪个 DEX�
   if (!v) v = await geckoPool(addr); /* NOV 的池子开在 PancakeSwap Infinity，DexScreener 一直没收录，工具以为没开盘、也读不到价格 → 再用 GeckoTerminal 查（Infinity、Uniswap v4、V3 都有） */
   dsCache.set(addr, { t: Date.now(), v }); return v;
 }
+let GT_E = null; const GT_ENG = () => GT_E || (GT_E = createRequire(import.meta.url)('./radar/gtlim.cjs').engine()); globalThis.GT_ENG = GT_ENG; /*GTLIM-1114 rh.mjs 也用这个*/
 const GPC = new Map(); let gpLast = 0; /* GeckoTerminal 免费版每分钟次数很少，持仓多的时候会把额度用光 → 结果快取、两次请求之间隔开（只是避开限流） */
 const GP_WAIT_MAX_MS = 20e3; /* 技术用：GeckoTerminal 限流排队最多等多久 */ async function geckoPool(addr) { const c = GPC.get(addr); if (c && Date.now() - c.t < 600e3) return c.v; const w = gpLast + 2500 - Date.now(); gpLast = Math.max(Date.now(), gpLast + 2500); if (w > 0) { if (w > GP_WAIT_MAX_MS) return null; /* 排太久＝这次读不到（不用过期的旧价格） */ await sleep(w); } const v = await geckoPool0(addr); GPC.set(addr, { t: Date.now(), v }); if (GPC.size > 500) GPC.delete(GPC.keys().next().value); return v; }
 async function geckoPool0(addr) {
   try {
-    const j = await (await fetch(`https://api.geckoterminal.com/api/v2/networks/bsc/tokens/${addr}/pools`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10000) })).json();
+    const r = await GT_ENG().get(`networks/bsc/tokens/${addr}/pools`, { waitMs: GP_WAIT_MAX_MS }); if (r.st !== 200) return null; const j = r.j; /*GTLIM-1114 引擎的 GeckoTerminal 共用限速（跟 rh.mjs 同一个桶；雷达视窗另一个桶，合计每分钟 20 次以内）*/
     const ps = (j.data || []).map((p) => { const a = p.attributes || {}, base = String(p.relationships?.base_token?.data?.id || '').toLowerCase().endsWith(addr); return { id: String(a.address || '').toLowerCase(), name: a.name || '', dex: String(p.relationships?.dex?.data?.id || 'gecko'), px: Number(base ? a.base_token_price_usd : a.quote_token_price_usd) || 0, liq: Number(a.reserve_in_usd) || 0 }; }).filter((x) => x.px > 0).sort((x, y) => y.liq - x.liq); /* 读得到价格的池子都算，取流动性最大的 */
     if (!ps.length) return null; const p = ps[0];
     return { pair: /^0x[0-9a-f]{40}$/.test(p.id) ? p.id : 'gt:' + p.id, dex: p.dex, quote: (p.name.split('/')[1] || '').trim().split(' ')[0], px: p.px, liq: p.liq };

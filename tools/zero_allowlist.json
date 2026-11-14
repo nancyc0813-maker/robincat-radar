@@ -20374,6 +20374,32 @@
     "100"
    ],
    "reason": "KOLFEED-1113 KOL／聪明钱即时动态（只读显示，不进任何买卖判断）：画面没给几则时回 100 则（显示用分页）；上限 500＝kolfeed 记忆体最多留的则数"
+  },
+  {
+   "rule": "OBJNUM|TIMEWIN|CMP|COMMENT_NUM",
+   "file": "radar/gtlim\\.cjs$",
+   "reason": "GTLIM／GTMKT-1114（用户 11/14 同意「没有办法连接数据的想办法突破」）：GeckoTerminal 共用限速的技术常数（每分钟几次＝官方免费版约 30 次以下、令牌桶大小、429 退避时间、逾时、HTTP 状态码 200／429、毫秒换秒）；只决定多久打一次公开 API，不进任何买卖判断"
+  },
+  {
+   "rule": "OBJNUM|TIMEWIN|CMP|COMMENT_NUM|KWLIST",
+   "file": "radar/gtmkt.cjs$",
+   "reason": "GTLIM／GTMKT-1114（用户 11/14 同意「没有办法连接数据的想办法突破」）：GeckoTerminal 新池（只给看盘「新开盘」显示）的技术常数：多久重抓、失败多久再试、记几个池子／几个延迟样本、HTTP 200／429、毫秒换秒、官方文件写的 48 小时；稳定币／主流币代号清单只用来认出「换钱用的池子」不列成新币，不进任何买卖判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "(radar/(main|klinehist)\\.cjs|rh\\.mjs|watch\\.mjs)$",
+   "match": "r\\.st (!==|===) (200|429)",
+   "values": [
+    "200",
+    "429"
+   ],
+   "reason": "GTLIM／GTMKT-1114（用户 11/14 同意「没有办法连接数据的想办法突破」）：HTTP 状态码（200＝成功、429＝被限流），不是门槛"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "(radar/klinehist\\.cjs|watch\\.mjs)$",
+   "match": "GTLIM-1114",
+   "reason": "GTLIM／GTMKT-1114（用户 11/14 同意「没有办法连接数据的想办法突破」）：注解说明限速次数（每分钟 20 次＝整个雷达对 GeckoTerminal 的技术上限；27 次＝旧版说明），不是买卖门槛"
   }
  ]
 }
