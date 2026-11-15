@@ -17,7 +17,7 @@ const ttlOf = (tf) => (SEC[tf] <= 300 ? 15e3 : SEC[tf] <= 3600 ? 30e3 : 120e3); 
 let D = {}; /* 依赖：aveCandles, aveOK, MK, V4B, V4R, AVT, OKM */
 function install(deps) { D = deps || {}; }
 const B = { n: 0, n429: 0 }; /* 这个档自己打了几次（限速在 gtlim.cjs） */
-async function gt(u, ctx, bg) { const r = await require('./gtlim.cjs').main().get('networks/' + u, bg ? { bg: 1 } : undefined); if ((r.st === 'limit' || r.st === 429) && ctx) ctx.busy = 1; /*KNET-1114 限速／冷却中：回给画面「资料来源忙，自动重试中」，不是「没有成交」*/ /*GTLIM-1114 改用整个雷达共用的 GeckoTerminal 限速（以前这里自己一个桶每分钟约 27 次，加上别处会超过）*/ if (r.st === 'net' && ctx) ctx.net = 1; /*DOWN-1115 连不上（不是限速、也不是没资料）→ 画面写「读不到」*/ if (r.st === 'limit' || r.st === 429 || r.st === 'net') { if (r.st === 429) B.n429++; return null; } B.n++; if (r.st !== 200) return { err: r.st }; return r.j; }
+async function gt(u, ctx, bg) { const r = await require('./gtlim.cjs').main().get('networks/' + u, bg ? { bg: 1 } : ctx && ctx.pri ? { pri: 1 } : undefined); if ((r.st === 'limit' || r.st === 429) && ctx) ctx.busy = 1; /*KNET-1114 限速／冷却中：回给画面「资料来源忙，自动重试中」，不是「没有成交」*/ /*GTLIM-1114 改用整个雷达共用的 GeckoTerminal 限速（以前这里自己一个桶每分钟约 27 次，加上别处会超过）*/ if (r.st === 'net' && ctx) ctx.net = 1; /*DOWN-1115 连不上（不是限速、也不是没资料）→ 画面写「读不到」*/ if (r.st === 'limit' || r.st === 429 || r.st === 'net') { if (r.st === 429) B.n429++; return null; } B.n++; if (r.st !== 200) return { err: r.st }; return r.j; }
 
 const CK = new Map(), INF = new Map(), PL = new Map();
 const isEvm = (a) => /^0x[0-9a-f]{40}$/.test(a), isPool = (p) => /^0x[0-9a-f]{40}([0-9a-f]{24})?$/.test(p);
@@ -62,8 +62,8 @@ async function fromGt(net, pool, addr, tf, beforeMs, ctx) {
 async function fromAve(net, id, tf) { if (!D.aveOK?.() || !id) return null; try { const L = await D.aveCandles(net, id, tf); return Array.isArray(L) && L.length ? L.filter((x) => !x.gap) : null; } catch { return null; } }
 async function fromOkx(net, addr, tf, beforeMs) { try { if (!D.OKM?.ready?.(net)) return null; const L = await D.OKM.candles(net, addr, tf, beforeMs); return L && L.length ? L : null; } catch { return null; } }
 
-async function hist0(net, addr, pool, tf, beforeMs) {
-  const sec = SEC[tf]; const out = { src: '', pool: '', bars: [] }; const ctx = {};
+async function hist0(net, addr, pool, tf, beforeMs, pri) {
+  const sec = SEC[tf]; const out = { src: '', pool: '', bars: [] }; const ctx = { pri: !!pri };
   const loc = isEvm(addr) ? local(net, addr, sec) : null;
   let gradX = false; if (loc && !loc.grad) { const M = await mainPool(net, addr, ctx); if (M.dex && M.pool) { gradX = true; if (!isPool(pool)) pool = M.pool; } } /*MPOOL-1115 雷达没记到上外盘（例 Flap 用自订报价币上 Pancake 的旺财），但 DexScreener 已经有 DEX 池＝已上外盘，看那个池子，不再画很久以前的曲线成交*/
   if (loc && !loc.grad && !gradX && loc.bars && loc.bars.length >= 2 && !(beforeMs > 0)) { out.src = 'chain'; out.bars = loc.bars; return out; } /* ① 曲线上的币 */
@@ -85,9 +85,9 @@ const WICK_K = 2, OPEN_K = 100; /* 技术用（只影响画图）：影线最多
 function clean(B) { for (const x of B) { const top = Math.max(x.o, x.c), bot = Math.min(x.o, x.c); x.hc = x.h > top * WICK_K ? top : x.h; x.lc = bot > 0 && x.l < bot / WICK_K ? bot : x.l; if (x.hc !== x.h || x.lc !== x.l) x.ow = 1; } if (B.length && B[0].o > 0 && B[0].c > B[0].o * OPEN_K) B[0].op = 1; return B; }
 /* 成交明细里 GeckoTerminal 标为异常（is_anomalous）的不算 */
 /* 同一个查询同时只跑一次＋短快取 */
-async function hist(net, addr, pool, tf, beforeMs) {
+async function hist(net, addr, pool, tf, beforeMs, pri) {
   const k = [net, addr, pool, tf, beforeMs || 0].join('|'); const c = CK.get(k); if (c && Date.now() - c.at < ttlOf(tf)) return c.v; if (INF.has(k)) return INF.get(k);
-  const p = hist0(net, addr, pool, tf, beforeMs).then((v) => { if (v.bars.length) { CK.set(k, { at: Date.now(), v }); if (CK.size > 300) CK.delete(CK.keys().next().value); } else if (c) return c.v; return v; }).finally(() => INF.delete(k));
+  const p = hist0(net, addr, pool, tf, beforeMs, pri).then((v) => { if (v.bars.length) { CK.set(k, { at: Date.now(), v }); if (CK.size > 300) CK.delete(CK.keys().next().value); } else if (c) return c.v; return v; }).finally(() => INF.delete(k));
   INF.set(k, p); return p;
 }
 function stat() { return { gt: { ...require('./gtlim.cjs').main().stat(), mine: B.n, mine429: B.n429 }, cache: CK.size }; }

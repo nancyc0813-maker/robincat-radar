@@ -1135,7 +1135,7 @@
 #tv2 .tgt .c-act .qb{padding-left:6px;padding-right:6px}
 #tv2 .stt.warn{color:var(--wn,#F5A524)}
 #tv2 .stt.warn .lv{background:var(--wn,#F5A524)}
-#tv2 #tv2.stale .mj .num,#tv2 #tv2.stale #tkH [data-k],#tv2 #tv2.stale .lr .num,#tv2 #tv2.stale .lr b.num{opacity:.45;transition:opacity .2s}
+#tv2.stale .mj .num,#tv2.stale #tkH [data-k],#tv2.stale .lr .num,#tv2.stale .lr b.num{opacity:.45;transition:opacity .2s}
 #tv2 .stlT{display:none}
-#tv2 #tv2.stale .stlT{display:inline-flex;align-items:center;padding:0 6px;margin-right:8px;border-radius:4px;font-size:11px;font-weight:600;color:var(--dn,#f6465d);background:color-mix(in srgb,var(--dn,#f6465d) 14%,transparent)}
+#tv2.stale .stlT{display:inline-flex;align-items:center;padding:0 6px;margin-right:8px;border-radius:4px;font-size:11px;font-weight:600;color:var(--dn,#f6465d);background:color-mix(in srgb,var(--dn,#f6465d) 14%,transparent)}
 

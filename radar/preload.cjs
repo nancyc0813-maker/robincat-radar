@@ -52,7 +52,7 @@ contextBridge.exposeInMainWorld('radar', {
   backtest: (o) => call('backtest', O(o)),
   imgData: (u) => call('imgData', S(u, 2000)),
   candles: (n, p, tf) => call('candles', S(n, 20), S(p, 80), S(tf, 10)),
-  klineHist: (n, a, p, tf, before, meta) => call('klineHist', S(n, 20), S(a, 64), S(p, 80), S(tf, 10), N(before), B(meta)), /* KH-1113 K 线历史：[{t 毫秒,o,h,l,c,v 美金}]；meta＝true 回 {src,pool,bars} */
+  klineHist: (n, a, p, tf, before, meta, pri) => call('klineHist', S(n, 20), S(a, 64), S(p, 80), S(tf, 10), N(before), B(meta), B(pri)), /*GTQ-1115 pri＝代币页正在看的 K 线先拿令牌*/ /* KH-1113 K 线历史：[{t 毫秒,o,h,l,c,v 美金}]；meta＝true 回 {src,pool,bars} */
   okxMkt: (act, k, s2, p2) => call('okxMkt', ['save', 'clear'].includes(act) ? act : 'status', S(k, 100), S(s2, 200), S(p2, 100)), /* OKX-1113 OKX 资料金钥：status／save／clear（金钥不会回传） */
   srcStat: () => call('srcStat'),
   solk: (c, s) => call('solk', S(c, 64), N(s)), /*SOLK-1114 Solana pump.fun 内盘币本机秒线（只读）*/

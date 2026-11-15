@@ -11,10 +11,10 @@ const BASE = 'https://api.geckoterminal.com/api/v2/';
 const jitter = (b) => b / 2 + Math.random() * b / 2;
 function mk(perMin) {
   const refill = 60e3 / perMin; const B = { tok: T.cap, at: Date.now(), cool: 0, back: 0, n: 0, n429: 0, nDeny: 0, log: [] };
-  function take(bg) { const now = Date.now(); B.tok = Math.min(T.cap, B.tok + (now - B.at) / refill); B.at = now; if (now < B.cool) return false; if (B.tok < (bg ? 1 + T.fgKeep : 1)) return false; B.tok -= 1; return true; }
-  async function token(bg, waitMs) { const end = Date.now() + (waitMs == null ? T.waitMs : waitMs); for (;;) { if (take(bg)) return true; if (Date.now() >= end || Date.now() < B.cool) { B.nDeny++; return false; } await new Promise((r) => setTimeout(r, T.stepMs)); } }
+  function take(bg, pri) { const now = Date.now(); B.tok = Math.min(T.cap, B.tok + (now - B.at) / refill); B.at = now; if (now < B.cool) return false; if (B.tok < (pri ? 1 : 1 + T.fgKeep)) return false; B.tok -= 1; return true; } /*GTQ-1115 三级：使用者正在看的代币页 K 线（pri）可以拿最后一个令牌；其他画面（总览小图、排行）跟背景一样要留一个给它——打开代币页时 K 线不用排在小图后面*/
+  async function token(bg, waitMs, pri) { const end = Date.now() + (waitMs == null ? T.waitMs : waitMs); for (;;) { if (take(bg, pri)) return true; if (Date.now() >= end || Date.now() < B.cool) { B.nDeny++; return false; } await new Promise((r) => setTimeout(r, T.stepMs)); } }
   /* 读一个网址（networks/... 这种相对路径）。回 { st, j }；没令牌／冷却中 st＝'limit'，网路错 st＝'net' */
-  async function get(path, o) { o = o || {}; if (!(await token(!!o.bg, o.waitMs))) return { st: 'limit', j: null }; B.n++; const now = Date.now(); B.log.push(now); while (B.log.length && now - B.log[0] > 60e3) B.log.shift(); /* 技术用：记最近一分钟实际打了几次（自我检查用） */
+  async function get(path, o) { o = o || {}; if (!(await token(!!o.bg, o.waitMs, !!o.pri && !o.bg))) return { st: 'limit', j: null }; B.n++; const now = Date.now(); B.log.push(now); while (B.log.length && now - B.log[0] > 60e3) B.log.shift(); /* 技术用：记最近一分钟实际打了几次（自我检查用） */
     let r; try { r = await fetch(BASE + path, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(T.toMs) }); } catch { return { st: 'net', j: null }; }
     if (r.status === 429) { B.n429++; B.back = B.back ? Math.min(T.coolMax, B.back * 2) : T.cool0; B.cool = Date.now() + jitter(B.back); return { st: 429, j: null }; }
     B.back = 0; if (!r.ok) return { st: r.status, j: null }; const j = await r.json().catch(() => null); return { st: j ? 200 : 'json', j }; }
