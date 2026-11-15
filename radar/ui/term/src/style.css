@@ -985,3 +985,8 @@ span.fr,b.fr,small.fr{display:inline;margin:0}/* 「新鲜」标记 .fr 和表�
 .tgt .c-act .qb{padding-left:6px;padding-right:6px}
 .stt.warn{color:var(--wn,#F5A524)}
 .stt.warn .lv{background:var(--wn,#F5A524)}
+
+/*NETP-1115 断线：价格变灰、标「资料过时」（不再当成即时）*/
+#tv2.stale .mj .num,#tv2.stale #tkH [data-k],#tv2.stale .lr .num,#tv2.stale .lr b.num{opacity:.45;transition:opacity .2s}
+.stlT{display:none}
+#tv2.stale .stlT{display:inline-flex;align-items:center;padding:0 6px;margin-right:8px;border-radius:4px;font-size:11px;font-weight:600;color:var(--dn,#f6465d);background:color-mix(in srgb,var(--dn,#f6465d) 14%,transparent)}
