@@ -20623,6 +20623,101 @@
     "0"
    ],
    "reason": "NEWGAP-1115 看盘「新开盘」雷达读链补进 AVE 还没出现的新币：这个发射台在 AVE 清单里一颗都没有＝从 0 开始比（全部补进来），只影响看盘显示，不进买卖判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "if \\(v >= 1n << 127n\\) v -= 1n << 128n;",
+   "values": [
+    "127n",
+    "128n"
+   ],
+   "reason": "V4T-1115 把链上 int128 转成有正负号的数（位元运算，不是门槛）"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/main\\.cjs$",
+   "match": "if \\(V4C\\.size > 100\\) V4C\\.delete",
+   "values": [
+    "100"
+   ],
+   "reason": "V4T-1115 V4 成交快取最多几个池子（技术用，防记忆体长大）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "V4_TTL_MS = 5000;",
+   "values": [
+    "5000"
+   ],
+   "reason": "V4T-1115 V4 成交多久重读一次（技术用，只影响成交列表／K 线显示）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const t0 = parseInt\\(b0\\?\\.timestamp, 16\\) \\* 1000;",
+   "values": [
+    "1000"
+   ],
+   "reason": "V4T-1115 秒换毫秒（单位换算）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "GT_TAPE_MS = 15000;",
+   "values": [
+    "15000"
+   ],
+   "reason": "MPOOL-1115 读链没成交时改拿 GeckoTerminal 最近成交的快取时间（技术用，省共用限速，不影响买卖）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "NET_PING_MS = 2000, NET_PING_TO_MS = 2500;",
+   "values": [
+    "2000",
+    "2500"
+   ],
+   "reason": "NETP-1115 连线心跳间隔与逾时（技术用，只影响底栏连线状态显示）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/klinehist\\.cjs$",
+   "match": "DS_CURVE_TTL = 60e3;",
+   "values": [
+    "60e3"
+   ],
+   "reason": "MPOOL-1115 只看到发射台曲线时多久再问 DexScreener（技术用，尽快发现上外盘；只影响看哪个池子）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/term/src/a1\\.js$",
+   "match": "const U=\\[\\[1e12,'T'\\],\\[1e9,'B'\\],\\[1e6,'M'\\],\\[1e3,'K'\\]\\];",
+   "values": [
+    "1e12",
+    "1e9",
+    "1e6",
+    "1e3"
+   ],
+   "reason": "FMT-1115 数字单位 K／M／B／T（单位换算，显示用）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "t = bt0\\(l\\) > 0 \\? bt0\\(l\\) \\* 1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "V4T-1115 区块时间秒换毫秒（单位换算）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "const ts = parseInt\\(bb\\?\\.timestamp, 16\\) \\* 1000;",
+   "values": [
+    "1000"
+   ],
+   "reason": "MPOOL-1115 区块时间秒换毫秒（单位换算）"
   }
  ]
 }
