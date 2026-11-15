@@ -22,12 +22,20 @@ async function gt(u, ctx, bg) { const r = await require('./gtlim.cjs').main().ge
 const CK = new Map(), INF = new Map(), PL = new Map();
 const isEvm = (a) => /^0x[0-9a-f]{40}$/.test(a), isPool = (p) => /^0x[0-9a-f]{40}([0-9a-f]{24})?$/.test(p);
 /* 找池子：画面给的 → 发射台上外盘的池子（雷达读链）→ AVE 主池（快取里有就用）→ GeckoTerminal 流动性最大的池 */
+/* GeckoTerminal 上这个币流动性最大的池子 */
+const GTP = new Map(); /* 币 → GeckoTerminal 最大池（快取 POOL_TTL，免得没成交的币每次都多问一次） */
+async function gtTop(net, addr, ctx, bg) { const k = net + '|' + addr, c = GTP.get(k); if (c && Date.now() - c.at < POOL_TTL) return c.v; const v = await gtTop0(net, addr, ctx, bg); if (v || !ctx?.busy) { GTP.set(k, { at: Date.now(), v }); if (GTP.size > 500) GTP.delete(GTP.keys().next().value); } return v; }
+async function gtTop0(net, addr, ctx, bg) { const j = await gt(`${GT_NET[net]}/tokens/${addr}/pools?page=1`, ctx, bg); const L = Array.isArray(j?.data) ? j.data : []; const best = L.map((p) => ({ a: String(p?.attributes?.address || ''), r: +p?.attributes?.reserve_in_usd || 0 })).filter((x) => x.a).sort((x, y) => y.r - x.r)[0]; return best ? (net === 'solana' ? best.a : best.a.toLowerCase()) : ''; }
+/*KWHY2-1115 GeckoTerminal／AVE 都没给池子时，问 DexScreener 有没有交易池：有＝「K 线来源还没收录这个池子」（例 Robinhood 的 Uniswap V4 池 CLAU），没有才说「未开盘」（以前一律写未开盘，跟 DexScreener 看得到池子矛盾） */
+const DS_NET = { bsc: 'bsc', robinhood: 'robinhood', solana: 'solana', eth: 'ethereum', base: 'base', arbitrum: 'arbitrum', polygon: 'polygon', xlayer: 'xlayer' }; /* 技术用：DexScreener 的链代号（11/15 逐条用 /tokens/v1/{链}/{币} 查过） */
+const DSP = new Map(); const DS_TO_MS = 8000; /* 技术用：DexScreener 最多等几毫秒 */
+async function dsHasPool(net, addr) { if (!DS_NET[net]) return false; const k = net + '|' + addr, c = DSP.get(k); if (c && Date.now() - c.at < POOL_TTL) return c.v; let v = false; try { const r = await fetch(`https://api.dexscreener.com/tokens/v1/${DS_NET[net]}/${addr}`, { signal: AbortSignal.timeout(DS_TO_MS) }); if (!r.ok) return false; const L = await r.json(); v = Array.isArray(L) && L.length > 0; } catch { return false; } DSP.set(k, { at: Date.now(), v }); if (DSP.size > 500) DSP.delete(DSP.keys().next().value); return v; }
 async function poolOf(net, addr, pool, ctx, bg) {
   if (net !== 'solana' && isPool(pool)) return pool; if (net === 'solana' && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(pool || '')) return pool;
   const k = net + '|' + addr, c = PL.get(k); if (c && Date.now() - c.at < POOL_TTL) return c.v;
   let v = '';
   try { const ch = net === 'robinhood' ? 'robinhood' : net; const a = D.AVT?.get(ch + addr)?.v?.pair?.addr; if (a && (net === 'solana' || isPool(String(a).toLowerCase()))) v = net === 'solana' ? a : String(a).toLowerCase(); } catch {}
-  if (!v && GT_NET[net]) { const j = await gt(`${GT_NET[net]}/tokens/${addr}/pools?page=1`, ctx, bg); const L = Array.isArray(j?.data) ? j.data : []; const best = L.map((p) => ({ a: String(p?.attributes?.address || ''), r: +p?.attributes?.reserve_in_usd || 0 })).filter((x) => x.a).sort((x, y) => y.r - x.r)[0]; if (best) v = net === 'solana' ? best.a : best.a.toLowerCase(); }
+  if (!v && GT_NET[net]) v = await gtTop(net, addr, ctx, bg);
   if (v) { PL.set(k, { at: Date.now(), v }); if (PL.size > 500) PL.delete(PL.keys().next().value); }
   return v;
 }
@@ -56,7 +64,7 @@ async function hist0(net, addr, pool, tf, beforeMs) {
   if (!out.src && !(beforeMs > 0)) { L = await fromAve(net, P || addr, tf); if (!L && P && P !== addr) L = await fromAve(net, addr, tf); if (L && L.length) out.src = 'ave'; } /* ③ AVE（没有往回翻页） */
   if (!out.src) { L = await fromOkx(net, addr, tf, beforeMs); if (L && L.length) out.src = 'okx'; } /* ④ OKX */
   if (!out.src && loc && loc.bars && loc.bars.length) { L = loc.bars; out.src = 'chain'; } /* ⑤ 读链记的 */
-  if (!out.src) { if (loc?.quoteWait) out.err = 'quote'; else if (ctx.busy) out.err = 'busy'; else if (!P && !loc) out.err = 'nopool'; /*KWHY-1114 找不到交易池、雷达也没在发射台曲线上看到＝还没开盘（AVE 空图写「未開盤」）*/ return out; }
+  if (!out.src) { if (loc?.quoteWait) out.err = 'quote'; else if (ctx.busy) out.err = 'busy'; else if (!P && !loc) out.err = (await dsHasPool(net, addr)) ? 'nosrc' : 'nopool'; /*KWHY-1114 找不到交易池、雷达也没在发射台曲线上看到＝还没开盘（AVE 空图写「未開盤」）*/ return out; }
   L = KL.aggregate(L, sec); if (beforeMs > 0) L = L.filter((x) => x.t < beforeMs);
   L = KL.fillGaps(L, sec, BARS, beforeMs > 0 ? 0 : Date.now()); out.bars = clean(L.slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0, ...(x.gap ? { gap: 1 } : {}) })));
   return out;
@@ -76,9 +84,11 @@ function stat() { return { gt: { ...require('./gtlim.cjs').main().stat(), mine: 
 /*MCK-1113 成交明细（GeckoTerminal /pools/{pool}/trades，免费、不花 AVE 额度；它给最近一段时间的成交）：多链详情的 K 线最后一根即时更新、1 秒线。
   GeckoTerminal 自己约慢几十秒（11/13 实测 Solana 最新一笔约 38 秒前），所以「即时」＝跟它一样快，不是逐笔秒级 */
 const TR = new Map(), TR_TTL = 3e3; /* 技术用：同一个池子的成交多久内共用一次 */
-async function trades(net, addr, pool, bg) { if (!GT_NET[net]) return { rows: [], err: 'nochain' }; const ctx = {}; const P = await poolOf(net, addr, pool, ctx, bg); if (!P) return { rows: [], pool: '', ...(ctx.busy ? { err: 'busy' } : {}) }; const k = net + '|' + P + '|' + addr, c = TR.get(k); if (c && Date.now() - c.at < TR_TTL) return c.v;
+async function trades(net, addr, pool, bg, noFb) { if (!GT_NET[net]) return { rows: [], err: 'nochain' }; const ctx = {}; const P = await poolOf(net, addr, pool, ctx, bg); if (!P) return { rows: [], pool: '', ...(ctx.busy ? { err: 'busy' } : {}) }; const k = net + '|' + P + '|' + addr, c = TR.get(k); if (c && Date.now() - c.at < TR_TTL) return c.v;
   const j = await gt(`${GT_NET[net]}/pools/${P}/trades`, ctx, bg); if (!j || j.err) return c ? c.v : { rows: [], pool: P, err: ctx.busy ? 'busy' : 'gt' }; const same = (x) => (net === 'solana' ? String(x || '') === addr : String(x || '').toLowerCase() === addr);
   const rows = (Array.isArray(j.data) ? j.data : []).map((d) => { const a = d?.attributes || {}; const buy = same(a.to_token_address), sell = same(a.from_token_address); if ((!buy && !sell) || a.is_anomalous === true) return null; const p = +(buy ? a.price_to_in_usd : a.price_from_in_usd); const t = Date.parse(a.block_timestamp || ''); if (!(p > 0) || !(t > 0)) return null; return { t, p, usd: +a.volume_in_usd || 0, b: buy ? 1 : 0, w: String(a.tx_from_address || '').slice(0, 64), tx: String(a.tx_hash || '').slice(0, 100) }; }).filter(Boolean).sort((x, y) => x.t - y.t);
+  /*TRPOOL-1115 AVE 挑的池子在 GeckoTerminal 没有成交明细（例 Base 的 SNDKc：AVE 给 Uniswap V4 池，GeckoTerminal 那个池子 0 笔；最活跃的是 Aerodrome 池，DexScreener 5 分钟 50 多笔）→ 改看 GeckoTerminal 流动性最大的池子 */
+  if (!rows.length && !noFb) { const P2 = await gtTop(net, addr, ctx, bg); if (P2 && P2 !== P) { const r2 = await trades(net, addr, P2, bg, 1); if (r2.rows.length) { TR.set(k, { at: Date.now(), v: r2 }); return r2; } } }
   const v = { rows, pool: P }; TR.set(k, { at: Date.now(), v }); if (TR.size > 200) TR.delete(TR.keys().next().value); return v; }
 /* 1 秒线：只有成交明细做得出来（AVE／GeckoTerminal 的 K 线最小 1 分钟） */
 async function sec1(net, addr, pool) { const r = await trades(net, addr, pool); if (!r.rows.length) return { src: '', pool: r.pool || '', bars: [], ...(r.err === 'busy' ? { err: 'busy' } : {}) }; const L = KL.aggregate(r.rows.map((x) => ({ t: x.t, o: x.p, h: x.p, l: x.p, c: x.p, v: x.usd })), 1); return { src: 'gt-trades', pool: r.pool, bars: KL.fillGaps(L, 1, BARS, Date.now()).slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0 })) }; }
