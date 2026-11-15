@@ -11,13 +11,14 @@ const SEC = { '1s': 1, '4h': 14400, '1m': 60, '5m': 300, '15m': 900, '1h': 3600,
 const GT = { '4h': ['hour', 4, 1], '1m': ['minute', 1, 1], '5m': ['minute', 5, 1], '15m': ['minute', 15, 1], '1h': ['hour', 1, 1], '3h': ['hour', 1, 3], '6h': ['hour', 1, 6], '12h': ['hour', 12, 1], '1d': ['day', 1, 1], '3d': ['day', 1, 3], '1w': ['day', 1, 7], '1M': ['day', 1, 31] };
 const GT_NET = { bsc: 'bsc', robinhood: 'robinhood', solana: 'solana', base: 'base', eth: 'eth', xlayer: 'x-layer', arbitrum: 'arbitrum', polygon: 'polygon_pos', monad: 'monad', hyperevm: 'hyperevm', elysium: 'elysium' }; /* 技术用：GeckoTerminal 的链代号（11/13 查过 /networks 有 robinhood；KNET-1114 11/14 逐页查 /api/v2/networks：x-layer「x Layer」、polygon_pos「Polygon POS」、arbitrum、monad、hyperevm、elysium（coingecko_asset_platform_id elysium-kinetiq＝Kinetiq 给 Hyperliquid 的 L2，跟 elysium.mjs 同一条），每条都用 trending_pools 实测有池子） */
 const BARS = 300; /* 技术用：一次给几根 */
+const LIVE_TTL = 1500; /*CHAINK-1115 技术用：读链画的 K 线快取多久（新成交要很快接上）*/
 const POOL_TTL = 30 * 60e3; /* 技术用：币→池子 对应快取多久 */
 const ttlOf = (tf) => (SEC[tf] <= 300 ? 15e3 : SEC[tf] <= 3600 ? 30e3 : 120e3); /* 技术用：K 线快取多久（最新一根画面用成交即时更新） */
 
 let D = {}; /* 依赖：aveCandles, aveOK, MK, V4B, V4R, AVT, OKM */
 function install(deps) { D = deps || {}; }
 const B = { n: 0, n429: 0 }; /* 这个档自己打了几次（限速在 gtlim.cjs） */
-async function gt(u, ctx, bg) { const r = await require('./gtlim.cjs').main().get('networks/' + u, bg ? { bg: 1 } : ctx && ctx.pri ? { pri: 1 } : undefined); if ((r.st === 'limit' || r.st === 429) && ctx) ctx.busy = 1; /*KNET-1114 限速／冷却中：回给画面「资料来源忙，自动重试中」，不是「没有成交」*/ /*GTLIM-1114 改用整个雷达共用的 GeckoTerminal 限速（以前这里自己一个桶每分钟约 27 次，加上别处会超过）*/ if (r.st === 'net' && ctx) ctx.net = 1; /*DOWN-1115 连不上（不是限速、也不是没资料）→ 画面写「读不到」*/ if (r.st === 'limit' || r.st === 429 || r.st === 'net') { if (r.st === 429) B.n429++; return null; } B.n++; if (r.st !== 200) return { err: r.st }; return r.j; }
+async function gt(u, ctx, bg) { const o = bg ? { bg: 1 } : ctx && ctx.pri ? { pri: 1 } : {}; if (ctx && ctx.noWait) o.waitMs = 0; /*CHAINK-1115 已经有读链的 K 棒时，GeckoTerminal 只补更早的历史：拿不到令牌就不等*/ const r = await require('./gtlim.cjs').main().get('networks/' + u, o); if ((r.st === 'limit' || r.st === 429) && ctx) ctx.busy = 1; /*KNET-1114 限速／冷却中：回给画面「资料来源忙，自动重试中」，不是「没有成交」*/ /*GTLIM-1114 改用整个雷达共用的 GeckoTerminal 限速（以前这里自己一个桶每分钟约 27 次，加上别处会超过）*/ if (r.st === 'net' && ctx) ctx.net = 1; /*DOWN-1115 连不上（不是限速、也不是没资料）→ 画面写「读不到」*/ if (r.st === 'limit' || r.st === 429 || r.st === 'net') { if (r.st === 429) B.n429++; return null; } B.n++; if (r.st !== 200) return { err: r.st }; return r.j; }
 
 const CK = new Map(), INF = new Map(), PL = new Map();
 const isEvm = (a) => /^0x[0-9a-f]{40}$/.test(a), isPool = (p) => /^0x[0-9a-f]{40}([0-9a-f]{24})?$/.test(p);
@@ -69,14 +70,17 @@ async function hist0(net, addr, pool, tf, beforeMs, pri) {
   if (loc && !loc.grad && !gradX && loc.bars && loc.bars.length >= 2 && !(beforeMs > 0)) { out.src = 'chain'; out.bars = loc.bars; return out; } /* ① 曲线上的币 */
   if (loc && loc.grad && loc.pool) pool = loc.pool; /* 已上外盘：看上外盘的池子（画面给的可能是没人交易的旧池） */
   const P = await poolOf(net, addr, pool, ctx); out.pool = P;
-  let L = await fromGt(net, P, addr, tf, beforeMs, ctx); if (L && L.length) out.src = 'gt'; /* ② GeckoTerminal */
+  let CB = null; if ((net === 'bsc' || net === 'robinhood') && D.chainK && P && !(beforeMs > 0) && sec >= SEC['1m']) { const r = await D.chainK(net, addr, P, sec).catch(() => null); if (r && r.bars && r.bars.length) CB = r; } /*CHAINK-1115 ② 已上外盘的 BNB Chain／Robinhood 币：读链上成交自己画（几百毫秒），不用等 GeckoTerminal*/
+  if (CB) ctx.noWait = 1;
+  let L = await fromGt(net, P, addr, tf, beforeMs, ctx); if (L && L.length) out.src = 'gt'; /* ③ GeckoTerminal（有读链的 K 棒时只补更早的历史） */
+  if (CB) { const f0 = CB.bars[0].t; const old = (L || []).filter((x) => x.t < f0); L = old.concat(CB.bars); out.src = old.length ? 'chain+gt' : 'chain'; out.live = 1; ctx.busy = 0; }
   if (!out.src && !(beforeMs > 0)) { L = await fromAve(net, P || addr, tf); if (!L && P && P !== addr) L = await fromAve(net, addr, tf); if (L && L.length) out.src = 'ave'; } /* ③ AVE（没有往回翻页） */
   if (!out.src) { L = await fromOkx(net, addr, tf, beforeMs); if (L && L.length) out.src = 'okx'; } /* ④ OKX */
   if (!out.src && /^0x[0-9a-f]{64}$/.test(P || '') && D.v4) { const r = await D.v4(net, P, addr).catch(() => null); if (r && r.rows && r.rows.length) { L = r.rows.map((x) => ({ t: x.t, o: x.p, h: x.p, l: x.p, c: x.p, v: x.usd })); out.src = 'chain-v4'; } } /*V4T-1115 GeckoTerminal 没收录的 Uniswap V4 池（例 Robinhood 的 CLAU）：雷达自己读 PoolManager 的 Swap 事件做 K 线（AVE 也画得出来）*/
   if (!out.src && !gradX && loc && loc.bars && loc.bars.length) { L = loc.bars; out.src = 'chain'; } /* ⑤ 读链记的 */
   if (!out.src) { if (loc?.quoteWait) out.err = 'quote'; else if (ctx.busy) out.err = 'busy'; else if (ctx.net) out.err = 'down'; else if (!P && !loc) out.err = ctx.dsFail ? 'down' : 'nopool'; else if (P) out.err = 'nosrc'; /*KWHY-1114 找不到交易池、雷达也没在发射台曲线上看到＝还没开盘（AVE 空图写「未開盤」）*/ return out; }
   L = KL.aggregate(L, sec); if (beforeMs > 0) L = L.filter((x) => x.t < beforeMs);
-  L = KL.fillGaps(L, sec, BARS, beforeMs > 0 ? 0 : Date.now()); out.bars = clean(L.slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0, ...(x.gap ? { gap: 1 } : {}) })));
+  { const F = KL.fillGaps(L, sec, BARS, beforeMs > 0 ? 0 : Date.now()); L = L.length && !F.some((x) => !x.gap) ? KL.fillGaps(L, sec, BARS, 0) : F; } /*CHAINK-1115 最后一笔成交比 300 根还早（冷门币）：不要用补到现在的平盘把真的 K 棒全挤掉，照 GMGN 画到最后一笔为止*/ out.bars = clean(L.slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0, ...(x.gap ? { gap: 1 } : {}) })));
   return out;
 }
 /*KDATA-1113 离谱影线（资料源单笔异常成交，例 O 33／H 4495／C 34）：原始值照留在 h／l，另外给 hc／lc＝去掉离谱部分的高低（影线超过实体 WICK_K 倍就截到实体），
@@ -86,7 +90,7 @@ function clean(B) { for (const x of B) { const top = Math.max(x.o, x.c), bot = M
 /* 成交明细里 GeckoTerminal 标为异常（is_anomalous）的不算 */
 /* 同一个查询同时只跑一次＋短快取 */
 async function hist(net, addr, pool, tf, beforeMs, pri) {
-  const k = [net, addr, pool, tf, beforeMs || 0].join('|'); const c = CK.get(k); if (c && Date.now() - c.at < ttlOf(tf)) return c.v; if (INF.has(k)) return INF.get(k);
+  const k = [net, addr, pool, tf, beforeMs || 0].join('|'); const c = CK.get(k); if (c && Date.now() - c.at < (c.v.live ? LIVE_TTL : ttlOf(tf))) return c.v; if (INF.has(k)) return INF.get(k);
   const p = hist0(net, addr, pool, tf, beforeMs, pri).then((v) => { if (v.bars.length) { CK.set(k, { at: Date.now(), v }); if (CK.size > 300) CK.delete(CK.keys().next().value); } else if (c) return c.v; return v; }).finally(() => INF.delete(k));
   INF.set(k, p); return p;
 }
