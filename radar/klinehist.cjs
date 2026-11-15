@@ -82,4 +82,6 @@ async function trades(net, addr, pool, bg) { if (!GT_NET[net]) return { rows: []
   const v = { rows, pool: P }; TR.set(k, { at: Date.now(), v }); if (TR.size > 200) TR.delete(TR.keys().next().value); return v; }
 /* 1 秒线：只有成交明细做得出来（AVE／GeckoTerminal 的 K 线最小 1 分钟） */
 async function sec1(net, addr, pool) { const r = await trades(net, addr, pool); if (!r.rows.length) return { src: '', pool: r.pool || '', bars: [], ...(r.err === 'busy' ? { err: 'busy' } : {}) }; const L = KL.aggregate(r.rows.map((x) => ({ t: x.t, o: x.p, h: x.p, l: x.p, c: x.p, v: x.usd })), 1); return { src: 'gt-trades', pool: r.pool, bars: KL.fillGaps(L, 1, BARS, Date.now()).slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0 })) }; }
-module.exports = { install, hist, stat, SEC, trades, sec1, GT_NET };
+/*TAPEPOOL-1115 成交明细没拿到池子时，跟 K 线用同一个挑池子的规则（AVE 交易对 → GeckoTerminal 流动性最大的池），共用快取／限速 */
+async function pool(net, addr) { const ctx = {}; const v = await poolOf(net, addr, '', ctx).catch(() => ''); return { pool: v || '', busy: !!ctx.busy }; }
+module.exports = { install, hist, stat, SEC, trades, sec1, GT_NET, pool };
