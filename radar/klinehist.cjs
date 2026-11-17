@@ -70,10 +70,10 @@ async function hist0(net, addr, pool, tf, beforeMs, pri) {
   if (loc && !loc.grad && !gradX && loc.bars && loc.bars.length >= 2 && !(beforeMs > 0)) { out.src = 'chain'; out.bars = loc.bars; return out; } /* ① 曲线上的币 */
   if (loc && loc.grad && loc.pool) pool = loc.pool; /* 已上外盘：看上外盘的池子（画面给的可能是没人交易的旧池） */
   const P = await poolOf(net, addr, pool, ctx); out.pool = P;
-  let CB = null; if ((net === 'bsc' || net === 'robinhood') && D.chainK && P && !(beforeMs > 0) && sec >= SEC['1m']) { const r = await D.chainK(net, addr, P, sec).catch(() => null); if (r && r.bars && r.bars.length) CB = r; } /*CHAINK-1115 ② 已上外盘的 BNB Chain／Robinhood 币：读链上成交自己画（几百毫秒），不用等 GeckoTerminal*/
-  if (CB) ctx.noWait = 1;
+  let CB = null; if ((net === 'bsc' || net === 'robinhood') && D.chainK && P && !(beforeMs > 0) && sec >= SEC['1m']) { const r = await D.chainK(net, addr, P, sec).catch(() => null); if (r && r.bars && (r.bars.length || (r.older && r.older.length))) CB = r; } /*CHAINK-1115 ② 已上外盘的 BNB Chain／Robinhood 币：读链上成交自己画（几百毫秒），不用等 GeckoTerminal*/
+  if (CB && CB.bars.length >= BARS / 2) ctx.noWait = 1; /*CHAINK-1117 读链已经够画满半张图才不等 GeckoTerminal；冷门币读链只有几根时照常等它补历史（最多等 gtlim 的 waitMs）*/
   let L = await fromGt(net, P, addr, tf, beforeMs, ctx); if (L && L.length) out.src = 'gt'; /* ③ GeckoTerminal（有读链的 K 棒时只补更早的历史） */
-  if (CB) { const f0 = CB.bars[0].t; const old = (L || []).filter((x) => x.t < f0); L = old.concat(CB.bars); out.src = old.length ? 'chain+gt' : 'chain'; out.live = 1; ctx.busy = 0; }
+  if (CB) { const f0 = CB.bars.length ? CB.bars[0].t : Date.now(); let old = (L || []).filter((x) => x.t < f0); if (!old.length && CB.older && CB.older.length) { old = CB.older; out.approx = 1; } /*CHAINK-1117 报价币没有历史价：更早的先用 GeckoTerminal（照当时美金价），它也没有才用现价换算的读链 K 棒，标 approx*/ L = old.concat(CB.bars); out.src = out.approx ? 'chain-approx' : (L || []).length > CB.bars.length && !out.approx ? 'chain+gt' : 'chain'; out.live = 1; ctx.busy = 0; }
   if (!out.src && !(beforeMs > 0)) { L = await fromAve(net, P || addr, tf); if (!L && P && P !== addr) L = await fromAve(net, addr, tf); if (L && L.length) out.src = 'ave'; } /* ③ AVE（没有往回翻页） */
   if (!out.src) { L = await fromOkx(net, addr, tf, beforeMs); if (L && L.length) out.src = 'okx'; } /* ④ OKX */
   if (!out.src && /^0x[0-9a-f]{64}$/.test(P || '') && D.v4) { const r = await D.v4(net, P, addr).catch(() => null); if (r && r.rows && r.rows.length) { L = r.rows.map((x) => ({ t: x.t, o: x.p, h: x.p, l: x.p, c: x.p, v: x.usd })); out.src = 'chain-v4'; } } /*V4T-1115 GeckoTerminal 没收录的 Uniswap V4 池（例 Robinhood 的 CLAU）：雷达自己读 PoolManager 的 Swap 事件做 K 线（AVE 也画得出来）*/
