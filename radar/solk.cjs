@@ -33,9 +33,11 @@ function watch(mint) { mint = String(mint || ''); if (!B58.test(mint)) return { 
   return { ok: 1 }; }
 setInterval(() => { if (S.mint && Date.now() - S.at > IDLE_MS) stop(); }, IDLE_MS).unref?.();
 /* 组 K 线：秒数 sec（1／5／15），时间用区块时间（秒）；价格＝SOL÷代币×SOL 美金价（读不到 SOL 价＝只给 SOL 计价，画面不画美金） */
-function bars(mint, sec) { const r = watch(mint); if (r.err) return r; sec = [1, 5, 15, 30].includes(+sec) ? +sec : 1; /*SEC30-1114 加半分钟一根（照币安钱包、OKX 的秒线周期）*/ const u = S.solUsd(); const out = []; let cur = null;
-  for (const x of S.tr.slice().sort((a, b) => a.ts - b.ts)) { if (!(x.ts > 0)) continue; const p = (x.vsol / x.vtok) * (u || 1); /*RV8-7 成交后的曲线价格（虚拟储备）*/ const k = Math.floor(x.ts / sec) * sec; const v = x.sol * (u || 1);
-    if (!cur || cur.t !== k) { cur = { t: k * 1000, o: p, h: p, l: p, c: p, v }; out.push(cur); } else { cur.h = Math.max(cur.h, p); cur.l = Math.min(cur.l, p); cur.c = p; cur.v += v; } }
+/*SOLKFIX-1117 成交 → K 棒（纯函式，给测试用）：ts 是秒；同一格的成交合成一根（以前比较时一边是秒、一边是毫秒，每笔都变成一根） */
+function agg(tr, sec, u) { const out = []; let cur = null; for (const x of tr.slice().sort((a, b) => a.ts - b.ts)) { if (!(x.ts > 0) || !(x.vtok > 0)) continue; const p = (x.vsol / x.vtok) * (u || 1); /*RV8-7 成交后的曲线价格（虚拟储备）*/ const t = Math.floor(x.ts / sec) * sec * 1000; const v = x.sol * (u || 1);
+    if (!cur || cur.t !== t) { cur = { t, o: p, h: p, l: p, c: p, v }; out.push(cur); } else { cur.h = Math.max(cur.h, p); cur.l = Math.min(cur.l, p); cur.c = p; cur.v += v; } }
+  return out; }
+function bars(mint, sec) { const r = watch(mint); if (r.err) return r; sec = [1, 5, 15, 30].includes(+sec) ? +sec : 1; /*SEC30-1114 加半分钟一根（照币安钱包、OKX 的秒线周期）*/ const u = S.solUsd(); const out = agg(S.tr, sec, u);
   const L = S.lag.slice().sort((a, b) => a - b); const last = S.tr.at(-1);
   return { src: 'chain', st: S.st, err: S.err, since: S.since, n: S.tr.length, usd: !!u, sup: PUMP_SUP, lagMed: L.length ? +L[Math.floor(L.length / 2)].toFixed(2) : null, lagN: L.length, last: last ? { ts: last.ts, rt: last.rt } : null, bars: out }; }
-module.exports = { install, watch, bars, stop, _S: S };
+module.exports = { install, watch, bars, stop, agg, _S: S };
