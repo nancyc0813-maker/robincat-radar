@@ -177,9 +177,9 @@ addEventListener('popstate',()=>route(true));
 function route(fh){const wm=location.hash.match(/^#w\/(.+)$/);if(wm){openWallet(decodeURIComponent(wm[1]),hash(decodeURIComponent(wm[1]))%360);return}const pm=location.hash.match(/^#p\/(\w+)$/);if(pm&&NAVS.some(x=>x[0]===pm[1])){if(pm[1]==='home')goWS(fh);else openPage(pm[1],fh);return}const m=location.hash.match(/^#t\/(.+)$/);if(m){const t=BYID.get(decodeURIComponent(m[1]));if(t){openTok(t,fh);return}}if(ROOTEL.classList.contains('rt-tok')||ROOTEL.classList.contains('rt-pg'))goWS(fh)}
 
 /*LINK-1115 代币页外连（照 GMGN／AVE 代币页实际的连结，11/15 在 Chrome 读 a[href] 核对）：区块浏览器、GMGN、AVE、DexScreener、发射台。
-  浏览器：AVE 用 robin.etherscan.io（Robinhood）、web3.okx.com/explorer/x-layer（X Layer）、mainnet-beta.monvision.io（Monad）、hyperevmscan.io（HyperEVM）；
+  浏览器：AVE 用 robin.etherscan.io（Robinhood）、web3.okx.com/explorer/x-layer（X Layer）、mainnet-beta.monvision.io（Monad，11/17 起官方网址改成 monadvision.com）、hyperevmscan.io（HyperEVM）；
   发射台：GMGN 用 four.meme/token/、flap.sh/bnb/、pump.fun/coin/。没查到平台实际网址的链（Elysium 浏览器、Monad／X Layer 的 DexScreener、GMGN 没有的链）就不放，不猜。 */
-const LK_EXP={bsc:'https://bscscan.com/token/',eth:'https://etherscan.io/token/',base:'https://basescan.org/token/',sol:'https://solscan.io/token/',arb:'https://arbiscan.io/token/',poly:'https://polygonscan.com/token/',xl:'https://web3.okx.com/explorer/x-layer/evm/token/',monad:'https://mainnet-beta.monvision.io/token/',hype:'https://hyperevmscan.io/token/',rh:'https://robin.etherscan.io/token/'};
+const LK_EXP={bsc:'https://bscscan.com/token/',eth:'https://etherscan.io/token/',base:'https://basescan.org/token/',sol:'https://solscan.io/token/',arb:'https://arbiscan.io/token/',poly:'https://polygonscan.com/token/',xl:'https://web3.okx.com/explorer/x-layer/evm/token/',monad:'https://monadvision.com/token/',hype:'https://hyperevmscan.io/token/',rh:'https://robin.etherscan.io/token/'};
 const LK_AVE={bsc:'bsc',eth:'eth',base:'base',sol:'solana',arb:'arbitrum',poly:'polygon',xl:'xlayer',monad:'monad',hype:'hyperevm',rh:'robinhood'};
 const LK_GMGN={bsc:'bsc',sol:'sol',base:'base',eth:'eth'};
 const LK_DS={bsc:'bsc',rh:'robinhood',sol:'solana',eth:'ethereum',base:'base',arb:'arbitrum',poly:'polygon',hype:'hyperevm'};
