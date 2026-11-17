@@ -59,6 +59,7 @@ export async function mctOrder(o, { DIR, WALLETS, log, tgSay }) {
   const c = mctAddr(ch, o.c); if (!c) return done(false, '合约地址格式不对，没送出');
   const W = mctPick(DIR, WALLETS, ch, o.type, o.w, c); /*RV8-1114 选钱包抽成函式：送单跟画面确认框（data/mc_pick.json）用同一套*/
   if (!W) return done(false, '你的钱包没有回报支援这条链（或选的钱包不支援），没送出');
+  if (o.ew && String(o.ew).toLowerCase() !== String(W.addr || '').toLowerCase()) return done(false, '确认框显示的钱包跟现在送单会用的钱包不一样（钱包状态刚变），这笔没送出；请再按一次、看清楚确认框'); /*PICKRACE-1117 确认框跟送单之间钱包选法变了＝不送（只会少送，不会多送）*/
   o._w = String(W.addr || '').toLowerCase();
   /*SLIP-1114 滑点：没填＝钱包（币安／OKX）自己的预设滑点；有填但不在钱包官方允许的范围＝不送单、回报原因（以前超过就偷偷改用预设，违反「没有偷偷的备用路径」）*/
   const s0 = o.slip; const hasSlip = s0 != null && String(s0).trim() !== ''; if (hasSlip && !(Number(s0) > 0 && Number(s0) <= MCT_SLIP_MAX)) return done(false, `滑点要在 0–${MCT_SLIP_MAX}% 之间（你填的是 ${String(s0).slice(0, MCT_SHOW_N)}），没送出`);
