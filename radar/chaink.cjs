@@ -5,7 +5,7 @@
   GeckoTerminal 只拿来补比读链更早的历史（低优先、拿不到也不影响已经读到的部分）。只读，不碰钱包、不下单。 */
 const KL = require('./kline.cjs');
 
-const T = { firstSpan: { bsc: 600, robinhood: 3000 }, chunk: { bsc: 5000, robinhood: 30000 }, backMax: { bsc: 48000, robinhood: 200000 }, liveMs: 2500, otherMs: 3600e3, nativeMin: 1000, firstMore: 3, backErrMax: 2, keep: 8, rowsMax: 20000, idleMs: 120e3 }; /* 技术用（只影响画图）：第一段读几个区块（几分钟）、往回每段几个区块（公开节点单次查事件上限内）、最多往回几个区块（几小时）、多久读一次新区块、报价币不是原生币／稳定币时读链历史只算最近多久（更早的交给 GeckoTerminal）、原生币分钟价一次拿几根、第一次没读到成交时先多读几段、往回读失败几次就停、同时记几个币、每个币最多记几笔、多久没人看就停 */
+const T = { firstSpan: { bsc: 600, robinhood: 3000 }, chunk: { bsc: 5000, robinhood: 30000 }, backMax: { bsc: 48000, robinhood: 200000 }, liveMs: 2500, npxCoolMs: 300e3, otherMs: 3600e3, nativeMin: 1000, firstMore: 3, backErrMax: 2, keep: 8, rowsMax: 20000, idleMs: 120e3 }; /* 技术用（只影响画图）：第一段读几个区块（几分钟）、往回每段几个区块（公开节点单次查事件上限内）、最多往回几个区块（几小时）、多久读一次新区块、币安分钟价读不到后多久再试、报价币不是原生币／稳定币时读链历史只算最近多久（更早的交给 GeckoTerminal）、原生币分钟价一次拿几根、第一次没读到成交时先多读几段、往回读失败几次就停、同时记几个币、每个币最多记几笔、多久没人看就停 */
 const V2_SWAP = '0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822', V3_SWAP_UNI = '0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67', V3_SWAP_CAKE = '0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a3577dc83';
 let D = {}; /* 依赖：rpc(net, method, params)、qUsd(net, quote)、v4(net, id, addr, fromBlk)、qtab()、blkMs */
 function install(deps) { D = deps || {}; }
@@ -41,22 +41,24 @@ async function live(st) { if (!st.ok || st.liveBusy || Date.now() - st.liveAt < 
 const MIN_MS = 60e3; /* 技术用：一分钟几毫秒 */ const NET_KEY = { bsc: 'bsc', robinhood: 'rh' }; const NPX = new Map(); /* 交易对 → Map(分钟毫秒 → 收盘价) */ const NPX_F = new Map();
 async function quoteSetup(st) { const Q = (D.qtab?.() || {})[NET_KEY[st.net]] || {}; const e = (Q.quotes || {})[String(st.q || '').toLowerCase()]; st.qk = e ? (e[2] === 'usd' ? 'usd' : 'native') : 'other'; st.sym = Q.sym || ''; st.qu = st.qk === 'usd' ? 1 : await D.qUsd(st.net, st.q); if (!(st.qu > 0)) throw new Error('quote'); }
 function v4rows(r) { return (r.rows || []).filter((x) => x.qn > 0 && x.tn > 0).map((x) => ({ t: x.t, qn: x.qn, tn: x.tn, k: x.k || x.tx })); }
-async function nativeHist(sym, t0, t1) { if (!sym) return; let M = NPX.get(sym); if (!M) NPX.set(sym, (M = new Map())); const m0 = Math.floor(t0 / MIN_MS) * MIN_MS, m1 = Math.floor(t1 / MIN_MS) * MIN_MS;
+const NPX_BAD = new Map(); /* 交易对 → 币安读不到的时间（冷却期内不再问） */
+async function nativeHist(sym, t0, t1) { if (!sym || Date.now() - (NPX_BAD.get(sym) || -Infinity) < T.npxCoolMs) return; let M = NPX.get(sym); if (!M) NPX.set(sym, (M = new Map())); const m0 = Math.floor(t0 / MIN_MS) * MIN_MS, m1 = Math.floor(t1 / MIN_MS) * MIN_MS;
   for (let a = m0; a <= m1; a += T.nativeMin * MIN_MS) { const b = Math.min(m1, a + (T.nativeMin - 1) * MIN_MS); let miss = false; for (let x = a; x <= b; x += MIN_MS) if (!M.has(x)) { miss = true; break; } if (!miss) continue; const fk = sym + a; if (NPX_F.has(fk)) { await NPX_F.get(fk); continue; }
-    const p = fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=1m&startTime=${a}&endTime=${b + 59999}&limit=${T.nativeMin}`, { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).then((L) => { if (Array.isArray(L)) for (const k of L) if (+k[4] > 0) M.set(+k[0], +k[4]); }).catch(() => {}).finally(() => NPX_F.delete(fk)); NPX_F.set(fk, p); await p; }
+    const p = fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=1m&startTime=${a}&endTime=${b + 59999}&limit=${T.nativeMin}`, { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).then((L) => { if (!Array.isArray(L)) throw new Error('npx'); for (const k of L) if (+k[4] > 0) M.set(+k[0], +k[4]); NPX_BAD.delete(sym); }).catch(() => { NPX_BAD.set(sym, Date.now()); }) /*CHAINK-1118 读不到币安＝记下来，冷却期内不再问（画面不用每次等逾时）*/.finally(() => NPX_F.delete(fk)); NPX_F.set(fk, p); await p; }
   if (M.size > 20000) for (const k of [...M.keys()].slice(0, M.size - 20000)) M.delete(k); }
-function qpx(st, t) { if (st.qk === 'usd') return 1; if (st.qk === 'native') { const M = NPX.get(st.sym); const v = M && (M.get(Math.floor(t / MIN_MS) * MIN_MS) || M.get(Math.floor(t / MIN_MS) * MIN_MS - MIN_MS)); if (v > 0) return v; } return st.qu; } /* 那一分钟（或前一分钟）的价；最新这一分钟币安还没收盘＝用现价 */
+function qpx(st, t) { if (st.qk === 'usd') return 1; if (st.qk === 'native') { const M = NPX.get(st.sym); const v = M && (M.get(Math.floor(t / MIN_MS) * MIN_MS) || M.get(Math.floor(t / MIN_MS) * MIN_MS - MIN_MS)); if (v > 0) return v; } return st.qu; }
+const npxHas = (st, t) => { if (st.qk !== 'native') return st.qk === 'usd'; const M = NPX.get(st.sym); const m = Math.floor(t / MIN_MS) * MIN_MS; return !!(M && (M.get(m) || M.get(m - MIN_MS))) || Date.now() - t < 2 * MIN_MS; } /*CHAINK-1118 这笔成交那一分钟有没有原生币历史价（最近两分钟币安还没收盘，用现价本来就对）*/ /* 那一分钟（或前一分钟）的价；最新这一分钟币安还没收盘＝用现价 */
 /* 画面问：回目前读到的 K 棒（第一次会等第一段读完；之后不等，背景补） */
 async function bars(net, addr, pool, sec) { if (!D.rpc || !/^0x[0-9a-f]{40}([0-9a-f]{24})?$/.test(pool || '')) return null; const k = net + '|' + pool + '|' + addr; let st = S.get(k);
   if (!st) { st = { net, addr, pool, v4: pool.length === 66, rows: [], seen: new Set(), ver: 0, liveAt: 0, at: Date.now() }; S.set(k, st); if (S.size > T.keep) { const [ok, old] = S.entries().next().value; old.stop = true; S.delete(ok); }
     st.init = first(st).then(() => { if (!st.v4) deepen(st).catch(() => { st.done = true; }); }).catch((e) => { st.err = String(e?.message || e); }); }
   st.at = Date.now(); await st.init; if (st.err && !st.rows.length) return { err: st.err, bars: [] }; live(st);
-  if (st.qk === 'native' && st.rows.length && (!st.npxT || Date.now() - st.npxT > T.liveMs * 4)) { st.npxT = Date.now(); await nativeHist(st.sym, st.rows[0].t, Date.now()); }
+  if (st.qk === 'native' && st.rows.length && (!st.npxT || Date.now() - st.npxT > T.liveMs * 4)) { st.npxT = Date.now(); nativeHist(st.sym, st.rows[0].t, Date.now()).then(() => { st.ver++; }).catch(() => {}); } /*CHAINK-1118 不等币安：先用现价画，历史价到了下次重画就换（画面每几秒会再要一次）*/
   if ((!st.quAt || Date.now() - st.quAt > T.idleMs / 4) && st.qk !== 'usd') { st.quAt = Date.now(); D.qUsd(st.net, st.q).then((v) => { if (v > 0) st.qu = v; }).catch(() => {}); } /* 现价（最新一分钟、其他报价币用）每半分钟更新 */
-  const cut = st.qk === 'other' ? Date.now() - T.otherMs : 0; const R = st.rows.map((r) => { const u = r.qn * qpx(st, r.t); return { t: r.t, o: u / r.tn, h: u / r.tn, l: u / r.tn, c: u / r.tn, v: u }; });
+  const cut = st.qk === 'other' ? Date.now() - T.otherMs : 0; let natMiss = false; const R = st.rows.map((r) => { const u = r.qn * qpx(st, r.t); if (st.qk === 'native' && !npxHas(st, r.t)) natMiss = true; return { t: r.t, o: u / r.tn, h: u / r.tn, l: u / r.tn, c: u / r.tn, v: u }; });
   const recent = R.filter((x) => x.t >= cut), older = R.filter((x) => x.t < cut);
   const L = KL.aggregate(recent, sec), LO = older.length ? KL.aggregate(older, sec) : []; const t0 = recent.length ? recent[0].t : null;
-  return { bars: L, older: LO, approx: st.qk === 'other', qk: st.qk, first: t0, done: !!st.done, n: st.rows.length, ver: st.ver }; }
+  return { bars: L, older: LO, approx: st.qk === 'other', natApprox: natMiss, qk: st.qk, first: t0, done: !!st.done, n: st.rows.length, ver: st.ver }; }
 setInterval(() => { const now = Date.now(); for (const [k, st] of S) if (now - st.at > T.idleMs) { st.stop = true; S.delete(k); } }, T.idleMs).unref?.();
 function stat() { return [...S.values()].map((s) => ({ net: s.net, pool: s.pool, n: s.rows.length, done: !!s.done, backN: s.backN || 0, err: s.err || '' })); }
 module.exports = { install, bars, stat, T, _qpx: qpx };
