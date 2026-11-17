@@ -20723,22 +20723,24 @@
    "rule": "^(CMP|OBJNUM|TIMEWIN)$",
    "file": "radar/chaink\\.cjs$",
    "values": [
-    "255n",
-    "256n",
-    "36",
-    "2500",
-    "2",
-    "3",
-    "600",
-    "8",
     "1000",
     "120e3",
-    "200000",
+    "2",
     "20000",
-    "30000",
+    "200000",
+    "2500",
+    "255n",
+    "256n",
+    "3",
     "3000",
+    "30000",
+    "36",
+    "3600e3",
     "48000",
-    "5000"
+    "5000",
+    "600",
+    "60e3",
+    "8"
    ],
    "reason": "CHAINK-1115 读链画 K 线（只拿来画图，不影响买卖）：每段读几个区块、往回最多几个区块、多久读新区块、同时记几个币、每个币最多几笔、多久没人看就停；int256 转有号数；小数位数合理范围；秒换毫秒——全部是技术用的运作常数，不是买卖门槛"
   },
@@ -20751,6 +20753,109 @@
     "90e3"
    ],
    "reason": "SWR-1113 技术用（只影响其他链看盘清单最多等多久／多久重查，不进任何买卖判断）：同一行常数后面的注释改过，原本的比对字串对不上，照现在的写法重新列"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/ui/term/src/a0\\.js$",
+   "match": "const AVEQ_OLD={sig:30\\*MS_60000,topics:6\\*60\\*MS_60000}",
+   "values": [
+    "30",
+    "6",
+    "60"
+   ],
+   "reason": "STALE2-1117 技术用（只影响显示）：讯号超过多久不显示、叙事板块超过多久不显示（照平台：资料太旧就不当成现况）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "at: Date\\.now\\(\\) - (age|\\(j\\.__age \\|\\| 0\\)) \\* 1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "STALE2-1117 秒换毫秒（转接站回的资料几秒前）"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/solk\\.cjs$",
+   "match": "const t = Math\\.floor\\(x\\.ts / sec\\) \\* sec \\* 1000;",
+   "values": [
+    "1000"
+   ],
+   "reason": "SOLKFIX-1117 区块时间秒换毫秒（单位换算）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "relay/worker\\.js$",
+   "match": "status: 503",
+   "values": [
+    "503"
+   ],
+   "reason": "PRE/STALE/CACHEPROBE-1115（11/16 已部署的转接站，原始码同步回 repo）：转接站运作常数（预抓多久一次、最多几份、旧资料记忆体上限、HTTP 状态码、retry-after 秒数、预设单位、秒换毫秒、要预抓的路径），不进任何买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "relay/worker\\.js$",
+   "match": "\\) / 1e3\\)|PRE_MIN_S \\* 1e3|PRE_IDLE_S \\* 1e3",
+   "values": [
+    "1e3"
+   ],
+   "reason": "PRE/STALE/CACHEPROBE-1115（11/16 已部署的转接站，原始码同步回 repo）：转接站运作常数（预抓多久一次、最多几份、旧资料记忆体上限、HTTP 状态码、retry-after 秒数、预设单位、秒换毫秒、要预抓的路径），不进任何买卖判断"
+  },
+  {
+   "rule": "FALLBACK",
+   "file": "relay/worker\\.js$",
+   "match": "cu: String\\(e\\.cu \\|\\| 10\\)",
+   "values": [
+    "10"
+   ],
+   "reason": "PRE/STALE/CACHEPROBE-1115（11/16 已部署的转接站，原始码同步回 repo）：转接站运作常数（预抓多久一次、最多几份、旧资料记忆体上限、HTTP 状态码、retry-after 秒数、预设单位、秒换毫秒、要预抓的路径），不进任何买卖判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/worker\\.js$",
+   "match": "if \\(r\\.status !== 200 \\|\\| r\\.headers\\.get\\('x-stale-age'\\)\\)",
+   "values": [
+    "200"
+   ],
+   "reason": "PRE/STALE/CACHEPROBE-1115（11/16 已部署的转接站，原始码同步回 repo）：转接站运作常数（预抓多久一次、最多几份、旧资料记忆体上限、HTTP 状态码、retry-after 秒数、预设单位、秒换毫秒、要预抓的路径），不进任何买卖判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/worker\\.js$",
+   "match": "PRE_|STALE_MAX_B",
+   "values": [
+    "20",
+    "32"
+   ],
+   "reason": "PRE/STALE/CACHEPROBE-1115（11/16 已部署的转接站，原始码同步回 repo）：转接站运作常数（预抓多久一次、最多几份、旧资料记忆体上限、HTTP 状态码、retry-after 秒数、预设单位、秒换毫秒、要预抓的路径），不进任何买卖判断"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "relay/worker\\.js$",
+   "match": "'retry-after': '30'|cu'\\) \\|\\| '10'",
+   "values": [
+    "'10'",
+    "'30'"
+   ],
+   "reason": "PRE/STALE/CACHEPROBE-1115（11/16 已部署的转接站，原始码同步回 repo）：转接站运作常数（预抓多久一次、最多几份、旧资料记忆体上限、HTTP 状态码、retry-after 秒数、预设单位、秒换毫秒、要预抓的路径），不进任何买卖判断"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "relay/worker\\.js$",
+   "match": "const PRE_RE =",
+   "values": [
+    "^\\/v2\\/(ranks\\/topics$|ranks\\?topic=|signals\\/public\\/list\\?"
+   ],
+   "reason": "PRE/STALE/CACHEPROBE-1115（11/16 已部署的转接站，原始码同步回 repo）：转接站运作常数（预抓多久一次、最多几份、旧资料记忆体上限、HTTP 状态码、retry-after 秒数、预设单位、秒换毫秒、要预抓的路径），不进任何买卖判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "relay/worker\\.js$",
+   "match": "Math\\.abs\\(Date\\.now\\(\\) - \\(\\+D\\.ts \\|\\| 0\\)\\) > 10 \\* 60e3",
+   "values": [
+    "10"
+   ],
+   "reason": "INV 既有：邀请名单汇入／汇出签章的时间窗（行号移动后重新列；不是这次加的）"
   }
  ]
 }
