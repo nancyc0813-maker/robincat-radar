@@ -1,9 +1,9 @@
 {
-  "version": "1.4.33",
-  "date": "2026-11-15",
+  "version": "1.4.35",
+  "date": "2026-11-18",
   "critical": true,
   "notes": [
-    "修正：看盘「新开盘」Flap 刚建立的币不会再整批漏掉（跟 AVE、GMGN 一样马上出现）"
+    "修正：看盘「新外盘」open.four 的币（0x…6666）改照上外盘时间排，跟 AVE、GMGN 一样"
   ],
   "files": {
     ".cursorrules": "c59afe6f67df4a3c74023855a96e36c8508d3bc0e7e509020a04b1f2356cfb77",
