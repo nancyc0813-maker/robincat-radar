@@ -50,8 +50,9 @@ async function gtPools(net, addr, ctx, bg) { if (!GT_NET[net]) return null; cons
   GTS.set(k, { at: Date.now(), v }); if (GTS.size > 300) GTS.delete(GTS.keys().next().value); return v; }
 async function stats(net, addr, o) { o = o || {}; const ctx = { pri: !!o.pri }; const D0 = await dsPairs(net, addr).catch(() => null); let L = D0 && D0.length ? D0 : null, src = 'dexscreener';
   if (!L && !o.dsOnly) { L = await gtPools(net, addr, ctx, !!o.bg).catch(() => null); src = 'geckoterminal'; } if (!L || !L.length) return null;
-  const own = L.filter((x) => x.base); if (!own.length) return null; const dex = own.filter((x) => !x.curve); const b = pickBest(dex.length ? dex : own); if (!b) return null;
-  return { ...b.st, pool: b.a, dex: b.dex, curve: !!b.curve, src, at: Date.now() }; }
+  const own = L.filter((x) => x.base); if (!own.length) return null; const dex = own.filter((x) => !x.curve); const set = dex.length ? dex : own; const b = set.slice().sort((x, y) => y.liq - x.liq || y.vol - x.vol)[0]; if (!b) return null;
+  const vAll = set.reduce((a, x) => a + (x.st.v24 > 0 ? x.st.v24 : 0), 0); /*RV12-9 头部照 GMGN／DexScreener：流动性／涨跌＝流动性最大的主池（DexScreener 首页挑交易对也是看流动性），一天成交＝这个币全部池子加总（GMGN／AVE 的代币成交额）；K 线照旧看成交最多的池子*/
+  return { ...b.st, v24: set.some((x) => x.st.v24 != null) ? vAll : b.st.v24, v24pool: b.st.v24, pools: set.length, pool: b.a, dex: b.dex, curve: !!b.curve, src, at: Date.now() }; }
 /*RV12-9 持有人数、前 10 占比：GeckoTerminal 代币资讯（免费、不花 AVE 额度；GMGN／AVE 都有这两个数）。没绑定 AVE 时也看得到；快取 HOLD_TTL */
 const HLD = new Map(); const HOLD_TTL = 10 * 60e3; /* 技术用：持有人资料快取多久（GeckoTerminal 自己也是几十分钟才更新一次） */
 async function holders(net, addr, o) { o = o || {}; if (!GT_NET[net]) return null; const k = net + '|' + addr, c = HLD.get(k); if (c && Date.now() - c.at < HOLD_TTL) return c.v; const ctx = {}; const j = await gt(`${GT_NET[net]}/tokens/${addr}/info`, ctx, !!o.bg); if (!j || j.err) return c ? c.v : null; const A = j.data?.attributes || {}; const H = A.holders || {}; const n = (x) => (x == null || x === '' || !isFinite(+x) ? null : +x);
