@@ -2,7 +2,6 @@
 // 全部在本地跑：扫 BSC 新合约 → 模拟 → 用 baw CLI 自动打 → 开池后照规则自动卖 → Telegram 通知。不使用任何 AI。
 // 停止：在同资料夹放 WATCH_STOP 档。设定见 config.example.json。
 import { makeOkxBaw } from './okx.mjs'; /*OKX-13*/
-import { pickAddrs, resolveAddrs } from './calladdr.mjs'; /*CALLADDR-1113 喊单地址：Solana base58＋其他 EVM 链*/
 import { execFile, execFileSync } from 'node:child_process';
 import { openSync, readSync, closeSync } from 'node:fs';
 import { appendFileSync, writeFileSync, readFileSync, existsSync, statSync, renameSync, copyFileSync, unlinkSync, mkdirSync, readdirSync, chmodSync } from 'node:fs';
@@ -93,7 +92,7 @@ const groupSent = new Map();
 async function toGroup(text) { /* 每一类都要你打开 grp.post.* */ 
   if (!TG || !GROUP_ID || !nrOn('grp.on')) return; /* 群播报总开关 grp.on 也要开 */
   let msg = '', key = '';
-  const ca = (text.match(/0x[a-fA-F0-9]{40}/) || [])[0] || (pickAddrs(text).sol[0] || ''); /*CALLADDR-1113 雷达自己的讯息没有 0x 时，认 Solana 合约*/
+  const ca = (text.match(/0x[a-fA-F0-9]{40}/) || [])[0] || '';
   
   if (/^🛒/u.test(text)) { const name = (text.match(/項目[：:]\s*([^\n（(|]+)/) || [])[1]?.trim() || ''; const pct = (text.match(/進度約?\s*(\d+)%/) || [])[1]; msg = `🎯 打了付费项目：${name || '新项目'}${pct ? `（铸造进度约 ${pct}%）` : ''}\n合约：${ca}`; key = 'mint:' + ca.toLowerCase(); }
   /* 打到什么都在大群通知（免费也发），开盘也通知 */
@@ -356,12 +355,11 @@ async function dexScreener(addr) { /* 不管跟什么币配对、在哪个 DEX�
   if (!v) v = await geckoPool(addr); /* NOV 的池子开在 PancakeSwap Infinity，DexScreener 一直没收录，工具以为没开盘、也读不到价格 → 再用 GeckoTerminal 查（Infinity、Uniswap v4、V3 都有） */
   dsCache.set(addr, { t: Date.now(), v }); return v;
 }
-let GT_E = null; const GT_ENG = () => GT_E || (GT_E = createRequire(import.meta.url)('./radar/gtlim.cjs').engine()); globalThis.GT_ENG = GT_ENG; /*GTLIM-1114 rh.mjs 也用这个*/
 const GPC = new Map(); let gpLast = 0; /* GeckoTerminal 免费版每分钟次数很少，持仓多的时候会把额度用光 → 结果快取、两次请求之间隔开（只是避开限流） */
 const GP_WAIT_MAX_MS = 20e3; /* 技术用：GeckoTerminal 限流排队最多等多久 */ async function geckoPool(addr) { const c = GPC.get(addr); if (c && Date.now() - c.t < 600e3) return c.v; const w = gpLast + 2500 - Date.now(); gpLast = Math.max(Date.now(), gpLast + 2500); if (w > 0) { if (w > GP_WAIT_MAX_MS) return null; /* 排太久＝这次读不到（不用过期的旧价格） */ await sleep(w); } const v = await geckoPool0(addr); GPC.set(addr, { t: Date.now(), v }); if (GPC.size > 500) GPC.delete(GPC.keys().next().value); return v; }
 async function geckoPool0(addr) {
   try {
-    const r = await GT_ENG().get(`networks/bsc/tokens/${addr}/pools`, { waitMs: GP_WAIT_MAX_MS }); if (r.st !== 200) return null; const j = r.j; /*GTLIM-1114 引擎的 GeckoTerminal 共用限速（跟 rh.mjs 同一个桶；雷达视窗另一个桶，合计每分钟 20 次以内）*/
+    const j = await (await fetch(`https://api.geckoterminal.com/api/v2/networks/bsc/tokens/${addr}/pools`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10000) })).json();
     const ps = (j.data || []).map((p) => { const a = p.attributes || {}, base = String(p.relationships?.base_token?.data?.id || '').toLowerCase().endsWith(addr); return { id: String(a.address || '').toLowerCase(), name: a.name || '', dex: String(p.relationships?.dex?.data?.id || 'gecko'), px: Number(base ? a.base_token_price_usd : a.quote_token_price_usd) || 0, liq: Number(a.reserve_in_usd) || 0 }; }).filter((x) => x.px > 0).sort((x, y) => y.liq - x.liq); /* 读得到价格的池子都算，取流动性最大的 */
     if (!ps.length) return null; const p = ps[0];
     return { pair: /^0x[0-9a-f]{40}$/.test(p.id) ? p.id : 'gt:' + p.id, dex: p.dex, quote: (p.name.split('/')[1] || '').trim().split(' ')[0], px: p.px, liq: p.liq };
@@ -1536,7 +1534,7 @@ const TG_GRP_PER_MIN = 12; async function tgGroupWatch() {
       if (top <= last) continue; if (n++ >= TG_GRP_PER_MIN) { S.tgRot = (lastI - 1) % Math.max(1, _tgDialogs.length); break; } /* 技术用：每分钟读几个有新讯息的群（TG 限流），没读到的下一分钟接着读 */
       await sleep(1500);
       const msgs = await _tgc.getMessages(d.entity, { limit: 50, minId: last }).catch(() => []);
-      let mx = last; for (const m of msgs) { if (m.id > mx) mx = m.id; const t = String(m.message || ''); noteUrls(t, m, id); callOther(t, '💬 ' + String(d.title || d.name || id).slice(0, 20), new Set()); /*CALLADDR-1113 群里的 Solana／其他链合约进喊单流（BNB Chain 的 0x 照下面原本的群热度）*/ for (const c of new Set((t.match(/0x[a-fA-F0-9]{40}/g) || []).map((x) => x.toLowerCase()))) { if (INFRA.has(c)) continue; const h = (S.grpHits[c] = S.grpHits[c] || { chats: {}, first: Date.now(), names: [] }); h.chats[id] = Date.now(); const nm = String(d.title || d.name || '').slice(0, 20); if (nm && !h.names.includes(nm)) h.names.push(nm); } }
+      let mx = last; for (const m of msgs) { if (m.id > mx) mx = m.id; const t = String(m.message || ''); noteUrls(t, m, id); for (const c of new Set((t.match(/0x[a-fA-F0-9]{40}/g) || []).map((x) => x.toLowerCase()))) { if (INFRA.has(c)) continue; const h = (S.grpHits[c] = S.grpHits[c] || { chats: {}, first: Date.now(), names: [] }); h.chats[id] = Date.now(); const nm = String(d.title || d.name || '').slice(0, 20); if (nm && !h.names.includes(nm)) h.names.push(nm); } }
       { const skipped = top - last - msgs.length; if (skipped > 0) { S.tgSkip = S.tgSkip || {}; S.tgSkip[id] = (S.tgSkip[id] || 0) + skipped; log(`群监测：「${String(d.title || d.name || id).slice(0, 20)}」新讯息太多，这次只读最新的 ${msgs.length} 则，略过 ${skipped} 则较旧的（技术用：每次读取上限）`); } } /* 略过的要说 */
       S.tgLast[id] = Math.max(mx, top);
     }
@@ -2220,7 +2218,7 @@ function walApply(type, a, cfg) { const rm = type === 'removeWallet';
   try { const f = join(DIR, 'data', 'radar_wallets.json'); let j = {}; try { j = JSON.parse(readFileSync(f, 'utf8')) || {}; } catch {} const old = new Map((Array.isArray(j.list) ? j.list : []).map((x) => [String(x?.addr || '').toLowerCase(), x])); writeFileSync(f, JSON.stringify({ at: Date.now(), list: WALLETS.map((W) => old.get(W.addr) || { name: W.name, addr: W.addr, status: 'UNCONNECTED' }) })); } catch {}
   setTimeout(() => { radarWalletPoll(); }, 0);
   const W = WALLETS.find((w) => w.addr === a); return rm ? `✅ 已删除钱包 ${a.slice(0, 8)}…（立即生效：雷达不再用它买卖）` : W ? `✅ 已新增钱包 ${W.name}（立即生效）：请在雷达「设定 → 钱包」按它旁边的「连接（扫码）」` : `❌ 新增钱包失败：${a.slice(0, 8)}…`; }
-async function radarWalletPoll(force) { try { MCT?.mctPickWrite(DIR, WALLETS); } catch {} /*RV8-1114 钱包登入状态变了，画面确认框跟着变*/ try { const out = []; for (const W of WALLETS) { guardBaw(W); swapWaitWrap(W); const r = await W.baw(['wallet', 'status'], 60000); const st = r.j?.data?.status || 'UNKNOWN'; if (st !== 'UNKNOWN') { const off = st !== 'CONNECTED'; W.off = off; S.wOff = S.wOff || {}; const seen = W.addr in S.wOff; if (!seen) { S.wOff[W.addr] = off; save(); } /* 第一次看到只记下来，不通知 */ else if (off !== !!S.wOff[W.addr]) { S.wOff[W.addr] = off; save(); log(`[钱包] ${W.name} ${off ? '登出了，自动买卖先跳过这个钱包' : '重新连上了，恢复正常'}`); if (off) { if (!globalThis._loginNowBusy) { globalThis._loginNowBusy = 1; loginCheck().catch((e) => log('loginCheck ' + e.message)).finally(() => { globalThis._loginNowBusy = 0; }); } } /*V102-LOGOUT1：登出只发 loginCheck 那一则（有连结和配对码），这里不再另外发 */ else tg(`✅ ${W.name} 钱包重新连上了，恢复自动买卖`).catch(() => {}); } } out.push({ name: W.name, addr: W.addr, ...(W.kind === 'okx' ? { kind: 'okx' } : {}), ...(W.quota ? { q: W.quota } : {}), status: st === 'UNKNOWN' && S.wOff && W.addr in S.wOff ? (S.wOff[W.addr] ? 'UNCONNECTED' : 'CONNECTED') : st, ...(st === 'UNKNOWN' ? { stale: 1 } : {}) }); } writeFileSync(join(DIR, 'data', 'radar_wallets.json'), JSON.stringify({ at: Date.now(), list: out })); } catch (e) { log('radarWalletPoll ' + e.message); } }
+async function radarWalletPoll(force) { try { const out = []; for (const W of WALLETS) { guardBaw(W); swapWaitWrap(W); const r = await W.baw(['wallet', 'status'], 60000); const st = r.j?.data?.status || 'UNKNOWN'; if (st !== 'UNKNOWN') { const off = st !== 'CONNECTED'; W.off = off; S.wOff = S.wOff || {}; const seen = W.addr in S.wOff; if (!seen) { S.wOff[W.addr] = off; save(); } /* 第一次看到只记下来，不通知 */ else if (off !== !!S.wOff[W.addr]) { S.wOff[W.addr] = off; save(); log(`[钱包] ${W.name} ${off ? '登出了，自动买卖先跳过这个钱包' : '重新连上了，恢复正常'}`); if (off) { if (!globalThis._loginNowBusy) { globalThis._loginNowBusy = 1; loginCheck().catch((e) => log('loginCheck ' + e.message)).finally(() => { globalThis._loginNowBusy = 0; }); } } /*V102-LOGOUT1：登出只发 loginCheck 那一则（有连结和配对码），这里不再另外发 */ else tg(`✅ ${W.name} 钱包重新连上了，恢复自动买卖`).catch(() => {}); } } out.push({ name: W.name, addr: W.addr, ...(W.kind === 'okx' ? { kind: 'okx' } : {}), ...(W.quota ? { q: W.quota } : {}), status: st === 'UNKNOWN' && S.wOff && W.addr in S.wOff ? (S.wOff[W.addr] ? 'UNCONNECTED' : 'CONNECTED') : st, ...(st === 'UNKNOWN' ? { stale: 1 } : {}) }); } writeFileSync(join(DIR, 'data', 'radar_wallets.json'), JSON.stringify({ at: Date.now(), list: out })); } catch (e) { log('radarWalletPoll ' + e.message); } }
 /*QR120-ENG*/ /* 连接钱包（扫码）：每一步失败都写真正原因（画面会显示＋重试）；等扫码时再按一次就拿新码（新的请求取代旧的，不会卡住）；没有钱包也回原因 */
 const QR120_SIGNIN_MS = 60000, QR120_VERIFY_MS = 330000; /* 技术用：baw 向币安要二维码／等手机扫码最多等多久（指令逾时，不是买卖数字） */
 /*NET123 反过来判断：只有币安正常回了 JSON 业务错误（认得的业务代码）才显示币安的原因；其他一律「连不到币安」＋VPN 白话＋重试*/
@@ -3280,16 +3278,9 @@ async function mcWalletScan(W, force) { const now = Date.now(); if (!force && no
     rec = L ? { at: now, ok: 1, ids: L.map((x) => String(x?.binanceChainId ?? '')).filter((x) => /^[A-Za-z0-9_]{1,20}$/.test(x)), names: L.map((x) => String(x?.simpleName || x?.name || '').replace(/[^\w .-]/g, '').slice(0, 30)) } : { at: now, ok: 0, err: String(r?.j?.error?.message || r?.t || '').replace(/[\u0000-\u001f]/g, ' ').slice(0, 120) }; }
   catch (e) { rec = { at: now, ok: 0, err: String(e?.message || e).slice(0, 120) }; }
   const f = join(DIR, 'data', 'wallet_chains.json'); let o = {}; try { o = JSON.parse(readFileSync(f, 'utf8')) || {}; } catch {} if (!o.kinds || typeof o.kinds !== 'object') o.kinds = {};
-  const kind = W.kind === 'okx' ? 'okx' : 'binance'; /*OKXW-1114 OKX AI 钱包写在 kinds.okx（链代号＝OKX realChainIndex，501 写成 CT_501 跟币安同一种写法）；币安钱包照旧 kinds.binance*/
-  for (const kk of ['binance', 'okx']) { if (!o.kinds[kk] || typeof o.kinds[kk] !== 'object') o.kinds[kk] = { wallets: {} }; if (!o.kinds[kk].wallets || typeof o.kinds[kk].wallets !== 'object') o.kinds[kk].wallets = {}; }
-  const keep = new Set(WALLETS.map((x) => x.name)); for (const kk of ['binance', 'okx']) for (const k of Object.keys(o.kinds[kk].wallets)) if (!keep.has(k) || (k === W.name && kk !== kind)) delete o.kinds[kk].wallets[k];
-  o.kinds[kind].wallets[W.name] = rec; o.at = now;
-  /*OKXW-1114 钱包回报了雷达不认得的链代号 → 只通知一次「钱包新支援 X 链，等雷达更新才会开放买卖」，不会自动开放（画面也会显示）*/
-  const unk = rec.ok ? rec.ids.filter((id) => !MCW_KNOWN[kind].has(id)) : []; const told = new Set(Array.isArray(o.kinds[kind].told) ? o.kinds[kind].told : []); const fresh = unk.filter((id) => !told.has(id));
-  if (fresh.length) { for (const id of fresh) told.add(id); o.kinds[kind].told = [...told].slice(-50); const nm = fresh.map((id) => { const i = rec.ids.indexOf(id); return (rec.names[i] || '') + '（' + id + '）'; }).join('、'); tgSay(`🌐 ${W.name}（${kind === 'okx' ? 'OKX AI 钱包' : '币安 AI 钱包'}）新支援 ${nm}：等雷达更新才会开放买卖，现在只能看`).catch(() => {}); log(`钱包 ${W.name} 回报雷达还不认得的链：${nm}（等雷达更新才会开放买卖）`); }
-  try { const tmp = f + '.w' + process.pid; writeFileSync(tmp, JSON.stringify(o)); renameSync(tmp, f); } catch {} try { MCT?.mctPickWrite(DIR, WALLETS); } catch {} /*RV8-1114 画面确认框要显示会用哪个钱包*/ }
-/*OKXW-1114 雷达认得的钱包链代号（跟 radar/main.cjs MC_WALLET_KINDS 同一份对照；OKX 官方支援表 web3.okx.com/onchainos/dev-docs/home/supported-chain）。不在这里的＝钱包新支援、雷达还没更新*/
-const MCW_KNOWN = { binance: new Set(['56', '1', '8453', 'CT_501', '4663', '42161', '137']), okx: new Set(['56', '1', '8453', 'CT_501', '501', '4663', '42161', '137', '196', '143', '999']) };
+  if (!o.kinds.binance || typeof o.kinds.binance !== 'object') o.kinds.binance = { wallets: {} }; if (!o.kinds.binance.wallets || typeof o.kinds.binance.wallets !== 'object') o.kinds.binance.wallets = {};
+  const keep = new Set(WALLETS.map((x) => x.name)); for (const k of Object.keys(o.kinds.binance.wallets)) if (!keep.has(k)) delete o.kinds.binance.wallets[k];
+  o.kinds.binance.wallets[W.name] = rec; o.at = now; try { const tmp = f + '.w' + process.pid; writeFileSync(tmp, JSON.stringify(o)); renameSync(tmp, f); } catch {} }
 /*MC121-W-END*/
 /*ENG127-A5 开发者模式到期时间：数字＝Unix 秒（小于 1e12 当秒、否则当毫秒，技术用：单位判断），字串数字同上，其他字串照日期解析；读不到＝NaN */
 function devExpMs(v) { if (v == null || v === '' || typeof v === 'boolean') return NaN; const n = Number(v); if (Number.isFinite(n)) return n > 0 ? (n < 1e12 ? n * 1000 : n) : NaN; const d = Date.parse(String(v)); return Number.isFinite(d) ? d : NaN; }
@@ -3362,7 +3353,7 @@ async function nftVolWatch() {
 // ── TG 指令：使用者直接在机器人打「卖 XXX」「卖 XXX 一半」「余额」，几秒内执行，不经过 Claude ──
 
 const OFFI = createRequire(import.meta.url)('./repo.cjs'); /* 官方来源只写在 repo.cjs */
-const UPD = { on: true, ver: '1.4.34', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 一般版本只提醒；官方标「重要」的自动装（AUTOUPD-1112，可在设定关）；引导用户加入使用者的 TG 群 */
+const UPD = { on: true, ver: '1.4.37', repo: OFFI.REPO, group: 't.me/nancy_c0813' }; /* 一般版本只提醒；官方标「重要」的自动装（AUTOUPD-1112，可在设定关）；引导用户加入使用者的 TG 群 */
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function updCheck(quiet = false) {
   if (!UPD.on) return null;
@@ -3665,29 +3656,16 @@ setInterval(async () => { if (globalThis._bindBusy || !WALLETS[0] || !BIND) retu
 
 /* TGBOT-1110 机器人读群：把机器人拉进你的群（频道要设管理员），群里贴的 0x 合约加进追踪（只追踪，不直接买；打不打照你原本的规则）。本机跑，不花 Claude 用量，不存讯息内容 */
 async function tgBotHit(m) {
-  const text = String(m.text || m.caption || ''); const addrs = [...new Set((text.match(/0x[a-fA-F0-9]{40}/g) || []).map((x) => x.toLowerCase()))]; const PA = pickAddrs(text); if (!addrs.length && !PA.sol.length) return; /*CALLADDR-1113 只有 Solana 合约也要看*/
+  const text = String(m.text || m.caption || ''); const addrs = [...new Set((text.match(/0x[a-fA-F0-9]{40}/g) || []).map((x) => x.toLowerCase()))]; if (!addrs.length) return;
   const title = String(m.chat?.title || m.chat?.username || m.chat?.id || '群').replace(/[\u0000-\u001f<>]/g, ''); const src = '🤖 ' + title; S.callSeen = S.callSeen || {}; S.callHits = S.callHits || {};
   const key = 'bot:' + m.chat.id + '/' + m.message_id; if (S.callSeen[key]) return; S.callSeen[key] = ts();
-  const name = (text.match(/\$([A-Za-z0-9_一-鿿]{2,20})/) || [])[1] || ''; const bscOk = new Set();
-  for (const c of addrs) { if (INFRA.has(c)) continue; const code = ((await rpc('eth_getCode', [c, 'latest']).catch(() => '')) || '').toLowerCase(); if (code.length <= 2) continue; bscOk.add(c);
+  const name = (text.match(/\$([A-Za-z0-9_一-鿿]{2,20})/) || [])[1] || '';
+  for (const c of addrs) { if (INFRA.has(c)) continue; const code = ((await rpc('eth_getCode', [c, 'latest']).catch(() => '')) || '').toLowerCase(); if (code.length <= 2) continue;
     const hits = (S.callHits[c] = S.callHits[c] || []); if (!hits.includes(src)) hits.push(src); (S.callLog = S.callLog || []).push({ c, src, at: Date.now() }); if (S.callLog.length > 600) S.callLog.splice(0, S.callLog.length - 600);
     S.paid = S.paid || {}; if (!S.paid[c]) S.paid[c] = { at: Date.now(), name: name ? '$' + name : '群项目', done: {}, fromCall: key, needLearn: 1 }; S.paid[c].calls = hits.length;
     log(`机器人在「${title}」看到：${name ? '$' + name + ' ' : ''}${c} 加入追踪（目前 ${hits.length} 个来源提到；只追踪，打不打照规则）`); }
-  callOther(text, src, bscOk); /*CALLADDR-1113 Solana／其他链（BNB Chain 查不到程式码的 0x）→ 只进喊单流*/
   save();
 }
-/*CALLADDR-1113 Solana／其他链的喊单：只进喊单流（S.callLog，带 ch），不进 BNB Chain 的铸造／自动打流程。
-  真合约＝DexScreener 查得到交易对（calladdr.mjs）；刚建的币可能还没上 DexScreener → 先放待查，每分钟再问，超过 CALL_T.pendMs 还查不到就放弃并记日志 */
-const CALL_T = { pendMs: 600e3 }; /* 技术用：查不到交易对的地址最多再等几毫秒 */
-const CALL_PEND = new Map(); /* 地址 → { srcs, at } */
-function callOther(text, src, bscOk) { try { const { evm, sol } = pickAddrs(text); for (const a of [...sol, ...evm.filter((x) => !bscOk.has(x) && !INFRA.has(x))]) { const o = CALL_PEND.get(a) || { srcs: [], at: Date.now() }; if (!o.srcs.includes(src)) o.srcs.push(String(src).slice(0, 40)); CALL_PEND.set(a, o); } } catch {} }
-async function callPendRun() { if (!CALL_PEND.size) return; const now = Date.now(); const evm = [], sol = [];
-  for (const [a, o] of CALL_PEND) { if (now - o.at > CALL_T.pendMs) { CALL_PEND.delete(a); log(`喊单地址 ${a}（${o.srcs.join('、')}）查不到任何链的交易对，不当成合约`); continue; } (/^0x/.test(a) ? evm : sol).push(a); }
-  const fj = async (u) => (await fetch(u, { signal: AbortSignal.timeout(12000) })).json(); const M = await resolveAddrs({ evm, sol }, fj).catch(() => new Map());
-  for (const [a, r] of M) { const o = CALL_PEND.get(a); if (!o) continue; CALL_PEND.delete(a); if (r.ch === 'bsc') continue; /* BNB Chain 的币照原本流程（问程式码），这里不重复记 */
-    for (const src of o.srcs) { (S.callLog = S.callLog || []).push({ c: a, src, at: o.at, ch: r.ch }); } if (S.callLog.length > 600) S.callLog.splice(0, S.callLog.length - 600);
-    log(`${o.srcs.join('、')} 喊了 ${r.ch} 的 ${r.sym ? '$' + r.sym + ' ' : ''}${a}，加进讯号页喊单流（这条链雷达只显示，不自动打）`); }
-  if (M.size) save(); }
 async function callChannelWatch() { /* 监测你自己在雷达「设定 → 监测的 TG 频道」填的公开频道（data/tg_channels.txt 一行一个频道名；没填＝不监测，没有内建频道），频道贴的合约自动加入追踪，照同一套规则决定打不打；在本机跑，不花钱、不花 Claude 用量 */
   let chs = []; try { const f = join(DIR, 'data', 'tg_channels.txt'); if (existsSync(f)) { const l = readFileSync(f, 'utf8').split(/\r?\n/).map((x) => x.trim().replace(/^@|^https?:\/\/t\.me\/(s\/)?/i, '').replace(/\/.*$/, '')).filter((x) => /^[A-Za-z0-9_]{4,40}$/.test(x)); chs = [...new Set(l)]; } } catch {}
   S.callSeen = S.callSeen || {}; S.callHits = S.callHits || {};
@@ -3696,13 +3674,12 @@ async function callChannelWatch() { /* 监测你自己在雷达「设定 → 监
     const posts = html.split(`data-post="${ch}/`).slice(1); const first = !S.callSeen['init:' + ch]; S.callSeen['init:' + ch] = 1;
     for (const p of posts) { const id = parseInt(p, 10); const key = ch + '/' + id; if (!id || S.callSeen[key]) continue; S.callSeen[key] = ts(); if (first) continue; /* 新加的频道：加入前的贴文只记下来，不回头打 */
       const text = p.replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/g, ' '); const name = (text.match(/\$([A-Za-z0-9_一-鿿]{2,20})/) || [])[1] || '';
-      const addrs = [...new Set((text.match(/0x[a-fA-F0-9]{40}/g) || []).map((x) => x.toLowerCase()))]; const bscOk = new Set(); /*CALLADDR-1113*/
-      for (const c of addrs) { if (INFRA.has(c)) continue; const code = ((await rpc('eth_getCode', [c, 'latest']).catch(() => '')) || '').toLowerCase(); if (code.length <= 2) continue; bscOk.add(c);
+      const addrs = [...new Set((text.match(/0x[a-fA-F0-9]{40}/g) || []).map((x) => x.toLowerCase()))];
+      for (const c of addrs) { if (INFRA.has(c)) continue; const code = ((await rpc('eth_getCode', [c, 'latest']).catch(() => '')) || '').toLowerCase(); if (code.length <= 2) continue;
         const hits = (S.callHits[c] = S.callHits[c] || []); if (!hits.includes(ch)) hits.push(ch); (S.callLog = S.callLog || []).push({ c, src: String(ch).slice(0, 40), at: Date.now() }); if (S.callLog.length > 600) S.callLog.splice(0, S.callLog.length - 600); /* 信号页喊单流＋车头榜 */
         S.paid = S.paid || {}; if (!S.paid[c]) S.paid[c] = { at: Date.now(), name: name ? '$' + name : '频道项目', done: {}, fromCall: key, needLearn: 1 }; S.paid[c].calls = hits.length;
         log(`频道 ${ch} 第 ${id} 则：${name ? '$' + name + ' ' : ''}${c} 加入追踪（目前 ${hits.length} 个频道提到：${hits.join('、')}；照规则：进度和钱包数都达到门槛才打）`);
         if (nrOn('tgch.mint')) for (const W of WALLETS) { const ff = await findFree(W.addr, c, code).catch(() => null); if (ff) queueMint(c, ff.n, W, ff.v); } else if (nrOn0('tgch.mint') && nrOn0('bsc.freeNotify')) nrDecSkip('bsc', c, '', '「频道贴的免费铸造直接打」和「免费只通知」都开着（互斥）→ 照「只通知」，没打'); } /* 频道贴的免费铸造直接排队打＝你的开关 tgch.mint（预设关） */
-      callOther(text, ch, bscOk); /*CALLADDR-1113 Solana／其他链合约 → 只进喊单流*/
     }
   }
   const ks = Object.keys(S.callSeen).filter((k) => !k.startsWith('init:')); if (ks.length > 2000) for (const k of ks.slice(0, ks.length - 2000)) delete S.callSeen[k];
@@ -3711,12 +3688,11 @@ async function callChannelWatch() { /* 监测你自己在雷达「设定 → 监
 /* 用户申请、她审核过的 X 帐号由官方统一监测，贴了合约就发布到 robincat-radar-data/xwatch.json；雷达下载后存 data/xwatch.json，这里当成频道贴文处理 */
 async function xHitWatch() { if (!nrOn('xwatch.on')) return; /* X 监测＝你的开关 xwatch.on（预设关） */ let X = null; try { X = JSON.parse(readFileSync(join(DIR, 'data', 'xwatch.json'), 'utf8')); } catch { return; }
   S.callSeen = S.callSeen || {}; S.callHits = S.callHits || {}; const first = !S.callSeen['init:x'];
-  for (const it of (X.hits || []).slice(-300)) { const key = 'x:' + it.id + (it.c ? ':' + it.c : ''); if (!it.id || S.callSeen[key]) continue; S.callSeen[key] = ts(); if (first) continue; /* 第一次只记下不回头；之后读到的都加入追踪 */ /*CALLADDR-1113 一则推文可能贴好几个合约，每个各记一次*/
-    const src = '𝕏 @' + String(it.h || '').slice(0, 20); if (!/^0x[0-9a-f]{40}$/.test(it.c || '')) { callOther(String(it.c || ''), src, new Set()); continue; } /*CALLADDR-1113 Solana 合约 → 只进喊单流*/
-    const c = it.c; if (INFRA.has(c)) continue; const code = ((await rpc('eth_getCode', [c, 'latest']).catch(() => '')) || '').toLowerCase(); if (code.length <= 2) { callOther(c, src, new Set()); continue; } /*CALLADDR-1113 BNB Chain 查不到程式码＝可能是其他链的币 → 问 DexScreener*/
+  for (const it of (X.hits || []).slice(-300)) { const key = 'x:' + it.id; if (!it.id || !/^0x[0-9a-f]{40}$/.test(it.c || '') || S.callSeen[key]) continue; S.callSeen[key] = ts(); if (first) continue; /* 第一次只记下不回头；之后读到的都加入追踪 */
+    const c = it.c; if (INFRA.has(c)) continue; const code = ((await rpc('eth_getCode', [c, 'latest']).catch(() => '')) || '').toLowerCase(); if (code.length <= 2) continue; const src = '𝕏 @' + String(it.h || '').slice(0, 20);
     const hits = (S.callHits[c] = S.callHits[c] || []); if (!hits.includes(src)) hits.push(src); (S.callLog = S.callLog || []).push({ c, src: String(src).slice(0, 40), at: Date.now() }); if (S.callLog.length > 600) S.callLog.splice(0, S.callLog.length - 600); /* 信号页喊单流＋车头榜 */
     S.paid = S.paid || {}; if (!S.paid[c]) S.paid[c] = { at: Date.now(), name: '频道项目', done: {}, fromCall: key, needLearn: 1 }; S.paid[c].calls = hits.length;
     log(`${src} 贴了 ${c}，加入追踪（照规则：进度和钱包数都达到门槛才打）`);
     if (nrOn('xwatch.mint')) for (const W of WALLETS) { const ff = await findFree(W.addr, c, code).catch(() => null); if (ff) queueMint(c, ff.n, W, ff.v); } else if (nrOn0('xwatch.mint') && nrOn0('bsc.freeNotify')) nrDecSkip('bsc', c, '', '「X 监测免费铸造直接打」和「免费只通知」都开着（互斥）→ 照「只通知」，没打'); } /* 免费铸造直接排队打＝xwatch.mint（预设关） */
   S.callSeen['init:x'] = 1; }
-setInterval(() => { if (globalThis._callBusy) return; globalThis._callBusy = true; callChannelWatch().then(() => xHitWatch()).then(() => callPendRun()).catch((e) => log('call ' + e.message)).finally(() => { globalThis._callBusy = false; }); }, 60e3);
+setInterval(() => { if (globalThis._callBusy) return; globalThis._callBusy = true; callChannelWatch().then(() => xHitWatch()).catch((e) => log('call ' + e.message)).finally(() => { globalThis._callBusy = false; }); }, 60e3);
