@@ -73,7 +73,7 @@ function startMarket({ DATA, log = () => {} }) {
       else if (t0 === T.pProg) { const x = D.tokens[A(W(d, 0))]; if (x) x.prog = Math.min(100, F(N(W(d, 1)), 16)); }
       else if (t0 === T.pQuote) { const x = tok(A(W(d, 0))); const q = A(W(d, 1)); if (q !== '0x0000000000000000000000000000000000000000') x.q = q; }
       else if (t0 === T.pDex) { const x = D.tokens[A(W(d, 0))]; if (x) { x.grad = 1; x.gradAt = t; x.gradEv = 1; x.prog = 100; x.pool = A(W(d, 1)); } }
-    } else if (a === OPEN4 && t0 === T.oMig && l.topics[1]) { const c = A(l.topics[1]); const x = D.tokens[c]; if (x) { if (!x.gradEv) { x.grad = 1; x.gradAt = t; x.gradEv = 1; x.prog = 100; } } else if (D.gt && !(+D.gt[c] > 0)) D.gt[c] = t; } /*OPEN4-1118 open.four（0x…6666）币的上外盘时间：雷达开着时即时记（不在快取的币记进 gt，看盘「新外盘」照上外盘时间排，跟 AVE、GMGN 一样）*/
+    } else if (a === OPEN4 && t0 === T.oMig && l.topics[1]) { const c = A(String(l.topics[1]).slice(2)); /* 代币在 topics[1]（资料栏是两个币按地址排序，不能用） */ const x = D.tokens[c]; if (x) { if (!x.gradEv) { x.grad = 1; x.gradAt = t; x.gradEv = 1; x.prog = 100; } } else if (D.gt && !(+D.gt[c] > 0)) D.gt[c] = t; } /*OPEN4-1118 open.four（0x…6666）币的上外盘时间：雷达开着时即时记（不在快取的币记进 gt，看盘「新外盘」照上外盘时间排，跟 AVE、GMGN 一样）*/
   }
   async function info() { /* Four 的进度上限、报价币：每个新币问一次官方 Helper 合约 */
     const L = [...needInfo].slice(0, 40); if (!L.length) return; L.forEach((c) => needInfo.delete(c));
@@ -116,7 +116,7 @@ function startMarket({ DATA, log = () => {} }) {
     try { const from = Math.max(gf.lo, gf.cur - GF_SPAN); const [L, b] = await Promise.all([rpc('eth_getLogs', [{ address: [FLAP, FOUR, OPEN4], topics: [[T.pDex, T.fLiq, T.oMig]], fromBlock: '0x' + from.toString(16), toBlock: '0x' + gf.cur.toString(16) }]), rpc('eth_getBlockByNumber', ['0x' + gf.cur.toString(16), false])]);
       const endTs = parseInt(b?.timestamp, 16) * 1000; if (!(endTs > 0)) throw new Error('no block time'); /* 读不到这段的区块时间＝这段下一轮重读（不猜时间） */
       for (const l of Array.isArray(L) ? L : []) { const d = l.data, blk = parseInt(l.blockNumber, 16); const bt = l.blockTimestamp != null ? (typeof l.blockTimestamp === 'string' ? parseInt(l.blockTimestamp, 16) : +l.blockTimestamp) * 1000 : NaN; const ts = bt > 0 ? bt : endTs - (gf.cur - blk) * st.blockMs; /* 节点有给事件时间就用；没给用这段最后一块的时间往回推（一段只有几分钟，误差很小） */
-        const c = A(W(d, 0)); const x = D.tokens[c]; if (x) { if (!x.gradEv) { x.grad = 1; x.gradAt = ts; x.gradEv = 1; x.prog = 100; if (l.topics[0] === T.pDex) x.pool = A(W(d, 1)); } } else if (!(+D.gt[c] > 0)) D.gt[c] = ts; }
+        const c = l.topics[0] === T.oMig ? A(String(l.topics[1] || '').slice(2)) : A(W(d, 0)); if (!/^0x[0-9a-f]{40}$/.test(c)) continue; const x = D.tokens[c]; if (x) { if (!x.gradEv) { x.grad = 1; x.gradAt = ts; x.gradEv = 1; x.prog = 100; if (l.topics[0] === T.pDex) x.pool = A(W(d, 1)); } } else if (!(+D.gt[c] > 0)) D.gt[c] = ts; }
       const ks = Object.keys(D.gt); if (ks.length > GT_MAX) ks.sort((a, b2) => D.gt[a] - D.gt[b2]).slice(0, ks.length - GT_MAX).forEach((k) => delete D.gt[k]);
       gf.cur = from - 1; if (GF_SPAN < SPAN) GF_SPAN = Math.min(SPAN, GF_SPAN + 50);
     } catch (e) { if (/limit|range|too many|exceed/i.test(String(e?.message || e)) && GF_SPAN > 50) GF_SPAN = Math.max(50, Math.floor(GF_SPAN / 2)); } finally { gfBusy = 0; } }
