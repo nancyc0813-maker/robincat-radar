@@ -34,7 +34,7 @@ function mountChart(host,o,getTok,opt={}){o.tf=o.tf||'1m';o.mode=o.mode||'mc';o.
   const AX=64,TX=18,pw=W-AX,ph=H-TX;const SUBS=o.ind.subs.slice(0,CNT_2);const nS=SUBS.length;const mainH=Math.round(ph*(nS===CNT_2?.6:nS===1?.76:.97)),volT=mainH+6,paneH=nS?Math.floor((ph-volT-2-(nS-1)*6)/nS):0,volH=paneH;
   const end=Math.max(0,all.length-V.off),start=Math.max(0,end-Math.round(V.n));const vis=all.slice(start,end);const slot=pw/(V.n+4);const cw=Math.max(1,Math.min(slot*.7,PX_14));
   ctx.font=`11px ${CC.fNum}`;ctx.textBaseline='middle';
-  if(!vis.length){ctx.fillStyle=CC.tx3;ctx.textAlign='center';ctx.fillText(KE.code==='nochain'||KE.code==='busy'||KE.code==='nopool'||KE.code==='nosrc'||KE.code==='down'?KE.err:KE.busy||!KE.at?L('K 线载入中…','Loading candles…'):KE.err?L('K 线读不到：','Candles unavailable: ')+KE.err:L('这个周期还没有成交','No trades in this timeframe yet'),pw/2,ph/2);MAP=null;ohlc.innerHTML='';return}
+  if(!vis.length){ctx.fillStyle=CC.tx3;ctx.textAlign='center';ctx.fillText(KE.code==='nochain'||KE.code==='busy'||KE.code==='nopool'||KE.code==='nosrc'||KE.code==='down'||KE.code==='notrade'?KE.err:KE.busy||!KE.at?L('K 线载入中…','Loading candles…'):KE.err?L('K 线读不到：','Candles unavailable: ')+KE.err:L('这个周期还没有成交','No trades in this timeframe yet'),pw/2,ph/2);MAP=null;ohlc.innerHTML='';return}
   const hs=vis.map(b=>b.h*k),ls=vis.map(b=>b.l*k);let bmax=-Infinity,bmin=Infinity;for(const b of vis){bmax=Math.max(bmax,b.o*k,b.c*k);bmin=Math.min(bmin,b.o*k,b.c*k)}
   let hi=Math.max(bmax,vis.length>=CNT_12?q(hs,.97):Math.max(...hs)),lo=Math.min(bmin,vis.length>=CNT_12?q(ls,.03):Math.min(...ls));
   if(vis.length<CNT_12){const bs=bmax-bmin||bmax*.05;hi=Math.min(Math.max(...hs),bmax+bs*.6);lo=Math.max(Math.min(...ls),bmin-bs*.6)}if(!(hi>lo)){hi=hi*1.01;lo=lo*.99}

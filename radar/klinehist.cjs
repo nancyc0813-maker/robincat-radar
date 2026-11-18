@@ -54,17 +54,29 @@ function local(net, addr, sec) {
   for (const s of src) { try { if (!s || !s.has || !s.has(addr)) continue; const inf = s.info?.(addr) || {}; const r = s.candles(addr, sec); return { grad: !!inf.grad, pool: /^0x[0-9a-f]{40}$/.test(inf.pool || '') ? inf.pool : '', bars: Array.isArray(r) ? r : null, quoteWait: r?.err === 'quote' }; } catch {} }
   return null;
 }
+const GTH = new Map(); /*RV12-7 GeckoTerminal 历史 K 线快取（池子|周期 → K 棒）：读链 K 线只补最近一段，较早的历史用这份；限速时先用上一份，不会只剩读链那几根 */
 async function fromGt(net, pool, addr, tf, beforeMs, ctx) {
-  if (!GT_NET[net] || !pool) return null; const [u, ag, mult] = GT[tf] || GT['5m']; const lim = Math.min(1000, BARS * mult);
+  if (!GT_NET[net] || !pool || !GT[tf]) return null; /*RV12-1 GeckoTerminal 没有秒线：以前没有对应就拿五分钟 K 补成秒线（假的平盘），现在直接不用*/ const [u, ag, mult] = GT[tf]; const lim = Math.min(1000, BARS * mult);
+  const hk = net + '|' + pool + '|' + addr + '|' + tf + '|' + (beforeMs || 0), hc = GTH.get(hk); if (hc && Date.now() - hc.at < ttlOf(tf)) return hc.v;
   const q = `${GT_NET[net]}/pools/${pool}/ohlcv/${u}?aggregate=${ag}&limit=${lim}&currency=usd` + (addr ? `&token=${encodeURIComponent(addr)}` : '&token=base') + (beforeMs > 0 ? `&before_timestamp=${Math.floor(beforeMs / 1000)}` : '');
-  const j = await gt(q, ctx); if (!j || j.err) return null; const L = (j.data?.attributes?.ohlcv_list || []).map((r) => ({ t: r[0] * 1000, o: +r[1], h: +r[2], l: +r[3], c: +r[4], v: +r[5] || 0 })).filter((x) => x.t > 0 && x.h > 0).reverse();
-  return L;
+  const j = await gt(q, ctx); if (!j || j.err) { if (hc && ctx) ctx.stale = 1; return hc ? hc.v : null; } /*RV12-6 限速／读不到：先给上一份（标 stale，画面照常显示、背景再补）*/ const L = (j.data?.attributes?.ohlcv_list || []).map((r) => ({ t: r[0] * 1000, o: +r[1], h: +r[2], l: +r[3], c: +r[4], v: +r[5] || 0 })).filter((x) => x.t > 0 && x.h > 0).reverse();
+  GTH.set(hk, { at: Date.now(), v: L }); if (GTH.size > 200) GTH.delete(GTH.keys().next().value); return L;
 }
 async function fromAve(net, id, tf) { if (!D.aveOK?.() || !id) return null; try { const L = await D.aveCandles(net, id, tf); return Array.isArray(L) && L.length ? L.filter((x) => !x.gap) : null; } catch { return null; } }
 async function fromOkx(net, addr, tf, beforeMs) { try { if (!D.OKM?.ready?.(net)) return null; const L = await D.OKM.candles(net, addr, tf, beforeMs); return L && L.length ? L : null; } catch { return null; } }
 
+/*RV12-1 秒线（1s）只用真的逐笔成交组：照 GMGN／币安钱包／OKX 的秒线（GeckoTerminal 免费 API 没有秒级 K 线，付费版才有）。
+  BNB Chain／Robinhood：发射台曲线＝雷达读链记的成交；已上外盘＝读主池 Swap 事件（chaink，跟 1m 以上同一份）；
+  其他链：GeckoTerminal 最近成交（真的成交，约慢几十秒，画面照实标）。没有成交的那一秒不补平的 K 棒（GMGN／TradingView 的秒线也一样跳过没成交的秒），读不到就照实说。 */
+async function histSec(net, addr, pool, sec, pri) { const out = { src: '', pool: '', bars: [] }; const ctx = { pri: !!pri }; const real = (L) => (Array.isArray(L) ? L.filter((x) => !x.gap && x.t > 0 && x.c > 0) : []);
+  const loc = isEvm(addr) ? local(net, addr, sec) : null; let gradX = false; if (loc && !loc.grad) { const M = await mainPool(net, addr, ctx); if (M.dex && M.pool) { gradX = true; if (!isPool(pool)) pool = M.pool; } }
+  if (loc && !loc.grad && !gradX) { const b = real(loc.bars); if (b.length) { out.src = 'chain'; out.bars = clean(b.slice(-BARS)); return out; } }
+  if (loc && loc.grad && loc.pool) pool = loc.pool; const P = await poolOf(net, addr, pool, ctx); out.pool = P;
+  if ((net === 'bsc' || net === 'robinhood') && D.chainK && P) { const r = await D.chainK(net, addr, P, sec).catch(() => null); const b = real(r && r.bars); if (b.length) { out.src = 'chain'; out.live = 1; out.bars = clean(b.slice(-BARS)); return out; } }
+  const r = await sec1(net, addr, P, sec, pri); if (r.bars.length) { out.src = r.src; out.pool = r.pool || P; out.bars = clean(r.bars); return out; }
+  out.err = r.err || (ctx.busy ? 'busy' : ctx.net ? 'down' : !P ? (ctx.dsFail ? 'down' : 'nopool') : 'notrade'); return out; }
 async function hist0(net, addr, pool, tf, beforeMs, pri) {
-  const sec = SEC[tf]; const out = { src: '', pool: '', bars: [] }; const ctx = { pri: !!pri };
+  const sec = SEC[tf]; if (sec < SEC['1m']) return beforeMs > 0 ? { src: '', pool: '', bars: [] } : histSec(net, addr, pool, sec, pri); const out = { src: '', pool: '', bars: [] }; const ctx = { pri: !!pri };
   const loc = isEvm(addr) ? local(net, addr, sec) : null;
   let gradX = false; if (loc && !loc.grad) { const M = await mainPool(net, addr, ctx); if (M.dex && M.pool) { gradX = true; if (!isPool(pool)) pool = M.pool; } } /*MPOOL-1115 雷达没记到上外盘（例 Flap 用自订报价币上 Pancake 的旺财），但 DexScreener 已经有 DEX 池＝已上外盘，看那个池子，不再画很久以前的曲线成交*/
   if (loc && !loc.grad && !gradX && loc.bars && loc.bars.length >= 2 && !(beforeMs > 0)) { out.src = 'chain'; out.bars = loc.bars; return out; } /* ① 曲线上的币 */
@@ -98,16 +110,18 @@ function stat() { return { gt: { ...require('./gtlim.cjs').main().stat(), mine: 
 /*MCK-1113 成交明细（GeckoTerminal /pools/{pool}/trades，免费、不花 AVE 额度；它给最近一段时间的成交）：多链详情的 K 线最后一根即时更新、1 秒线。
   GeckoTerminal 自己约慢几十秒（11/13 实测 Solana 最新一笔约 38 秒前），所以「即时」＝跟它一样快，不是逐笔秒级 */
 const TR = new Map(), TR_TTL = 3e3; /* 技术用：同一个池子的成交多久内共用一次 */
-async function trades(net, addr, pool, bg, noFb) { if (!GT_NET[net]) return { rows: [], err: 'nochain' }; const ctx = {}; const P = await poolOf(net, addr, pool, ctx, bg); if (!P) return { rows: [], pool: '', ...(ctx.busy ? { err: 'busy' } : {}) }; const k = net + '|' + P + '|' + addr, c = TR.get(k); if (c && Date.now() - c.at < TR_TTL) return c.v;
+async function trades(net, addr, pool, bg, noFb, pri) { if (!GT_NET[net]) return { rows: [], err: 'nochain' }; const ctx = { pri: !!pri && !bg }; /*RV12-6 秒线正在看的（pri）跟 K 线一样排队拿令牌*/ const P = await poolOf(net, addr, pool, ctx, bg); if (!P) return { rows: [], pool: '', ...(ctx.busy ? { err: 'busy' } : {}) }; const k = net + '|' + P + '|' + addr, c = TR.get(k); if (c && Date.now() - c.at < TR_TTL) return c.v;
   if (/^0x[0-9a-f]{64}$/.test(P) && D.v4 && D.v4ok && D.v4ok(net)) { const r = await D.v4(net, P, addr).catch(() => null); if (r && r.rows && r.rows.length) { const v4 = { rows: r.rows.slice(-BARS), pool: P }; TR.set(k, { at: Date.now(), v: v4 }); return v4; } } /*V4T-1115 雷达读得到的 V4 池（Robinhood）先读链：免费、不占 GeckoTerminal 限速*/
   const j = await gt(`${GT_NET[net]}/pools/${P}/trades`, ctx, bg); if ((!j || j.err) && !(/^0x[0-9a-f]{64}$/.test(P) && D.v4 && !ctx.busy)) return c ? c.v : { rows: [], pool: P, err: ctx.busy ? 'busy' : ctx.net ? 'down' : 'gt' }; const same = (x) => (net === 'solana' ? String(x || '') === addr : String(x || '').toLowerCase() === addr);
   const rows = (Array.isArray(j?.data) ? j.data : []).map((d) => { const a = d?.attributes || {}; const buy = same(a.to_token_address), sell = same(a.from_token_address); if ((!buy && !sell) || a.is_anomalous === true) return null; const p = +(buy ? a.price_to_in_usd : a.price_from_in_usd); const t = Date.parse(a.block_timestamp || ''); if (!(p > 0) || !(t > 0)) return null; return { t, p, usd: +a.volume_in_usd || 0, b: buy ? 1 : 0, w: String(a.tx_from_address || '').slice(0, 64), tx: String(a.tx_hash || '').slice(0, 100) }; }).filter(Boolean).sort((x, y) => x.t - y.t);
   /*TRPOOL-1115 AVE 挑的池子在 GeckoTerminal 没有成交明细（例 Base 的 SNDKc：AVE 给 Uniswap V4 池，GeckoTerminal 那个池子 0 笔；最活跃的是 Aerodrome 池，DexScreener 5 分钟 50 多笔）→ 改看 GeckoTerminal 上最近 1 小时成交最多的池子（流动性最大的可能就是同一个 V4 池） */
   if (!rows.length && /^0x[0-9a-f]{64}$/.test(P) && D.v4) { const r = await D.v4(net, P, addr).catch(() => null); if (r && r.rows && r.rows.length) { const v4 = { rows: r.rows.slice(-BARS), pool: P }; TR.set(k, { at: Date.now(), v: v4 }); return v4; } } /*V4T-1115*/
-  if (!rows.length && !noFb) { const P2 = await gtTop(net, addr, ctx, bg, 'tx'); if (P2 && P2 !== P) { const r2 = await trades(net, addr, P2, bg, 1); if (r2.rows.length) { TR.set(k, { at: Date.now(), v: r2 }); return r2; } } }
+  if (!rows.length && !noFb) { const P2 = await gtTop(net, addr, ctx, bg, 'tx'); if (P2 && P2 !== P) { const r2 = await trades(net, addr, P2, bg, 1, pri); if (r2.rows.length) { TR.set(k, { at: Date.now(), v: r2 }); return r2; } } }
   const v = { rows, pool: P }; TR.set(k, { at: Date.now(), v }); if (TR.size > 200) TR.delete(TR.keys().next().value); return v; }
 /* 1 秒线：只有成交明细做得出来（AVE／GeckoTerminal 的 K 线最小 1 分钟） */
-async function sec1(net, addr, pool) { const r = await trades(net, addr, pool); if (!r.rows.length) return { src: '', pool: r.pool || '', bars: [], ...(r.err === 'busy' || r.err === 'down' ? { err: r.err } : {}) }; const L = KL.aggregate(r.rows.map((x) => ({ t: x.t, o: x.p, h: x.p, l: x.p, c: x.p, v: x.usd })), 1); return { src: 'gt-trades', pool: r.pool, bars: KL.fillGaps(L, 1, BARS, Date.now()).slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0 })) }; }
+const S1C = new Map(), S1_TTL = 10e3; /*RV12-1 技术用：秒线用的成交多久内共用（GeckoTerminal 成交本身约慢几十秒，画面每次重画都去问只会吃光共用限速）*/
+async function sec1(net, addr, pool, sec, pri) { sec = sec > 0 ? sec : 1; const k = net + '|' + addr + '|' + (pool || ''), c = S1C.get(k); let r = c && Date.now() - c.at < S1_TTL ? c.v : null; if (!r) { r = await trades(net, addr, pool, false, 0, pri); if (r.rows.length || !c) { S1C.set(k, { at: Date.now(), v: r }); if (S1C.size > 100) S1C.delete(S1C.keys().next().value); } else r = c.v; }
+  if (!r.rows.length) return { src: '', pool: r.pool || '', bars: [], ...(r.err === 'busy' || r.err === 'down' ? { err: r.err } : {}) }; const L = KL.aggregate(r.rows.map((x) => ({ t: x.t, o: x.p, h: x.p, l: x.p, c: x.p, v: x.usd })), sec); return { src: r.rows[0]?.k ? 'chain-v4' : 'gt-trades', pool: r.pool, last: r.rows.at(-1)?.t || null, bars: L.slice(-BARS).map((x) => ({ t: x.t, o: x.o, h: x.h, l: x.l, c: x.c, v: x.v || 0 })) }; } /*RV12-1 只有真的成交：没成交的秒不补平的 K 棒（以前补到现在，最近两分钟几乎全是平线）*/
 /*TAPEPOOL-1115 成交明细没拿到池子时，跟 K 线用同一个挑池子的规则（AVE 交易对 → GeckoTerminal 流动性最大的池），共用快取／限速 */
 async function pool(net, addr) { const ctx = {}; const v = await poolOf(net, addr, '', ctx).catch(() => ''); return { pool: v || '', busy: !!ctx.busy }; }
 async function main(net, addr) { const ctx = {}; const r = await mainPool(net, addr, ctx).catch(() => null); return { ...(r || { pool: '', dex: false }), busy: !!ctx.busy }; }

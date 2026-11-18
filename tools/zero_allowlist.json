@@ -20857,6 +20857,106 @@
     "10"
    ],
    "reason": "INV 既有：邀请名单汇入／汇出签章的时间窗（行号移动后重新列；不是这次加的）"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/klinehist\\.cjs$",
+   "match": "test\\(u\\)\\)\\.slice\\(0, 3\\)",
+   "values": [
+    "3"
+   ],
+   "reason": "RV12-9 显示用：主池资料附带的官网连结最多留几个（跟 tokenDetail 原本 DexScreener 官网 slice(0, 3) 同一个显示上限），不影响买卖"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/klinehist\\.cjs$",
+   "match": "nm\\.split\\(' / '\\)\\[0\\]\\.slice\\(0, 40\\)",
+   "values": [
+    "40"
+   ],
+   "reason": "RV12-9 显示用：代币符号字串长度上限（防异常资料撑版面），不是筛选"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/klinehist\\.cjs$",
+   "match": "GTS_TTL = 60e3|HOLD_TTL = 10 \\* 60e3|S1_TTL = 10e3",
+   "values": [
+    "60e3",
+    "10",
+    "10e3"
+   ],
+   "reason": "RV12-1／RV12-9 技术用快取时间（GeckoTerminal 池子清单行情、持有人资讯、秒线成交多久共用一次），只影响读取频率与共用限速，跟买卖无关"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar/klinehist\\.cjs$",
+   "match": "S1C\\.size > 100",
+   "values": [
+    "100"
+   ],
+   "reason": "RV12-1 技术用：秒线成交快取最多记几个池子（记忆体上限），不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "TXF_MAX = 20000, TXF_BATCH = 25, TXF_WAIT_MS = 2500",
+   "values": [
+    "20000",
+    "25",
+    "2500"
+   ],
+   "reason": "RV12-2 技术用：成交发起人（tx.from）快取最多几笔、一次批次问节点几笔、画面最多等几毫秒；只影响显示的钱包栏位，跟买卖无关"
+  },
+  {
+   "rule": "NUMSTR",
+   "file": "radar/main\\.cjs$",
+   "match": "jsonrpc: '2\\.0', id: i \\+ 1",
+   "values": [
+    "'2.0'"
+   ],
+   "reason": "RV12-2 JSON-RPC 协定版本字串（批次查询），不是数字设定"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "for \\(const u of order\\.slice\\(0, 3\\)\\)",
+   "values": [
+    "3"
+   ],
+   "reason": "RV12-2 技术用：批次查询失败时最多换几个节点重试（节点池顺序），只读、跟买卖无关"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "MP_WAIT_MS = 4000",
+   "values": [
+    "4000"
+   ],
+   "reason": "RV12-9 技术用：详情最多等主池行情／持有人几毫秒，没等到的查完再推给画面；只影响显示"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/main\\.cjs$",
+   "match": "url: x\\.url \\}\\)\\)\\.slice\\(0, 4\\) \\}; else \\{ const M = await",
+   "values": [
+    "4"
+   ],
+   "reason": "原本就有的 DexScreener 社群连结显示上限 slice(0, 4)；RV12-4 只在同一行加 GeckoTerminal 备援池子"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/main\\.cjs$",
+   "match": "ca: M\\.created \\? Math\\.floor\\(M\\.created / 1000\\)",
+   "values": [
+    "1000"
+   ],
+   "reason": "RV12-8 单位换算：毫秒换秒（池子建立时间，只拿来显示年龄）"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/ui/term/src/a0\\.js$",
+   "match": "const DATA_SITES=",
+   "reason": "RV12-13 显示用：行情／浏览器／发射台网站的网域清单——网址指到这些网站却不含这个币的合约＝资料不完整的「官网」，只决定官网按钮要不要显示，不影响买卖、不是标签"
   }
  ]
 }
