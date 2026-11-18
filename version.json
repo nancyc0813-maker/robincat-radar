@@ -1,8 +1,9 @@
 {
-  "version": "1.4.35",
+  "version": "1.4.36",
   "date": "2026-11-18",
   "critical": true,
   "notes": [
+    "修正：看盘「新开盘」中间建立、还没人买的币不会再整段漏掉（跟 AVE、GMGN 一样）",
     "修正：看盘「新外盘」open.four 的币（0x…6666）改照上外盘时间排，跟 AVE、GMGN 一样"
   ],
   "files": {
