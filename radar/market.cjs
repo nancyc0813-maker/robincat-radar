@@ -9,6 +9,7 @@ const KL = require('./kline.cjs'); /* KQ-1104：K 线共用格子 */
 const FOUR = '0x5c952063c7fc8610ffdb798152d69f0b9550762b';           // Four.meme TokenManager2
 const FOUR_HELPER = '0xf251f83e40a78868fcfa3fa4599dad6494e46034';    // Four.meme TokenManagerHelper3（读进度用）
 const FLAP = '0xe2ce6ab80874fa9fa2aae65d277dd6b8e65c9de0';           // Flap Portal
+const OPEN4 = '0x08c9768cf1dfddd5cb6de41052d338954bd9e7e7';          // OPEN4-1118：AVE 叫「open.four」的 0x…6666 币上 PancakeSwap 时发事件的合约（只读毕业时间）
 const T = {
   fCreate: '0x396d5e902b675b032348d3d2e9517ee8f0c4a926603fbc075d3d282ff00cad20',
   fBuy: '0x7db52723a3b2cdd6164364b3b766e65e540d7be48ffa89582956d8eaebe62942',
@@ -20,6 +21,7 @@ const T = {
   pProg: '0x4c35e20d1e9bce377c7d9ec1572d934e46d62961f4da8af5beb8002d5906742d',
   pQuote: '0x3ceb902d3c555c21c3415b6aa839104b18e4825b2f8324011ff979089a507a8c',
   pDex: '0x6e4f47630b8745b8cacbd44f42a8a33e7eea7cc08ef22fc7630f4f385784ff7d',
+  oMig: '0x5d500f2a581f706c62351eb3c16e665329fe791f0890f3ed7638dd09edbc33d8', /*OPEN4-1118 open.four 币上外盘（topics[1]＝代币）*/
 };
 const TOPICS = Object.values(T);
 const STABLE = new Set(['0x55d398326f99059ff775485246999027b3197955', '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', '0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d', '0xc5f0f7b66764f6ec8c8dff7ba683102295e16409']); // USDT USDC USD1 FDUSD
@@ -71,7 +73,7 @@ function startMarket({ DATA, log = () => {} }) {
       else if (t0 === T.pProg) { const x = D.tokens[A(W(d, 0))]; if (x) x.prog = Math.min(100, F(N(W(d, 1)), 16)); }
       else if (t0 === T.pQuote) { const x = tok(A(W(d, 0))); const q = A(W(d, 1)); if (q !== '0x0000000000000000000000000000000000000000') x.q = q; }
       else if (t0 === T.pDex) { const x = D.tokens[A(W(d, 0))]; if (x) { x.grad = 1; x.gradAt = t; x.gradEv = 1; x.prog = 100; x.pool = A(W(d, 1)); } }
-    }
+    } else if (a === OPEN4 && t0 === T.oMig && l.topics[1]) { const c = A(l.topics[1]); const x = D.tokens[c]; if (x) { if (!x.gradEv) { x.grad = 1; x.gradAt = t; x.gradEv = 1; x.prog = 100; } } else if (D.gt && !(+D.gt[c] > 0)) D.gt[c] = t; } /*OPEN4-1118 open.four（0x…6666）币的上外盘时间：雷达开着时即时记（不在快取的币记进 gt，看盘「新外盘」照上外盘时间排，跟 AVE、GMGN 一样）*/
   }
   async function info() { /* Four 的进度上限、报价币：每个新币问一次官方 Helper 合约 */
     const L = [...needInfo].slice(0, 40); if (!L.length) return; L.forEach((c) => needInfo.delete(c));
@@ -89,8 +91,8 @@ function startMarket({ DATA, log = () => {} }) {
   async function head() { const b = await rpc('eth_getBlockByNumber', ['latest', false]); const n = parseInt(b.number, 16), ts = parseInt(b.timestamp, 16) * 1000; if (st.head && n > st.head && st.headTs) st.blockMs = Math.max(200, Math.min(3000, (ts - st.headTs) / (n - st.head) || st.blockMs)); st.head = n; st.headTs = ts; st.headAt = Math.min(Date.now(), ts + 300); return n; }
   /* NODE-1113：同一则事件（txHash＋logIndex）只处理一次 —— WSS 推来的和轮询读到的会重复 */
   const SEEN = new Set(); const SEEN_MAX = 20000; /* 技术用：记住几则 */ const once = (l) => { const k = String(l.transactionHash || '') + ':' + String(l.logIndex || ''); if (k.length > 2) { if (SEEN.has(k)) return; SEEN.add(k); if (SEEN.size > SEEN_MAX) SEEN.delete(SEEN.values().next().value); } try { onLog(l); } catch {} };
-  RP.subLogs('bsc', [{ address: [FLAP, FOUR], topics: [TOPICS] }], once); /* NODE-1113：有填 WSS 才会连 */
-  async function pull(from, to) { const L = await rpc('eth_getLogs', [{ address: [FLAP, FOUR], /*BOARD124 老板 11/6：所有发射台都收（Four.meme 回来）；要不要看由画面「平台」筛选决定 */ topics: [TOPICS], fromBlock: '0x' + from.toString(16), toBlock: '0x' + to.toString(16) }]); for (const l of L) once(l); return L.length; }
+  RP.subLogs('bsc', [{ address: [FLAP, FOUR, OPEN4], topics: [TOPICS] }], once); /* NODE-1113：有填 WSS 才会连 */
+  async function pull(from, to) { const L = await rpc('eth_getLogs', [{ address: [FLAP, FOUR, OPEN4], /*BOARD124 老板 11/6：所有发射台都收（Four.meme 回来）；要不要看由画面「平台」筛选决定 */ topics: [TOPICS], fromBlock: '0x' + from.toString(16), toBlock: '0x' + to.toString(16) }]); for (const l of L) once(l); return L.length; }
   let busy = false, SPAN = 1500;
   async function tick() {
     if (busy) return; busy = true;
@@ -111,7 +113,7 @@ function startMarket({ DATA, log = () => {} }) {
   const GF_BACK_MS = 24 * 3600e3, GF_TICK_MS = 3000, GT_MAX = 5000; /* 技术用：往回补多久、多久读一段、最多记几个币（显示用快取） */
   let gf = null, gfBusy = 0, GF_SPAN = SPAN; D.gt = D.gt && typeof D.gt === 'object' ? D.gt : {};
   async function gradFill() { if (gfBusy || !st.head || !st.headTs) return; if (!gf) gf = { lo: Math.max(0, st.head - Math.ceil(GF_BACK_MS / st.blockMs)), cur: st.head }; if (gf.cur <= gf.lo) return; gfBusy = 1;
-    try { const from = Math.max(gf.lo, gf.cur - GF_SPAN); const [L, b] = await Promise.all([rpc('eth_getLogs', [{ address: [FLAP, FOUR], topics: [[T.pDex, T.fLiq]], fromBlock: '0x' + from.toString(16), toBlock: '0x' + gf.cur.toString(16) }]), rpc('eth_getBlockByNumber', ['0x' + gf.cur.toString(16), false])]);
+    try { const from = Math.max(gf.lo, gf.cur - GF_SPAN); const [L, b] = await Promise.all([rpc('eth_getLogs', [{ address: [FLAP, FOUR, OPEN4], topics: [[T.pDex, T.fLiq, T.oMig]], fromBlock: '0x' + from.toString(16), toBlock: '0x' + gf.cur.toString(16) }]), rpc('eth_getBlockByNumber', ['0x' + gf.cur.toString(16), false])]);
       const endTs = parseInt(b?.timestamp, 16) * 1000; if (!(endTs > 0)) throw new Error('no block time'); /* 读不到这段的区块时间＝这段下一轮重读（不猜时间） */
       for (const l of Array.isArray(L) ? L : []) { const d = l.data, blk = parseInt(l.blockNumber, 16); const bt = l.blockTimestamp != null ? (typeof l.blockTimestamp === 'string' ? parseInt(l.blockTimestamp, 16) : +l.blockTimestamp) * 1000 : NaN; const ts = bt > 0 ? bt : endTs - (gf.cur - blk) * st.blockMs; /* 节点有给事件时间就用；没给用这段最后一块的时间往回推（一段只有几分钟，误差很小） */
         const c = A(W(d, 0)); const x = D.tokens[c]; if (x) { if (!x.gradEv) { x.grad = 1; x.gradAt = ts; x.gradEv = 1; x.prog = 100; if (l.topics[0] === T.pDex) x.pool = A(W(d, 1)); } } else if (!(+D.gt[c] > 0)) D.gt[c] = ts; }
