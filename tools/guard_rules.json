@@ -93,7 +93,7 @@
   "robin.etherscan.io": "用户 11/15 同意（LINK-1115）：代币页只给玩家自己点开的外部连结（区块浏览器／GMGN／发射台），点之前先跳确认框，雷达不会自动连过去、不送任何资料；网址格式照 GMGN／AVE 代币页实际连结核对",
   "pump.fun": "用户 11/15 同意（LINK-1115）：代币页只给玩家自己点开的外部连结（区块浏览器／GMGN／发射台），点之前先跳确认框，雷达不会自动连过去、不送任何资料；网址格式照 GMGN／AVE 代币页实际连结核对",
   "gmgn.ai": "用户 11/15 同意（LINK-1115）：代币页只给玩家自己点开的外部连结（区块浏览器／GMGN／发射台），点之前先跳确认框，雷达不会自动连过去、不送任何资料；网址格式照 GMGN／AVE 代币页实际连结核对",
-  "api.gopluslabs.io": "RV12-3（11/18 主线任务指定「貔貅照 GMGN 用多个来源交叉检查，例如 GoPlus」；待用户确认）：代币页貔貅检查的第二个来源，只读查询公开的代币安全资料（只送合约地址），不带任何使用者资料、不碰钱包",
+  "api.gopluslabs.io": "用户 11/18 同意（GOPLUS-1118）：贴貔貅交叉检查第二来源（GMGN 也用 GoPlus），只送链和合约地址、只读、打开代币页才查一次并快取",
   "monadvision.com": "用户 11/18 同意（LINK-1118）：Monad 区块浏览器从 mainnet-beta.monvision.io 搬到 monadvision.com（旧网址 307 转过去），只给玩家自己点开的外部连结，点之前先跳确认框",
   "www.tradingview.com": "用户 11/18 同意（LINK-1118）：K 线图表库 Lightweight Charts（Apache-2.0）授权要求在用户看得到的页面放 TradingView 署名和 tradingview.com 连结；只是图上的署名连结，雷达不会自动连过去",
   "rpc.elysium.kinetiq.xyz": "用户 11/14 要 Elysium 也收（「有很多看盘软件都可以对得上」）：KOL／聪明钱即时动态资料来源（ELYKOL-1114：Kinetiq 官方公开节点，只读查询名单钱包的代币转帐，不带金钥、不送任何使用者资料）",
