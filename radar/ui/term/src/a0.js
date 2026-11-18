@@ -131,7 +131,7 @@ function dApply(t,d){if(!d)return;const P=d.pair&&typeof d.pair==='object'?d.pai
  const G=d.gtH;/*RV12-9 持有人／前10：AVE 没有（没绑定）就用 GeckoTerminal 免费资料*/if(G){if(t.h==null&&num(G.h)!=null)t.h=num(G.h);if(t.top10==null&&num(G.top10)!=null){t.top10=num(G.top10);t.top10Src='GeckoTerminal'}}
  const S=d.safety||{};if(num(S.buyTax)!=null)t.btax=num(S.buyTax);if(num(S.sellTax)!=null)t.stax=num(S.sellTax);if(S.hpSrc||S.honeypot!=null){t.hpX={src:S.hpSrc||[{n:'honeypot.is',is:S.honeypot}]};hpEval(t)}
  const A=d.aveB||{};if(num(A.rs)!=null)t.rs=num(A.rs);if(num(A.h)!=null)t.h=num(A.h);else if(num(tok.h)!=null)t.h=num(tok.h);if(A.hp){t.hpAve=1;hpEval(t)}
- t.scan=d.scan||t.scan||null;t.det=d;try{if(TKP.t===t){paintTokRight();paintTokHead()}}catch{}}
+ t.scan=d.scan||t.scan||null;t.det=d;try{if(TKP.t===t){paintTokRight();paintTokStats()}}catch{}}
 if(R&&R.onTokenDetailMore)R.onTokenDetailMore(m=>{try{const ch=CHOF[m?.net];if(!ch)return;const t=BYID.get(ch+':'+String(m.addr||'').toLowerCase());if(!t)return;const e=DC.get(t.id);if(e&&e.d)Object.assign(e.d,m.v||{});dApply(t,Object.assign({},e?.d||{},m.v||{}))}catch{}});
 
 /* ===== 动态：喊单（signals）、KOL／聪明钱（kolFeed）、本机统计（kfLocal）、AVE 讯号（需要转接站更新或自己的 AVE 金钥） ===== */
