@@ -478,6 +478,7 @@ textarea.inp{height:76px;padding:7px 9px;resize:vertical;font-family:var(--fUi)}
 .cv .lgd i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px;vertical-align:-1px}
 .lay{flex:none;display:flex;align-items:center;gap:12px;padding:4px 10px;border-top:1px solid var(--line);color:var(--tx3);font-size:11px;overflow-x:auto;scrollbar-width:none;white-space:nowrap}
 .lay label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.lay label.on{color:var(--tx)}
 .lay input{accent-color:var(--acc);margin:0}
 .btm{flex:1 1 40%;min-height:180px;display:flex;flex-direction:column;background:var(--bg1);border:1px solid var(--line);border-radius:var(--r-pn);overflow:hidden}
 .hrw{display:grid;grid-template-columns:24px minmax(130px,1.4fr) minmax(90px,1fr) minmax(100px,1fr) minmax(80px,.8fr) minmax(140px,2fr);gap:8px;align-items:center;padding:0 10px;min-height:42px;border-bottom:1px solid var(--line)}
