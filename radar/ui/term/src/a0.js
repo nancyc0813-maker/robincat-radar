@@ -50,6 +50,12 @@ const isOwnTrade=ch=>ch==='bsc'||ch==='rh';/* 雷达原本的下单程式（qbBu
 
 /* ===== 代币：把各来源的列整理成同一种物件（读不到＝null） ===== */
 const num=v=>v==null||v===''||!isFinite(+v)?null:+v;
+const DET_HOLD_MS=3*MS_60000;/* 技术用（只影响显示）：详情的主池数字多久内优先（代币页开着时详情每分钟重拿一次） */
+/*RV12-13 官网连结检查：只有网址本身有问题才不显示——行情／浏览器／发射台网站（不是项目自己的网站）而且网址里没有这个币的合约＝资料不完整（只连到那个网站的首页或分类页） */
+const DATA_SITES=/(^|\.)(coinmarketcap\.com|coingecko\.com|dexscreener\.com|geckoterminal\.com|gmgn\.ai|ave\.ai|bscscan\.com|etherscan\.io|solscan\.io|basescan\.org|four\.meme|flap\.sh|pump\.fun|dextools\.io|birdeye\.so|poocoin\.app)$/i;
+function siteOk(u,c){try{const x=new URL(String(u));if(!/^https?:$/.test(x.protocol))return false;if(!DATA_SITES.test(x.hostname))return true;return String(u).toLowerCase().includes(String(c).toLowerCase())}catch{return false}}
+/*RV12-3 貔貅：至少两个来源都说是才标「貔貅」；只有一个来源说是＝「疑似」并写出来源（照 GMGN 不靠单一来源下结论） */
+function hpEval(t){const X=t.hpX||{};const src=Array.isArray(X.src)?X.src:[];const yes=[...(t.hpAve?['AVE']:[]),...src.filter(x=>x.is===true).map(x=>x.n)];const no=src.filter(x=>x.is===false).map(x=>x.n);t.hp=yes.length>1&&!no.length?1:0;t.hpS=!t.hp&&yes.length?{yes,no}:null;t.hpNo=!yes.length&&no.length?no:null}
 function tokFrom(ch,x,grp,src){const c0=String(x.c||'');if(!c0)return null;const c=ch==='sol'?c0:c0.toLowerCase();const id=ch+':'+c;let t=BYID.get(id);
  if(!t){t={id,chain:ch,c,s:'',n:'',hue:hash(c)%360,ch:{m1:null,m5:null,h1:null,h24:null},vol:{m1:null,m5:null,h1:null,h24:null},txn:{m1:null,m5:null,h1:null,h24:null},bs:{h24:null},grp,real:1,sup:null,top10:null,devp:null,snp:null,ins:null,bnd:null,cab:null,phi:null,kol:null,smart:null,pg:null,rs:null,btax:null,stax:null,tax:null,lockp:null,born:null,pl:'',dev:'',devN:null,ath:null,net:null,meta:null,zh:'',desc:null,first:Date.now()};BYID.set(id,t);TOK[ch].push(t)}
  t.seen=Date.now();if(grp&&grp!=='big')t.grp=grp;else if(!t.grp)t.grp='big';
@@ -67,8 +73,8 @@ function tokFrom(ch,x,grp,src){const c0=String(x.c||'');if(!c0)return null;const
  const bt=num(x.bt),st=num(x.st);if(bt!=null)t.btax=bt;if(st!=null)t.stax=st;if(t.btax!=null||t.stax!=null)t.tax=Math.max(t.btax||0,t.stax||0);
  const ca=num(x.ca??(x.at?x.at/MS_1000:null));if(ca!=null&&ca>0)t.born=ca>TS_1E12?ca/MS_1000:ca;
  const pl=x.pl||x.plat||x.platAve;if(pl)t.pl=String(pl);if(x.eco)t.eco=String(x.eco);
- if(x.xl!=null)t.hasX=!!x.xl;if(x.wl!=null)t.hasW=!!x.wl;if(x.tl!=null)t.hasT=!!x.tl;if(x.xl)t.xu=x.xl;if(x.wl)t.wu=x.wl;if(x.tl)t.tu=x.tl;
- if(x.hp)t.hp=1;const kn=num(x.kol);if(kn!=null)t.kol=kn;
+ const wl=x.wl&&siteOk(x.wl,c)?x.wl:x.wl?'':x.wl;/*RV12-13 资料不完整的「官网」（例 dex.coinmarketcap.com/token/bsc/ 只有首页、没有这个币）不当官网显示*/if(x.xl!=null)t.hasX=!!x.xl;if(wl!=null)t.hasW=!!wl;if(x.tl!=null)t.hasT=!!x.tl;if(x.xl)t.xu=x.xl;if(wl)t.wu=wl;else if(x.wl)t.wu='';if(x.tl)t.tu=x.tl;
+ if(x.hp){t.hpAve=1;hpEval(t)}const kn=num(x.kol);if(kn!=null)t.kol=kn;
  if(src)t.src=src;return t}
 /* 只有持有人前 10、开发、狙击、老鼠仓、捆绑：看得到的卡才问主程式（cardRisk，AVE 清单／持有人资料，没有就不显示） */
 function applyRisk(ch,M){for(const [a,v] of Object.entries(M||{})){const t=BYID.get(ch+':'+(ch==='sol'?a:a.toLowerCase()));if(!t||!v)continue;const f=(k,q)=>{const x=num(v[q]);if(x!=null)t[k]=x};f('top10','t10');f('devp','dv');f('snp','sn');f('ins','rat');f('bnd','bu')}}
