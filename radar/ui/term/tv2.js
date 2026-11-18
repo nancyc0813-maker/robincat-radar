@@ -89,9 +89,10 @@ function tokFrom(ch,x,grp,src){const c0=String(x.c||'');if(!c0)return null;const
  const s=x.s??x.sym;if(s)t.s=String(s).slice(0,40);const n=x.n??x.name??x.nm;if(n)t.n=String(n).slice(0,80);if(!t.s)t.s=c.slice(0,CNT_6);
  const lg=x.lg||x.img;if(lg&&/^https:\/\//.test(lg))t.lg=lg;
  const mc=num(x.mc);if(mc!=null&&mc>0)t.mc=mc;const p=num(x.price??x.cp);if(p!=null&&p>0)t.p=p;if(t.mc>0&&t.p>0)t.sup=t.mc/t.p;
- const l=num(x.tvl??x.liq);if(l!=null){const bad=t.mc>0&&l>t.mc*LIQ_MC_MAX;t.l=bad?null:l;t.lBad=bad?1:0}/*LIQ-1114 资料源的池子金额比市值大上千倍＝资料错（11/14 实测 AVE 给 AERO $1.3e17、VIRTUAL $6.4e15；AVE 自己页面也显示「$133P」，GMGN 池子 $3.8M、DexScreener $3.79M）→ 不显示，写「—」并说原因*/const h=num(x.h??x.holders);if(h!=null)t.h=h;
- const c5=num(x.c5),c1=num(x.c1),c24=num(x.c24);if(c5!=null)t.ch.m5=c5;if(c1!=null)t.ch.h1=c1;if(c24!=null)t.ch.h24=c24;
- const v5=num(x.v5),v1=num(x.v1),v24=num(x.v24);if(v5!=null)t.vol.m5=v5;if(v1!=null)t.vol.h1=v1;if(v24!=null)t.vol.h24=v24;
+ const DF=t.Dat&&Date.now()-t.Dat<DET_HOLD_MS;/*RV12-9 详情（主池）数字比看盘清单新、而且是主池的值：详情拿到后这段时间内清单不盖掉流动性／一天成交／一天涨跌*/
+ const l=DF?null:num(x.tvl??x.liq);if(l!=null){const bad=t.mc>0&&l>t.mc*LIQ_MC_MAX;t.l=bad?null:l;t.lBad=bad?1:0}/*LIQ-1114 资料源的池子金额比市值大上千倍＝资料错（11/14 实测 AVE 给 AERO $1.3e17、VIRTUAL $6.4e15；AVE 自己页面也显示「$133P」，GMGN 池子 $3.8M、DexScreener $3.79M）→ 不显示，写「—」并说原因*/const h=num(x.h??x.holders);if(h!=null)t.h=h;
+ const c5=num(x.c5),c1=num(x.c1),c24=num(x.c24);if(c5!=null)t.ch.m5=c5;if(c1!=null)t.ch.h1=c1;if(c24!=null&&!DF)t.ch.h24=c24;
+ const v5=num(x.v5),v1=num(x.v1),v24=num(x.v24);if(v5!=null)t.vol.m5=v5;if(v1!=null)t.vol.h1=v1;if(v24!=null&&!DF)t.vol.h24=v24;
  const tx1=num(x.tx1),tx24=num(x.tx24??x.tx);if(tx1!=null)t.txn.h1=tx1;if(tx24!=null)t.txn.h24=tx24;
  const by=num(x.by24),sl=num(x.sl24);if(by!=null&&sl!=null){t.bs.h24=[by,sl]}
  const bv1=num(x.bv1),sv1=num(x.sv1);if(bv1!=null&&sv1!=null){t.bsv1=[bv1,sv1];t.net=bv1-sv1}
@@ -148,12 +149,16 @@ function trGet(t,fast){let e=TC.get(t.id);if(!e){e={at:0,rows:[],busy:0,src:'',e
 const TRADEH=new Set();
 const DC=new Map();/* 详情（tokenDetail）：风险、持有人标签、池子 */
 function dGet(t){let e=DC.get(t.id);if(!e){e={at:0,d:null,busy:0};DC.set(t.id,e)}if(!e.busy&&Date.now()-e.at>MS_60000&&R){e.busy=1;const p=isOwnTrade(t.chain)?R.tokenDetail(NETOF[t.chain],t.c):R.mc('detail',{chain:NETOF[t.chain],c:t.c});p.then(d=>{e.d=d||null;dApply(t,d)}).catch(()=>{}).finally(()=>{e.busy=0;e.at=Date.now()})}return e}
-function dApply(t,d){if(!d)return;const P=d.pair||{};const tok=d.tok||{};/* RV8-9 不拿 DexScreener 的交易对当 K 线池子（quq 实测：DexScreener 给的是一天成交只有几千美金的小池，K 线会是空的）；池子由主程式 klineHist 自己挑（回传 r.pool） */const p=num(P.price??tok.price);if(p>0)t.p=p;const mc=num(P.mcap??P.fdv??tok.mc);if(mc>0)t.mc=mc;if(t.mc>0&&t.p>0)t.sup=t.mc/t.p;const lq=num(P.liq??tok.liq);if(lq!=null)t.l=lq;
- if(P.chg){for(const [k,q] of [['m5','m5'],['h1','h1'],['h24','h24']]){const v=num(P.chg[q]);if(v!=null&&t.ch[k]==null)t.ch[k]=v}}
+function dApply(t,d){if(!d)return;const P=d.pair&&typeof d.pair==='object'?d.pair:{};const tok=d.tok||{};const M=d.mp||null;/* RV8-9 不拿 DexScreener 的交易对当 K 线池子（quq 实测：DexScreener 给的是一天成交只有几千美金的小池，K 线会是空的）；池子由主程式 klineHist 自己挑（回传 r.pool） */const p=num(P.price??tok.price??M?.price);if(p>0)t.p=p;const mc=num(P.mcap??P.fdv??tok.mc??M?.mc);if(mc>0)t.mc=mc;if(t.mc>0&&t.p>0)t.sup=t.mc/t.p;
+ /*RV12-9 头部「流动性／一天成交／一天涨跌」用主池的值（mp＝跟 K 线同一个主池，DexScreener→GeckoTerminal），照 GMGN／DexScreener；主池读不到才用详情其他来源；RV12-5 以前一天成交／涨跌只在清单没有时才补，从搜寻打开的币就一直是「—」*/
+ const lq=num(M?.liq??P.liq??tok.liq);if(lq!=null){t.l=lq;t.lBad=0}const v24=num(M?.v24??P.vol?.h24??tok.v24);if(v24!=null)t.vol.h24=v24;const c24=num(M?.c24??P.chg?.h24??tok.c24);if(c24!=null)t.ch.h24=c24;
+ const c1=num(M?.c1??P.chg?.h1??tok.c1),c5=num(M?.c5??P.chg?.m5??tok.c5);if(c1!=null&&t.ch.h1==null)t.ch.h1=c1;if(c5!=null&&t.ch.m5==null)t.ch.m5=c5;if(lq!=null||v24!=null||c24!=null)t.Dat=Date.now();
+ if(M&&!t.s&&M.sym)t.s=M.sym;if(tok.sym&&(!t.s||t.s===t.c.slice(0,CNT_6)))t.s=String(tok.sym).slice(0,40);if(tok.name&&!t.n)t.n=String(tok.name).slice(0,80);
  const H=d.aveH;if(H){if(num(H.top10)!=null)t.top10=num(H.top10);t.hold=H}
- const S=d.safety||{};if(num(S.buyTax)!=null)t.btax=num(S.buyTax);if(num(S.sellTax)!=null)t.stax=num(S.sellTax);if(S.honeypot===true)t.hp=1;
- const A=d.aveB||{};if(num(A.rs)!=null)t.rs=num(A.rs);if(num(A.h)!=null)t.h=num(A.h);
- t.scan=d.scan||t.scan||null;t.det=d;try{if(TKP.t===t)paintTokRight()}catch{}}
+ const G=d.gtH;/*RV12-9 持有人／前10：AVE 没有（没绑定）就用 GeckoTerminal 免费资料*/if(G){if(t.h==null&&num(G.h)!=null)t.h=num(G.h);if(t.top10==null&&num(G.top10)!=null){t.top10=num(G.top10);t.top10Src='GeckoTerminal'}}
+ const S=d.safety||{};if(num(S.buyTax)!=null)t.btax=num(S.buyTax);if(num(S.sellTax)!=null)t.stax=num(S.sellTax);if(S.hpSrc||S.honeypot!=null){t.hpX={src:S.hpSrc||[{n:'honeypot.is',is:S.honeypot}]};hpEval(t)}
+ const A=d.aveB||{};if(num(A.rs)!=null)t.rs=num(A.rs);if(num(A.h)!=null)t.h=num(A.h);else if(num(tok.h)!=null)t.h=num(tok.h);if(A.hp){t.hpAve=1;hpEval(t)}
+ t.scan=d.scan||t.scan||null;t.det=d;try{if(TKP.t===t){paintTokRight();paintTokHead()}}catch{}}
 if(R&&R.onTokenDetailMore)R.onTokenDetailMore(m=>{try{const ch=CHOF[m?.net];if(!ch)return;const t=BYID.get(ch+':'+String(m.addr||'').toLowerCase());if(!t)return;const e=DC.get(t.id);if(e&&e.d)Object.assign(e.d,m.v||{});dApply(t,Object.assign({},e?.d||{},m.v||{}))}catch{}});
 
 /* ===== 动态：喊单（signals）、KOL／聪明钱（kolFeed）、本机统计（kfLocal）、AVE 讯号（需要转接站更新或自己的 AVE 金钥） ===== */
@@ -1076,7 +1081,9 @@ function searchHTML(v){v=v.trim();const lv=v.toLowerCase();if(!lv)return '';cons
  const toks=[...BYID.values()].filter(t=>t.s.toLowerCase().includes(lv)||t.n.toLowerCase().includes(lv)||t.c.toLowerCase()===lv).sort((a,b)=>b.mc-a.mc).slice(0,CNT_8);
  const h=lv.replace(/^@/,'');const S0=__tvO.snap();const XS=(S0?.xw?.acc||[]).map(a=>a.h).filter(Boolean);const xs=lv.length>=CNT_2?XS.filter(n=>n.toLowerCase().includes(h)).slice(0,CNT_4):[];
  let o='';if(toks.length)o+=`<div class="sh">${L('代币','Tokens')}</div>`+toks.map(t=>`<div class="it" data-t="${t.id}">${avP(t)}<b>${esc(t.s)}</b><span class="t3 ell">${esc(t.n)}</span>${chChip(t.chain)}<span class="num t2" style="margin-left:auto">${fU(t.mc)}</span></div>`).join('');
- if(isAddr&&!toks.length)o+=`<div class="sh">${L('合约','Contract')}</div><div class="it" data-ca="${esc(v)}">${I('srch')}<b class="num">${esc(sAddr(v))}</b><span class="t3">${L('当成合约查（雷达各链都找一次）','Look it up as a token contract')}</span></div><div class="sh">${L('钱包','Wallet')}</div><div class="it" data-w="${esc(v)}">${I('wallet')}<b class="num">${esc(sAddr(v))}</b><span class="t3">${L('打开钱包页（持仓、盈亏、最近交易）','Open wallet page')}</span></div>`;
+ const onCur=toks.some(t=>t.chain===ST.chain&&t.c.toLowerCase()===lv);/*RV12-4 同一个合约只在别的链载入过时，照样给「当成合约查」（先查现在这条链；例 X Layer 的 wNVDAx 在 Monad 也有同地址）——照 GMGN／DexScreener 用合约搜会列出每条链*/
+ if(isAddr&&!onCur)o=`<div class="sh">${L('合约','Contract')}</div><div class="it" data-ca="${esc(v)}">${I('srch')}<b class="num">${esc(sAddr(v))}</b><span class="t3">${toks.length?L(`在 ${CH[ST.chain]?.name||ST.chain} 查这个合约（下面是别条链的同地址代币）`,`Look it up on ${CH[ST.chain]?.name||ST.chain}`):L('当成合约查（雷达各链都找一次）','Look it up as a token contract')}</span></div>`+o;
+ if(isAddr&&!toks.length)o+=`<div class="sh">${L('钱包','Wallet')}</div><div class="it" data-w="${esc(v)}">${I('wallet')}<b class="num">${esc(sAddr(v))}</b><span class="t3">${L('打开钱包页（持仓、盈亏、最近交易）','Open wallet page')}</span></div>`;
  if(xs.length)o+=`<div class="sh">${L('X 帐号／KOL','X accounts / KOLs')}</div>`+xs.map(n=>`<div class="it" data-x="${esc(n)}">${I('x','s12')}<b>${XS.includes(n)?'@'+esc(n):esc(n)}</b><span class="t3">${L('你监测的 X 帐号：看它的喊单','Your monitored X account: its calls')}</span></div>`).join('');
  return o||emptyHTML(L('找不到','No match'),L('可以搜：币名、合约地址、钱包地址、X 帐号（@开头）。','Try a token name, contract, wallet address or @handle.'))}
 let QH=0;function search(v){const r=$('#qr');if(!v.trim()){r.classList.remove('on');return}r.innerHTML=searchHTML(v);QH=0;const f=$('.it',r);f&&f.classList.add('hl');r.classList.add('on')}
@@ -1100,8 +1107,8 @@ addEventListener('keydown',e=>{if(!TV.on||TV.leg)return;const tg=e.target;const 
 
 /* ===== 即时更新：向主程式轮询（目前链每次都拿、其他链轮流拿；动态隔几次拿一次） ===== */
 let TICK=0;
-async function searchAddr(v){v=String(v||'').trim();const evm=/^0x[0-9a-fA-F]{40}$/.test(v),b58=/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(v);if(!evm&&!b58)return null;const hit=[...BYID.values()].find(x=>x.c.toLowerCase()===v.toLowerCase());if(hit)return hit;
- const order=b58?['sol']:[ST.chain,...CHS.filter(c=>c!==ST.chain&&c!=='sol')].filter(c=>c!=='sol');for(const ch of order){try{const d=isOwnTrade(ch)?await R.tokenQuick(NETOF[ch],v):await R.mc('detail',{chain:NETOF[ch],c:v});const P=d?.pair||{};const tk=d?.tok||{};const sym=P.base?.symbol||tk.sym;if(sym||P.price||tk.price){const t=stubTok(ch,v,{sym,mc:num(P.mcap??P.fdv??tk.mc)});if(t){t.n=P.base?.name||tk.name||t.n;dApply(t,d);return t}}}catch{}}return null}
+async function searchAddr(v){v=String(v||'').trim();const evm=/^0x[0-9a-fA-F]{40}$/.test(v),b58=/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(v);if(!evm&&!b58)return null;const hits=[...BYID.values()].filter(x=>x.c.toLowerCase()===v.toLowerCase());const cur=hits.find(x=>x.chain===ST.chain);if(cur)return cur;/*RV12-4 现在这条链有就开这条链的；只在别条链载入过时，先在现在这条链查，查不到才开别条链那个*/
+ const order=b58?['sol']:[ST.chain,...CHS.filter(c=>c!==ST.chain&&c!=='sol'&&!hits.some(h=>h.chain===c))].filter(c=>c!=='sol');for(const ch of order){try{const d=isOwnTrade(ch)?await R.tokenQuick(NETOF[ch],v):await R.mc('detail',{chain:NETOF[ch],c:v});const P=d?.pair||{};const tk=d?.tok||{};const sym=P.base?.symbol||tk.sym;if(sym||P.price||tk.price){const t=stubTok(ch,v,{sym,mc:num(P.mcap??P.fdv??tk.mc)});if(t){t.n=P.base?.name||tk.name||t.n;dApply(t,d);return t}}}catch{}}return hits[0]||null}
 const MONLAST=new Map();
 function monCheck(){if(!MONP.size)return;for(const t of TOK[ST.chain]){const prev=MONLAST.get(t.id);MONLAST.set(t.id,{l:t.l,c5:t.ch.m5});for(const [pid,o] of MONP){const pv=parseFloat(o.pump),lv=parseFloat(o.liq);if(isFinite(pv)&&t.ch.m5!=null&&t.ch.m5>=pv&&!(prev&&prev.c5!=null&&prev.c5>=pv)){const m={id:'m'+Math.random().toString(36).slice(2),tk:t.id,k:'pump',v:t.ch.m5,ts:nowS(),o:pid};FEED.mon.unshift(m);pushFeed('monitor',m)}if(isFinite(lv)&&prev&&prev.l!=null&&t.l!=null&&t.l-prev.l>=lv){const m={id:'m'+Math.random().toString(36).slice(2),tk:t.id,k:'liq',v:t.l-prev.l,ts:nowS(),o:pid};FEED.mon.unshift(m);pushFeed('monitor',m)}}}if(FEED.mon.length>CNT_200)FEED.mon.length=200}
 function alertCheck(){for(const x of ALERTS){if(!x.on||x.hit)continue;const t=BYID.get(x.tk);if(!t||!(t.mc>0))continue;if(x.k==='ge'?t.mc>=x.v:t.mc<=x.v){x.hit=Date.now();LS.s('alerts2',ALERTS);const msg=`${t.s} ${x.k==='ge'?'≥':'≤'} ${fU(x.v)}（${L('现在','now')} ${fU(t.mc)}）`;toast(I('bell','s12')+' '+esc(msg));try{new Notification(L('罗宾猫雷达 · 价格提醒','RobinCat Radar · price alert'),{body:msg})}catch{}redrawType('alerts')}}}
