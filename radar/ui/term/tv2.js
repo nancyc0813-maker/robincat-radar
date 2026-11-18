@@ -99,7 +99,7 @@ function tokFrom(ch,x,grp,src){const c0=String(x.c||'');if(!c0)return null;const
  const bv24=num(x.bv24),sv24=num(x.sv24);if(bv24!=null&&sv24!=null)t.bsv24=[bv24,sv24];
  const pg=num(x.pg);if(pg!=null)t.pg=Math.max(0,Math.min(100,pg));const rs=num(x.rs);if(rs!=null)t.rs=rs;
  const bt=num(x.bt),st=num(x.st);if(bt!=null)t.btax=bt;if(st!=null)t.stax=st;if(t.btax!=null||t.stax!=null)t.tax=Math.max(t.btax||0,t.stax||0);
- const ca=num(x.ca??(x.at?x.at/MS_1000:null));if(ca!=null&&ca>0)t.born=ca>TS_1E12?ca/MS_1000:ca;
+ const ca=num(x.ca??(x.at?x.at/MS_1000:null));if(ca!=null&&ca>0)t.born=ca>TS_1E12?ca/MS_1000:ca;const ot=num(x.ot);if(ot!=null&&ot>0)t.mig=ot>TS_1E12?ot/MS_1000:ot;/*OPEN4-1118 新看盘终端也照上外盘时间排：主程式 b3 已经给「已上外盘」每个币的上外盘时间 ot（雷达读链的 Four／Flap／open.four 上外盘事件），以前新画面没接、外盘栏其实照建立时间排*/
  const pl=x.pl||x.plat||x.platAve;if(pl)t.pl=String(pl);if(x.eco)t.eco=String(x.eco);
  const wl=x.wl&&siteOk(x.wl,c)?x.wl:x.wl?'':x.wl;/*RV12-13 资料不完整的「官网」（例 dex.coinmarketcap.com/token/bsc/ 只有首页、没有这个币）不当官网显示*/if(x.xl!=null)t.hasX=!!x.xl;if(wl!=null)t.hasW=!!wl;if(x.tl!=null)t.hasT=!!x.tl;if(x.xl)t.xu=x.xl;if(wl)t.wu=wl;else if(x.wl)t.wu='';if(x.tl)t.tu=x.tl;
  if(x.hp){t.hpAve=1;hpEval(t)}const kn=num(x.kol);if(kn!=null)t.kol=kn;
