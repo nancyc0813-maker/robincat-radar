@@ -20957,6 +20957,34 @@
    "file": "radar/ui/term/src/a0\\.js$",
    "match": "const DATA_SITES=",
    "reason": "RV12-13 显示用：行情／浏览器／发射台网站的网域清单——网址指到这些网站却不含这个币的合约＝资料不完整的「官网」，只决定官网按钮要不要显示，不影响买卖、不是标签"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "CSUP_RETRY_MS = 10 \\* 60e3",
+   "values": [
+    "10",
+    "60e3"
+   ],
+   "reason": "MCSUP-1119 看盘卡片市值＝价格×链上总供应量：技术用（每栏读几张、每次补几个、读失败多久再试、decimals 合理上限、快取时间预设 0），只影响看盘显示，不进买卖判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/main\\.cjs$",
+   "match": "if \\(ts > 0n && dec <= 36\\) CSUP\\.set",
+   "values": [
+    "36"
+   ],
+   "reason": "MCSUP-1119 看盘卡片市值＝价格×链上总供应量：技术用（每栏读几张、每次补几个、读失败多久再试、decimals 合理上限、快取时间预设 0），只影响看盘显示，不进买卖判断"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar\\/main\\.cjs$",
+   "match": "!\\(now - \\(CSUP\\.get\\(c\\)\\?\\.at \\|\\| 0\\) < CSUP_RETRY_MS\\)",
+   "values": [
+    "0"
+   ],
+   "reason": "MCSUP-1119 看盘卡片市值＝价格×链上总供应量：技术用（每栏读几张、每次补几个、读失败多久再试、decimals 合理上限、快取时间预设 0），只影响看盘显示，不进买卖判断"
   }
  ]
 }
