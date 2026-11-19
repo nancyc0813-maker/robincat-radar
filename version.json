@@ -1,7 +1,7 @@
 {
   "version": "2.0.0",
   "date": "2026-11-18",
-  "critical": false,
+  "critical": true,
   "notes": [
     "全新看盘终端（新介面；随时可以切回旧版）",
     "十条链：X Layer、Arbitrum、Polygon、Monad、HyperEVM、Elysium 也有 K 线和成交",
