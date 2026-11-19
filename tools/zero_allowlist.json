@@ -20091,6 +20091,34 @@
     "0"
    ],
    "reason": "NEWGAP-1115 看盘「新开盘」雷达读链补进 AVE 还没出现的新币：这个发射台在 AVE 清单里一颗都没有＝从 0 开始比（全部补进来），只影响看盘显示，不进买卖判断"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar\\/main\\.cjs$",
+   "match": "CSUP_RETRY_MS = 10 \\* 60e3",
+   "values": [
+    "10",
+    "60e3"
+   ],
+   "reason": "MCSUP-1119 看盘卡片市值＝价格×链上总供应量：技术用（每栏读几张、每次补几个、读失败多久再试、decimals 合理上限、快取时间预设 0），只影响看盘显示，不进买卖判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/main\\.cjs$",
+   "match": "if \\(ts > 0n && dec <= 36\\) CSUP\\.set",
+   "values": [
+    "36"
+   ],
+   "reason": "MCSUP-1119 看盘卡片市值＝价格×链上总供应量：技术用（每栏读几张、每次补几个、读失败多久再试、decimals 合理上限、快取时间预设 0），只影响看盘显示，不进买卖判断"
+  },
+  {
+   "rule": "FALLBACK0",
+   "file": "radar\\/main\\.cjs$",
+   "match": "!\\(now - \\(CSUP\\.get\\(c\\)\\?\\.at \\|\\| 0\\) < CSUP_RETRY_MS\\)",
+   "values": [
+    "0"
+   ],
+   "reason": "MCSUP-1119 看盘卡片市值＝价格×链上总供应量：技术用（每栏读几张、每次补几个、读失败多久再试、decimals 合理上限、快取时间预设 0），只影响看盘显示，不进买卖判断"
   }
  ]
 }
