@@ -20119,6 +20119,24 @@
     "0"
    ],
    "reason": "MCSUP-1119 看盘卡片市值＝价格×链上总供应量：技术用（每栏读几张、每次补几个、读失败多久再试、decimals 合理上限、快取时间预设 0），只影响看盘显示，不进买卖判断"
+  },
+  {
+   "rule": "CMP",
+   "file": "radar\\/main\\.cjs$",
+   "match": "gfc > 0 && \\+x\\.ca \\* 1000 >= gfc\\) x\\.old = 1;",
+   "values": [
+    "1000"
+   ],
+   "reason": "OLDOUT-1119 看盘「新外盘」：毫秒秒数换算、注解里的例子（CROWNS 清单时间 2 小时前），只影响看盘排序，不进买卖判断"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar\\/main\\.cjs$",
+   "match": "OLDOUT-1119 Four\\.meme 的币",
+   "values": [
+    "2 小时"
+   ],
+   "reason": "OLDOUT-1119 看盘「新外盘」：毫秒秒数换算、注解里的例子（CROWNS 清单时间 2 小时前），只影响看盘排序，不进买卖判断"
   }
  ]
 }
