@@ -1,8 +1,11 @@
 {
-  "version": "2.0.0",
-  "date": "2026-11-18",
+  "version": "2.0.1",
+  "date": "2026-11-20",
   "critical": true,
   "notes": [
+    "看盘卡片市值改成价格×链上总供应量，跟 AVE 扫链、GMGN 战壕一样",
+    "看盘「新外盘」不再把早就上外盘的旧币排在前面（有人替旧币新开池子时）",
+    "代币页「前10 占比」不再用 GeckoTerminal 的数字（它把池子也算进去，会偏高）；没绑定 AVE 时显示「—」",
     "全新看盘终端（新介面；随时可以切回旧版）",
     "十条链：X Layer、Arbitrum、Polygon、Monad、HyperEVM、Elysium 也有 K 线和成交",
     "BNB Chain／Robinhood 的 K 线改由雷达自己读链画（1 秒～1 天），打开代币约 2 秒内出图，GeckoTerminal 忙也不会空白",
