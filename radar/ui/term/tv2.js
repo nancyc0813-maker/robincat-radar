@@ -155,7 +155,7 @@ function dApply(t,d){if(!d)return;const P=d.pair&&typeof d.pair==='object'?d.pai
  const c1=num(M?.c1??P.chg?.h1??tok.c1),c5=num(M?.c5??P.chg?.m5??tok.c5);if(c1!=null&&t.ch.h1==null)t.ch.h1=c1;if(c5!=null&&t.ch.m5==null)t.ch.m5=c5;if(lq!=null||v24!=null||c24!=null)t.Dat=Date.now();
  if(M&&!t.s&&M.sym)t.s=M.sym;if(tok.sym&&(!t.s||t.s===t.c.slice(0,CNT_6)))t.s=String(tok.sym).slice(0,40);if(tok.name&&!t.n)t.n=String(tok.name).slice(0,80);
  const H=d.aveH;if(H){if(num(H.top10)!=null)t.top10=num(H.top10);t.hold=H}
- const G=d.gtH;/*RV12-9 持有人／前10：AVE 没有（没绑定）就用 GeckoTerminal 免费资料*/if(G){if(t.h==null&&num(G.h)!=null)t.h=num(G.h);if(t.top10==null&&num(G.top10)!=null){t.top10=num(G.top10);t.top10Src='GeckoTerminal'}}
+ const G=d.gtH;/*RV12-9 持有人／前10：AVE 没有（没绑定）就用 GeckoTerminal 免费资料*/if(G){if(t.h==null&&num(G.h)!=null)t.h=num(G.h)}/*GT10-1120 GeckoTerminal 的「前 10 大」把池子／内盘合约也算进去（例：黄仁勋、救世主 GT 都比 AVE／GMGN 高很多），跟 AVE、GMGN 对不上 → 不拿来当前 10 大，读不到就显示「—」*/
  const S=d.safety||{};if(num(S.buyTax)!=null)t.btax=num(S.buyTax);if(num(S.sellTax)!=null)t.stax=num(S.sellTax);if(S.hpSrc||S.honeypot!=null){t.hpX={src:S.hpSrc||[{n:'honeypot.is',is:S.honeypot}]};hpEval(t)}
  const A=d.aveB||{};if(num(A.rs)!=null)t.rs=num(A.rs);if(num(A.h)!=null)t.h=num(A.h);else if(num(tok.h)!=null)t.h=num(tok.h);if(A.hp){t.hpAve=1;hpEval(t)}
  t.scan=d.scan||t.scan||null;t.det=d;try{if(TKP.t===t){paintTokRight();paintTokStats()}}catch{}}
