@@ -19,9 +19,14 @@ async function pull() {
   } catch (e) { S.err = 'net'; S.why = String(e?.cause?.code || e?.name || e?.message || e).slice(0, 80); } finally { S.busy = 0; } } /*HOT126 连线失败＝net（原文放 why）*/
 const B2_STALE_MS = 10 * 60e3; /*HOT126 技术用：跟 next.cjs 的 B2_FRESH_MS 一样，超过就算连不上（画面写原因）*/
 function stat() { const fresh = !!S.okAt && Date.now() - S.okAt < B2_STALE_MS; return { ok: fresh ? 1 : 0, err: fresh ? '' : S.err || (S.okAt ? 'stale' : ''), why: fresh ? '' : S.why || '', okAt: S.okAt || 0, tryAt: S.tryAt || 0, busy: S.busy ? 1 : 0 }; }
+/*V24FLIP-1122 看盘卡片 24h 成交额不再来回跳：转接站同一个币有两种 24h 金额——AVE「总成交额」（跟 AVE 卡片 V、GMGN 一样，例 脸脸 $121K）和「买单＋卖单」（例 脸脸 $63.8K），
+  哪一份清单最后更新就显示哪一个，每 30 秒在两个数字间跳（排序也跟着跳）。现在：这次给的 24h 金额刚好等于买＋卖、而上次拿到过不等于买＋卖的总成交额（B2_STALE_MS 内），就继续显示总成交额；超过时间或从来没拿到过就照转接站给的。只影响看盘显示，不进任何买卖判断 */
+const V24_SAME = 0.01; /* 技术用：两个金额差不到 1% 算「同一个数」（买＋卖跟 24h 金额来自同一份资料时只有四舍五入的差） */
+function v24Sum(x) { const v = +x?.v24, b = +x?.bv24, s = +x?.sv24; if (!(v > 0) || !Number.isFinite(b) || !Number.isFinite(s)) return null; return Math.abs(v - (b + s)) <= v * V24_SAME; }
+function v24Keep(o, v) { const now = Date.now(); const same = v24Sum(v); if (same === false) { v.vtA = v.v24; v.vtAt = now; return; } if (same && o && +o.vtA > 0 && +o.vtAt > 0 && now - o.vtAt < B2_STALE_MS) { v.v24 = o.vtA; v.vtA = o.vtA; v.vtAt = o.vtAt; } }
 function merge(j) {
   if (j.full || j.boot !== S.boot) S.m = {}; S.boot = String(j.boot || ''); S.seq = +j.seq || 0;
-  for (const [ch, M] of Object.entries(j.m || {})) { if (!/^[a-z]{2,20}$/.test(ch) || !M || typeof M !== 'object') continue; const D = (S.m[ch] = S.m[ch] || {}); for (const [a, v] of Object.entries(M)) if (v && typeof v === 'object') D[a] = v; }
+  for (const [ch, M] of Object.entries(j.m || {})) { if (!/^[a-z]{2,20}$/.test(ch) || !M || typeof M !== 'object') continue; const D = (S.m[ch] = S.m[ch] || {}); for (const [a, v] of Object.entries(M)) if (v && typeof v === 'object') { v24Keep(D[a], v); D[a] = v; } }
   S.cols = j.cols && typeof j.cols === 'object' ? j.cols : S.cols; S.colsAt = j.colsAt || S.colsAt; S.at = +j.at || S.at; S.q = j.q || null; S.poll = j.poll || S.poll; S.tagErr = j.tagErr || {}; S.kinds = j.kinds && typeof j.kinds === 'object' ? j.kinds : null; S.backoff = +j.backoff || 0; S.scout = j.scout && typeof j.scout === 'object' ? j.scout : S.scout; /*SCOUT-1112 转接站扫到的新发射台*/
   { const keep = new Set(Object.values(S.cols).flat()); for (const M of Object.values(S.m)) for (const a of Object.keys(M)) if (!keep.has(a) && Date.now() - (+M[a].u || 0) > 6 * 3600e3 /* 技术用：记忆体里多久没更新的币拿掉 */) delete M[a]; }
   S.rev++; }
