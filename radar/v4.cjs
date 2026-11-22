@@ -48,11 +48,12 @@ function startV4(chain, { DATA }) {
   const qUsd = (q) => { const m = C.quotes[q]; if (m) return m[2] === 'usd' ? 1 : px; return D.xq[q]?.usd || 0; };
   const qDec = (q) => C.quotes[q]?.[1] ?? (D.xq[q]?.dOk === 1 ? D.xq[q].d : null); /* CHAIN-1104 D9：报价币小数位数读不到＝null（这笔不算价），不当成 18 */
   const tsOf = (blk) => (st.headTs ? st.headTs - (st.head - blk) * st.blockMs : Date.now());
+  const tsLog = (l) => (l && l.blockTimestamp ? (typeof l.blockTimestamp === 'string' ? parseInt(l.blockTimestamp, 16) : +l.blockTimestamp) * 1000 : tsOf(parseInt(l.blockNumber, 16))); /*RV14-TS 节点有给事件的区块时间就用（同一份档往回补读的 tsOfL 一样）；Robinhood 出块间隔不固定，用「最新块时间－块数×平均间隔」估，实测成交时间会比 GeckoTerminal 早几秒到十几秒；没给才照旧估*/
 
   const lk = (l) => (l.transactionHash ? String(l.transactionHash).slice(2, 14) + ':' + parseInt(l.logIndex, 16) : ''); /* KQ-1104：同一则事件重抓不重复记 */
   const dup = (x, k) => !!k && x.tr.some((r) => r[5] === k);
   function onLog(l) {
-    const t0 = l.topics[0], d = l.data, t = tsOf(parseInt(l.blockNumber, 16));
+    const t0 = l.topics[0], d = l.data, t = tsLog(l);
     if (C.gfac) { const a = l.address.toLowerCase();
       if (a === C.gfac && t0 === C.gLaunch) { const tok = A(l.topics[1]), cv = A(l.topics[2]), q = A(W(d, 0)); D.curves[cv] = { tok, q }; if (!C.quotes[q]) D.xq[q] = D.xq[q] || { d: 0, usd: 0 }; if (!D.tokens[tok]) D.tokens[tok] = { c: tok, plat: 'genius', at: t, q, tr: [], grad: 0, gradAt: 0, curve: cv, sold: 0, dev: A(l.topics[3]) }; return; }
       const G = D.curves[a]; if (G) { const x = D.tokens[G.tok]; if (!x) return;
