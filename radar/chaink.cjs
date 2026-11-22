@@ -19,9 +19,9 @@ async function meta(net, pool) { const c = (d) => D.rpc(net, 'eth_call', [{ to: 
   const dc = async (t) => { try { const n = parseInt(await D.rpc(net, 'eth_call', [{ to: t, data: '0x313ce567' }, 'latest']), 16); return Number.isInteger(n) && n >= 0 && n <= 36 ? n : null; } catch { return null; } }; [m.d0, m.d1] = await Promise.all([dc(m.t0), dc(m.t1)]); return m; }
 
 /* 一段区块的 Swap 事件 → [{t 毫秒, p 美金价, v 美金量}] */
-const TS_ANCH = 8; /* 技术用：节点没给区块时间时，最多多问几个区块的真实时间当锚点（分段内插；问越多越准、越花节点额度） */
+const TS_ANCH = 8; /* 技术用：节点没给区块时间时，最多多问几个区块的真实时间当锚点（分段内插；问越多越准、越花节点额度） */ const TS_EXACT = 30; /* 技术用：最新的几个区块直接问真实时间（成交列表一次看得到的那段要准；其余分段内插） */
 async function tsFn(net, L, aBlk, aTs, rpc) { rpc = rpc || D.rpc; const bt = (l) => (l && l.blockTimestamp ? parseInt(l.blockTimestamp, 16) || 0 : 0); if (!Array.isArray(L) || !L.length || bt(L[0]) > 0 || !rpc) return null;
-  const bl = [...new Set(L.map((l) => parseInt(l.blockNumber, 16)).filter((b) => b > 0))].sort((a, b) => a - b); const n = Math.min(TS_ANCH, bl.length); const pick = new Set(); for (let i = 0; i < n; i++) pick.add(bl[Math.round((i * (bl.length - 1)) / Math.max(1, n - 1))]);
+  const bl = [...new Set(L.map((l) => parseInt(l.blockNumber, 16)).filter((b) => b > 0))].sort((a, b) => a - b); const n = Math.min(TS_ANCH, bl.length); const pick = new Set(); for (let i = 0; i < n; i++) pick.add(bl[Math.round((i * (bl.length - 1)) / Math.max(1, n - 1))]); for (const x of bl.slice(-TS_EXACT)) pick.add(x);
   const got = await Promise.all([...pick].map(async (b) => { try { const r = await rpc(net, 'eth_getBlockByNumber', ['0x' + b.toString(16), false]); const t = parseInt(r?.timestamp, 16) * 1000; return t > 0 ? [b, t] : null; } catch { return null; } }));
   const A = got.filter(Boolean); if (aBlk > 0 && aTs > 0 && !A.some((x) => x[0] === aBlk)) A.push([aBlk, aTs]); A.sort((a, b) => a[0] - b[0]); if (!A.length) return null; if (A.length === 1) return () => A[0][1];
   return (blk) => { let k = 0; while (k < A.length - 2 && blk > A[k + 1][0]) k++; const [b0, t0] = A[k], [b1, t1] = A[k + 1]; return b1 > b0 ? t0 + ((blk - b0) * (t1 - t0)) / (b1 - b0) : t0; }; }
