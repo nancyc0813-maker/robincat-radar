@@ -48,7 +48,7 @@ function startV4(chain, { DATA }) {
   const qUsd = (q) => { const m = C.quotes[q]; if (m) return m[2] === 'usd' ? 1 : px; return D.xq[q]?.usd || 0; };
   const qDec = (q) => C.quotes[q]?.[1] ?? (D.xq[q]?.dOk === 1 ? D.xq[q].d : null); /* CHAIN-1104 D9：报价币小数位数读不到＝null（这笔不算价），不当成 18 */
   const tsOf = (blk) => (st.headTs ? st.headTs - (st.head - blk) * st.blockMs : Date.now());
-  const tsLog = (l) => (l && l.blockTimestamp ? (typeof l.blockTimestamp === 'string' ? parseInt(l.blockTimestamp, 16) : +l.blockTimestamp) * 1000 : tsOf(parseInt(l.blockNumber, 16))); /*RV14-TS 节点有给事件的区块时间就用（同一份档往回补读的 tsOfL 一样）；Robinhood 出块间隔不固定，用「最新块时间－块数×平均间隔」估，实测成交时间会比 GeckoTerminal 早几秒到十几秒；没给才照旧估*/
+  const tsLog = (l) => { const v = l && l.blockTimestamp ? (typeof l.blockTimestamp === 'string' ? parseInt(l.blockTimestamp, 16) : +l.blockTimestamp) * 1000 : 0; return v > 0 ? v : tsOf(parseInt(l.blockNumber, 16)); }; /*RV14-TS 节点有给真的区块时间就用（同一份档往回补读的 tsOfL 一样）；Robinhood 官方节点给 0x0＝没给 → 照旧用平均出块间隔估*/
 
   const lk = (l) => (l.transactionHash ? String(l.transactionHash).slice(2, 14) + ':' + parseInt(l.logIndex, 16) : ''); /* KQ-1104：同一则事件重抓不重复记 */
   const dup = (x, k) => !!k && x.tr.some((r) => r[5] === k);
