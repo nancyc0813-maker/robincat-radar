@@ -2616,7 +2616,7 @@ document.addEventListener('click',e=>{if(!e.target.closest?.('[data-fdretry]'))r
 function fdPost(net,addr,ex){const en=L==='en';const a=String(addr).toLowerCase();const D=window.__dtD&&window.__dtD.addr===a?window.__dtD:null;const d=D?.d||{},p=D?.p||null;const x=PL[addr]||Object.values(PL).find(y=>String(y.c).toLowerCase()===a)||null;
  if(p)FDV.ho={sym:p.base?.symbol||FDV.ho?.sym,quote:p.quote?.symbol||'',img:p.img||x?.img||'',dex:p.dex||''};fmSet($('#dtH'),fdHead(net,addr,FDV.ho||{}));
  const B=d.aveB||{},sf=d.safety||{},H=d.aveH,T=d.aveT||{};
- if(p)fdPills({mc:p.mcap||p.fdv||B.mc||x?.mc,price:p.price||B.cp,c24:p.chg?.h24,v24:p.vol?.h24,liq:p.liq||B.tvl,h:B.h??sf.holders??T.holders??x?.ave?.h,t10:H?.top10});
+ if(p)fdPills({mc:p.mcap||p.fdv||B.mc||x?.mc,price:p.price||B.cp,c24:p.chg?.h24,v24:p.vol?.h24,liq:(d.mp?.curve&&/flap/i.test(String(d.mp?.dex||p.dex||''))&&+B.tvl>0)?+B.tvl:(p.liq||B.tvl),h:B.h??sf.holders??T.holders??x?.ave?.h,t10:H?.top10});
  const box=$('#dtB');const kids=[...box.children];const tx=kids.map(k=>(k.textContent||'').trim());const pick=(f)=>kids.filter((k,i)=>f(k,tx[i]));
  {const tp=$('#dtTape');const P=$('#fdPTape');if(tp)P.replaceChildren(tp);else P.innerHTML=`<div class="fdLoad">${en?'No live trades for this token yet':'这个币还没有即时成交资料'}</div>`}
  {const nar=pick((k,s)=>s.startsWith('📖'))[0];if(nar){$('#fdNar').replaceChildren(nar);$('#fdNarB').style.display=''}}

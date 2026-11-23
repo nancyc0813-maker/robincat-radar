@@ -21012,6 +21012,15 @@
     "24h"
    ],
    "reason": "V24FLIP-1122 看盘卡片 24h 成交额：注解里说明是哪一种 24 小时金额（AVE 的栏位名称）和例子，只影响看盘显示，不进买卖判断"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/term/src/a0\\.js$",
+   "match": "LIQC-1123",
+   "values": [
+    "2～3 倍"
+   ],
+   "reason": "LIQC-1123：注释里写的实测差距（DexScreener 流动性是 AVE／GMGN 的 2～3 倍），只是说明，程式没有用这个数字判断"
   }
  ]
 }
