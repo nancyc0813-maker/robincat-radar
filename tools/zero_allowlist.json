@@ -21014,6 +21014,24 @@
    "reason": "V24FLIP-1122 看盘卡片 24h 成交额：注解里说明是哪一种 24 小时金额（AVE 的栏位名称）和例子，只影响看盘显示，不进买卖判断"
   },
   {
+   "rule": "TIMEWIN",
+   "file": "radar/ui/index\\.html$",
+   "match": "\\+D\\.aveB\\.ca\\*1000",
+   "values": [
+    "1000"
+   ],
+   "reason": "AGEH-1123：AVE 建立时间是秒，乘 1000 换成毫秒（单位换算），只用来显示详情标题的币龄，不是门槛"
+  },
+  {
+   "rule": "COMMENT_NUM",
+   "file": "radar/ui/index\\.html$",
+   "match": "AGEH-1123",
+   "values": [
+    "2 小时"
+   ],
+   "reason": "AGEH-1123：注释里举的实际例子（雷达显示 2 小时、AVE／GMGN 14 小时），只是说明，不是门槛"
+  },
+  {
    "rule": "COMMENT_NUM",
    "file": "radar/ui/term/src/a0\\.js$",
    "match": "LIQC-1123",
