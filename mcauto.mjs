@@ -37,8 +37,10 @@ export function startMcAuto({ DIR, WALLETS, log, tgSay, MCT }) {
   let staleSaid = 0, busy = 0, stopped = 0;
   const dec = (x, J) => { const key = x.ch + '|' + x.c, t = J.text || ''; const o = ST.seen[key]; if (o && o.t === t && Date.now() - o.at < MA.logRepeatMs) return; ST.seen[key] = { t, at: Date.now() }; try { NR()?.decLog?.('mca', x.c, `${x.sym || x.c.slice(0, 8)}（${x.ch}／${x.pad}）`, J); } catch { log(`[发射台自动买] ${x.sym} ${x.ch}：${t}`); } };
 
+  const obsSaid = {}; let obsTg = 0;
   async function tick() {
     if (!on('mca.on')) return;
+    if (!obsTg) { obsTg = 1; try { tgSay('ℹ️ 发射台自动买（Solana／Base）这版改成只观察：符合条件只记录、不下单，因为这两条链还没有自动卖。手动买卖不受影响。').catch(() => {}); } catch {} }
     if (ST.day.d !== today()) { ST.day = { d: today(), n: 0 }; save(); }
     let C = null; try { C = JSON.parse(readFileSync(CF, 'utf8')); } catch {}
     if (!C || !Array.isArray(C.items) || Date.now() - (+C.at || 0) > MA.staleMs) { if (!staleSaid) { staleSaid = 1; log('[发射台自动买] 候选清单读不到或太旧（雷达视窗没开、AVE 读不到）→ 不买'); } return; } staleSaid = 0;
@@ -54,6 +56,9 @@ export function startMcAuto({ DIR, WALLETS, log, tgSay, MCT }) {
       let J; try { J = NR()?.judge ? NR().judge('mca', mcaConds(x)) : { buy: false, text: '设定还没载入，不会买', lines: [] }; } catch (e) { J = { buy: false, text: '判断出错，不买：' + String(e?.message || e).slice(0, 80), lines: [] }; }
       dec(x, J); if (!J.buy) continue;
       let cs = null; try { cs = globalThis.CUSTOM_SKIP?.({ chain: x.ch, type: 'token', c: x.c, sym: x.sym, mcUsd: x.mc, holders: x.h }); } catch {} if (cs) { dec(x, { buy: false, text: '不买：你的「我的规则」挡下：' + String(cs).slice(0, 80), lines: [], why: '我的规则' }); continue; }
+      /*OBS-1125 只观察：这些链还没有自动卖（止盈止损不跑），候选清单也不是最新的币 → 符合条件只记判断日志、不下单；等自动卖和即时候选做好再开放 */
+      if (!obsSaid[key]) { obsSaid[key] = 1; log(`[发射台自动买] 只观察 ${x.sym || x.c} ${x.ch}：符合你的条件，但这版不下单（这条链还没有自动卖）`); }
+      continue;
       ST.bought[key] = Date.now(); ST.day.n++; { const ks = Object.keys(ST.bought); if (ks.length > MA.keepBought) for (const k of ks.slice(0, ks.length - MA.keepBought)) delete ST.bought[k]; } save(); /* 先记下来再送：送单出错也不会同一个币一直重送 */
       const r = await MCT.mctOrder({ type: 'buy', mc: x.ch, c: x.c, amt, name: x.sym || x.n || '', auto: 1 }, { DIR, WALLETS, log, tgSay }).catch((e) => ({ ok: 0, msg: String(e?.message || e) }));
       log(`[发射台自动买] ${x.sym} ${x.ch}（${x.pad}）${r?.ok ? '✅ 已买' : '没买成：' + String(r?.msg || '').slice(0, 120)}`);

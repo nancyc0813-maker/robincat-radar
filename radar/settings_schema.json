@@ -7868,8 +7868,8 @@
    "max": 1,
    "zh": "发射台自动买",
    "en": "Launchpad auto-buy",
-   "dzh": "照你选的发射台、阶段和下面打开的条件自动买（Solana 的 Pump／Bonk…、Base 的 Clanker／Zora…）。要开着雷达视窗（候选清单从 AVE 抓）。一样要打开「自动买总开关」；紧急全停、邀请绑定、钱包有没有支援这条链都照查。同一个币只买一次",
-   "den": "Auto-buy coins from the launchpads, stages and conditions you choose. The radar window must be open (candidates come from AVE). The main auto-buy switch, emergency stop, invite binding and wallet chain support all still apply. Each coin is bought at most once"
+   "dzh": "【这版只观察、不下单】Solana／Base 还没有自动卖（止盈止损不跑），所以符合条件只写进判断日志，不会买。照你选的发射台、阶段和下面打开的条件自动买（Solana 的 Pump／Bonk…、Base 的 Clanker／Zora…）。要开着雷达视窗（候选清单从 AVE 抓）。一样要打开「自动买总开关」；紧急全停、邀请绑定、钱包有没有支援这条链都照查。同一个币只买一次",
+   "den": "[Observe-only in this version: no orders] Solana/Base have no auto-sell yet, so matches are only logged. Auto-buy coins from the launchpads, stages and conditions you choose. The radar window must be open (candidates come from AVE). The main auto-buy switch, emergency stop, invite binding and wallet chain support all still apply. Each coin is bought at most once"
   },
   {
    "k": "mca.ch.solana",
