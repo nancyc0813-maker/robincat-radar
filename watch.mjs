@@ -746,17 +746,29 @@ async function mintScan(head) {
   } }
 }
 const CLAIM = new Set();
+/*MINTER-1126 代币跟铸造合约分开（例 AGC：代币 0x63de…，大家呼叫的是铸造合约 0x6288… 的 claimFree／claimReward）：
+   ① 合约码（含代理背后的程式）有 Agent ID 登记合约；② 合约的储存槽（设定）里放着登记合约地址（登记合约是部署后才设定的那种）——任一个＝Agent ID 专属。
+   铸造合约的参数是一串编号（uint256[]）只当参考写进说明，不单独拿来判断（11/26 实测 AGC 的编号不是 Agent ID 的编号） */
+const MG = { slots: 16, mintTx: 8, cand: 3, candSite: 2 }; /* 技术用：看铸造合约前几个储存槽、拿几笔铸造交易看是谁铸的、最多看几个铸造合约（铸造监测／网址检查） */
+async function minterGate(a) { let code = ((await rpc('eth_getCode', [a, 'latest']).catch(() => '')) || '').toLowerCase(); if (code.length <= 2) return ''; code = await fullCode(a, code).catch(() => code);
+  if (code.includes(REGISTRY)) return '合约里有 Agent ID 检查';
+  const sl = await Promise.all(Array.from({ length: MG.slots }, (_, i) => rpc('eth_getStorageAt', [a, '0x' + i.toString(16), 'latest']).catch(() => ''))); if (sl.some((v) => String(v || '').toLowerCase().includes(REGISTRY))) return '合约设定里放着 Agent ID 登记合约';
+  return ''; }
+/* 代币最近的铸造（Transfer 从 0x0）是谁呼叫的：交易的 to 不是代币本身＝另外的铸造合约（照次数排） */
+async function mintersOf(tok, txs) { const cnt = new Map(); for (const t of txs || []) { const to = String(t?.to || '').toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(to) && to !== tok) cnt.set(to, (cnt.get(to) || 0) + 1); } return [...cnt.entries()].sort((x, y) => y[1] - x[1]).map(([a]) => a); }
+const arrArg = (input) => { const d = String(input || '').slice(10); return d.length >= 128 && BigInt('0x' + d.slice(0, 64)) === 32n && d.length === 128 + Number(BigInt('0x' + d.slice(64, 128))) * 64; }; /* 呼叫参数是不是只有一串编号（uint256[]） */
 async function checkMinted(tok, m) {
   // 找出大家实际呼叫的合约（铸造合约可能跟代币合约不同）
   const txs = (await Promise.all(m.txs.slice(0, 6).map((h) => rpc('eth_getTransactionByHash', [h]).catch(() => null)))).filter(Boolean);
   const cnt = {}; for (const t of txs) if (t.to) cnt[t.to.toLowerCase()] = (cnt[t.to.toLowerCase()] || 0) + 1;
-  const target = Object.entries(cnt).sort((x, y) => y[1] - x[1])[0]?.[0]; if (!target) return;
+  let target = Object.entries(cnt).sort((x, y) => y[1] - x[1])[0]?.[0]; if (!target) return;
   if (S.seenMints[target] || S.seenMints[tok] || CLAIM.has(target)) return; CLAIM.add(target); // 同一个合约只让一个流程处理，避免重复打
   // 是不是 Agent ID 专属：合约码有登记合约，或铸到的钱包六成以上有 .ai 身份
   let code = ((await rpc('eth_getCode', [target, 'latest']).catch(() => '')) || '').toLowerCase();
   code = await fullCode(target, code);
   const tcode = tok === target ? code : ((await rpc('eth_getCode', [tok, 'latest']).catch(() => '')) || '').toLowerCase();
-  let gated = code.includes(REGISTRY) || tcode.includes(REGISTRY), share = 0;
+  let gated = code.includes(REGISTRY) || tcode.includes(REGISTRY), share = 0, gWhy = '';
+  if (!gated) { for (const a of [target, ...(await mintersOf(tok, txs)).filter((x) => x !== target)].slice(0, MG.cand)) { const w = await minterGate(a).catch(() => ''); if (w) { if (a !== target) { CLAIM.delete(target); if (S.seenMints[a] || CLAIM.has(a)) return; CLAIM.add(a); target = a; code = await fullCode(a, ((await rpc('eth_getCode', [a, 'latest']).catch(() => '')) || '').toLowerCase()); } gated = true; gWhy = w; break; } } } /*MINTER-1126 代币由别的合约铸造：看铸造合约（码＋储存槽） */
   if (!gated) { /* 合约没写 Agent ID 检查 → 只有你开了 disc.agentShare 才看打它的钱包 */
     const A = await agShare(m.to); share = A.share || 0; if (!A.ok) { CLAIM.delete(target); log(`铸造监测：${target} 合约里没有 Agent ID 检查${A.of ? `，打它的钱包 ${A.n}/${A.of} 持有 Agent ID` : ''}${nrOn('disc.agentShare') ? '（没到你设的比例）' : '（你没开「用打它的钱包判断」）'}，不当成 Agent ID 项目`); return; }
     gated = true;
@@ -781,7 +793,7 @@ async function checkMinted(tok, m) {
     const noAddr = sampleTx && !sampleTx.input.toLowerCase().includes(sampleTx.from.slice(2).toLowerCase());
     S.paid[target] = { at: Date.now(), name, done: {}, wallets: m.to.size, ...((sampleTx?.input || '0x') === '0x' && val > 0n ? { recvValue: val.toString(), recvSeen: m.to.size } : {}), ...(noAddr && sampleTx.input !== '0x' && !badSel(sampleTx.input) ? { replay: { data: sampleTx.input, value: val.toString() } } : {}) };
   }
-  await tg(`🔥 发现正在被铸造的 Agent ID 项目${name ? '：' + name : ''}（最近铸给 ${m.to.size} 个钱包${share ? `，${Math.round(share * 100)}% 有 .ai 身份` : ''}）\n${target}\n${minted || '⚪ 不是免费的 → 已加入追踪，打不打照你的条件'}`);
+  await tg(`🔥 发现正在被铸造的 Agent ID 项目${name ? '：' + name : ''}（最近铸给 ${m.to.size} 个钱包${share ? `，${Math.round(share * 100)}% 有 .ai 身份` : ''}${gWhy && target !== tok ? `；铸造合约跟代币分开，${gWhy}${sampleTx && arrArg(sampleTx.input) ? '，呼叫时带一串编号' : ''}` : ''}）\n${target}${target !== tok ? `\n代币：${tok}` : ''}\n${minted || '⚪ 不是免费的 → 已加入追踪，打不打照你的条件'}`);
 }
 
 async function inscScan() { /* 热门铭文：通知＝你的 notify.insc／notify.inscMin（铭文不自动打） */
@@ -1488,7 +1500,9 @@ async function agentOnly(c) { /* 群里丢的网址，要先确认是不是「Ag
     else { /* 合约没写（可能是官网签名验证）→ 看最近打它的钱包是不是大多持有 Agent ID */
       const head = parseInt(await rpc('eth_blockNumber', []), 16); const L = await logsRpc([{ address: c, fromBlock: '0x' + (head - 3000).toString(16), toBlock: '0x' + head.toString(16) }]).catch(() => []);
       const hs = [...new Set((L || []).map((l) => l.transactionHash))].slice(-40);
-      if (hs.length && nrOn('disc.agentShare')) { const txs = await rpcBatch(hs.map((h) => ({ method: 'eth_getTransactionByHash', params: [h] }))); const fr = [...new Set(txs.map((t) => String(t?.from || '').toLowerCase()).filter((a) => /^0x[0-9a-f]{40}$/.test(a)))];
+      { /*MINTER-1126 网址上的是代币、铸造在另一个合约（例 AGC）：看铸造合约 */ const mh = [...new Set((L || []).filter((l) => l.topics?.[0] === T_TRANSFER && l.topics?.[1] === ZERO32).map((l) => l.transactionHash))].slice(-MG.mintTx);
+        if (mh.length) { const mt = await rpcBatch(mh.map((h) => ({ method: 'eth_getTransactionByHash', params: [h] }))).catch(() => []); for (const a of (await mintersOf(c, mt)).slice(0, MG.candSite)) { const w = await minterGate(a).catch(() => ''); if (w) { r = `铸造合约 ${a.slice(0, 8)}… ${w}`; break; } } } }
+      if (!r && hs.length && nrOn('disc.agentShare')) { const txs = await rpcBatch(hs.map((h) => ({ method: 'eth_getTransactionByHash', params: [h] }))); const fr = [...new Set(txs.map((t) => String(t?.from || '').toLowerCase()).filter((a) => /^0x[0-9a-f]{40}$/.test(a)))];
         const A = await agShare(fr); if (A.ok) r = `打它的钱包 ${A.n}/${A.of} 持有 Agent ID`; } /* 同一套判断（你开了 disc.agentShare 才看） */
     }
   } catch {}

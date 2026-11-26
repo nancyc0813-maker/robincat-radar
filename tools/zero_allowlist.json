@@ -21129,6 +21129,18 @@
    "file": "radar/air\\.cjs$",
    "match": "airdrop\\\\s\\*\\$/i, ''\\)\\.slice\\(0, 60\\)",
    "reason": "AIRS-1126：名称显示长度（跟清单原本一样），只影响显示"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "slots: 16|mintTx: 8|cand: 3|candSite: 2 \\}",
+   "reason": "MINTER-1126：查铸造合约时看几个储存槽／几笔交易／几个候选（节点用量，技术用）"
+  },
+  {
+   "rule": "CMP|SLICE",
+   "file": "watch\\.mjs$",
+   "match": "BigInt\\('0x' \\+ d\\.slice\\(0, 64\\)\\) === 32n",
+   "reason": "MINTER-1126：ABI 编码格式（一个字 32 位元组＝64 个十六进位字、动态阵列的位移 32），只用来认出参数是一串编号"
   }
  ]
 }
