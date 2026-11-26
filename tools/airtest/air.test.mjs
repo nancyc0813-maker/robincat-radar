@@ -36,3 +36,14 @@ test('读不到空投清单 → 不发（不能说成「今日无新项目」）
   const R = startAirReport({ DIR, radarSet: () => ({ 'air.daily.on': 1, 'air.daily.time': '15:00', 'air.daily.days': 3 }), send: async (t) => { sent.push(t); return true; }, log: () => {}, refresh: async () => { rf++; }, now: () => NOW }); R.stop();
   const r = await R.tick(); assert.equal(r.sent, false); assert.match(r.why, /还没有资料/); assert.equal(sent.length, 0); assert.equal(rf, 1);
   writeFileSync(join(DIR, 'data', 'air_hot.json'), JSON.stringify({ v: 2, at: NOW, list: [item(1)] })); assert.equal((await R.tick()).sent, true); });
+/* TGSAY-1126：没有分类的 TG 讯息（tgSay）照 tg.cat.say；空白＝照以前；安全相关、指令回覆一律照发 */
+function sayMode(set, store = null) { const s = readFileSync(join(ROOT, 'watch.mjs'), 'utf8'); const a = s.indexOf('const TGS_SAFE ='), b = s.indexOf('async function tgSay(', a); assert.ok(a > 0 && b > a);
+  return new Function('radarSet', 'GATE_CTX', s.slice(a, b) + '; return { tgSayMode, TGS_M };')(() => set, { getStore: () => store }); }
+test('tg.cat.say：空白＝跟以前一样响铃发；1 静音；2 响铃；3 不发', () => { const msg = '🖥 雷达手动买 X\n✅ 成交';
+  let F = sayMode({}); assert.equal(F.tgSayMode(msg), F.TGS_M.ring, '旧用户没设＝照以前');
+  F = sayMode({ 'tg.cat.say': 1 }); assert.equal(F.tgSayMode(msg), F.TGS_M.silent); F = sayMode({ 'tg.cat.say': 2 }); assert.equal(F.tgSayMode(msg), F.TGS_M.ring); F = sayMode({ 'tg.cat.say': 3 }); assert.equal(F.tgSayMode('🌙 每日总结'), F.TGS_M.mute); });
+test('tg.cat.say＝不发：安全相关、TG 指令回覆照样发', () => { const F = sayMode({ 'tg.cat.say': 3 });
+  for (const m of ['🛑 已紧急全停（在电脑上按的）', '🛡 这些设定不是在雷达画面改的', '⏸ 连续亏了 3 笔，已自动暂停买入', '👛 雷达的钱包还没连上', '🔒 还没完成邀请码绑定', '⚠️ [w] 已送出含「授权」的交易', '⚠️ 你的电脑同时开了两个罗宾猫雷达，而且用同一个钱包', '⚠️ 卖出出错：x', '▶ 雷达已重新设定，解除紧急全停。']) assert.equal(F.tgSayMode(m), F.TGS_M.ring, m);
+  assert.equal(sayMode({ 'tg.cat.say': 3 }, { src: 'tg' }).tgSayMode('💼 钱包余额'), 2, 'TG 指令的回覆一定发'); assert.equal(F.tgSayMode('🔄 重要更新（自动）：已更新'), F.TGS_M.mute); });
+test('只收每日空投雷达的设定：其他类别全部不发', () => { const S = JSON.parse(readFileSync(join(ROOT, 'radar', 'settings_schema.json'), 'utf8')); const say = S.items.find((x) => x.k === 'tg.cat.say'); assert.ok(say.opts.some((o) => o.v === 3), '要有「不发」');
+  const cats = S.items.filter((x) => /^tg\.cat\./.test(x.k)).map((x) => x.k).sort(); assert.ok(cats.includes('tg.cat.air') && cats.includes('tg.cat.say')); });

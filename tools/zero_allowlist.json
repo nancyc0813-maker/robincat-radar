@@ -21081,6 +21081,24 @@
    "file": "watch\\.mjs$",
    "match": "post\\(TG\\.b, md !== 2, 0\\)",
    "reason": "AIRLOCAL-1126：TG 类别设定的选项代号（2＝响铃，跟 tg() 一样），不是门槛"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "watch\\.mjs$",
+   "match": "TGS_SAFE_TXT = /授权",
+   "reason": "TGSAY-1126：一律照发的安全讯息关键字（授权、全停、保险丝、同一个钱包、卖出出错），只决定通知照发，不是买卖条件"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "watch\\.mjs$",
+   "match": "TGS_M = \\{ silent: 1, ring: 2, mute: 3 \\}",
+   "reason": "TGSAY-1126：tg.cat.say 设定选项代号，不是门槛"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "mute\\) return false; for \\(let k = 0; k < 2; k\\+\\+\\)",
+   "reason": "TG 送出失败（429）最多重试一次（技术用，原本就有）"
   }
  ]
 }

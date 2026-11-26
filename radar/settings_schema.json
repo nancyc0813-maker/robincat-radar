@@ -5919,6 +5919,31 @@
    "den": "🪂 one daily airdrop summary at your time (settings in the Airdrop group). Can be the only category enabled. Not chosen = no TG (log only)"
   },
   {
+   "k": "tg.cat.say",
+   "g": "note",
+   "opts": [
+    {
+     "v": 1,
+     "zh": "发（静音）",
+     "en": "Send (silent)"
+    },
+    {
+     "v": 2,
+     "zh": "发（响铃）",
+     "en": "Send (ring)"
+    },
+    {
+     "v": 3,
+     "zh": "不发（只写日志）",
+     "en": "Don't send (log only)"
+    }
+   ],
+   "zh": "TG：系统讯息、手动买卖结果、每日总结（没有分类的）",
+   "en": "TG: system messages, manual trade results, daily summary (uncategorized)",
+   "dzh": "没选＝跟以前一样照发（响铃）。选「不发」也照发的（安全相关）：你在 TG 下指令的回覆、🛑 紧急全停、🛡 守护、⏸ 连亏暂停、👛 钱包没连、🔒 没绑定，以及提到授权、全停、保险丝、两个雷达同一个钱包、卖出出错的讯息",
+   "den": "Not chosen = sent as before (ring). Always sent regardless: replies to your TG commands, emergency stop, guard, loss-streak pause, wallet not connected, binding lock, and approval / stop / fuse / duplicate-wallet / sell-error messages"
+  },
+  {
    "k": "notify.repeatMin",
    "g": "note",
    "min": 1,
