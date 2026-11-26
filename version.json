@@ -58,11 +58,11 @@
     "radar/market.cjs": "232527b1cfb220efe3b0c54ebcbe3cc540ec352af8b824437743df41f65e53ef",
     "radar/newtok.cjs": "0aa077b08636dacdf97945340fa0d9e16cde28bcaa6977490b3ac96236ebdd03",
     "radar/next.cjs": "31798271b9ca320ee2155c906383722d0dd5e99ec7a13ac618eac7d7e5fa524c",
-    "radar/official.json": "95b771010e98d623cdc7dcab51a6c4124529914d074b5d090805d6249271e806",
-    "radar/official.sig": "2ef5c86c0bd4bccc7df645e85c9ce824e3838023c0e8647cfbfd9d3736d9e562",
+    "radar/official.json": "f90cfc2a79bb32d9ea4c6e008582b0b629c7a625f645a6bddcb732b22f60e589",
+    "radar/official.sig": "54369a1f6162168f840da8d45802711ec3441c234d69f6439386534067b546fe",
     "radar/okxmkt.cjs": "f262298f3ae0264a0b4bd737d9cd223094c82886525ae536e6c757cd3a44722c",
     "radar/package-lock.json": "04bfc29636ad392be6ca5680c9dd748cad60ce5f785a9e5a9dbc673b53b8fb20",
-    "radar/package.json": "b15a5962dfd8b3432da64c989625060cd95aac12fdf43304836cd669d6224f66",
+    "radar/package.json": "9972cf43ee5b90f1d83d71be7b8c69e050dbd5045fb0758dcac8d1364264a2c1",
     "radar/preload.cjs": "49629f63b169735931108801aef2e85c8a6b811e0aaef78cbff94bf865669587",
     "radar/rpcpool.cjs": "46f763236aa9487f26d0e43b8193beaf586b5069dae7be0fa6a4e4ca2bcf12dc",
     "radar/settings_schema.json": "640ea4830c1675d1c4aa446db020f32a4a5a24cee5a34c50760324046c13b2a6",
@@ -153,11 +153,11 @@
     "tools/test_kbars.cjs": "8bbe448c4a700f27bd9f8d9b0d0ec17025553a05ea60acc8b7db5b3fd01a7363",
     "tools/zero_allowlist.json": "73c5f6d9e70d7ae6b4602854b4ae475189314af6fafaaf6bf704380d3335c712",
     "tools/zero_check.mjs": "e77b9c5f8e3d10799d8a0ece8cdf247a40a82a27a16f3c0b87d1ac263ab6da56",
-    "watch.mjs": "12be990f28c023bcfa58723d0e6b06620be1eb3a79293bc4802987a96350e0b7",
+    "watch.mjs": "b685f3ae84f8d8a4077d6ae9ba8accb10e96b64f077292dec781ab8566b6c6fa",
     "weekly.mjs": "e96c592c8bb3cb1d05f313642046ce258ab5d1182adf58a47caa654d8f7ab9da",
     "一键安装-Mac.command": "1e141a57ef3b95a3bcd7d2c254b16329fe434b2a8b6a1c7b61b2fb1663fecf65",
     "一键安装.bat": "c81665cfabc0cff65c64999c43d4a3e14c6909dcfd247107c355c3b9d23c7e21",
     "启动罗宾猫雷达-Mac.command": "2c5aa93858cabd86058d231d39da54fc0a0ac65fa2aa6db72f7b4a05ef407583"
   },
-  "sha256": "12be990f28c023bcfa58723d0e6b06620be1eb3a79293bc4802987a96350e0b7"
+  "sha256": "b685f3ae84f8d8a4077d6ae9ba8accb10e96b64f077292dec781ab8566b6c6fa"
 }
