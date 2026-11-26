@@ -5,22 +5,23 @@ import { readFileSync, writeFileSync, renameSync, existsSync } from 'node:fs'; i
 const T = { tickMs: 60e3, keepDays: 180, tgMax: 3900, dayMs: 86400e3 }; /* 技术用：多久检查一次时间到了没、推过的纪录留几天、一则 TG 最多几个字（Telegram 一则上限 4096）、一天几毫秒 */
 const TC = { hMax: 23, mMax: 59 }; /* 时钟的范围（几点、几分），不是门槛 */
 const pad = (n) => String(n).padStart(2, '0');
+const ymOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; /* 年-月 */
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; /* 这台电脑的日期 */
 export function parseHM(v) { const m = /^\s*(\d{1,2})[:：](\d{2})\s*$/.exec(String(v ?? '')); if (!m) return null; const h = +m[1], mi = +m[2]; return h <= TC.hMax && mi <= TC.mMax ? { h, mi } : null; } /* 「HH:MM」（照这台电脑的时间）；格式不对＝null */
 /* 事实分组：来源（airdrops.io）标的状态；同一个项目只放在第一个符合的组 */
-const GROUPS = [['claim', '✅ 已经可以领取'], ['confirmed', '📌 已确认会空投'], ['hot', '🔥 热门榜上'], ['latest', '🆕 最新收录'], ['sitemap', '🔄 来源最近有更新（备用来源：网站地图，没有状态标签，可能是旧项目更新）']];
-const groupOf = (x) => (x.src === 'sitemap' ? 'sitemap' : x.claim ? 'claim' : x.confirmed ? 'confirmed' : (x.kinds || [x.kind]).includes('hot') ? 'hot' : 'latest');
+const GROUPS = [['claim', '✅ 已经可以领取'], ['confirmed', '📌 已确认会空投'], ['hot', '🔥 热门榜上'], ['latest', '🆕 最新收录'], ['sitemap', '🆕 新收录（备用来源：网站地图，没有已确认／热门等状态）']];
+const groupOf = (x) => (x.via === 'sitemap' ? 'sitemap' : x.claim ? 'claim' : x.confirmed ? 'confirmed' : (x.kinds || [x.kind]).includes('hot') ? 'hot' : 'latest');
 function line(x) { const f = []; const d = x.det || {};
   if (d.fund) f.push(`融资：${d.fund}${d.led ? '（' + d.led + '）' : ''}${d.fsrc ? '（来源：' + d.fsrc + '）' : '（来源：airdrops.io）'}`);
   if (x.llama?.tvl > 0) f.push(`TVL：$${Math.round(x.llama.tvl).toLocaleString('en-US')}（DefiLlama）`);
-  if (x.upd && x.src === 'sitemap') f.push(`来源更新：${x.upd}`); if (x.ends) f.push(`截止：${x.ends}`); if (d.chains?.length) f.push(`链：${d.chains.join('、')}`); if (d.cost) f.push(`成本：${d.cost}`);
+  if (x.via === 'sitemap') f.push(`来源更新：${x.upd}｜图片上传：${x.ym}`); if (x.ends) f.push(`截止：${x.ends}`); if (d.chains?.length) f.push(`链：${d.chains.join('、')}`); if (d.cost) f.push(`成本：${d.cost}`);
   const req = (x.req || []).length ? `要求：${x.req.join('、')}` : '';
   return [`• ${x.name}`, f.length ? '  ' + f.join('｜') : '', x.act ? `  任务：${x.act}` : '', req ? '  ' + req : '', `  ${x.url}`].filter(Boolean).join('\n'); }
 /* 组出一则讯息（纯函式，给测试用）。list＝air_hot.json 的 list；sent＝推过的 {url: 时间}；firstSeen＝{url: 第一次看到的时间} */
 export function buildReport({ list, at, days, sent = {}, firstSeen = {}, now = Date.now(), src = 'html' }) {
   const d0 = new Date(now); const today = ymd(d0); const m0 = new Date(d0); m0.setHours(0, 0, 0, 0); const from = m0.getTime() - days * T.dayMs; const out = []; /* 最近 N 天＝从 N 天前的 0 点（这台电脑的时间）到现在 */
   for (const x of list || []) { if (!x?.url || sent[x.url]) continue; if (x.ends && x.ends < today) continue; /* 已经截止的不列 */
-    const t = x.pub ? Date.parse(x.pub + 'T00:00:00') : firstSeen[x.url]; if (!(t >= from)) continue; if (x.src === 'sitemap' && !(Date.parse(x.upd + 'T00:00:00') >= from)) continue; /*AIRFB-1126 备用来源：雷达第一次看到、而且来源最近有更新的才算 */ out.push(x); } /* 收录日期：来源的发布日；没有就用雷达第一次看到的时间 */
+    const t = x.pub ? Date.parse(x.pub + 'T00:00:00') : firstSeen[x.url]; if (x.via === 'sitemap') { if (!(x.ym && x.ym >= ymOf(new Date(from)) && Date.parse(x.upd + 'T00:00:00') >= from)) continue; } /*AIRFB-1126 备用来源没有收录日：图片上传月份不早于这段时间的月份、而且来源在这段时间有更新，才算新的（旧项目更新不算） */ else if (!(t >= from)) continue; out.push(x); } /* 收录日期：来源的发布日；没有就用雷达第一次看到的时间 */
   const title = `🪂 每日空投雷达 ${pad(d0.getMonth() + 1)}/${pad(d0.getDate())}`; const foot = '⚠️ 以上只列来源上的事实（状态、融资、截止日），不是推荐，参与前请自己查证（DYOR）。';
   const stamp = (ms) => `${pad(new Date(ms).getMonth() + 1)}/${pad(new Date(ms).getDate())} ${pad(new Date(ms).getHours())}:${pad(new Date(ms).getMinutes())}`;
   if (!(at >= from)) return { stale: true, items: [], text: [title, `⚠️ 空投清单停在 ${at ? stamp(at) : '（从来没读到）'}，比你设的「最近 ${days} 天」还旧（来源读不到），今天没办法判断有没有新项目；雷达会继续试。`, '', foot].join('\n') }; /*AIRFB-1126 清单太旧＝照实说，不能说成「今日无新项目」 */
