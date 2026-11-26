@@ -21111,6 +21111,24 @@
    "file": "radar/air\\.cjs$",
    "match": "join\\(' '\\)\\.slice\\(0, 60\\); \\}; function parseSitemap",
    "reason": "AIRFB-1126：名称显示长度（跟清单原本的名称长度一样），只影响显示"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "radar/air\\.cjs$",
+   "match": "AS = \\{ sampleLen: 4096 \\}",
+   "reason": "AIRS-1126：读不到项目时存多少字的样本（除错用，技术用）"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/air\\.cjs$",
+   "match": "read more\\|more\\|view\\|details\\?\\|learn more",
+   "reason": "AIRS-1126：宽松读法略过「Read more」这类按钮文字（不是项目名称），只影响读清单"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/air\\.cjs$",
+   "match": "airdrop\\\\s\\*\\$/i, ''\\)\\.slice\\(0, 60\\)",
+   "reason": "AIRS-1126：名称显示长度（跟清单原本一样），只影响显示"
   }
  ]
 }

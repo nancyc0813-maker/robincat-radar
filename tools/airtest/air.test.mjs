@@ -64,3 +64,14 @@ test('首页回 Cloudflare 验证页 → 记下原因、改用网站地图（只
   const H = A.hot(); assert.equal(H.src, 'sitemap'); assert.equal(H.list.length, 1); assert.equal(H.list[0].name, 'Flop Labs'); assert.equal(H.list[0].upd, '2026-11-25'); assert.equal(H.list[0].ym, '2026-08'); assert.ok(!H.list[0].det?.desc, '详情页会被挡：不去抓');
   const D = JSON.parse(readFileSync(join(DATA, 'air_fetch.json'), 'utf8')); assert.deepEqual(D.pages.map((p) => p.status), [403, 403, 403]); assert.match(D.pages[0].why, /Cloudflare/); assert.equal(D.fallback.file, 'https://airdrops.io/project-sitemap1.xml');
   assert.ok(logs.some((l) => /Cloudflare 验证页.*改用网站地图：1 个/.test(l)), logs.join('\n')); });
+
+/* AIRS-1126：首页回 200 却读不到项目 → 存样本（标头＋开头一段）；标准格式读不到时用宽松读法 */
+test('回 200 但格式不同：宽松读法找项目连结（分类／部落格不算），并存样本档', async (t) => { const DATA = mkdtempSync(join(tmpdir(), 'airs-')); const f0 = globalThis.fetch; t.after(() => { globalThis.fetch = f0; });
+  const alt = '<html><nav><a href="/blog/">Blog</a><a href="https://airdrops.io/categories/ai/">AI</a></nav><div class="card"><a href="/flop-labs/"><h2>Flop Labs Airdrop</h2></a></div><div><a href="https://airdrops.io/deca/" title="Deca"><img src="x"></a></div>' + 'x'.repeat(9000) + '</html>';
+  globalThis.fetch = async (u) => { u = String(u); const H = new Headers({ 'content-type': 'text/html', 'cf-cache-status': 'HIT' }); const res = (status, body) => ({ ok: status === 200, status, headers: H, text: async () => body, json: async () => [] });
+    if (/airdrops\.io\/(hot|latest|confirmed)\//.test(u)) return res(200, /confirmed/.test(u) ? alt : '<html><body>nothing</body></html>'); if (/sitemap_index/.test(u)) return res(200, '<sitemapindex></sitemapindex>'); return res(200, '[]'); };
+  const A = createRequire(import.meta.url)('../../radar/air.cjs').startAir({ DATA, browse: null }); await A.refresh(true);
+  const H = A.hot(); assert.deepEqual(H.list.map((x) => x.name).sort(), ['Deca', 'Flop Labs']); assert.ok(H.list.every((x) => x.confirmed && x.via === 'loose'), '出现在「已确认」页');
+  const D = JSON.parse(readFileSync(join(DATA, 'air_fetch.json'), 'utf8')); const c = D.pages.find((p) => p.k === 'confirmed'), h = D.pages.find((p) => p.k === 'hot'); assert.equal(c.loose, 1); assert.equal(h.n, 0); assert.match(h.why, /页面格式变了/);
+  const S = readFileSync(join(DATA, 'air_fetch_sample_hot.html'), 'utf8'); assert.match(S, /HTTP 200/); assert.match(S, /cf-cache-status: HIT/); assert.match(S, /nothing/);
+  const S2 = readFileSync(join(DATA, 'air_fetch_sample_confirmed.html'), 'utf8'); assert.ok(S2.length < 4096 + 600, `样本有上限（${S2.length}）`); });

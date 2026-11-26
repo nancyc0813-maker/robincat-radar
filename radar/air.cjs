@@ -90,6 +90,13 @@ function startAir({ DATA, browse, log = () => {} }) {
   /*AIRFB-1126 备用来源：airdrops.io 的网站地图（sitemap_index.xml → 最近更新的那份 project-sitemap）。11/26 实测：首页／项目页对程式回 Cloudflare 验证页（403），网站地图照样 200。
      只有网址、来源更新日、图片；名称从网址转（例 flop-labs → Flop Labs）。不知道已确认／热门／可领取 */
   const CHAL = /Just a moment|cf-chl|challenge-platform|Attention Required/i;
+  const AS = { sampleLen: 4096 }; /* 技术用：存几个字的样本 */
+  /*AIRS-1126 宽松读法：标准格式读不到时，找页面里指向项目页（airdrops.io/<名字>/）的连结；网站自己的分类／说明页不算。来自「已确认」页的标已确认、「热门」页的标热门（就是它出现在哪一页的事实） */
+  const NOT_PROJ = new Set(['blog', 'categories', 'category', 'latest', 'hot', 'confirmed', 'page', 'tag', 'author', 'feed', 'search', 'visit', 'about', 'contact', 'faq', 'privacy-policy', 'terms', 'advertise', 'submit', 'wp-content', 'wp-admin', 'wp-json', 'speculative', 'ended', 'upcoming', 'potential', 'guides', 'newsletter', 'login', 'register', 'cart', 'shop']);
+  function parseLoose(html, kind) { const out = [], seen = new Set();
+    for (const m of String(html).matchAll(/<a\b[^>]*href=["']?(?:https:\/\/airdrops\.io)?\/([a-z0-9-]+)\/["']?[^>]*>([\s\S]{0,400}?)<\/a>/gi)) { const sl = m[1].toLowerCase(); if (NOT_PROJ.has(sl) || seen.has(sl)) continue; const ttl = (m[0].match(/title=["']([^"']+)["']/) || [])[1] || ''; const name = strip(m[2]) || strip(ttl); if (!name || name.length < 2 || /^(read more|more|view|details?|learn more)$/i.test(name)) continue;
+      seen.add(sl); out.push({ name: name.replace(/\s*airdrop\s*$/i, '').slice(0, 60), url: 'https://airdrops.io/' + sl + '/', img: '', heat: 0, ends: '', start: '', pub: '', confirmed: kind === 'confirmed', claim: false, kind, via: 'loose' }); }
+    return out; }
   const xmlTags = (x, tag) => [...String(x).matchAll(new RegExp('<' + tag + '>([^<]*)</' + tag + '>', 'g'))].map((m) => m[1].trim());
   const slugName = (u) => { const sl = (String(u).match(/airdrops\.io\/([a-z0-9-]+)\/?$/i) || [])[1] || ''; return sl.split('-').filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(' ').slice(0, 60); };
   function parseSitemap(xml) { const out = []; for (const b of String(xml).split('<url>').slice(1)) { const loc = xmlTags(b, 'loc')[0] || ''; if (!/^https:\/\/airdrops\.io\/[a-z0-9-]+\/$/i.test(loc)) continue; const name = slugName(loc); if (!name) continue; const img = (b.match(/<image:loc>([^<]+)<\/image:loc>/) || [])[1] || ''; const ym = [...b.matchAll(/wp-content\/uploads\/(\d{4})\/(\d{2})\//g)].map((m) => m[1] + '-' + m[2]).sort()[0] || ''; /* 图片上传的年月（最早那张）≈ 收录的月份 */ out.push({ name, url: loc, img, ym, upd: (xmlTags(b, 'lastmod')[0] || '').slice(0, 10), heat: 0, kind: 'sitemap', via: 'sitemap' }); } return out; }
@@ -108,7 +115,8 @@ function startAir({ DATA, browse, log = () => {} }) {
       const got = []; const diag = { at: Date.now(), pages: [], src: 'html' }; /*AIRFB-1126 每一页抓到什么都记下来（data/air_fetch.json＋日志），抓到 0 个要看得出原因 */
       for (const [k, u] of [['hot', 'https://airdrops.io/hot/'], ['latest', 'https://airdrops.io/latest/'], ['confirmed', 'https://airdrops.io/confirmed/']]) {
         const d = { k, status: null, n: 0, why: '' };
-        try { const r = await fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 RobinCatRadar' }, signal: AbortSignal.timeout(20000) }); d.status = r.status; const t = await r.text(); const p = parse(t, k); d.n = p.length; got.push(...p); if (!p.length) d.why = CHAL.test(t) ? 'Cloudflare 验证页（网站挡了这个程式）' : r.ok ? '页面格式变了（读不到项目）' : 'HTTP ' + r.status; } catch (e) { d.why = '连不上：' + String(e?.message || e).slice(0, 80); }
+        try { const r = await fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 RobinCatRadar' }, signal: AbortSignal.timeout(20000) }); d.status = r.status; const t = await r.text(); let p = parse(t, k); if (!p.length && r.ok && !CHAL.test(t)) { p = parseLoose(t, k); if (p.length) d.loose = 1; } d.n = p.length; got.push(...p); if (!p.length) d.why = CHAL.test(t) ? 'Cloudflare 验证页（网站挡了这个程式）' : r.ok ? '页面格式变了（读不到项目）' : 'HTTP ' + r.status;
+          if (r.ok && (!p.length || d.loose)) { d.sample = 'air_fetch_sample_' + k + '.html'; try { const hd = [...r.headers].map(([a, b]) => a + ': ' + b).join('\n'); fs.writeFileSync(path.join(DATA, d.sample), `<!-- ${u}\nHTTP ${r.status}\n${hd}\nbody ${t.length} 字 -->\n` + t.slice(0, AS.sampleLen)); } catch {} } } catch (e) { d.why = '连不上：' + String(e?.message || e).slice(0, 80); } /*AIRS-1126 回 200 却读不到项目：把回应的标头和开头一段存起来（每页一个档、覆盖），看得到程式实际收到什么 */
         diag.pages.push(d);
       }
       if (!got.length) { const fb = await sitemapList().catch((e) => ({ list: [], why: String(e?.message || e).slice(0, 80) })); diag.src = 'sitemap'; diag.fallback = { n: fb.list.length, why: fb.why || '', file: fb.file || '' }; got.push(...fb.list); } /* 首页都读不到 → 备用：网站地图（只有网址、名称、来源更新日；没有状态标签、热度） */
@@ -151,6 +159,6 @@ function startAir({ DATA, browse, log = () => {} }) {
     if (age != null && !why.some((w) => /注册/.test(w))) why.push(`网域已注册 ${age} 天`); if (!lvl) why.push(age != null ? '没看到可疑的地方' : '没看到可疑的地方（查不到注册日期）');
     return { lvl, why, host, age };
   }
-  return { hot: () => { reload(); return HOT; }, refresh, checkUrl, fundOne, fundTick, parseSitemap };
+  return { hot: () => { reload(); return HOT; }, refresh, checkUrl, fundOne, fundTick, parseSitemap, parseLoose };
 }
 module.exports = { startAir };
