@@ -32,3 +32,7 @@ test('空投清单：另一边（视窗／引擎）正在抓 → 这边不抓；
   const A = createRequire(import.meta.url)('../../radar/air.cjs').startAir({ DATA, browse: null }); await A.refresh(true); assert.equal(n, 0, '对方在抓：这边不抓');
   writeFileSync(join(DATA, 'air_hot.json'), JSON.stringify({ v: 2, at: Date.now(), list: [item(9)] })); assert.equal(A.hot().list[0].name, 'P9', '对方抓完写的档案这边要读到');
   other.kill('SIGKILL'); await new Promise((r) => other.on('exit', r)); await A.refresh(true); assert.ok(n > 0, '对方不在了：这边自己抓'); assert.ok(!existsSync(join(DATA, 'air_refresh.lock')), '抓完把锁删掉'); });
+test('读不到空投清单 → 不发（不能说成「今日无新项目」）；发之前会先叫清单更新', async () => { const DIR = mkdtempSync(join(tmpdir(), 'air-')); mkdirSync(join(DIR, 'data')); const sent = []; let rf = 0;
+  const R = startAirReport({ DIR, radarSet: () => ({ 'air.daily.on': 1, 'air.daily.time': '15:00', 'air.daily.days': 3 }), send: async (t) => { sent.push(t); return true; }, log: () => {}, refresh: async () => { rf++; }, now: () => NOW }); R.stop();
+  const r = await R.tick(); assert.equal(r.sent, false); assert.match(r.why, /还没有资料/); assert.equal(sent.length, 0); assert.equal(rf, 1);
+  writeFileSync(join(DIR, 'data', 'air_hot.json'), JSON.stringify({ v: 2, at: NOW, list: [item(1)] })); assert.equal((await R.tick()).sent, true); });

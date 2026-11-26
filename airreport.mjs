@@ -30,7 +30,7 @@ export function buildReport({ list, at, days, sent = {}, firstSeen = {}, now = D
   if (more) parts.push('', `另有 ${more} 个新项目放不下（一则 TG 有字数上限），请看雷达「空投」页`);
   parts.push('', foot); return { text: parts.join('\n'), items: used };
 }
-export function startAirReport({ DIR, radarSet, send, log, now = () => Date.now() }) {
+export function startAirReport({ DIR, radarSet, send, log, refresh = null, now = () => Date.now() }) {
   const SF = join(DIR, 'data', 'air_daily.json'), HF = join(DIR, 'data', 'air_hot.json');
   let ST = (() => { try { return JSON.parse(readFileSync(SF, 'utf8')); } catch { return {}; } })(); ST.sent ||= {}; ST.seen ||= {};
   const save = () => { try { writeFileSync(SF + '.w', JSON.stringify(ST)); renameSync(SF + '.w', SF); } catch (e) { log('[空投日报] 存档失败 ' + e.message); } };
@@ -40,7 +40,9 @@ export function startAirReport({ DIR, radarSet, send, log, now = () => Date.now(
     if (!on('air.daily.on')) return { sent: false, why: '没开' }; const hm = parseHM(get('air.daily.time')); const days = num('air.daily.days');
     const bad = !hm ? '你没填（或格式不对）「几点发」，例 15:00' : !(days > 0) ? '你没填「最近几天新出现的」' : ''; if (bad) { if (warned !== bad) { warned = bad; log('[空投日报] 没发：' + bad); } return { sent: false, why: bad }; }
     const t = now(), d = new Date(t), today = ymd(d); if (!force && (ST.lastDay === today || d.getHours() * 60 + d.getMinutes() < hm.h * 60 + hm.mi)) return { sent: false, why: '还没到时间或今天发过了' };
+    try { await refresh?.(); } catch {} /* 发之前先让清单更新（清单够新就不会重抓；另一边正在抓就用它的） */ seenTick();
     let H = null; try { H = existsSync(HF) ? JSON.parse(readFileSync(HF, 'utf8')) : null; } catch {}
+    if (!H?.list?.length) { const w = '空投清单还没有资料（来源读不到），先不发，之后再试'; if (warned !== w) { warned = w; log('[空投日报] ' + w); } return { sent: false, why: w }; } /* 读不到资料＝不发（不能说成「今日无新项目」） */
     const R = buildReport({ list: H?.list || [], at: H?.at || 0, days, sent: ST.sent, firstSeen: ST.seen, now: t });
     const ok = await send(R.text).catch(() => false); if (!ok) { log('[空投日报] TG 没送出（没设机器人／这一类没开／网路），下次检查再试'); return { sent: false, why: 'TG 没送出' }; }
     for (const x of R.items) ST.sent[x.url] = t; ST.lastDay = today; const cut = t - T.keepDays * T.dayMs; for (const m of [ST.sent, ST.seen]) for (const [k, v] of Object.entries(m)) if (v < cut) delete m[k]; save(); log(`[空投日报] 已发 ${R.items.length} 个新项目`); return { sent: true, n: R.items.length, text: R.text };
