@@ -21099,6 +21099,18 @@
    "file": "watch\\.mjs$",
    "match": "mute\\) return false; for \\(let k = 0; k < 2; k\\+\\+\\)",
    "reason": "TG 送出失败（429）最多重试一次（技术用，原本就有）"
+  },
+  {
+   "rule": "KWLIST",
+   "file": "radar/air\\.cjs$",
+   "match": "CHAL = /Just a moment",
+   "reason": "AIRFB-1126：认出 Cloudflare 验证页（只用来记录抓不到的原因、改用备用来源），不是判断条件"
+  },
+  {
+   "rule": "SLICE",
+   "file": "radar/air\\.cjs$",
+   "match": "join\\(' '\\)\\.slice\\(0, 60\\); \\}; function parseSitemap",
+   "reason": "AIRFB-1126：名称显示长度（跟清单原本的名称长度一样），只影响显示"
   }
  ]
 }

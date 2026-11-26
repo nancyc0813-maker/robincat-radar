@@ -2558,7 +2558,7 @@ setTimeout(() => polTick().catch((e) => log('Pol ' + e.message)), POL_T.first); 
 try { const { startAir } = await import('./air.mjs?v=' + Date.now()); startAir({ DIR, WALLETS, rpc, log, tgSay, radarSet }); } catch (e) { log('空投页载入失败 ' + e.message); }
 /*AIRLOCAL-1126 空投清单（airdrops.io＋DefiLlama）以前只在雷达视窗里更新，视窗关着就停了 → 引擎也跑同一份程式（radar/air.cjs）；两边同时开着时用 data/air_refresh.lock 轮流，不会重复抓。
    融资「打开项目官网查」要用视窗里的隐形浏览器，引擎这边不做（视窗开着时照旧做） */
-let AIRH = null; try { AIRH = createRequire(import.meta.url)('./radar/air.cjs').startAir({ DATA: join(DIR, 'data'), browse: null }); } catch (e) { log('空投清单（引擎）载入失败 ' + e.message); }
+let AIRH = null; try { AIRH = createRequire(import.meta.url)('./radar/air.cjs').startAir({ DATA: join(DIR, 'data'), browse: null, log }); } catch (e) { log('空投清单（引擎）载入失败 ' + e.message); }
 /*AIRLOCAL-1126 每日空投雷达：你填的时间发一则 TG（开关 air.daily.on＋时间＋最近几天，预设关）。主聊天照「TG：每日空投雷达」这一类的开关；群组要另外开 air.daily.group 而且 config 有 groupChatId */
 async function airSay(text) { let ok = false; const md = tgMode(text); log('TG(空投日报): ' + String(text).split('\n')[0]);
   const post = async (chat, silent, grp) => { try { const j = await (await fetch(`${TG_API}/bot${TG.a}/sendMessage`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: chat, text: safeOut(text, grp ? 1 : 0), disable_web_page_preview: true, disable_notification: silent }), signal: AbortSignal.timeout(10000) })).json(); return !!j?.ok; } catch { return false; } };

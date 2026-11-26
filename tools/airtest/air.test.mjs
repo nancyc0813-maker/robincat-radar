@@ -47,3 +47,20 @@ test('tg.cat.say＝不发：安全相关、TG 指令回覆照样发', () => { co
   assert.equal(sayMode({ 'tg.cat.say': 3 }, { src: 'tg' }).tgSayMode('💼 钱包余额'), 2, 'TG 指令的回覆一定发'); assert.equal(F.tgSayMode('🔄 重要更新（自动）：已更新'), F.TGS_M.mute); });
 test('只收每日空投雷达的设定：其他类别全部不发', () => { const S = JSON.parse(readFileSync(join(ROOT, 'radar', 'settings_schema.json'), 'utf8')); const say = S.items.find((x) => x.k === 'tg.cat.say'); assert.ok(say.opts.some((o) => o.v === 3), '要有「不发」');
   const cats = S.items.filter((x) => /^tg\.cat\./.test(x.k)).map((x) => x.k).sort(); assert.ok(cats.includes('tg.cat.air') && cats.includes('tg.cat.say')); });
+
+/* AIRFB-1126：首页被 Cloudflare 挡 → 记原因、改用网站地图；清单太旧要照实说 */
+test('清单比「最近 N 天」还旧 → 照实说清单停在哪天，不说「今日无新项目」', () => { const r = buildReport({ list: [item(1)], at: NOW - 10 * DAY, days: 3, now: NOW }); assert.ok(r.stale); assert.match(r.text, /空投清单停在 11\/16/); assert.ok(!/今日无新项目/.test(r.text)); assert.match(r.text, /DYOR/); assert.equal(r.items.length, 0); });
+test('备用来源（网站地图）的项目：标明来源、没有状态标签；雷达第一次看到而且来源最近有更新才列', () => {
+  const sm = (n, upd) => ({ name: 'S' + n, url: `https://airdrops.io/s${n}/`, upd, src: 'sitemap', kind: 'sitemap', heat: 0 });
+  const list = [sm(1, '2026-11-25'), sm(2, '2026-10-01'), sm(3, '2026-11-26')]; const seen = { [list[0].url]: NOW - 3600e3, [list[1].url]: NOW - 3600e3, [list[2].url]: NOW - 20 * DAY };
+  const r = buildReport({ list, at: NOW, days: 3, firstSeen: seen, now: NOW, src: 'sitemap' }); assert.deepEqual(r.items.map((x) => x.name), ['S1'], 'S2 来源很久没更新、S3 雷达早就看过');
+  assert.match(r.text, /网站地图（首页读不到，用备用来源）/); assert.match(r.text, /🔄 来源最近有更新（备用来源/); assert.match(r.text, /来源更新：2026-11-25/); assert.ok(!/已确认|热门榜上/.test(r.text)); });
+test('首页回 Cloudflare 验证页 → 记下原因、改用网站地图（只用网址／来源更新日）', async (t) => { const DATA = mkdtempSync(join(tmpdir(), 'airfb-')); const f0 = globalThis.fetch; const logs = []; t.after(() => { globalThis.fetch = f0; });
+  const SM = '<?xml version="1.0"?><urlset><url><loc>https://airdrops.io/flop-labs/</loc><lastmod>2026-11-25T15:52:31+00:00</lastmod><image:image><image:loc>https://airdrops.io/wp-content/uploads/2026/08/x.png</image:loc></image:image></url><url><loc>https://airdrops.io/blog/x/</loc><lastmod>2026-11-25</lastmod></url></urlset>';
+  globalThis.fetch = async (u) => { u = String(u); const res = (status, body) => ({ ok: status === 200, status, text: async () => body, json: async () => [] });
+    if (/sitemap_index/.test(u)) return res(200, '<sitemapindex><sitemap><loc>https://airdrops.io/project-sitemap2.xml</loc><lastmod>2026-01-01T00:00:00+00:00</lastmod></sitemap><sitemap><loc>https://airdrops.io/project-sitemap1.xml</loc><lastmod>2026-11-25T16:10:52+00:00</lastmod></sitemap><sitemap><loc>https://airdrops.io/post-sitemap.xml</loc><lastmod>2026-11-26</lastmod></sitemap></sitemapindex>');
+    if (/project-sitemap1/.test(u)) return res(200, SM); if (/airdrops\.io\/(hot|latest|confirmed|flop)/.test(u)) return res(403, '<title>Just a moment...</title>'); return res(200, '[]'); };
+  const A = createRequire(import.meta.url)('../../radar/air.cjs').startAir({ DATA, browse: null, log: (s) => logs.push(s) }); await A.refresh(true);
+  const H = A.hot(); assert.equal(H.src, 'sitemap'); assert.equal(H.list.length, 1); assert.equal(H.list[0].name, 'Flop Labs'); assert.equal(H.list[0].upd, '2026-11-25'); assert.ok(!H.list[0].det?.desc, '详情页会被挡：不去抓');
+  const D = JSON.parse(readFileSync(join(DATA, 'air_fetch.json'), 'utf8')); assert.deepEqual(D.pages.map((p) => p.status), [403, 403, 403]); assert.match(D.pages[0].why, /Cloudflare/); assert.equal(D.fallback.file, 'https://airdrops.io/project-sitemap1.xml');
+  assert.ok(logs.some((l) => /Cloudflare 验证页.*改用网站地图：1 个/.test(l)), logs.join('\n')); });

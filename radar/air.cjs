@@ -2,7 +2,7 @@
 // 她 11/2 23:00：空投独立成一页。这里只做「读」，不碰钱包、不下单。
 // ZR-1103：清单不筛、不截（抓到几个就列几个）；板块／钓鱼检查只贴「事实标签」；「潜力项目」的 TVL 门槛、新网域天数都是你的设定（没填＝不用）
 const fs = require('fs'), path = require('path');
-function startAir({ DATA, browse }) {
+function startAir({ DATA, browse, log = () => {} }) {
   const setOn = (k) => { try { const v = JSON.parse(fs.readFileSync(path.join(DATA, 'radar_settings.json'), 'utf8'))?.[k]; return v === true || v === 1 || v === '1'; } catch { return false; } }; /* 你的开关（没开＝关） */
   const setNum = (k) => { try { const v = JSON.parse(fs.readFileSync(path.join(DATA, 'radar_settings.json'), 'utf8'))?.[k]; const x = Number(v); return v == null || v === '' || !Number.isFinite(x) ? null : x; } catch { return null; } }; /* 你的设定（没填＝null） */
   const HOTF = path.join(DATA, 'air_hot.json');
@@ -87,6 +87,16 @@ function startAir({ DATA, browse }) {
     } finally { fbusy = 0; }
   }
   const fundOf = (x) => { const f = FD[nk(x.name)]; return f?.fund ? f : null; };
+  /*AIRFB-1126 备用来源：airdrops.io 的网站地图（sitemap_index.xml → 最近更新的那份 project-sitemap）。11/26 实测：首页／项目页对程式回 Cloudflare 验证页（403），网站地图照样 200。
+     只有网址、来源更新日、图片；名称从网址转（例 flop-labs → Flop Labs）。不知道已确认／热门／可领取 */
+  const CHAL = /Just a moment|cf-chl|challenge-platform|Attention Required/i;
+  const xmlTags = (x, tag) => [...String(x).matchAll(new RegExp('<' + tag + '>([^<]*)</' + tag + '>', 'g'))].map((m) => m[1].trim());
+  const slugName = (u) => { const sl = (String(u).match(/airdrops\.io\/([a-z0-9-]+)\/?$/i) || [])[1] || ''; return sl.split('-').filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(' ').slice(0, 60); };
+  function parseSitemap(xml) { const out = []; for (const b of String(xml).split('<url>').slice(1)) { const loc = xmlTags(b, 'loc')[0] || ''; if (!/^https:\/\/airdrops\.io\/[a-z0-9-]+\/$/i.test(loc)) continue; const name = slugName(loc); if (!name) continue; const img = (b.match(/<image:loc>([^<]+)<\/image:loc>/) || [])[1] || ''; out.push({ name, url: loc, img, upd: (xmlTags(b, 'lastmod')[0] || '').slice(0, 10), heat: 0, kind: 'sitemap', src: 'sitemap' }); } return out; }
+  async function sitemapList() { const H = { headers: { 'user-agent': 'Mozilla/5.0 RobinCatRadar' }, signal: AbortSignal.timeout(20000) };
+    const r = await fetch('https://airdrops.io/sitemap_index.xml', H); const ix = await r.text(); if (!r.ok || CHAL.test(ix)) return { list: [], why: '网站地图也读不到（' + (CHAL.test(ix) ? 'Cloudflare 验证页' : 'HTTP ' + r.status) + '）' };
+    const maps = String(ix).split('<sitemap>').slice(1).map((b) => ({ loc: xmlTags(b, 'loc')[0] || '', mod: xmlTags(b, 'lastmod')[0] || '' })).filter((x) => /project-sitemap\d*\.xml$/.test(x.loc)).sort((a, b) => (b.mod > a.mod ? 1 : b.mod < a.mod ? -1 : 0));
+    if (!maps.length) return { list: [], why: '网站地图里没有项目清单' }; const r2 = await fetch(maps[0].loc, { ...H, signal: AbortSignal.timeout(20000) }); const t2 = await r2.text(); const list = r2.ok ? parseSitemap(t2) : []; return { list, file: maps[0].loc, why: list.length ? '' : '项目清单读不到（HTTP ' + r2.status + '）' }; }
   /*AIRLOCAL-1126 雷达视窗跟引擎都会跑这个（视窗关着时引擎照样更新）：开始前先读档案（另一边可能刚更新完）；同一时间只有一边在抓（data/air_refresh.lock，抓完删；那个程式已经不在＝不算） */
   const LKF = path.join(DATA, 'air_refresh.lock'); const AL = { lockMs: 900e3 }; /* 技术用：锁多久没更新就当对方当掉了 */
   const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return e?.code === 'EPERM'; } };
@@ -95,19 +105,24 @@ function startAir({ DATA, browse }) {
   async function refresh(force) {
     reload(); if (busy || (!force && Date.now() - (HOT.at || 0) < 3 * 3600e3 && HOT.list?.length && HOT.v === 2)) return; if (lockBusy()) return; busy = 1; try { fs.writeFileSync(LKF, JSON.stringify({ pid: process.pid, at: Date.now() })); } catch {}
     try {
-      const got = [];
+      const got = []; const diag = { at: Date.now(), pages: [], src: 'html' }; /*AIRFB-1126 每一页抓到什么都记下来（data/air_fetch.json＋日志），抓到 0 个要看得出原因 */
       for (const [k, u] of [['hot', 'https://airdrops.io/hot/'], ['latest', 'https://airdrops.io/latest/'], ['confirmed', 'https://airdrops.io/confirmed/']]) {
-        try { const t = await (await fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 RobinCatRadar' }, signal: AbortSignal.timeout(20000) })).text(); got.push(...parse(t, k)); } catch {}
+        const d = { k, status: null, n: 0, why: '' };
+        try { const r = await fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 RobinCatRadar' }, signal: AbortSignal.timeout(20000) }); d.status = r.status; const t = await r.text(); const p = parse(t, k); d.n = p.length; got.push(...p); if (!p.length) d.why = CHAL.test(t) ? 'Cloudflare 验证页（网站挡了这个程式）' : r.ok ? '页面格式变了（读不到项目）' : 'HTTP ' + r.status; } catch (e) { d.why = '连不上：' + String(e?.message || e).slice(0, 80); }
+        diag.pages.push(d);
       }
+      if (!got.length) { const fb = await sitemapList().catch((e) => ({ list: [], why: String(e?.message || e).slice(0, 80) })); diag.src = 'sitemap'; diag.fallback = { n: fb.list.length, why: fb.why || '', file: fb.file || '' }; got.push(...fb.list); } /* 首页都读不到 → 备用：网站地图（只有网址、名称、来源更新日；没有状态标签、热度） */
+      try { fs.writeFileSync(path.join(DATA, 'air_fetch.json'), JSON.stringify(diag)); } catch {}
+      { const sig = JSON.stringify([diag.src, diag.pages.map((p) => [p.k, p.n, p.why]), diag.fallback]); if (sig !== refresh.lastSig) { refresh.lastSig = sig; log(`[空投清单] airdrops.io：${diag.pages.map((p) => `${p.k} ${p.n} 个${p.why ? '（' + p.why + '）' : ''}`).join('、')}${diag.fallback ? `；首页都读不到，改用网站地图：${diag.fallback.n} 个${diag.fallback.why ? '（' + diag.fallback.why + '）' : ''}` : ''}`); } }
       const m = new Map(); for (const x of got) { const o = m.get(x.url); m.set(x.url, o ? { ...o, heat: Math.max(o.heat, x.heat), kinds: [...new Set([...(o.kinds || [o.kind]), x.kind])], claim: o.claim || x.claim, confirmed: o.confirmed || x.confirmed } : { ...x, kinds: [x.kind] }); }
       const list = [...m.values()].sort((a, b) => b.heat - a.heat); /* ZR-1103：抓到的全部列出 */
-      const old = new Map((HOT.list || []).map((x) => [x.url, x])); let n = 0;
+      const old = new Map((HOT.list || []).map((x) => [x.url, x])); let n = diag.src === 'sitemap' ? DETAIL_BUDGET : 0; /* 备用来源时详情页一样会被挡：不抓（沿用以前抓到的） */
       for (const x of list) { const o = old.get(x.url); if (o?.det && Date.now() - (o.det.at || 0) < 24 * 3600e3) { x.det = o.det; continue; } if (n >= DETAIL_BUDGET) { if (o?.det) x.det = o.det; continue; } n++; try { x.det = parseDetail(await (await fetch(x.url, { headers: { 'user-agent': 'Mozilla/5.0 RobinCatRadar' }, signal: AbortSignal.timeout(20000) })).text()); } catch { if (o?.det) x.det = o.det; } await new Promise((r) => setTimeout(r, 800)); }
       await llama();
       for (const x of list) { const txt = [x.name, x.act, x.det?.desc].join(' '); x.sect = sectOf(txt); x.money = MONEY.test(x.act + ' ' + (x.det?.desc || '')) && !/^free$/i.test(x.det?.cost || ''); const L = LL.m?.[nk(x.name)]; if (L) { x.llama = L; const lk = LLC[L.c]; if (lk && !x.sect.includes(lk)) x.sect = [lk, ...x.sect]; } x.src = 1 + (L ? 1 : 0); const o = old.get(x.url); if (o?.risk && Date.now() - (o.risk.at || 0) < 24 * 3600e3) x.risk = o.risk; }
       for (const x of list.filter((y) => y.host && !y.risk).slice(0, RISK_BUDGET)) { try { const r = await checkUrl('https://' + x.host); x.risk = { lvl: r.lvl, why: r.why, age: r.age ?? null, at: Date.now() }; } catch {} }
       for (const x of list) { if (x.det && !x.det.fund) { const f = fundOf(x); if (f) { x.det.fund = f.fund; if (!x.det.led && f.led) x.det.led = f.led; x.det.fsrc = f.src; x.det.fsnip = f.snip || ''; x.src = (x.src || 1) + 1; } } }
-      if (list.length) { HOT = { v: 2, at: Date.now(), list, pot: LL.pot || [] }; try { fs.writeFileSync(HOTF, JSON.stringify(HOT)); } catch {} }
+      if (list.length) { HOT = { v: 2, at: Date.now(), list, pot: LL.pot || [], src: diag.src }; try { fs.writeFileSync(HOTF, JSON.stringify(HOT)); } catch {} }
       setTimeout(() => fundTick(list).then(() => { let ch = 0; for (const x of HOT.list || []) { if (x.det && !x.det.fund) { const f = fundOf(x); if (f) { x.det.fund = f.fund; if (!x.det.led && f.led) x.det.led = f.led; x.det.fsrc = f.src; x.det.fsnip = f.snip || ''; ch = 1; } } } if (ch) try { fs.writeFileSync(HOTF, JSON.stringify(HOT)); } catch {} }).catch(() => {}), 5000);
     } finally { busy = 0; try { fs.rmSync(LKF, { force: true }); } catch {} }
   }
@@ -136,6 +151,6 @@ function startAir({ DATA, browse }) {
     if (age != null && !why.some((w) => /注册/.test(w))) why.push(`网域已注册 ${age} 天`); if (!lvl) why.push(age != null ? '没看到可疑的地方' : '没看到可疑的地方（查不到注册日期）');
     return { lvl, why, host, age };
   }
-  return { hot: () => { reload(); return HOT; }, refresh, checkUrl, fundOne, fundTick };
+  return { hot: () => { reload(); return HOT; }, refresh, checkUrl, fundOne, fundTick, parseSitemap };
 }
 module.exports = { startAir };
