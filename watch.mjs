@@ -78,7 +78,7 @@ const TG_API = /^http:\/\/(?:127\.0\.0\.1|localhost):\d{2,5}$/.test(String(proce
 // 只有要买卖、要使用者决定的才响铃；其他（自动铸、收到币、登入成功…）静音送达
 const isFreeMintNote = (t) => /^🆓/u.test(t) || (/^🆕/u.test(t) && ((__t2s) => __t2s.includes('🤖 已自动铸造') || __t2s.includes('🤖 已自動鑄造'))(t));
 /* TG 通知照类别由你决定（tg.cat.*：空白＝不发、1＝静音发、2＝响铃发）。类别只看讯息开头的符号（事实分类），没有任何数字 */
-const TG_CAT = (t) => { t = String(t); if (/^(🛒|💰)/u.test(t)) return 'trade'; if (/^🆓/u.test(t)) return 'free'; if (/^🚀/u.test(t)) return 'open'; if (/^🔥/u.test(t) && /\d+(\.\d+)? ?[倍x]/.test(t) && !/搶打|抢打|發現|发现/.test(t)) return 'mult'; if (/^(⚠️|⏰|🔑|🛑)/u.test(t)) return 'warn'; if (/^(🆕|🌐|🏗|🔥|💬|🦋|🔔|📣)/u.test(t)) return 'disc'; return 'other'; };
+const TG_CAT = (t) => { t = String(t); if (/^🪂/u.test(t)) return 'air'; /*AIRLOCAL-1126 每日空投雷达自己一类（可以只开这一类） */ if (/^(🛒|💰)/u.test(t)) return 'trade'; if (/^🆓/u.test(t)) return 'free'; if (/^🚀/u.test(t)) return 'open'; if (/^🔥/u.test(t) && /\d+(\.\d+)? ?[倍x]/.test(t) && !/搶打|抢打|發現|发现/.test(t)) return 'mult'; if (/^(⚠️|⏰|🔑|🛑)/u.test(t)) return 'warn'; if (/^(🆕|🌐|🏗|🔥|💬|🦋|🔔|📣)/u.test(t)) return 'disc'; return 'other'; };
 const tgMode = (t) => { const v = Number(radarSet()['tg.cat.' + TG_CAT(t)]); return v === 1 || v === 2 ? v : 0; };
 /* 同一件事的通知：空白＝只通知一次（状态变了才再通知）；你填了 notify.repeatMin＝隔这么多分钟可以再通知一次 */
 function nOnce(key, state = '1') { S.nOnce = S.nOnce || {}; const o = S.nOnce[key]; const rm = nrNum('notify.repeatMin'); if (o && o.s === String(state) && (rm == null || Date.now() - o.t < rm * 60e3)) return false; S.nOnce[key] = { s: String(state), t: Date.now() }; return true; }
@@ -221,7 +221,7 @@ async function lockNote(c, wAddr) { /* 买到的币现在能不能转：模拟�
 
 /* 防「GRAM 备注假公告」这类手法——币名、NFT 资料、群里的网址都是任何人都能写的，
    发 TG 前统一过滤：不在白名单的网址一律拿掉；发大群时连裸网域也拿掉；冒充官方要人转钱的字眼整句拿掉 */
-const SAFE_HOSTS = /(^|\.)(binance\.com|binance\.info|bscscan\.com|github\.com|t\.me|nightshift\.fans|dexscreener\.com|geckoterminal\.com|element\.market|robinhood\.com|blockscout\.com)$/i;
+const SAFE_HOSTS = /(^|\.)(binance\.com|binance\.info|bscscan\.com|github\.com|t\.me|nightshift\.fans|dexscreener\.com|geckoterminal\.com|element\.market|robinhood\.com|blockscout\.com|airdrops\.io)$/i; /* AIRLOCAL-1126 加 airdrops.io：空投清单的来源页（每日空投雷达附的连结） */
 function safeOut(text, group) {
   let t = String(text || '').replace(/https?:\/\/([^\s/?#)）]+)[^\s)）]*/gi, (u, h) => (SAFE_HOSTS.test(h) ? u : '[连结已移除]'));
   if (group) t = t.replace(/\b(?![\w-]*\.ai\b)[\w-]+(?:\.[\w-]+)*\.(?:xyz|com|io|org|net|app|online|fun|site|top|cc|me|link|vip|pro|club|live|info|finance|money|gg)\b(?!\/nancy)/gi, (d) => (SAFE_HOSTS.test(d) ? d : '[网址已移除]'));
@@ -2555,7 +2555,15 @@ async function polTick() {
 }
 /* POL-MINE END */
 setTimeout(() => polTick().catch((e) => log('Pol ' + e.message)), POL_T.first); setInterval(() => polTick().catch((e) => log('Pol ' + e.message)), POL_T.tick); /* POL-MINE 排程 */
-try { const { startAir } = await import('./air.mjs?v=' + Date.now()); startAir({ DIR, WALLETS, rpc, log, tgSay, radarSet }); } catch (e) { log('空投页载入失败 ' + e.message); } 
+try { const { startAir } = await import('./air.mjs?v=' + Date.now()); startAir({ DIR, WALLETS, rpc, log, tgSay, radarSet }); } catch (e) { log('空投页载入失败 ' + e.message); }
+/*AIRLOCAL-1126 空投清单（airdrops.io＋DefiLlama）以前只在雷达视窗里更新，视窗关着就停了 → 引擎也跑同一份程式（radar/air.cjs）；两边同时开着时用 data/air_refresh.lock 轮流，不会重复抓。
+   融资「打开项目官网查」要用视窗里的隐形浏览器，引擎这边不做（视窗开着时照旧做） */
+try { createRequire(import.meta.url)('./radar/air.cjs').startAir({ DATA: join(DIR, 'data'), browse: null }); } catch (e) { log('空投清单（引擎）载入失败 ' + e.message); }
+/*AIRLOCAL-1126 每日空投雷达：你填的时间发一则 TG（开关 air.daily.on＋时间＋最近几天，预设关）。主聊天照「TG：每日空投雷达」这一类的开关；群组要另外开 air.daily.group 而且 config 有 groupChatId */
+async function airSay(text) { let ok = false; const md = tgMode(text); log('TG(空投日报): ' + String(text).split('\n')[0]);
+  const post = async (chat, silent, grp) => { try { const j = await (await fetch(`${TG_API}/bot${TG.a}/sendMessage`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: chat, text: safeOut(text, grp ? 1 : 0), disable_web_page_preview: true, disable_notification: silent }), signal: AbortSignal.timeout(10000) })).json(); return !!j?.ok; } catch { return false; } };
+  if (!TG) return false; if (md) ok = (await post(TG.b, md !== 2, 0)) || ok; if (GROUP_ID && nrOn('air.daily.group')) ok = (await post(GROUP_ID, true, 1)) || ok; return ok; }
+try { const { startAirReport } = await import('./airreport.mjs?v=' + Date.now()); startAirReport({ DIR, radarSet, send: airSay, log }); } catch (e) { log('每日空投雷达载入失败 ' + e.message); } 
 try { const { startMintPick } = await import('./mintpick.mjs?v=' + Date.now()); globalThis.MINTPICK = startMintPick({ scanBack, DIR, S, save, WALLETS, rpc, rpcBatch, logsRpc, log, tg, freshDeadline, safeAddrs, revWhy, badSel, bnbUsd, previewExec, drainCheck, trackFromSim, codeOf, fullCode, estop: () => ESTOP(), manualOff: () => MANUAL_OFF(), confl: () => !!CONFL, locked: () => LOCKED(), keepBnb: () => PAID.keepBnb }); } catch (e) { log('选打法模组载入失败 ' + e.message); } /* 认不出打法的项目让你自己选 */
 try { const { startSentinel } = await import('./sentinel.mjs?v=' + Date.now()); globalThis.SENTINEL = startSentinel({ DIR, S, save, WALLETS, rpc, logsRpc, log, tgSay, nOnce, rhRpc: () => RH?.rpc || null }); } catch (e) { log('安全哨兵载入失败 ' + e.message); } /* 🛡 安全哨兵（只提醒，全部预设关） */
 try { const { startElysium } = await import('./elysium.mjs?v=' + Date.now()); globalThis.ELYSIUM = startElysium({ DIR, log, radarSet }); } catch (e) { log('Elysium 监测载入失败 ' + e.message); } /* ELY107 🌐 Elysium 只读监测：不给钱包、不签名、不送交易；开关 ely.on 预设关 */

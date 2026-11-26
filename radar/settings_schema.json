@@ -5899,6 +5899,26 @@
    "den": "daily summary, holdings report and others. Not chosen = no TG (log only)"
   },
   {
+   "k": "tg.cat.air",
+   "g": "note",
+   "opts": [
+    {
+     "v": 1,
+     "zh": "发（静音）",
+     "en": "Send (silent)"
+    },
+    {
+     "v": 2,
+     "zh": "发（响铃）",
+     "en": "Send (ring)"
+    }
+   ],
+   "zh": "TG：每日空投雷达",
+   "en": "TG: daily airdrop radar",
+   "dzh": "🪂 每天在你设的时间发一则空投整理（设定在「空投」那组）。可以只开这一类、其他类都不开。没选＝不发 TG（只写日志）",
+   "den": "🪂 one daily airdrop summary at your time (settings in the Airdrop group). Can be the only category enabled. Not chosen = no TG (log only)"
+  },
+  {
    "k": "notify.repeatMin",
    "g": "note",
    "min": 1,
@@ -7282,6 +7302,53 @@
    "en": "Suspicious domain warning",
    "dzh": "空投网址是常被拿来钓鱼的网域结尾时，加一行提醒。没开＝不提醒",
    "den": "Add a warning line when an airdrop link uses a domain ending often used for phishing. Off = none"
+  },
+  {
+   "k": "air.daily.on",
+   "g": "air",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "每日空投雷达（TG）",
+   "en": "Daily airdrop radar (TG)",
+   "dzh": "在你填的时间，把最近几天新出现的空投整理成一则 TG（只列来源上的事实：已确认／可领取／热门榜、融资、截止日；推过的不再推；没有新的就发「今日无新项目」）。雷达视窗关着也会发（引擎发）。还要在「通知」打开「TG：每日空投雷达」。没开＝不发",
+   "den": "At your time, one TG summary of airdrops new in the last N days (facts only; no repeats; 'none today' if empty). Works with the radar window closed. Also enable 'TG: daily airdrop radar'. Off = none"
+  },
+  {
+   "k": "air.daily.time",
+   "g": "air",
+   "type": "text",
+   "zh": "几点发（这台电脑的时间）",
+   "en": "Send at (local time)",
+   "dzh": "例 15:00。没填＝不发",
+   "den": "e.g. 15:00. Empty = not sent",
+   "need": "air.daily.on"
+  },
+  {
+   "k": "air.daily.days",
+   "g": "air",
+   "min": 0,
+   "unit": "天",
+   "zh": "列最近几天新出现的",
+   "en": "New within the last N days",
+   "dzh": "来源的收录日（没有就用雷达第一次看到的日子）。没填＝不发",
+   "den": "Source publish date (or first seen). Empty = not sent",
+   "uen": "d",
+   "need": "air.daily.on"
+  },
+  {
+   "k": "air.daily.group",
+   "g": "air",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "也发到 TG 群",
+   "en": "Also post to TG group",
+   "dzh": "config.json 的 telegram.groupChatId 有填才会发。没开＝只发你自己",
+   "den": "Needs telegram.groupChatId in config.json. Off = only you",
+   "need": "air.daily.on"
   },
   {
    "k": "bsc.shareInferN",

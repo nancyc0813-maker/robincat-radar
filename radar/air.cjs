@@ -87,8 +87,13 @@ function startAir({ DATA, browse }) {
     } finally { fbusy = 0; }
   }
   const fundOf = (x) => { const f = FD[nk(x.name)]; return f?.fund ? f : null; };
+  /*AIRLOCAL-1126 雷达视窗跟引擎都会跑这个（视窗关着时引擎照样更新）：开始前先读档案（另一边可能刚更新完）；同一时间只有一边在抓（data/air_refresh.lock，抓完删；那个程式已经不在＝不算） */
+  const LKF = path.join(DATA, 'air_refresh.lock'); const AL = { lockMs: 900e3 }; /* 技术用：锁多久没更新就当对方当掉了 */
+  const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return e?.code === 'EPERM'; } };
+  const reload = () => { try { const st = fs.statSync(HOTF); if (st.mtimeMs === reload.mt) return; reload.mt = st.mtimeMs; const d = JSON.parse(fs.readFileSync(HOTF, 'utf8')); if ((d.at || 0) >= (HOT.at || 0)) HOT = d; } catch {} };
+  const lockBusy = () => { try { const o = JSON.parse(fs.readFileSync(LKF, 'utf8')); return o.pid !== process.pid && Date.now() - (o.at || 0) < AL.lockMs && alive(o.pid); } catch { return false; } };
   async function refresh(force) {
-    if (busy || (!force && Date.now() - (HOT.at || 0) < 3 * 3600e3 && HOT.list?.length && HOT.v === 2)) return; busy = 1;
+    reload(); if (busy || (!force && Date.now() - (HOT.at || 0) < 3 * 3600e3 && HOT.list?.length && HOT.v === 2)) return; if (lockBusy()) return; busy = 1; try { fs.writeFileSync(LKF, JSON.stringify({ pid: process.pid, at: Date.now() })); } catch {}
     try {
       const got = [];
       for (const [k, u] of [['hot', 'https://airdrops.io/hot/'], ['latest', 'https://airdrops.io/latest/'], ['confirmed', 'https://airdrops.io/confirmed/']]) {
@@ -104,9 +109,9 @@ function startAir({ DATA, browse }) {
       for (const x of list) { if (x.det && !x.det.fund) { const f = fundOf(x); if (f) { x.det.fund = f.fund; if (!x.det.led && f.led) x.det.led = f.led; x.det.fsrc = f.src; x.det.fsnip = f.snip || ''; x.src = (x.src || 1) + 1; } } }
       if (list.length) { HOT = { v: 2, at: Date.now(), list, pot: LL.pot || [] }; try { fs.writeFileSync(HOTF, JSON.stringify(HOT)); } catch {} }
       setTimeout(() => fundTick(list).then(() => { let ch = 0; for (const x of HOT.list || []) { if (x.det && !x.det.fund) { const f = fundOf(x); if (f) { x.det.fund = f.fund; if (!x.det.led && f.led) x.det.led = f.led; x.det.fsrc = f.src; x.det.fsnip = f.snip || ''; ch = 1; } } } if (ch) try { fs.writeFileSync(HOTF, JSON.stringify(HOT)); } catch {} }).catch(() => {}), 5000);
-    } finally { busy = 0; }
+    } finally { busy = 0; try { fs.rmSync(LKF, { force: true }); } catch {} }
   }
-  setTimeout(() => refresh().catch(() => {}), 20e3); setInterval(() => refresh().catch(() => {}), 30 * 60e3);
+  setTimeout(() => refresh().catch(() => {}), 20e3).unref?.(); setInterval(() => refresh().catch(() => {}), 30 * 60e3).unref?.(); /* unref：不会因为这个计时器让程式关不掉 */
 
   // ── 防钓鱼：看网址长相＋网域多新（RDAP，公开免费），只给提醒，不会挡 ──
   const BRAND = ['binance', 'pancakeswap', 'metamask', 'trustwallet', 'okx', 'bybit', 'bitget', 'coinbase', 'uniswap', 'opensea', 'galxe', 'layer3', 'zealy', 'robinhood', 'gmgn', 'dexscreener', 'four', 'flap', 'telegram', 'twitter', 'airdrops', 'debank', 'zksync', 'arbitrum', 'optimism', 'base', 'linea', 'scroll', 'blast', 'jupiter', 'phantom', 'rabby', 'safepal', 'tokenpocket', 'ledger', 'trezor'];
@@ -131,6 +136,6 @@ function startAir({ DATA, browse }) {
     if (age != null && !why.some((w) => /注册/.test(w))) why.push(`网域已注册 ${age} 天`); if (!lvl) why.push(age != null ? '没看到可疑的地方' : '没看到可疑的地方（查不到注册日期）');
     return { lvl, why, host, age };
   }
-  return { hot: () => HOT, refresh, checkUrl, fundOne, fundTick };
+  return { hot: () => { reload(); return HOT; }, refresh, checkUrl, fundOne, fundTick };
 }
 module.exports = { startAir };

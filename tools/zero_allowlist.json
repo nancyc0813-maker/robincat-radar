@@ -21057,6 +21057,30 @@
     "100%"
    ],
    "reason": "SOON2-1126 注解：说明 100% 进度＝打满（定义），不是设定数字"
+  },
+  {
+   "rule": "OBJNUM|TIMEWIN",
+   "file": "airreport\\.mjs$",
+   "match": "tickMs: 60e3|keepDays: 180|tgMax: 3900|dayMs: 86400e3",
+   "reason": "AIRLOCAL-1126：检查间隔、推过纪录保留天数、Telegram 一则字数上限（官方 4096）、一天毫秒数（技术用）"
+  },
+  {
+   "rule": "OBJNUM",
+   "file": "airreport\\.mjs$",
+   "match": "TC = \\{ hMax: 23, mMax: 59 \\}",
+   "reason": "AIRLOCAL-1126：时钟范围（0–23 点、0–59 分），不是门槛"
+  },
+  {
+   "rule": "TIMEWIN",
+   "file": "radar/air\\.cjs$",
+   "match": "AL = \\{ lockMs: 900e3 \\}",
+   "reason": "AIRLOCAL-1126：空投清单更新锁多久没更新算对方当掉（技术用）"
+  },
+  {
+   "rule": "CMP",
+   "file": "watch\\.mjs$",
+   "match": "post\\(TG\\.b, md !== 2, 0\\)",
+   "reason": "AIRLOCAL-1126：TG 类别设定的选项代号（2＝响铃，跟 tg() 一样），不是门槛"
   }
  ]
 }
