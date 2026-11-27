@@ -21071,6 +21071,12 @@
    "reason": "AIRLOCAL-1126：时钟范围（0–23 点、0–59 分），不是门槛"
   },
   {
+   "rule": "OBJNUM",
+   "file": "radar/air\\.cjs$",
+   "match": "sampleLen: 4096|deepPages: 30|deepGapMs: 600|deepStop: 2",
+   "reason": "AIRDEEP-1127：样本字数、「最新」往后翻几页、每页间隔毫秒、连续几页没进行中项目就停（网路量，技术用，不是买卖门槛）"
+  },
+  {
    "rule": "KWLIST",
    "file": "airreport\\.mjs$",
    "match": "no \\(\\?:token\\|airdrop\\)",
@@ -21121,8 +21127,8 @@
   {
    "rule": "OBJNUM",
    "file": "radar/air\\.cjs$",
-   "match": "AS = \\{ sampleLen: 4096 \\}",
-   "reason": "AIRS-1126：读不到项目时存多少字的样本（除错用，技术用）"
+   "match": "AS = \\{ sampleLen: 4096(?:, deepPages: 30, deepGapMs: 600, deepStop: 2)? \\}",
+   "reason": "AIRS-1126：读不到项目时存多少字的样本（除错用，技术用）；AIRDEEP-1127：「最新」往后翻几页、每页间隔毫秒、连续几页没进行中项目就停（网路量，技术用，不是买卖门槛）"
   },
   {
    "rule": "KWLIST",

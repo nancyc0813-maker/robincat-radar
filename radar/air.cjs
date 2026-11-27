@@ -27,7 +27,7 @@ function startAir({ DATA, browse, log = () => {} }) {
       const d = (s) => (/^\d{8}/.test(s) ? s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8) : '');
       const badges = [...part.matchAll(/class="badge-([\w-]+)"/g)].map((m) => m[1]);
       const req = ['telegram', 'twitter', 'discord', 'email-address', 'phone', 'kyc'].filter((k) => a('data-' + k + '-required') === '1').map((k) => k.replace('-address', ''));
-      out.push({ name: name.slice(0, 60), url, img, heat: +a('data-temperature') || 0, ends: d(a('data-ends')), start: d(a('data-start')), pub: d(a('data-published')), confirmed: badges.includes('confirmed') || /\bconfirmed\b/.test(part.slice(0, 400)), claim: badges.includes('claim-live'), kyc: a('data-kyc-required') === '1', req, host: (part.match(/data-outbound-host="([^"]+)"/) || [])[1] || '', act, kind });
+      out.push({ name: name.slice(0, 60), url, img, heat: +a('data-temperature') || 0, ends: d(a('data-ends')), start: d(a('data-start')), pub: d(a('data-published')), ended: /\bended\b/.test(part.slice(0, 400)), confirmed: badges.includes('confirmed') || /\bconfirmed\b/.test(part.slice(0, 400)), claim: badges.includes('claim-live'), kyc: a('data-kyc-required') === '1', req, host: (part.match(/data-outbound-host="([^"]+)"/) || [])[1] || '', act, kind });
     }
     return out;
   }
@@ -90,7 +90,7 @@ function startAir({ DATA, browse, log = () => {} }) {
   /*AIRFB-1126 备用来源：airdrops.io 的网站地图（sitemap_index.xml → 最近更新的那份 project-sitemap）。11/26 实测：首页／项目页对程式回 Cloudflare 验证页（403），网站地图照样 200。
      只有网址、来源更新日、图片；名称从网址转（例 flop-labs → Flop Labs）。不知道已确认／热门／可领取 */
   const CHAL = /Just a moment|cf-chl|challenge-platform|Attention Required/i;
-  const AS = { sampleLen: 4096 }; /* 技术用：存几个字的样本 */
+  const AS = { sampleLen: 4096, deepPages: 30, deepGapMs: 600, deepStop: 2 }; /* 技术用：存几个字的样本；AIRDEEP-1127「最新」往后翻几页（越后面越旧）、每页间隔、连续几页都没有进行中的就停（网路量），不是买卖门槛 */
   /*AIRS-1126 宽松读法：标准格式读不到时，找页面里指向项目页（airdrops.io/<名字>/）的连结；网站自己的分类／说明页不算。来自「已确认」页的标已确认、「热门」页的标热门（就是它出现在哪一页的事实） */
   const NOT_PROJ = new Set(['blog', 'categories', 'category', 'latest', 'hot', 'confirmed', 'page', 'tag', 'author', 'feed', 'search', 'visit', 'about', 'contact', 'faq', 'privacy-policy', 'terms', 'advertise', 'submit', 'wp-content', 'wp-admin', 'wp-json', 'speculative', 'ended', 'upcoming', 'potential', 'guides', 'newsletter', 'login', 'register', 'cart', 'shop']);
   function parseLoose(html, kind) { const out = [], seen = new Set();
@@ -119,13 +119,17 @@ function startAir({ DATA, browse, log = () => {} }) {
           if (r.ok && (!p.length || d.loose)) { d.sample = 'air_fetch_sample_' + k + '.html'; try { const hd = [...r.headers].map(([a, b]) => a + ': ' + b).join('\n'); fs.writeFileSync(path.join(DATA, d.sample), `<!-- ${u}\nHTTP ${r.status}\n${hd}\nbody ${t.length} 字 -->\n` + t.slice(0, AS.sampleLen)); } catch {} } } catch (e) { d.why = '连不上：' + String(e?.message || e).slice(0, 80); } /*AIRS-1126 回 200 却读不到项目：把回应的标头和开头一段存起来（每页一个档、覆盖），看得到程式实际收到什么 */
         diag.pages.push(d);
       }
+      if (got.length) { /*AIRDEEP-1127 首页三页只有最前面一小段：往后翻「最新」的分页，把还在进行中的项目都收进来（11/27 实测 TermiX、42 都在后面的分页） */
+        const dp = { k: 'latest+', pages: 0, n: 0 }; let empty = 0;
+        for (let pg = 2; pg <= AS.deepPages; pg++) { try { const r = await fetch(`https://airdrops.io/latest/page/${pg}/`, { headers: { 'user-agent': 'Mozilla/5.0 RobinCatRadar' }, signal: AbortSignal.timeout(20000) }); if (!r.ok) break; const p = parse(await r.text(), 'latest'); if (!p.length) break; dp.pages = pg; const live = p.filter((x) => !x.ended || x.claim); dp.n += live.length; got.push(...live); empty = live.length ? 0 : empty + 1; if (empty >= AS.deepStop) break; } catch { break; } await new Promise((res) => setTimeout(res, AS.deepGapMs)); }
+        diag.pages.push(dp); }
       if (!got.length) { const fb = await sitemapList().catch((e) => ({ list: [], why: String(e?.message || e).slice(0, 80) })); diag.src = 'sitemap'; diag.fallback = { n: fb.list.length, why: fb.why || '', file: fb.file || '' }; got.push(...fb.list); } /* 首页都读不到 → 备用：网站地图（只有网址、名称、来源更新日；没有状态标签、热度） */
       try { fs.writeFileSync(path.join(DATA, 'air_fetch.json'), JSON.stringify(diag)); } catch {}
       { const sig = JSON.stringify([diag.src, diag.pages.map((p) => [p.k, p.n, p.why]), diag.fallback]); if (sig !== refresh.lastSig) { refresh.lastSig = sig; log(`[空投清单] airdrops.io：${diag.pages.map((p) => `${p.k} ${p.n} 个${p.why ? '（' + p.why + '）' : ''}`).join('、')}${diag.fallback ? `；首页都读不到，改用网站地图：${diag.fallback.n} 个${diag.fallback.why ? '（' + diag.fallback.why + '）' : ''}` : ''}`); } }
       const m = new Map(); for (const x of got) { const o = m.get(x.url); m.set(x.url, o ? { ...o, heat: Math.max(o.heat, x.heat), kinds: [...new Set([...(o.kinds || [o.kind]), x.kind])], claim: o.claim || x.claim, confirmed: o.confirmed || x.confirmed } : { ...x, kinds: [x.kind] }); }
-      const list = [...m.values()].sort((a, b) => b.heat - a.heat); /* ZR-1103：抓到的全部列出 */
+      const list = [...m.values()].filter((x) => !x.ended || x.claim).sort((a, b) => b.heat - a.heat); /* ZR-1103：抓到的全部列出（AIRDEEP-1127：来源标「已结束」又不能领取的不列） */
       const old = new Map((HOT.list || []).map((x) => [x.url, x])); let n = diag.src === 'sitemap' ? DETAIL_BUDGET : 0; /* 备用来源时详情页一样会被挡：不抓（沿用以前抓到的） */
-      for (const x of list) { const o = old.get(x.url); if (o?.det && Date.now() - (o.det.at || 0) < 24 * 3600e3) { x.det = o.det; continue; } if (n >= DETAIL_BUDGET) { if (o?.det) x.det = o.det; continue; } n++; try { x.det = parseDetail(await (await fetch(x.url, { headers: { 'user-agent': 'Mozilla/5.0 RobinCatRadar' }, signal: AbortSignal.timeout(20000) })).text()); } catch { if (o?.det) x.det = o.det; } await new Promise((r) => setTimeout(r, 800)); }
+      for (const x of [...list].sort((a, b) => String(b.pub || '').localeCompare(String(a.pub || '')))) { const o = old.get(x.url); if (o?.det && Date.now() - (o.det.at || 0) < 24 * 3600e3) { x.det = o.det; continue; } /*AIRDEEP-1127 详情页先抓最新收录的（日报要用），旧的慢慢轮 */ if (n >= DETAIL_BUDGET) { if (o?.det) x.det = o.det; continue; } n++; try { x.det = parseDetail(await (await fetch(x.url, { headers: { 'user-agent': 'Mozilla/5.0 RobinCatRadar' }, signal: AbortSignal.timeout(20000) })).text()); } catch { if (o?.det) x.det = o.det; } await new Promise((r) => setTimeout(r, 800)); }
       await llama();
       for (const x of list) { const txt = [x.name, x.act, x.det?.desc].join(' '); x.sect = sectOf(txt); x.money = MONEY.test(x.act + ' ' + (x.det?.desc || '')) && !/^free$/i.test(x.det?.cost || ''); const L = LL.m?.[nk(x.name)]; if (L) { x.llama = L; const lk = LLC[L.c]; if (lk && !x.sect.includes(lk)) x.sect = [lk, ...x.sect]; } x.src = 1 + (L ? 1 : 0); const o = old.get(x.url); if (o?.risk && Date.now() - (o.risk.at || 0) < 24 * 3600e3) x.risk = o.risk; }
       for (const x of list.filter((y) => y.host && !y.risk).slice(0, RISK_BUDGET)) { try { const r = await checkUrl('https://' + x.host); x.risk = { lvl: r.lvl, why: r.why, age: r.age ?? null, at: Date.now() }; } catch {} }
