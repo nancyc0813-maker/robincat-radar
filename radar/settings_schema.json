@@ -7363,6 +7363,19 @@
    "need": "air.daily.on"
   },
   {
+   "k": "air.daily.worth",
+   "g": "air",
+   "type": "bool",
+   "def": 0,
+   "min": 0,
+   "max": 1,
+   "zh": "只列值得做的",
+   "en": "Only worthwhile ones",
+   "dzh": "只列来源上「已经可以领取／已确认会空投／查得到融资」的新项目；项目页写明没有代币或没有空投的不列；其他的只在最后写「另有 N 个没列」。没开＝新项目全部列",
+   "den": "Only list new airdrops that are claimable, confirmed, or have known funding; pages saying no token/airdrop are dropped; the rest are counted at the end. Off = list all new ones",
+   "need": "air.daily.on"
+  },
+  {
    "k": "air.daily.group",
    "g": "air",
    "type": "bool",

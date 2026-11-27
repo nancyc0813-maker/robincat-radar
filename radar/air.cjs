@@ -19,8 +19,8 @@ function startAir({ DATA, browse, log = () => {} }) {
     for (const part of String(html).split('<article ').slice(1)) {
       if (!/airdrop-click/.test(part.slice(0, 400))) continue;
       const a = (n) => (part.match(new RegExp(n + '="([^"]*)"')) || [])[1] || '';
-      const url = (part.match(/<a href=["']?(https:\/\/airdrops\.io\/[a-z0-9-]+\/)["']?>\s*<h3>/i) || [])[1] || '';
-      const name = strip((part.match(/<h3>([\s\S]*?)<\/h3>/) || [])[1]);
+      const url = (part.match(/<a href=["']?(https:\/\/airdrops\.io\/[a-z0-9-]+\/)["']?[^>]*>\s*<h3\b[^>]*>/i) || [])[1] || ''; /*AIRH3-1127 11/27 实测 airdrops.io 的标题改成 <h3 translate="no">，旧写法认不到＝0 个项目、才掉进宽松读法 */
+      const name = strip((part.match(/<h3\b[^>]*>([\s\S]*?)<\/h3>/) || [])[1]);
       if (!url || !name) continue;
       const img = (part.match(/data-src="(https:\/\/airdrops\.io\/wp-content\/[^"]+)"/) || [])[1] || '';
       const act = strip((part.match(/Actions:\s*<span>([\s\S]*?)<\/span>/) || [])[1]).slice(0, 160);

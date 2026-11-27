@@ -21071,6 +21071,12 @@
    "reason": "AIRLOCAL-1126：时钟范围（0–23 点、0–59 分），不是门槛"
   },
   {
+   "rule": "KWLIST",
+   "file": "airreport\\.mjs$",
+   "match": "no \\(\\?:token\\|airdrop\\)",
+   "reason": "AIRW-1127：认项目页原文「没有代币／没有空投」的文字比对（来源事实，只在玩家打开「只列值得做的」时用），{0,40} 是句子里中间字数的技术范围，不是门槛"
+  },
+  {
    "rule": "TIMEWIN",
    "file": "radar/air\\.cjs$",
    "match": "AL = \\{ lockMs: 900e3 \\}",

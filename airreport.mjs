@@ -17,20 +17,25 @@ function line(x) { const f = []; const d = x.det || {};
   if (x.via === 'sitemap') f.push(`来源更新：${x.upd}｜图片上传：${x.ym}`); if (x.ends) f.push(`截止：${x.ends}`); if (d.chains?.length) f.push(`链：${d.chains.join('、')}`); if (d.cost) f.push(`成本：${d.cost}`);
   const req = (x.req || []).length ? `要求：${x.req.join('、')}` : '';
   return [`• ${x.name}`, f.length ? '  ' + f.join('｜') : '', x.act ? `  任务：${x.act}` : '', req ? '  ' + req : '', `  ${x.url}`].filter(Boolean).join('\n'); }
+/*AIRW-1127「值得做」只看来源上的事实：已经可以领取、来源标已确认、或查得到融资＝列；项目页写明没有代币／没有空投＝不列；详情还没读到＝先不列也不记成推过（下次再看）。1＝列、-1＝不列、0＝资料还没读到 */
+export function worthOf(x) { const d = x.det; if (x.claim) return 1; if (d && /\bno (?:token|airdrop)\b|isn['’]t one|there is no [^.]{0,40}(?:airdrop|token)/i.test(d.desc || '')) return -1; if (x.confirmed) return 1; if (!d) return 0; return d.fund ? 1 : -1; }
 /* 组出一则讯息（纯函式，给测试用）。list＝air_hot.json 的 list；sent＝推过的 {url: 时间}；firstSeen＝{url: 第一次看到的时间} */
-export function buildReport({ list, at, days, sent = {}, firstSeen = {}, now = Date.now(), src = 'html' }) {
+export function buildReport({ list, at, days, sent = {}, firstSeen = {}, now = Date.now(), src = 'html', worth = false }) {
   const d0 = new Date(now); const today = ymd(d0); const m0 = new Date(d0); m0.setHours(0, 0, 0, 0); const from = m0.getTime() - days * T.dayMs; const out = []; /* 最近 N 天＝从 N 天前的 0 点（这台电脑的时间）到现在 */
   for (const x of list || []) { if (!x?.url || sent[x.url]) continue; if (x.ends && x.ends < today) continue; /* 已经截止的不列 */
+    if (x.via === 'loose') continue; /*AIRH3-1127 宽松读法抓到的只有网址（导览页也会混进来、没有收录日）：不能判断是不是新项目，日报不列 */
     const t = x.pub ? Date.parse(x.pub + 'T00:00:00') : firstSeen[x.url]; if (x.via === 'sitemap') { if (!(x.ym && x.ym >= ymOf(new Date(from)) && Date.parse(x.upd + 'T00:00:00') >= from)) continue; } /*AIRFB-1126 备用来源没有收录日：图片上传月份不早于这段时间的月份、而且来源在这段时间有更新，才算新的（旧项目更新不算） */ else if (!(t >= from)) continue; out.push(x); } /* 收录日期：来源的发布日；没有就用雷达第一次看到的时间 */
+  let skip = 0, wait = 0; if (worth) { const keep = []; for (const x of out) { const v = worthOf(x); if (v === 1) keep.push(x); else if (v === 0) wait++; else skip++; } out.length = 0; out.push(...keep); } /*AIRW-1127 你打开「只列值得做的」才过滤（预设关） */
   const title = `🪂 每日空投雷达 ${pad(d0.getMonth() + 1)}/${pad(d0.getDate())}`; const foot = '⚠️ 以上只列来源上的事实（状态、融资、截止日），不是推荐，参与前请自己查证（DYOR）。';
   const stamp = (ms) => `${pad(new Date(ms).getMonth() + 1)}/${pad(new Date(ms).getDate())} ${pad(new Date(ms).getHours())}:${pad(new Date(ms).getMinutes())}`;
   if (!(at >= from)) return { stale: true, items: [], text: [title, `⚠️ 空投清单停在 ${at ? stamp(at) : '（从来没读到）'}，比你设的「最近 ${days} 天」还旧（来源读不到），今天没办法判断有没有新项目；雷达会继续试。`, '', foot].join('\n') }; /*AIRFB-1126 清单太旧＝照实说，不能说成「今日无新项目」 */
   const srcL = `资料：airdrops.io${src === 'sitemap' ? ' 网站地图（首页读不到，用备用来源）' : ''}${at ? '，更新于 ' + `${pad(new Date(at).getMonth() + 1)}/${pad(new Date(at).getDate())} ${pad(new Date(at).getHours())}:${pad(new Date(at).getMinutes())}` : ''}；最近 ${days} 天新收录`;
-  if (!out.length) return { text: [title, srcL, '', '今日无新项目', '', foot].join('\n'), items: [] };
+  const skipL = worth && (skip || wait) ? `另有 ${skip ? `${skip} 个没融资、也没确认会空投，没列` : ''}${skip && wait ? '；' : ''}${wait ? `${wait} 个项目资料还没读到，明天再看` : ''}` : '';
+  if (!out.length) return { text: [title, srcL, '', worth ? '今日没有值得做的新项目' : '今日无新项目', ...(skipL ? ['', skipL] : []), '', foot].join('\n'), items: [] };
   const parts = [title, srcL]; const used = []; let more = 0;
   for (const [g, zh] of GROUPS) { const L = out.filter((x) => groupOf(x) === g).sort((a, b) => (b.heat || 0) - (a.heat || 0)); if (!L.length) continue; let head = false;
     for (const x of L) { const s = line(x); const cur = parts.join('\n').length + s.length + foot.length + (head ? 0 : zh.length + 2) + 80; if (cur > T.tgMax) { more++; continue; } if (!head) { parts.push('', zh); head = true; } parts.push(s); used.push(x); } }
-  if (more) parts.push('', `另有 ${more} 个新项目放不下（一则 TG 有字数上限），请看雷达「空投」页`);
+  if (more) parts.push('', `另有 ${more} 个新项目放不下（一则 TG 有字数上限），请看雷达「空投」页`); if (skipL) parts.push('', skipL);
   parts.push('', foot); return { text: parts.join('\n'), items: used };
 }
 export function startAirReport({ DIR, radarSet, send, log, refresh = null, now = () => Date.now() }) {
@@ -46,7 +51,7 @@ export function startAirReport({ DIR, radarSet, send, log, refresh = null, now =
     try { await refresh?.(); } catch {} /* 发之前先让清单更新（清单够新就不会重抓；另一边正在抓就用它的） */ seenTick();
     let H = null; try { H = existsSync(HF) ? JSON.parse(readFileSync(HF, 'utf8')) : null; } catch {}
     if (!H?.list?.length) { const w = '空投清单还没有资料（来源读不到），先不发，之后再试'; if (warned !== w) { warned = w; log('[空投日报] ' + w); } return { sent: false, why: w }; } /* 读不到资料＝不发（不能说成「今日无新项目」） */
-    const R = buildReport({ list: H?.list || [], at: H?.at || 0, days, sent: ST.sent, firstSeen: ST.seen, now: t, src: H?.src || 'html' });
+    const R = buildReport({ list: H?.list || [], at: H?.at || 0, days, sent: ST.sent, firstSeen: ST.seen, now: t, src: H?.src || 'html', worth: on('air.daily.worth') });
     const ok = await send(R.text).catch(() => false); if (!ok) { log('[空投日报] TG 没送出（没设机器人／这一类没开／网路），下次检查再试'); return { sent: false, why: 'TG 没送出' }; }
     for (const x of R.items) ST.sent[x.url] = t; ST.lastDay = today; const cut = t - T.keepDays * T.dayMs; for (const m of [ST.sent, ST.seen]) for (const [k, v] of Object.entries(m)) if (v < cut) delete m[k]; save(); log(R.stale ? '[空投日报] 已发：清单太旧（来源读不到）' : `[空投日报] 已发 ${R.items.length} 个新项目`); return { sent: true, n: R.items.length, stale: !!R.stale, text: R.text };
   }

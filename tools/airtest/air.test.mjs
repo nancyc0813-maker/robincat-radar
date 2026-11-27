@@ -75,3 +75,12 @@ test('回 200 但格式不同：宽松读法找项目连结（分类／部落格
   const D = JSON.parse(readFileSync(join(DATA, 'air_fetch.json'), 'utf8')); const c = D.pages.find((p) => p.k === 'confirmed'), h = D.pages.find((p) => p.k === 'hot'); assert.equal(c.loose, 1); assert.equal(h.n, 0); assert.match(h.why, /页面格式变了/);
   const S = readFileSync(join(DATA, 'air_fetch_sample_hot.html'), 'utf8'); assert.match(S, /HTTP 200/); assert.match(S, /cf-cache-status: HIT/); assert.match(S, /nothing/);
   const S2 = readFileSync(join(DATA, 'air_fetch_sample_confirmed.html'), 'utf8'); assert.ok(S2.length < 4096 + 600, `样本有上限（${S2.length}）`); });
+test('AIRW-1127 只列值得做的：可领取／已确认／有融资才列；写明没有代币的不列；详情没读到先不列也不记成推过', () => {
+  const L = [item(1, { confirmed: true }), item(2, { det: { fund: '$8M' } }), item(3, { det: { fund: '' } }), item(4, { confirmed: true, det: { desc: 'There is no DECA airdrop and no token.' } }), item(5, { det: undefined }), item(6, { claim: true })];
+  const r = buildReport({ list: L, at: NOW, days: 3, now: NOW, worth: true });
+  assert.deepEqual(r.items.map((x) => x.name).sort(), [L[0].name, L[1].name, L[5].name].sort());
+  assert.match(r.text, /另有 2 个没融资、也没确认会空投，没列；1 个项目资料还没读到/);
+  const off = buildReport({ list: L, at: NOW, days: 3, now: NOW }); assert.equal(off.items.length, 6, '没开＝全部列');
+});
+test('AIRW-1127 全部不值得做 → 「今日没有值得做的新项目」＋另有 N 个', () => { const r = buildReport({ list: [item(1, { det: { fund: '' } })], at: NOW, days: 3, now: NOW, worth: true }); assert.match(r.text, /今日没有值得做的新项目/); assert.match(r.text, /另有 1 个/); assert.equal(r.items.length, 0); });
+test('AIRH3-1127 宽松读法抓到的（没有收录日、可能是导览页）日报不列', () => { const r = buildReport({ list: [item(1, { via: 'loose', pub: '' })], at: NOW, days: 3, now: NOW, firstSeen: { [item(1).url]: NOW } }); assert.equal(r.items.length, 0); });
